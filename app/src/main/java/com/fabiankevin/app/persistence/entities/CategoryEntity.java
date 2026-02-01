@@ -20,8 +20,11 @@ public class CategoryEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+    @Column(unique = true, length = 128)
     private String name;
+    @Column(nullable = false)
     private Instant createdAt;
+    @Column(nullable = false)
     private Instant updatedAt;
 
     public static CategoryEntity from(Category category) {

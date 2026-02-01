@@ -14,3 +14,4 @@ When writing core service test implementation, please follow these guidelines:
 - Use assertions to verify the expected outcomes of each test case.
 - Use `@ParameterizedTest` and `@ValueSource` for parameterized tests where applicable.
 - Use AssertJ for assertions for complex assertions and JUnit 5 assertions for simple assertions.
+- Order the test methods logically, grouping related tests together.

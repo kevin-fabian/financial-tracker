@@ -8,7 +8,7 @@ description: 'Data JPA Test for repository implementation'
 When writing unit test for repository implementations, please follow these guidelines:
 
 - Place test classes in the `persistence/repositories` package.
-- Use `@DataJpaTest` annotation for the test class to configure an in-memory database and scan for JPA entities and
+- Use `org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest` annotation for the test class to configure an in-memory database and scan for JPA entities and
   repositories.
 - Do not mock the repository implementation being tested; instead, use a real instance with an in-memory database.
 - Use `@TestConfiguration` to define beans required for testing the repository implementation.
