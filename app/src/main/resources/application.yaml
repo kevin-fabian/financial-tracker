@@ -1,1 +1,4 @@
-spring.application.name=app
+spring:
+  profiles:
+    active:
+      - local
