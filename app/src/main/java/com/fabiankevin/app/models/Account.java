@@ -19,16 +19,4 @@ public record Account(
     public Account {
         Optional.ofNullable(currency).orElseThrow(() -> new IllegalArgumentException("Currency is required"));
     }
-
-//    public double getBalance() {
-//        return sumTransactionAmountByType(INCOME) - sumTransactionAmountByType(EXPENSE);
-//    }
-//
-//    private double sumTransactionAmountByType(TransactionType type){
-//        return transactions.stream()
-//                .filter(transaction -> type == transaction.type())
-//                .map(Transaction::amount)
-//                .flatMapToDouble(amount -> DoubleStream.builder().add(amount.value().doubleValue()).build())
-//                .sum();
-//    }
 }

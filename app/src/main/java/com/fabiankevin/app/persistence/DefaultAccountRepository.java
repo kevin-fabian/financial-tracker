@@ -20,4 +20,15 @@ public class DefaultAccountRepository implements AccountRepository {
                 .map(AccountEntity::toModel);
     }
 
+    @Override
+    public Account save(Account account) {
+        AccountEntity saved = jpaAccountRepository.save(AccountEntity.from(account));
+        return saved.toModel();
+    }
+
+    @Override
+    public void deleteById(UUID id) {
+        jpaAccountRepository.deleteById(id);
+    }
+
 }
