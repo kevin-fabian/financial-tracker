@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.Currency;
+import java.util.Optional;
 
 @Data
 @AllArgsConstructor
@@ -24,13 +25,17 @@ public class AmountEmbeddable {
     private String currency;
 
     public static AmountEmbeddable from(Amount amount) {
+        if (amount == null) return null;
         return AmountEmbeddable.builder()
                 .amount(amount.value())
-                .currency(amount.currency().getCurrencyCode())
+                .currency(Optional.ofNullable(amount.currency()).map(Currency::getCurrencyCode).orElse(null))
                 .build();
     }
 
     public Amount toModel() {
-        return new Amount(amount, Currency.getInstance(currency));
+        return new Amount(
+                this.amount,
+                Optional.ofNullable(this.currency).map(Currency::getInstance).orElse(null)
+        );
     }
 }

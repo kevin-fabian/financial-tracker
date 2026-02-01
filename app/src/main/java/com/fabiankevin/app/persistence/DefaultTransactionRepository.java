@@ -1,14 +1,33 @@
 package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.Transaction;
-import jakarta.transaction.Transactional;
+import com.fabiankevin.app.persistence.entities.TransactionEntity;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+import java.util.UUID;
 
+@RequiredArgsConstructor
+@Repository
 public class DefaultTransactionRepository implements TransactionRepository {
-    @Override
-    @Transactional
-    public Transaction save(Transaction transaction) {
+    private final JpaTransactionRepository jpaTransactionRepository;
 
-        return null;
+    @Override
+    public Transaction save(Transaction transaction) {
+        TransactionEntity saved = jpaTransactionRepository.save(TransactionEntity.from(transaction));
+        return saved.toModel();
+    }
+
+    @Override
+    public Optional<Transaction> findById(UUID id) {
+        return jpaTransactionRepository.findById(id)
+                .map(TransactionEntity::toModel);
+    }
+
+    @Override
+    public void deleteById(UUID id) {
+        jpaTransactionRepository.deleteById(id);
     }
 }

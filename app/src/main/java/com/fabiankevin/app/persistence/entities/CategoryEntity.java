@@ -1,5 +1,6 @@
 package com.fabiankevin.app.persistence.entities;
 
+import com.fabiankevin.app.models.Category;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,4 +23,23 @@ public class CategoryEntity {
     private String name;
     private Instant createdAt;
     private Instant updatedAt;
+
+    public static CategoryEntity from(Category category) {
+        if (category == null) return null;
+        return CategoryEntity.builder()
+                .id(category.id())
+                .name(category.name())
+                .createdAt(category.createdAt())
+                .updatedAt(category.updatedAt())
+                .build();
+    }
+
+    public Category toModel() {
+        return Category.builder()
+                .id(this.id)
+                .name(this.name)
+                .createdAt(this.createdAt)
+                .updatedAt(this.updatedAt)
+                .build();
+    }
 }
