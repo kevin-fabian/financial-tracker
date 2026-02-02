@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
 
+import java.util.UUID;
+
 @Builder(toBuilder = true)
 @Schema(description = "Request DTO for creating a category")
 public record CreateCategoryRequest(
@@ -12,9 +14,10 @@ public record CreateCategoryRequest(
         @Schema(description = "Name of the category", example = "FOOD")
         String name
 ) {
-    public CreateCategoryCommand toCommand() {
+    public CreateCategoryCommand toCommand(UUID userId) {
         return CreateCategoryCommand.builder()
                 .name(this.name())
+                .userId(userId)
                 .build();
     }
 }

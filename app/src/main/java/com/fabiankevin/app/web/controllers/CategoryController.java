@@ -2,7 +2,6 @@ package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.services.CategoryService;
-import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.CategoryResponse;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,7 +38,6 @@ public class CategoryController {
     )
     @GetMapping("/{id}")
     public CategoryResponse getCategory(@PathVariable UUID id, JwtAuthenticationToken jwtAuthenticationToken) {
-        log.debug("GET /categories/{}", id);
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         Category category = categoryService.getCategoryById(id, userId);
         return CategoryResponse.from(category);
@@ -58,8 +56,7 @@ public class CategoryController {
     @PostMapping
     public ResponseEntity<CategoryResponse> createCategory(@Valid @RequestBody CreateCategoryRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        CreateCategoryCommand command = request.toCommand().toBuilder().userId(userId).build();
-        Category createdCategory = categoryService.createCategory(command);
+        Category createdCategory = categoryService.createCategory(request.toCommand(userId));
         CategoryResponse response = CategoryResponse.from(createdCategory);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
