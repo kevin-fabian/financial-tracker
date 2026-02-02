@@ -1,9 +1,6 @@
 package com.fabiankevin.app.services;
 
-import com.fabiankevin.app.models.Account;
-import com.fabiankevin.app.models.Amount;
-import com.fabiankevin.app.models.Category;
-import com.fabiankevin.app.models.Transaction;
+import com.fabiankevin.app.models.*;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
@@ -45,15 +42,17 @@ class DefaultTransactionServiceTest {
                 .categoryId(UUID.randomUUID())
                 .transactionDate(LocalDate.now())
                 .build();
+        UUID userId = UUID.randomUUID();
         when(accountRepository.findById(command.accountId())).thenReturn(Optional.ofNullable(Account.builder()
                         .id(command.accountId())
                         .name("GCASH")
                         .currency(Currency.getInstance("PHP"))
+                        .user(User.builder().id(userId).build())
                 .build()));
-        when(categoryRepository.findById(command.categoryId())).thenReturn(Optional.of(Category.builder()
+        when(categoryRepository.findByIdAndUserId(command.categoryId(), userId)).thenReturn(Optional.of(Category.builder()
                         .id(command.categoryId())
                         .name("FOOD")
-                        .userId(UUID.randomUUID())
+                        .userId(userId)
                 .build()));
         when(transactionRepository.save(any())).then(invocationOnMock -> {
             Transaction transaction = invocationOnMock.getArgument(0);
@@ -68,7 +67,7 @@ class DefaultTransactionServiceTest {
         assertEquals("Food and drinks", transaction.description(), "description should match");
 
         verify(accountRepository, times(1)).findById(command.accountId());
-        verify(categoryRepository, times(1)).findById(command.categoryId());
+        verify(categoryRepository, times(1)).findByIdAndUserId(command.categoryId(), userId);
         verify(transactionRepository, times(1)).save(any());
     }
 }

@@ -15,12 +15,6 @@ public class DefaultCategoryRepository implements CategoryRepository {
     private final JpaCategoryRepository jpaCategoryRepository;
 
     @Override
-    public Optional<Category> findById(UUID id) {
-        return jpaCategoryRepository.findById(id)
-                .map(CategoryEntity::toModel);
-    }
-
-    @Override
     public Optional<Category> findByIdAndUserId(UUID id, UUID userId) {
         return jpaCategoryRepository.findByIdAndUserId(id, userId)
                 .map(CategoryEntity::toModel);
@@ -35,11 +29,6 @@ public class DefaultCategoryRepository implements CategoryRepository {
     public Category save(Category category) {
         CategoryEntity saved = jpaCategoryRepository.save(CategoryEntity.from(category));
         return saved.toModel();
-    }
-
-    @Override
-    public void deleteById(UUID id) {
-        jpaCategoryRepository.deleteById(id);
     }
 
     @Override

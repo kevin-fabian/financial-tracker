@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @Service
@@ -27,7 +28,9 @@ public class DefaultTransactionService implements TransactionService {
     public Transaction addTransaction(AddTransactionCommand command) {
         Account account = accountRepository.findById(command.accountId())
                 .orElseThrow(AccountNotFoundException::new);
-        Category category = categoryRepository.findById(command.categoryId())
+        // ensure the category belongs to the same user as the account
+        UUID userId = account.user().id();
+        Category category = categoryRepository.findByIdAndUserId(command.categoryId(), userId)
                 .orElseThrow(CategoryNotFoundException::new);
 
         Transaction transaction = Transaction.builder()

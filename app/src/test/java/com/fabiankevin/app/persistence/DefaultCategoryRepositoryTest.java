@@ -53,7 +53,7 @@ class DefaultCategoryRepositoryTest {
     void save_givenValidCategory_shouldPersistAndRetrieve() {
         Category saved = categoryRepository.save(category);
 
-        var found = categoryRepository.findById(saved.id()).orElseThrow();
+        var found = categoryRepository.findByIdAndUserId(saved.id(), saved.userId()).orElseThrow();
 
         Assertions.assertThat(found)
                 .as("found category should match saved category ignoring id")
@@ -62,7 +62,7 @@ class DefaultCategoryRepositoryTest {
                 .isEqualTo(saved);
 
         verify(jpaCategoryRepository, times(1)).save(any());
-        verify(jpaCategoryRepository, times(1)).findById(saved.id());
+        verify(jpaCategoryRepository, times(1)).findByIdAndUserId(saved.id(), saved.userId());
     }
 
     @Test
@@ -76,17 +76,19 @@ class DefaultCategoryRepositoryTest {
     void deleteById_givenExistingCategory_shouldRemoveCategory() {
         Category saved = categoryRepository.save(category);
 
-        categoryRepository.deleteById(saved.id());
+        categoryRepository.deleteByIdAndUserId(saved.id(), saved.userId());
 
-        Optional<Category> found = categoryRepository.findById(saved.id());
+        Optional<Category> found = categoryRepository.findByIdAndUserId(saved.id(), saved.userId());
         Assertions.assertThat(found).as("category should be deleted and retrieval should return empty optional").isEmpty();
 
-        verify(jpaCategoryRepository, times(1)).deleteById(saved.id());
+        verify(jpaCategoryRepository, times(1)).deleteByIdAndUserId(saved.id(), saved.userId());
     }
 
     @Test
     void findById_givenNonExisting_shouldReturnEmptyOptional() {
-        var found = categoryRepository.findById(java.util.UUID.randomUUID());
+        UUID id = java.util.UUID.randomUUID();
+        UUID userId = java.util.UUID.randomUUID();
+        var found = categoryRepository.findByIdAndUserId(id, userId);
 
         Assertions.assertThat(found).as("non existing id returns empty optional").isEmpty();
     }
