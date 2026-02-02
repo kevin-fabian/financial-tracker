@@ -1,0 +1,116 @@
+package com.fabiankevin.app.web.controllers;
+
+import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.services.AccountService;
+import com.fabiankevin.app.web.controllers.dtos.CreateAccountRequest;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(AccountController.class)
+class AccountControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
+    private AccountService accountService;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private Jwt jwt;
+
+    @BeforeEach
+    void setup(){
+        jwt = Jwt.withTokenValue(UUID.randomUUID().toString())
+                .subject(UUID.randomUUID().toString())
+                .header("alg", "RS256")
+                .audience(List.of("financial-tracker-test"))
+                .claim("role", "USER")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+    }
+
+    @Test
+    void createAccount_givenValidRequest_thenShouldCreateAccount() throws Exception {
+        CreateAccountRequest request = CreateAccountRequest.builder()
+                .name("GCASH")
+                .currency("PHP")
+                .build();
+
+        when(accountService.createAccount(any())).thenAnswer(invocation -> {
+            java.util.UUID id = UUID.randomUUID();
+            com.fabiankevin.app.services.commands.CreateAccountCommand command = invocation.getArgument(0);
+            UUID userId = command.userId() != null ? command.userId() : UUID.randomUUID();
+            return Account.builder()
+                    .id(id)
+                    .name(command.name())
+                    .userId(userId)
+                    .currency(command.currency())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+        });
+
+        mockMvc.perform(post("/api/accounts")
+                        .with(jwt().jwt(jwt))
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/accounts/[-a-f0-9]{36}")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").isNotEmpty())
+                .andExpect(jsonPath("$.name").value("GCASH"));
+
+        verify(accountService, times(1)).createAccount(any());
+    }
+
+    @Test
+    void getAccountById_givenExistingId_thenShouldReturnAccount() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        when(accountService.getAccountById(id, userId)).thenReturn(Account.builder()
+                .id(id)
+                .name("GCASH")
+                .userId(userId)
+                .currency(java.util.Currency.getInstance("PHP"))
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build());
+
+        mockMvc.perform(get("/api/accounts/" + id)
+                .with(jwt().jwt(jwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.name").value("GCASH"));
+
+        verify(accountService, times(1)).getAccountById(id, userId);
+    }
+
+    @Test
+    void deleteAccountById_givenExistingId_thenShouldReturnNoContent() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        mockMvc.perform(delete("/api/accounts/" + id)
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isNoContent());
+
+        verify(accountService, times(1)).deleteAccountById(id, userId);
+    }
+}
