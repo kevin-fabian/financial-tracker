@@ -5,17 +5,21 @@ import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -30,6 +34,19 @@ class CategoryControllerTest {
     private CategoryService categoryService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private Jwt jwt;
+
+    @BeforeEach
+    void setup(){
+        jwt = Jwt.withTokenValue(UUID.randomUUID().toString())
+                .subject(UUID.randomUUID().toString())
+                .header("alg", "RS256")
+                .audience(List.of("financial-tracker-test"))
+                .claim("role", "USER")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+    }
 
     @Test
     void createCategory_givenValidRequest_thenShouldCreateCategory() throws Exception {
@@ -50,6 +67,7 @@ class CategoryControllerTest {
         });
 
         mockMvc.perform(post("/api/categories")
+                        .with(jwt().jwt(jwt))
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -70,7 +88,8 @@ class CategoryControllerTest {
                 .updatedAt(Instant.now())
                 .build());
 
-        mockMvc.perform(get("/api/categories/" + id))
+        mockMvc.perform(get("/api/categories/" + id)
+                .with(jwt().jwt(jwt)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.name").value("FOOD"));
@@ -82,7 +101,8 @@ class CategoryControllerTest {
     void deleteCategoryById_givenExistingId_thenShouldReturnNoContent() throws Exception {
         UUID id = UUID.randomUUID();
 
-        mockMvc.perform(delete("/api/categories/" + id))
+        mockMvc.perform(delete("/api/categories/" + id)
+                        .with(jwt().jwt(jwt)))
                 .andExpect(status().isNoContent());
 
         verify(categoryService, times(1)).deleteCategoryById(id);

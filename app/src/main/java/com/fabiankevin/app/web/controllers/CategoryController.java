@@ -13,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -36,7 +37,7 @@ public class CategoryController {
             }
     )
     @GetMapping("/{id}")
-    public CategoryResponse getCategory(@PathVariable UUID id) {
+    public CategoryResponse getCategory(@PathVariable UUID id, JwtAuthenticationToken jwtAuthenticationToken) {
         log.debug("GET /categories/{}", id);
         Category category = categoryService.getCategoryById(id);
         return CategoryResponse.from(category);
@@ -52,14 +53,13 @@ public class CategoryController {
             }
     )
     @PostMapping
-    public ResponseEntity<CategoryResponse> createCategory(@Valid @RequestBody CreateCategoryRequest request) {
-        log.debug("POST /categories - name={}", request.name());
+    public ResponseEntity<CategoryResponse> createCategory(@Valid @RequestBody CreateCategoryRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
         CreateCategoryCommand command = request.toCommand();
-        Category created = categoryService.createCategory(command);
-        CategoryResponse response = CategoryResponse.from(created);
+        Category createdCategory = categoryService.createCategory(command);
+        CategoryResponse response = CategoryResponse.from(createdCategory);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
-                .buildAndExpand(created.id())
+                .buildAndExpand(response.id())
                 .toUri();
         return ResponseEntity.created(location).body(response);
     }
@@ -73,7 +73,7 @@ public class CategoryController {
             }
     )
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCategory(@PathVariable UUID id) {
+    public ResponseEntity<Void> deleteCategory(@PathVariable UUID id, JwtAuthenticationToken jwtAuthenticationToken) {
         log.debug("DELETE /categories/{}", id);
         categoryService.deleteCategoryById(id);
         return ResponseEntity.noContent().build();
