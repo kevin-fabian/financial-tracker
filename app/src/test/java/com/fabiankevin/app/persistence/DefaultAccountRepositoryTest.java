@@ -42,6 +42,7 @@ class DefaultAccountRepositoryTest {
     void setUp() {
         account = Account.builder()
                 .name("GCASH")
+                .userId(UUID.randomUUID())
                 .currency(java.util.Currency.getInstance("PHP"))
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())

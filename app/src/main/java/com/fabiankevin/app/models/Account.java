@@ -11,12 +11,25 @@ import java.util.UUID;
 public record Account(
         UUID id,
         String name,
-        User user,
+        UUID userId,
         Currency currency,
         Instant createdAt,
         Instant updatedAt
 ) {
     public Account {
+        Optional.ofNullable(userId).orElseThrow(() -> new IllegalArgumentException("User ID is required"));
         Optional.ofNullable(currency).orElseThrow(() -> new IllegalArgumentException("Currency is required"));
     }
+
+//    public double getBalance() {
+//        return sumTransactionAmountByType(INCOME) - sumTransactionAmountByType(EXPENSE);
+//    }
+//
+//    private double sumTransactionAmountByType(TransactionType type){
+//        return transactions.stream()
+//                .filter(transaction -> type == transaction.type())
+//                .map(Transaction::amount)
+//                .flatMapToDouble(amount -> DoubleStream.builder().add(amount.value().doubleValue()).build())
+//                .sum();
+//    }
 }

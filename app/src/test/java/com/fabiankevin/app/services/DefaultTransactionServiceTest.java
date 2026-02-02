@@ -1,6 +1,9 @@
 package com.fabiankevin.app.services;
 
-import com.fabiankevin.app.models.*;
+import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.Amount;
+import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
@@ -47,7 +50,7 @@ class DefaultTransactionServiceTest {
                         .id(command.accountId())
                         .name("GCASH")
                         .currency(Currency.getInstance("PHP"))
-                        .user(User.builder().id(userId).build())
+                        .userId(userId)
                 .build()));
         when(categoryRepository.findByIdAndUserId(command.categoryId(), userId)).thenReturn(Optional.of(Category.builder()
                         .id(command.categoryId())

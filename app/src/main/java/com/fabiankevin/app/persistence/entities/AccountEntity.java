@@ -23,6 +23,7 @@ public class AccountEntity{
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     private String name;
+    private UUID userId;
     private String currency;
     @Column(nullable = false)
     private Instant createdAt;
@@ -34,6 +35,7 @@ public class AccountEntity{
         return AccountEntity.builder()
                 .id(account.id())
                 .name(account.name())
+                .userId(account.userId())
                 .currency(Optional.ofNullable(account.currency()).map(Currency::getCurrencyCode).orElse(null))
                 .createdAt(account.createdAt())
                 .updatedAt(account.updatedAt())
@@ -44,6 +46,7 @@ public class AccountEntity{
         return Account.builder()
                 .id(this.id)
                 .name(this.name)
+                .userId(this.userId)
                 .currency(Optional.ofNullable(this.currency).map(Currency::getInstance).orElse(null))
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)

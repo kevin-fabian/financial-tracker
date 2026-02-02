@@ -29,7 +29,7 @@ public class DefaultTransactionService implements TransactionService {
         Account account = accountRepository.findById(command.accountId())
                 .orElseThrow(AccountNotFoundException::new);
         // ensure the category belongs to the same user as the account
-        UUID userId = account.user().id();
+        UUID userId = account.userId();
         Category category = categoryRepository.findByIdAndUserId(command.categoryId(), userId)
                 .orElseThrow(CategoryNotFoundException::new);
 
