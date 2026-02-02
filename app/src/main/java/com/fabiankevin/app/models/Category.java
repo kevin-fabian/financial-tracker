@@ -9,13 +9,15 @@ import java.util.UUID;
 public record Category(
         UUID id,
         String name,
+        UUID userId,
         Instant createdAt,
         Instant updatedAt
 ) {
 
-    public static Category of(String name){
+    public static Category of(String name, UUID userId){
         return Category.builder()
                 .name(name)
+                .userId(userId)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();

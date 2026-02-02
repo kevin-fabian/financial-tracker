@@ -24,7 +24,7 @@ public class DefaultCategoryService implements CategoryService {
     @Transactional
     @Override
     public Category createCategory(CreateCategoryCommand command) {
-        Category category = Category.of(command.name());
+        Category category = Category.of(command.name(), command.userId());
         return categoryRepository.save(category);
     }
 

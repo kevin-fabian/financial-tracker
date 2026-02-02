@@ -28,8 +28,10 @@ class DefaultCategoryServiceTest {
 
     @Test
     void createCategory_givenValidCommand_thenShouldSaveCategory() {
+        UUID userId = UUID.randomUUID();
         CreateCategoryCommand command = CreateCategoryCommand.builder()
                 .name("FOOD")
+                .userId(userId)
                 .build();
 
         when(categoryRepository.save(any())).thenAnswer(invocation -> {
@@ -40,15 +42,18 @@ class DefaultCategoryServiceTest {
         Category created = categoryService.createCategory(command);
 
         assertEquals("FOOD", created.name(), "name should match command");
+        assertEquals(userId, created.userId(), "userId should be set from command");
         verify(categoryRepository, times(1)).save(any());
     }
 
     @Test
     void getCategoryById_givenExistingId_thenShouldReturnCategory() {
         UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
         when(categoryRepository.findById(id)).thenReturn(Optional.of(Category.builder()
                 .id(id)
                 .name("FOOD")
+                .userId(userId)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build()));
@@ -56,6 +61,7 @@ class DefaultCategoryServiceTest {
         Category found = categoryService.getCategoryById(id);
 
         assertEquals("FOOD", found.name(), "name should match saved category");
+        assertEquals(userId, found.userId(), "userId should be preserved");
         verify(categoryRepository, times(1)).findById(id);
     }
 
@@ -74,6 +80,7 @@ class DefaultCategoryServiceTest {
         when(categoryRepository.findById(id)).thenReturn(Optional.of(Category.builder()
                 .id(id)
                 .name("FOOD")
+                .userId(UUID.randomUUID())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build()));

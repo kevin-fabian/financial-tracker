@@ -53,6 +53,7 @@ class DefaultTransactionServiceTest {
         when(categoryRepository.findById(command.categoryId())).thenReturn(Optional.of(Category.builder()
                         .id(command.categoryId())
                         .name("FOOD")
+                        .userId(UUID.randomUUID())
                 .build()));
         when(transactionRepository.save(any())).then(invocationOnMock -> {
             Transaction transaction = invocationOnMock.getArgument(0);

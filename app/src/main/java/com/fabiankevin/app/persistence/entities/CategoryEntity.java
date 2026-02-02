@@ -23,6 +23,8 @@ public class CategoryEntity {
     @Column(unique = true, length = 128)
     private String name;
     @Column(nullable = false)
+    private UUID userId;
+    @Column(nullable = false)
     private Instant createdAt;
     @Column(nullable = false)
     private Instant updatedAt;
@@ -32,6 +34,7 @@ public class CategoryEntity {
         return CategoryEntity.builder()
                 .id(category.id())
                 .name(category.name())
+                .userId(category.userId())
                 .createdAt(category.createdAt())
                 .updatedAt(category.updatedAt())
                 .build();
@@ -41,6 +44,7 @@ public class CategoryEntity {
         return Category.builder()
                 .id(this.id)
                 .name(this.name)
+                .userId(this.userId)
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)
                 .build();
