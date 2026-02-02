@@ -29,7 +29,7 @@ public class CategoryController {
 
     @Operation(
             summary = "Retrieve a category",
-            description = "Retrieves a category by specified ID",
+            description = "Retrieves a transaction category by specified ID",
             responses = {
                     @ApiResponse(responseCode = "200", description = "OK - Resource is retrieved successfully",
                             content = @Content(schema = @Schema(implementation = CategoryResponse.class))),
@@ -46,7 +46,7 @@ public class CategoryController {
 
     @Operation(
             summary = "Create a new category",
-            description = "Creates a new category and returns the created object",
+            description = "Creates a new transaction category and returns the created object",
             responses = {
                     @ApiResponse(responseCode = "201", description = "Created - Resource created successfully",
                             content = @Content(schema = @Schema(implementation = CategoryResponse.class))),
@@ -68,7 +68,7 @@ public class CategoryController {
 
     @Operation(
             summary = "Delete a category",
-            description = "Deletes a category by specified ID",
+            description = "Deletes a transaction category by specified ID",
             responses = {
                     @ApiResponse(responseCode = "204", description = "No Content - Resource deleted successfully"),
                     @ApiResponse(responseCode = "404", description = "Not Found - Resource not found")
