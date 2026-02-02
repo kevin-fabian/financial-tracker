@@ -33,7 +33,8 @@ public class CategoryController {
             responses = {
                     @ApiResponse(responseCode = "200", description = "OK - Resource is retrieved successfully",
                             content = @Content(schema = @Schema(implementation = CategoryResponse.class))),
-                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found")
+                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
             }
     )
     @GetMapping("/{id}")
@@ -50,7 +51,8 @@ public class CategoryController {
             responses = {
                     @ApiResponse(responseCode = "201", description = "Created - Resource created successfully",
                             content = @Content(schema = @Schema(implementation = CategoryResponse.class))),
-                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input")
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
             }
     )
     @PostMapping
@@ -71,12 +73,12 @@ public class CategoryController {
             description = "Deletes a transaction category by specified ID",
             responses = {
                     @ApiResponse(responseCode = "204", description = "No Content - Resource deleted successfully"),
-                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found")
+                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
             }
     )
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCategory(@PathVariable UUID id, JwtAuthenticationToken jwtAuthenticationToken) {
-        log.debug("DELETE /categories/{}", id);
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         categoryService.deleteCategoryById(id, userId);
         return ResponseEntity.noContent().build();
