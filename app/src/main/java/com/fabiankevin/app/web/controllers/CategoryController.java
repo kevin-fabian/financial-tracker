@@ -39,7 +39,8 @@ public class CategoryController {
     @GetMapping("/{id}")
     public CategoryResponse getCategory(@PathVariable UUID id, JwtAuthenticationToken jwtAuthenticationToken) {
         log.debug("GET /categories/{}", id);
-        Category category = categoryService.getCategoryById(id);
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        Category category = categoryService.getCategoryById(id, userId);
         return CategoryResponse.from(category);
     }
 
@@ -54,7 +55,8 @@ public class CategoryController {
     )
     @PostMapping
     public ResponseEntity<CategoryResponse> createCategory(@Valid @RequestBody CreateCategoryRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
-        CreateCategoryCommand command = request.toCommand();
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        CreateCategoryCommand command = request.toCommand().toBuilder().userId(userId).build();
         Category createdCategory = categoryService.createCategory(command);
         CategoryResponse response = CategoryResponse.from(createdCategory);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
@@ -75,7 +77,8 @@ public class CategoryController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCategory(@PathVariable UUID id, JwtAuthenticationToken jwtAuthenticationToken) {
         log.debug("DELETE /categories/{}", id);
-        categoryService.deleteCategoryById(id);
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        categoryService.deleteCategoryById(id, userId);
         return ResponseEntity.noContent().build();
     }
 }

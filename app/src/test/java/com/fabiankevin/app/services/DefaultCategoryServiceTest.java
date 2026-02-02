@@ -50,7 +50,7 @@ class DefaultCategoryServiceTest {
     void getCategoryById_givenExistingId_thenShouldReturnCategory() {
         UUID id = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
-        when(categoryRepository.findById(id)).thenReturn(Optional.of(Category.builder()
+        when(categoryRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(Category.builder()
                 .id(id)
                 .name("FOOD")
                 .userId(userId)
@@ -58,26 +58,28 @@ class DefaultCategoryServiceTest {
                 .updatedAt(Instant.now())
                 .build()));
 
-        Category found = categoryService.getCategoryById(id);
+        Category found = categoryService.getCategoryById(id, userId);
 
         assertEquals("FOOD", found.name(), "name should match saved category");
         assertEquals(userId, found.userId(), "userId should be preserved");
-        verify(categoryRepository, times(1)).findById(id);
+        verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
     }
 
     @Test
     void getCategoryById_givenNonExistingId_thenShouldThrow() {
         UUID id = UUID.randomUUID();
-        when(categoryRepository.findById(id)).thenReturn(Optional.empty());
+        UUID userId = UUID.randomUUID();
+        when(categoryRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.empty());
 
-        assertThrows(CategoryNotFoundException.class, () -> categoryService.getCategoryById(id));
-        verify(categoryRepository, times(1)).findById(id);
+        assertThrows(CategoryNotFoundException.class, () -> categoryService.getCategoryById(id, userId));
+        verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
     }
 
     @Test
     void deleteCategoryById_givenExistingId_thenShouldDelete() {
         UUID id = UUID.randomUUID();
-        when(categoryRepository.findById(id)).thenReturn(Optional.of(Category.builder()
+        UUID userId = UUID.randomUUID();
+        when(categoryRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(Category.builder()
                 .id(id)
                 .name("FOOD")
                 .userId(UUID.randomUUID())
@@ -85,19 +87,20 @@ class DefaultCategoryServiceTest {
                 .updatedAt(Instant.now())
                 .build()));
 
-        categoryService.deleteCategoryById(id);
+        categoryService.deleteCategoryById(id, userId);
 
-        verify(categoryRepository, times(1)).findById(id);
-        verify(categoryRepository, times(1)).deleteById(id);
+        verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
+        verify(categoryRepository, times(1)).deleteByIdAndUserId(id, userId);
     }
 
     @Test
     void deleteCategoryById_givenNonExistingId_thenShouldThrow() {
         UUID id = UUID.randomUUID();
-        when(categoryRepository.findById(id)).thenReturn(Optional.empty());
+        UUID userId = UUID.randomUUID();
+        when(categoryRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.empty());
 
-        assertThrows(CategoryNotFoundException.class, () -> categoryService.deleteCategoryById(id));
-        verify(categoryRepository, times(1)).findById(id);
-        verify(categoryRepository, never()).deleteById(any());
+        assertThrows(CategoryNotFoundException.class, () -> categoryService.deleteCategoryById(id, userId));
+        verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
+        verify(categoryRepository, never()).deleteByIdAndUserId(any(), any());
     }
 }

@@ -2,7 +2,6 @@ package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.services.CategoryService;
-import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,10 +55,12 @@ class CategoryControllerTest {
 
         when(categoryService.createCategory(any())).thenAnswer(invocation -> {
             UUID id = UUID.randomUUID();
-            CreateCategoryCommand command = invocation.getArgument(0);
+            com.fabiankevin.app.services.commands.CreateCategoryCommand command = invocation.getArgument(0);
+            UUID userId = command.userId() != null ? command.userId() : UUID.randomUUID();
             return Category.builder()
                     .id(id)
                     .name(command.name())
+                    .userId(userId)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -80,10 +81,12 @@ class CategoryControllerTest {
     @Test
     void getCategoryById_givenExistingId_thenShouldReturnCategory() throws Exception {
         UUID id = UUID.randomUUID();
+        UUID userId = UUID.fromString(jwt.getSubject());
 
-        when(categoryService.getCategoryById(id)).thenReturn(Category.builder()
+        when(categoryService.getCategoryById(id, userId)).thenReturn(Category.builder()
                 .id(id)
                 .name("FOOD")
+                .userId(userId)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build());
@@ -94,17 +97,18 @@ class CategoryControllerTest {
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.name").value("FOOD"));
 
-        verify(categoryService, times(1)).getCategoryById(id);
+        verify(categoryService, times(1)).getCategoryById(id, userId);
     }
 
     @Test
     void deleteCategoryById_givenExistingId_thenShouldReturnNoContent() throws Exception {
         UUID id = UUID.randomUUID();
+        UUID userId = UUID.fromString(jwt.getSubject());
 
         mockMvc.perform(delete("/api/categories/" + id)
                         .with(jwt().jwt(jwt)))
                 .andExpect(status().isNoContent());
 
-        verify(categoryService, times(1)).deleteCategoryById(id);
+        verify(categoryService, times(1)).deleteCategoryById(id, userId);
     }
 }

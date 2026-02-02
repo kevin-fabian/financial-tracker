@@ -21,6 +21,17 @@ public class DefaultCategoryRepository implements CategoryRepository {
     }
 
     @Override
+    public Optional<Category> findByIdAndUserId(UUID id, UUID userId) {
+        return jpaCategoryRepository.findByIdAndUserId(id, userId)
+                .map(CategoryEntity::toModel);
+    }
+
+    @Override
+    public boolean existsByNameAndUserId(String name, UUID userId) {
+        return jpaCategoryRepository.existsByNameAndUserId(name, userId);
+    }
+
+    @Override
     public Category save(Category category) {
         CategoryEntity saved = jpaCategoryRepository.save(CategoryEntity.from(category));
         return saved.toModel();
@@ -29,5 +40,10 @@ public class DefaultCategoryRepository implements CategoryRepository {
     @Override
     public void deleteById(UUID id) {
         jpaCategoryRepository.deleteById(id);
+    }
+
+    @Override
+    public void deleteByIdAndUserId(UUID id, UUID userId) {
+        jpaCategoryRepository.deleteByIdAndUserId(id, userId);
     }
 }
