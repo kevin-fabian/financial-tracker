@@ -21,6 +21,12 @@ public class DefaultCategoryRepository implements CategoryRepository {
     }
 
     @Override
+    public Optional<Category> findById(UUID id) {
+        return jpaCategoryRepository.findById(id)
+                .map(CategoryEntity::toModel);
+    }
+
+    @Override
     public boolean existsByNameAndUserId(String name, UUID userId) {
         return jpaCategoryRepository.existsByNameAndUserId(name, userId);
     }

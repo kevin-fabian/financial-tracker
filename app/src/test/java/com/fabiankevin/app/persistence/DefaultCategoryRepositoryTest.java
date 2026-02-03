@@ -86,10 +86,22 @@ class DefaultCategoryRepositoryTest {
 
     @Test
     void findById_givenNonExisting_shouldReturnEmptyOptional() {
-        UUID id = java.util.UUID.randomUUID();
-        UUID userId = java.util.UUID.randomUUID();
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
         var found = categoryRepository.findByIdAndUserId(id, userId);
 
         Assertions.assertThat(found).as("non existing id returns empty optional").isEmpty();
+    }
+
+
+    @Test
+    void findById_givenExisting_shouldReturnCategory() {
+        Category saved = categoryRepository.save(category);
+        Category found = categoryRepository.findById(saved.id()).get();
+
+        Assertions.assertThat(found).as("non existing id returns empty optional")
+                .usingRecursiveComparison()
+                .ignoringFields("id")
+                .isEqualTo(saved);
     }
 }

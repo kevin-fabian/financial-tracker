@@ -19,3 +19,4 @@ spring:
             - financial-tracker-app
             - financial-tracker-web
             - financial-tracker-test
+            - test-client

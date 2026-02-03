@@ -24,12 +24,13 @@ public class TransactionEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-    @ManyToOne(cascade = CascadeType.ALL)
+    @ManyToOne
     @JoinColumn(name = "accountId")
     private AccountEntity account;
     @Enumerated(EnumType.STRING)
     private TransactionType type;
-    @OneToOne(cascade = CascadeType.ALL)
+    @ManyToOne
+    @JoinColumn(name = "categoryId")
     private CategoryEntity category;
     @Embedded
     private AmountEmbeddable amount;
