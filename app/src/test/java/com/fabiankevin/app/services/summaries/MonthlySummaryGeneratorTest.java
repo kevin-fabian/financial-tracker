@@ -29,10 +29,10 @@ class MonthlySummaryGeneratorTest {
     private MonthlySummaryGenerator generator;
 
     @Test
-    void supports_givenNothing_thenReturnMonthly() {
-        var result = generator.supports();
-
-        Assertions.assertThat(result).isEqualTo(SummaryType.MONTHLY);
+    void supports_givenMonthlySummaryGeneratorImplementation_thenReturnMonthly() {
+        Assertions.assertThat(generator.supports())
+                .as("supports should be MONTHLY")
+                .isEqualTo(SummaryType.MONTHLY);
     }
 
     @Test

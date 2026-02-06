@@ -29,10 +29,8 @@ class DailySummaryGeneratorTest {
     private DailySummaryGenerator generator;
 
     @Test
-    void supports_givenNothing_thenReturnDaily() {
-        var result = generator.supports();
-
-        Assertions.assertThat(result).as("supports should be DAILY").isEqualTo(SummaryType.DAILY);
+    void supports_givenDailySummaryGeneratorImplementation_thenReturnDaily() {
+        Assertions.assertThat(generator.supports()).as("supports should be DAILY").isEqualTo(SummaryType.DAILY);
     }
 
     @Test

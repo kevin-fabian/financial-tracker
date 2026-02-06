@@ -29,9 +29,7 @@ class CategorySummaryGeneratorTest {
 
     @Test
     void supports_givenNothing_thenReturnCategory() {
-        var result = generator.supports();
-
-        Assertions.assertThat(result).as("supports should be CATEGORY").isEqualTo(SummaryType.CATEGORY);
+        Assertions.assertThat(generator.supports()).as("supports should be CATEGORY").isEqualTo(SummaryType.CATEGORY);
     }
 
     @Test

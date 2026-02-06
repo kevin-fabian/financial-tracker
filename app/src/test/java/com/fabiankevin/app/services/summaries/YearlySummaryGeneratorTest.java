@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,12 +30,12 @@ class YearlySummaryGeneratorTest  {
 
 
     @Test
-    void supports_shouldReturnYEARLY() {
-        assertThat(generator.supports()).isEqualTo(SummaryType.YEARLY);
+    void supports_givenYearlySummaryGeneratorImplementation_shouldReturnYEARLY() {
+        assertEquals(generator.supports(), SummaryType.YEARLY, "supports() should be YEARLY");
     }
 
     @Test
-    void generate_shouldDelegateToRepository_andReturnPoints() {
+    void generate_givenValidQuery_shouldDelegateToRepositoryAndReturnPoints() {
         TransactionType transactionType = TransactionType.EXPENSE;
         LocalDate from = LocalDate.of(2025, 1, 1);
         LocalDate to = LocalDate.of(2026, 12, 31);
@@ -43,11 +44,10 @@ class YearlySummaryGeneratorTest  {
         List<SummaryPoint> expected = List.of(new SummaryPoint("2025", BigDecimal.valueOf(100)), new SummaryPoint("2026", BigDecimal.valueOf(200)));
         when(repo.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(userId), transactionType)).thenReturn(expected);
 
-        SummaryQuery query = new SummaryQuery(com.fabiankevin.app.models.enums.SummaryType.YEARLY, from, to, List.of(userId), transactionType);
+        SummaryQuery query = new SummaryQuery(SummaryType.YEARLY, from, to, List.of(userId), transactionType);
 
         List<SummaryPoint> result = generator.generate(query);
 
-        assertThat(result).isEqualTo(expected);
+        assertThat(result).as("should return points delegated from repository").isEqualTo(expected);
     }
 }
-
