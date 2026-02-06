@@ -40,7 +40,7 @@ public class CategoryController {
             }
     )
     @GetMapping
-    public PageResponse<Category> getPaginatedCategories(
+    public PageResponse<Category> getCategories(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sort,

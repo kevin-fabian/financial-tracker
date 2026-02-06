@@ -2,8 +2,10 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
+import com.fabiankevin.app.services.queries.PageQuery;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -45,5 +47,10 @@ public class DefaultAccountService implements AccountService {
                 .orElseThrow(AccountNotFoundException::new);
 
         accountRepository.deleteById(id);
+    }
+
+    @Override
+    public Page<Account> getAccountsByPageAndUserId(PageQuery query, UUID userId) {
+        return accountRepository.getAccountsByPageAndUserId(query, userId);
     }
 }

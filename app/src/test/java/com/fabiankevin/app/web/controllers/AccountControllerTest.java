@@ -1,6 +1,7 @@
 package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.web.controllers.dtos.CreateAccountRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -112,5 +113,28 @@ class AccountControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(accountService, times(1)).deleteAccountById(id, userId);
+    }
+
+    @Test
+    void getAccounts_givenUser_thenShouldReturnPagedAccounts() throws Exception {
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        var accounts = List.of(
+                Account.builder().id(UUID.randomUUID()).name("A1").userId(userId).currency(java.util.Currency.getInstance("PHP")).createdAt(Instant.now()).updatedAt(Instant.now()).build(),
+                Account.builder().id(UUID.randomUUID()).name("A2").userId(userId).currency(java.util.Currency.getInstance("PHP")).createdAt(Instant.now()).updatedAt(Instant.now()).build()
+        );
+
+        when(accountService.getAccountsByPageAndUserId(new com.fabiankevin.app.services.queries.PageQuery(0,2,"name","ASC"), userId))
+                .thenReturn(new Page<>(accounts, 0, 2, accounts.size(), 1, true, true));
+
+        mockMvc.perform(get("/api/accounts?page=0&size=2&sort=name&direction=ASC")
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].name").value("A1"))
+                .andExpect(jsonPath("$.totalElements").value(2));
+
+        verify(accountService, times(1)).getAccountsByPageAndUserId(new com.fabiankevin.app.services.queries.PageQuery(0,2,"name","ASC"), userId);
     }
 }

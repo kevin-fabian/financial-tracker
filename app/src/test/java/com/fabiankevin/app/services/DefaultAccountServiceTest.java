@@ -2,8 +2,10 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
+import com.fabiankevin.app.services.queries.PageQuery;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -12,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.Currency;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -81,7 +84,8 @@ class DefaultAccountServiceTest {
                 .updatedAt(Instant.now())
                 .build()));
 
-        assertThrows(AccountNotFoundException.class, () -> accountService.getAccountById(id, UUID.randomUUID()));
+        UUID otherUser = UUID.randomUUID();
+        assertThrows(AccountNotFoundException.class, () -> accountService.getAccountById(id, otherUser));
         verify(accountRepository, times(1)).findById(id);
     }
 
@@ -90,7 +94,8 @@ class DefaultAccountServiceTest {
         UUID id = UUID.randomUUID();
         when(accountRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThrows(AccountNotFoundException.class, () -> accountService.getAccountById(id, UUID.randomUUID()));
+        UUID otherUser = UUID.randomUUID();
+        assertThrows(AccountNotFoundException.class, () -> accountService.getAccountById(id, otherUser));
         verify(accountRepository, times(1)).findById(id);
     }
 
@@ -118,8 +123,29 @@ class DefaultAccountServiceTest {
         UUID id = UUID.randomUUID();
         when(accountRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThrows(AccountNotFoundException.class, () -> accountService.deleteAccountById(id, UUID.randomUUID()));
+        UUID otherUser = UUID.randomUUID();
+        assertThrows(AccountNotFoundException.class, () -> accountService.deleteAccountById(id, otherUser));
         verify(accountRepository, times(1)).findById(id);
         verify(accountRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void getAccountsByPageAndUserId_givenUserId_thenShouldReturnPagedAccounts() {
+        UUID userId = UUID.randomUUID();
+        var accounts = List.of(
+                Account.builder().id(UUID.randomUUID()).name("A1").userId(userId).currency(Currency.getInstance("PHP")).createdAt(Instant.now()).updatedAt(Instant.now()).build(),
+                Account.builder().id(UUID.randomUUID()).name("A2").userId(userId).currency(Currency.getInstance("PHP")).createdAt(Instant.now()).updatedAt(Instant.now()).build()
+        );
+
+        Page<Account> page = new Page<>(accounts, 0, 10, accounts.size(), 1, true, true);
+
+        PageQuery query = new PageQuery(0, 10, "name", "ASC");
+
+        when(accountRepository.getAccountsByPageAndUserId(query, userId)).thenReturn(page);
+
+        Page<Account> result = accountService.getAccountsByPageAndUserId(query, userId);
+
+        assertEquals(page, result);
+        verify(accountRepository, times(1)).getAccountsByPageAndUserId(query, userId);
     }
 }

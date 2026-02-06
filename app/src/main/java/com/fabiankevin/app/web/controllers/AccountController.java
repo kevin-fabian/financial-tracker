@@ -1,9 +1,12 @@
 package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.services.AccountService;
+import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.web.controllers.dtos.AccountResponse;
 import com.fabiankevin.app.web.controllers.dtos.CreateAccountRequest;
+import com.fabiankevin.app.web.controllers.dtos.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -41,6 +44,37 @@ public class AccountController {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         Account account = accountService.getAccountById(id, userId);
         return AccountResponse.from(account);
+    }
+
+    @Operation(
+            summary = "Retrieve accounts with pagination",
+            description = "Retrieves paginated accounts for the authenticated user",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - Resources retrieved successfully",
+                            content = @Content(schema = @Schema(implementation = PageResponse.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @GetMapping
+    public PageResponse<AccountResponse> getAccounts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "DESC") String direction,
+            JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        Page<Account> accounts = accountService.getAccountsByPageAndUserId(new PageQuery(page, size, sort, direction), userId);
+        var mappedPage = new com.fabiankevin.app.models.Page<>(
+                accounts.content().stream().map(AccountResponse::from).toList(),
+                accounts.page(),
+                accounts.size(),
+                accounts.totalElements(),
+                accounts.totalPages(),
+                accounts.last(),
+                accounts.first()
+        );
+
+        return PageResponse.from(mappedPage);
     }
 
     @Operation(
