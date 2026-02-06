@@ -2,8 +2,10 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
+import com.fabiankevin.app.services.queries.PageQuery;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -11,12 +13,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -102,5 +106,38 @@ class DefaultCategoryServiceTest {
         assertThrows(CategoryNotFoundException.class, () -> categoryService.deleteCategoryById(id, userId));
         verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
         verify(categoryRepository, never()).deleteByIdAndUserId(any(), any());
+    }
+
+    @Test
+    void getCategoriesByPageQuery_givenValidQuery_thenShouldReturnPagedCategories() {
+        UUID userId = UUID.randomUUID();
+        PageQuery query = new PageQuery(0, 2, "name", "ASC");
+
+        Category c1 = Category.builder()
+                .id(UUID.randomUUID())
+                .name("FOOD")
+                .userId(userId)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        Category c2 = Category.builder()
+                .id(UUID.randomUUID())
+                .name("RENT")
+                .userId(userId)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        Page<Category> expectedPage = new Page<>(List.of(c1, c2), 0, 2, 2L, 1, true, true);
+
+        when(categoryRepository.findAllByPageQuery(query, userId))
+                .thenReturn(expectedPage);
+
+        Page<Category> result = categoryService.getCategoriesByPageQuery(query, userId);
+
+        // result should be the same instance returned by repository
+        assertEquals(expectedPage, result, "service should return the page provided by repository");
+        verify(categoryRepository, times(1)).findAllByPageQuery(any(PageQuery.class), eq(userId));
     }
 }

@@ -40,7 +40,7 @@ public class CategoryController {
             }
     )
     @GetMapping
-    public PageResponse<Category> retrievePaginatedCategories(@RequestParam PageRequest pageRequest, JwtAuthenticationToken jwtAuthenticationToken) {
+    public PageResponse<Category> getPaginatedCategories(@RequestParam PageRequest pageRequest, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         Page<Category> categoriesByPageQuery = categoryService.getCategoriesByPageQuery(pageRequest.toQuery(), userId);
         return PageResponse.from(categoriesByPageQuery);

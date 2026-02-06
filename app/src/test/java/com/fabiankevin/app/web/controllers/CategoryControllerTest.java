@@ -1,7 +1,9 @@
 package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.services.CategoryService;
+import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -110,5 +112,42 @@ class CategoryControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(categoryService, times(1)).deleteCategoryById(id, userId);
+    }
+
+    @Test
+    void getCategoriesByPageQuery_givenValidParams_thenShouldReturnPagedResponse() throws Exception {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        PageQuery query = new PageQuery(0, 2, "name", "ASC");
+
+        Category c1 = Category.builder()
+                .id(UUID.randomUUID())
+                .name("FOOD")
+                .userId(userId)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        Category c2 = Category.builder()
+                .id(UUID.randomUUID())
+                .name("RENT")
+                .userId(userId)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(categoryService.getCategoriesByPageQuery(query, userId))
+                .thenReturn(new Page<>(List.of(c1, c2), 0, 2, 2L, 1, true, true));
+
+        mockMvc.perform(get("/api/categories?page=0&size=2&sort=name&direction=ASC")
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(2))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(1));
+
+        verify(categoryService, times(1)).getCategoriesByPageQuery(query, userId);
     }
 }
