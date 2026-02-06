@@ -3,9 +3,9 @@ package com.fabiankevin.app.web.controllers;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.services.CategoryService;
+import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.web.controllers.dtos.CategoryResponse;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
-import com.fabiankevin.app.web.controllers.dtos.PageRequest;
 import com.fabiankevin.app.web.controllers.dtos.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -40,9 +40,14 @@ public class CategoryController {
             }
     )
     @GetMapping
-    public PageResponse<Category> getPaginatedCategories(@RequestParam PageRequest pageRequest, JwtAuthenticationToken jwtAuthenticationToken) {
+    public PageResponse<Category> getPaginatedCategories(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "DESC") String direction,
+            JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        Page<Category> categoriesByPageQuery = categoryService.getCategoriesByPageQuery(pageRequest.toQuery(), userId);
+        Page<Category> categoriesByPageQuery = categoryService.getCategoriesByPageQuery(new PageQuery(page, size, sort, direction), userId);
         return PageResponse.from(categoriesByPageQuery);
     }
 

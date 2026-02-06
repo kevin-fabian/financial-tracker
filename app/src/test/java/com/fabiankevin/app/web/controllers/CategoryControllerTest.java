@@ -37,7 +37,7 @@ class CategoryControllerTest {
     private Jwt jwt;
 
     @BeforeEach
-    void setup(){
+    void setup() {
         jwt = Jwt.withTokenValue(UUID.randomUUID().toString())
                 .subject(UUID.randomUUID().toString())
                 .header("alg", "RS256")
@@ -94,7 +94,7 @@ class CategoryControllerTest {
                 .build());
 
         mockMvc.perform(get("/api/categories/" + id)
-                .with(jwt().jwt(jwt)))
+                        .with(jwt().jwt(jwt)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.name").value("FOOD"));
@@ -149,5 +149,31 @@ class CategoryControllerTest {
                 .andExpect(jsonPath("$.totalPages").value(1));
 
         verify(categoryService, times(1)).getCategoriesByPageQuery(query, userId);
+    }
+
+    @Test
+    void getCategoriesByPageQuery_givenNoContent_thenShouldReturnEmptyPage() throws Exception {
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        // return empty page
+        when(categoryService.getCategoriesByPageQuery(any(PageQuery.class), eq(userId)))
+                .thenReturn(new Page<>(List.of(), 0, 10, 0L, 0, false, true));
+
+        mockMvc.perform(get("/api/categories?page=0&size=10&sort=name&direction=ASC")
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.totalElements").value(0))
+                .andExpect(jsonPath("$.totalPages").value(0));
+
+        verify(categoryService, times(1)).getCategoriesByPageQuery(argThat(
+                pageQuery -> pageQuery.page() == 0
+                        && pageQuery.size() == 10
+                        && pageQuery.sort().equals("name")
+                        && pageQuery.direction().equals("ASC")
+        ), eq(userId));
     }
 }
