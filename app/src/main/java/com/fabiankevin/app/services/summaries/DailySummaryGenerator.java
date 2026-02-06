@@ -24,8 +24,8 @@ public class DailySummaryGenerator implements SummaryGenerator {
         return transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(
                 query.from(),
                 query.to(),
-                query.userIds()
+                query.userIds(),
+                query.transactionType()
         );
     }
 }
-

@@ -1,5 +1,6 @@
 package com.fabiankevin.app.persistence.jpa_repositories;
 
+import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.entities.TransactionEntity;
 import com.fabiankevin.app.persistence.entities.projections.SummaryPointProjection;
 import org.springframework.data.domain.Page;
@@ -19,48 +20,56 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds
+                  AND (:type IS NULL OR t.type = :type)
                 GROUP BY t.category.name
             """)
     Streamable<SummaryPointProjection> getSummaryByDateRangeAndUserIdGroupedByCategory(
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
-            @Param("userIds") List<UUID> userIds);
+            @Param("userIds") List<UUID> userIds,
+            @Param("type") TransactionType type);
 
     @Query("""
                 SELECT MONTH(t.transactionDate) AS label, SUM(t.amount.amount) AS sum
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds
+                  AND (:type IS NULL OR t.type = :type)
                 GROUP BY MONTH(t.transactionDate)
             """)
     Streamable<SummaryPointProjection> getSummaryByDateRangeAndUserIdGroupedByMonth(
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
-            @Param("userIds") List<UUID> userIds);
+            @Param("userIds") List<UUID> userIds,
+            @Param("type") TransactionType type);
 
     @Query("""
                 SELECT YEAR(t.transactionDate) AS label, SUM(t.amount.amount) AS sum
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds
+                  AND (:type IS NULL OR t.type = :type)
                 GROUP BY YEAR(t.transactionDate)
             """)
     Streamable<SummaryPointProjection> getSummaryByDateRangeAndUserIdGroupedByYear(
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
-            @Param("userIds") List<UUID> userIds);
+            @Param("userIds") List<UUID> userIds,
+            @Param("type") TransactionType type);
 
     @Query("""
                 SELECT DAY(t.transactionDate) AS label, SUM(t.amount.amount) AS sum
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds
+                  AND (:type IS NULL OR t.type = :type)
                 GROUP BY DAY(t.transactionDate)
             """)
     Streamable<SummaryPointProjection> getSummaryByDateRangeAndUserIdGroupedByDay(
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
-            @Param("userIds") List<UUID> userIds);
+            @Param("userIds") List<UUID> userIds,
+            @Param("type") TransactionType type);
 
     // Pageable lookup for transactions by account.userId
     Page<TransactionEntity> findAllByAccountUserId(UUID userId, Pageable pageable);

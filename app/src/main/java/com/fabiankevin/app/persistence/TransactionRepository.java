@@ -3,6 +3,7 @@ package com.fabiankevin.app.persistence;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.Transaction;
+import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.queries.PageQuery;
 
 import java.time.LocalDate;
@@ -14,9 +15,9 @@ public interface TransactionRepository {
     Transaction save(Transaction transaction);
     Optional<Transaction> findById(UUID id);
     void deleteById(UUID id);
-    List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByCategory(LocalDate from, LocalDate to, List<UUID> userIds);
-    List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByMonth(LocalDate from, LocalDate to, List<UUID> userIds);
-    List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByYear(LocalDate from, LocalDate to, List<UUID> userIds);
-    List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByDay(LocalDate from, LocalDate to, List<UUID> userIds);
+    List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByCategory(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type);
+    List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByMonth(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type);
+    List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByYear(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type);
+    List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByDay(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type);
     Page<Transaction> getTransactionsByPageAndUserId(PageQuery query, UUID userId);
 }

@@ -24,7 +24,8 @@ public class CategorySummaryGenerator implements SummaryGenerator {
         return transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(
                 query.from(),
                 query.to(),
-                query.userIds()
+                query.userIds(),
+                query.transactionType()
         );
     }
 }

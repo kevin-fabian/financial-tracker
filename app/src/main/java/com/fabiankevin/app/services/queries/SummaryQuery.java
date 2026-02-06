@@ -1,6 +1,7 @@
 package com.fabiankevin.app.services.queries;
 
 import com.fabiankevin.app.models.enums.SummaryType;
+import com.fabiankevin.app.models.enums.TransactionType;
 import lombok.Builder;
 
 import java.time.LocalDate;
@@ -12,6 +13,7 @@ public record SummaryQuery(
     SummaryType type,
     LocalDate from,
     LocalDate to,
-    List<UUID> userIds
+    List<UUID> userIds,
+    TransactionType transactionType
 ) {
 }

@@ -44,7 +44,7 @@ class CategorySummaryGeneratorTest {
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
 
-        when(transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId)))
+        when(transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId), null))
                 .thenReturn(List.of(p1, p2));
 
         SummaryQuery query = SummaryQuery.builder()
@@ -63,7 +63,7 @@ class CategorySummaryGeneratorTest {
                 .usingElementComparator(BigDecimal::compareTo)
                 .containsExactlyInAnyOrder(BigDecimal.valueOf(250), BigDecimal.valueOf(8000));
 
-        verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId));
+        verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId), null);
     }
 
     @Test
@@ -74,7 +74,7 @@ class CategorySummaryGeneratorTest {
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
 
-        when(transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId)))
+        when(transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId), null))
                 .thenReturn(List.of());
 
         SummaryQuery query = SummaryQuery.builder()
@@ -87,6 +87,6 @@ class CategorySummaryGeneratorTest {
         var result = generator.generate(query);
 
         Assertions.assertThat(result).as("result should be empty when repository returns no projections").isEmpty();
-        verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId));
+        verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId), null);
     }
 }

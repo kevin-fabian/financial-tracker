@@ -116,7 +116,7 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId));
+        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId), TransactionType.EXPENSE);
         Assertions.assertThat(result).hasSize(2);
         Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("FOOD", "RENT");
         Assertions.assertThat(result).extracting(SummaryPoint::total)
@@ -124,7 +124,7 @@ class DefaultTransactionRepositoryTest {
                 .usingElementComparator(BigDecimal::compareTo)
                 .containsExactlyInAnyOrder(BigDecimal.valueOf(250), BigDecimal.valueOf(8000));
 
-        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId));
+        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId), TransactionType.EXPENSE);
     }
 
     @Test
@@ -135,14 +135,14 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
 
-        when(jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(otherUserId)))
+        when(jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(otherUserId), TransactionType.EXPENSE))
                 .thenReturn(Streamable.empty());
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(otherUserId));
+        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(otherUserId), TransactionType.EXPENSE);
 
         Assertions.assertThat(result).isEmpty();
 
-        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(otherUserId));
+        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(otherUserId), TransactionType.EXPENSE);
     }
 
     @Test
@@ -183,7 +183,7 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId));
+        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId), TransactionType.EXPENSE);
 
         Assertions.assertThat(result).hasSize(2);
         Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("3", "5");
@@ -191,7 +191,7 @@ class DefaultTransactionRepositoryTest {
                 .usingElementComparator(BigDecimal::compareTo)
                 .containsExactlyInAnyOrder(BigDecimal.valueOf(250), BigDecimal.valueOf(8000));
 
-        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId));
+        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId), TransactionType.EXPENSE);
     }
 
     @Test
@@ -221,7 +221,7 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(2025, 1, 1);
         LocalDate to = LocalDate.of(2026, 12, 31);
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(userId));
+        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(userId), TransactionType.EXPENSE);
 
         Assertions.assertThat(result).hasSize(2);
         Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("2025", "2026");
@@ -230,7 +230,7 @@ class DefaultTransactionRepositoryTest {
                 .usingElementComparator(BigDecimal::compareTo)
                 .containsExactlyInAnyOrder(BigDecimal.valueOf(10000), BigDecimal.valueOf(15000));
 
-        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(userId));
+        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(userId), TransactionType.EXPENSE);
     }
 
     @Test
@@ -241,14 +241,14 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
 
-        when(jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(otherUserId)))
+        when(jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(otherUserId), TransactionType.EXPENSE))
                 .thenReturn(Streamable.empty());
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(otherUserId));
+        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(otherUserId), TransactionType.EXPENSE);
 
         Assertions.assertThat(result).isEmpty();
 
-        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(otherUserId));
+        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(otherUserId), TransactionType.EXPENSE);
     }
 
     @Test
@@ -288,7 +288,7 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(year, 3, 1);
         LocalDate to = LocalDate.of(year, 3, 31);
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId));
+        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), TransactionType.EXPENSE);
 
         Assertions.assertThat(result).hasSize(2);
         Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("1", "15");
@@ -296,7 +296,7 @@ class DefaultTransactionRepositoryTest {
                 .usingElementComparator(BigDecimal::compareTo)
                 .containsExactlyInAnyOrder(BigDecimal.valueOf(250), BigDecimal.valueOf(8000));
 
-        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId));
+        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), TransactionType.EXPENSE);
     }
 
     @Test
@@ -307,14 +307,14 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(year, 3, 1);
         LocalDate to = LocalDate.of(year, 3, 31);
 
-        when(jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(otherUserId)))
+        when(jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(otherUserId), TransactionType.EXPENSE))
                 .thenReturn(Streamable.empty());
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(otherUserId));
+        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(otherUserId), TransactionType.EXPENSE);
 
         Assertions.assertThat(result).isEmpty();
 
-        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(otherUserId));
+        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(otherUserId), TransactionType.EXPENSE);
     }
 
     @Test

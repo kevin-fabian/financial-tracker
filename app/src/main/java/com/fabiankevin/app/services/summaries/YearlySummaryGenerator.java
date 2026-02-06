@@ -24,8 +24,8 @@ public class YearlySummaryGenerator implements SummaryGenerator {
         return transactionRepository.getSummaryByDateRangeAndUserIdGroupedByYear(
                 query.from(),
                 query.to(),
-                query.userIds()
+                query.userIds(),
+                query.transactionType()
         );
     }
 }
-

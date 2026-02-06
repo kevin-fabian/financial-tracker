@@ -2,6 +2,7 @@ package com.fabiankevin.app.services.summaries;
 
 import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.enums.SummaryType;
+import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.queries.SummaryQuery;
 import org.assertj.core.api.Assertions;
@@ -38,17 +39,19 @@ class MonthlySummaryGeneratorTest {
     void generate_givenRepositoryReturnsProjections_thenReturnMappedPoints() {
         int year = 2026;
         UUID userId = UUID.randomUUID();
+        TransactionType expense = TransactionType.EXPENSE;
         SummaryPoint p1 = new SummaryPoint("3", BigDecimal.valueOf(250));
         SummaryPoint p2 = new SummaryPoint("5", BigDecimal.valueOf(8000));
 
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
 
-        when(transactionRepository.getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId)))
+        when(transactionRepository.getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId), expense))
                 .thenReturn(List.of(p1, p2));
 
         SummaryQuery query = SummaryQuery.builder()
                 .type(SummaryType.MONTHLY)
+                .transactionType(expense)
                 .from(from)
                 .to(to)
                 .userIds(List.of(userId))
@@ -62,18 +65,19 @@ class MonthlySummaryGeneratorTest {
                 .usingElementComparator(BigDecimal::compareTo)
                 .containsExactlyInAnyOrder(BigDecimal.valueOf(250), BigDecimal.valueOf(8000));
 
-        verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId));
+        verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId), expense);
     }
 
     @Test
     void generate_givenRepositoryReturnsEmpty_thenReturnEmptyList() {
         int year = 2025;
+        TransactionType expense = TransactionType.EXPENSE;
         UUID userId = UUID.randomUUID();
 
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
 
-        when(transactionRepository.getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId)))
+        when(transactionRepository.getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId), expense))
                 .thenReturn(List.of());
 
         SummaryQuery query = SummaryQuery.builder()
@@ -81,11 +85,12 @@ class MonthlySummaryGeneratorTest {
                 .from(from)
                 .to(to)
                 .userIds(List.of(userId))
+                .transactionType(expense)
                 .build();
 
         var result = generator.generate(query);
 
         Assertions.assertThat(result).as("result should be empty when repository returns no projections").isEmpty();
-        verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId));
+        verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId), expense);
     }
 }

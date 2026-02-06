@@ -24,7 +24,8 @@ public class MonthlySummaryGenerator implements SummaryGenerator {
         return transactionRepository.getSummaryByDateRangeAndUserIdGroupedByMonth(
                 query.from(),
                 query.to(),
-                query.userIds()
+                query.userIds(),
+                query.transactionType()
         );
     }
 }

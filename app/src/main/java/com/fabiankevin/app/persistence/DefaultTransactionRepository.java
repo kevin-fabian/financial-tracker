@@ -2,6 +2,7 @@ package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.Transaction;
+import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.entities.TransactionEntity;
 import com.fabiankevin.app.persistence.entities.projections.SummaryPointProjection;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
@@ -39,29 +40,29 @@ public class DefaultTransactionRepository implements TransactionRepository {
     }
 
     @Override
-    public List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByCategory(LocalDate from, LocalDate to, List<UUID> userIds) {
-        return jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, userIds)
+    public List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByCategory(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type) {
+        return jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, userIds, type)
                 .map(SummaryPointProjection::toModel)
                 .toList();
     }
 
     @Override
-    public List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByMonth(LocalDate from, LocalDate to, List<UUID> userIds) {
-        return jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, userIds)
+    public List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByMonth(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type) {
+        return jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, userIds, type)
                 .map(SummaryPointProjection::toModel)
                 .toList();
     }
 
     @Override
-    public List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByYear(LocalDate from, LocalDate to, List<UUID> userIds) {
-        return jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, userIds)
+    public List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByYear(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type) {
+        return jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, userIds, type)
                 .map(SummaryPointProjection::toModel)
                 .toList();
     }
 
     @Override
-    public List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByDay(LocalDate from, LocalDate to, List<UUID> userIds) {
-        return jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, userIds)
+    public List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByDay(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type) {
+        return jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, userIds, type)
                 .map(SummaryPointProjection::toModel)
                 .toList();
     }
