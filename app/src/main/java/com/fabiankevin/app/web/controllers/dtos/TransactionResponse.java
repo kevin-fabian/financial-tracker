@@ -23,7 +23,7 @@ public record TransactionResponse(
         @Schema(description = "Category id associated with the transaction")
         CategoryResponse category,
 
-        @Schema(description = "Amount value and currency")
+        @Schema(description = "Amount total and currency")
         AmountResponse amount,
 
         @Schema(description = "Transaction description")

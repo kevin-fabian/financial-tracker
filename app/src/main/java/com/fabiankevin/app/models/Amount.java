@@ -11,7 +11,7 @@ public record Amount(BigDecimal value, Currency currency) {
         Optional.ofNullable(currency)
                 .orElseThrow(() -> new IllegalArgumentException("Currency is required"));
         Optional.ofNullable(value)
-                .orElseThrow(() -> new IllegalArgumentException("Amount value is required"));
+                .orElseThrow(() -> new IllegalArgumentException("Amount total is required"));
         if (value.signum() < 0) {
             throw new InvalidAmountException("Amount cannot be negative");
         }

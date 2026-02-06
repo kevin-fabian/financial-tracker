@@ -29,7 +29,7 @@ public record Account(
 //        return transactions.stream()
 //                .filter(transaction -> type == transaction.type())
 //                .map(Transaction::amount)
-//                .flatMapToDouble(amount -> DoubleStream.builder().add(amount.value().doubleValue()).build())
+//                .flatMapToDouble(amount -> DoubleStream.builder().add(amount.total().doubleValue()).build())
 //                .sum();
 //    }
 }

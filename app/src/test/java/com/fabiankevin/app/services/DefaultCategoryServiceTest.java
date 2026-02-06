@@ -42,7 +42,7 @@ class DefaultCategoryServiceTest {
         Category created = categoryService.createCategory(command);
 
         assertEquals("FOOD", created.name(), "name should match command");
-        assertEquals(userId, created.userId(), "userId should be set from command");
+        assertEquals(userId, created.userId(), "userIds should be set from command");
         verify(categoryRepository, times(1)).save(any());
     }
 
@@ -61,7 +61,7 @@ class DefaultCategoryServiceTest {
         Category found = categoryService.getCategoryById(id, userId);
 
         assertEquals("FOOD", found.name(), "name should match saved category");
-        assertEquals(userId, found.userId(), "userId should be preserved");
+        assertEquals(userId, found.userId(), "userIds should be preserved");
         verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
     }
 

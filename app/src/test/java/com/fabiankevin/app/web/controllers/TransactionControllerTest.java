@@ -1,15 +1,15 @@
 package com.fabiankevin.app.web.controllers;
 
-import com.fabiankevin.app.models.Account;
-import com.fabiankevin.app.models.Amount;
-import com.fabiankevin.app.models.Category;
-import com.fabiankevin.app.models.Transaction;
+import com.fabiankevin.app.models.*;
+import com.fabiankevin.app.models.enums.SummaryType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
+import com.fabiankevin.app.services.queries.SummaryQuery;
 import com.fabiankevin.app.web.controllers.dtos.CreateTransactionRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -17,12 +17,15 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -129,5 +132,34 @@ class TransactionControllerTest {
                 .andExpect(status().isBadRequest());
 
         verify(transactionService, times(0)).addTransaction(any());
+    }
+
+    @Test
+    void getSummary_givenValidParams_thenShouldReturnSummary() throws Exception {
+        SummarySeries summary = new SummarySeries(SummaryType.CATEGORY,
+                List.of(new SummaryPoint("FOOD", BigDecimal.valueOf(123))));
+
+        when(transactionService.getSummary(any())).thenReturn(summary);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/transactions/summary")
+                        .with(jwt().jwt(jwt))
+                        .param("type", "CATEGORY")
+                        .param("from", "2026-01-01")
+                        .param("to", "2026-12-31"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.type").value("CATEGORY"))
+                .andExpect(jsonPath("$.points[0].label").value("FOOD"))
+                .andExpect(jsonPath("$.points[0].total").value(123));
+
+        ArgumentCaptor<SummaryQuery> captor = ArgumentCaptor.forClass(SummaryQuery.class);
+        verify(transactionService, times(1)).getSummary(captor.capture());
+        SummaryQuery captured = captor.getValue();
+
+        assertEquals("CATEGORY", captured.type().name(), "type should match request param");
+        assertEquals("2026-01-01", captured.from().toString(), "from date should match request param");
+        assertEquals("2026-12-31", captured.to().toString(), "to date should match request param");
+        assertNotNull(captured.userIds(), "userIds should not be null");
+        assertEquals(1, captured.userIds().size(), "userIds should contain one entry extracted from JWT");
+        assertEquals(jwt.getSubject(), captured.userIds().getFirst().toString(), "userId should be extracted from JWT subject");
     }
 }

@@ -11,5 +11,5 @@ public interface TransactionRepository {
     Transaction save(Transaction transaction);
     Optional<Transaction> findById(UUID id);
     void deleteById(UUID id);
-    List<SummaryPoint> getSummaryByYearAndUserIdGroupedByCategory(int year, UUID userId);
+    List<SummaryPoint> getSummaryByYearAndUserIdGroupedByCategory(int year, List<UUID> userIds);
 }

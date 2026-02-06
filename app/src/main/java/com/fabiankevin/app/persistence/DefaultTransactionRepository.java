@@ -35,8 +35,8 @@ public class DefaultTransactionRepository implements TransactionRepository {
     }
 
     @Override
-    public List<SummaryPoint> getSummaryByYearAndUserIdGroupedByCategory(int year, UUID userId) {
-        return jpaTransactionRepository.getSummaryByYearAndUserIdGroupedByCategory(year, userId)
+    public List<SummaryPoint> getSummaryByYearAndUserIdGroupedByCategory(int year, List<UUID> userIds) {
+        return jpaTransactionRepository.getSummaryByYearAndUserIdGroupedByCategory(year, userIds)
                 .map(SummaryPointProjection::toModel)
                 .toList();
     }

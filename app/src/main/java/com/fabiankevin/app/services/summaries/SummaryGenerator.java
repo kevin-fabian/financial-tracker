@@ -1,4 +1,4 @@
-package com.fabiankevin.app.services;
+package com.fabiankevin.app.services.summaries;
 
 import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.enums.SummaryType;

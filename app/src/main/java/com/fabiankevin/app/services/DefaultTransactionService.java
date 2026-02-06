@@ -12,6 +12,7 @@ import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.queries.SummaryQuery;
+import com.fabiankevin.app.services.summaries.SummaryGenerator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 

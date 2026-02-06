@@ -85,6 +85,7 @@ class DefaultTransactionRepositoryTest {
         AccountEntity cash = createAccount("CASH");
 
         List.of(AddTransactionCommand.builder()
+                        .userId(userId)
                         .categoryId(rent.getId())
                         .accountId(cash.getId())
                         .amount(Amount.of(8000, Currency.getInstance("PHP")))
@@ -93,6 +94,7 @@ class DefaultTransactionRepositoryTest {
                         .type(TransactionType.EXPENSE)
                         .build(),
                 AddTransactionCommand.builder()
+                        .userId(userId)
                         .categoryId(food.getId())
                         .accountId(cash.getId())
                         .amount(Amount.of(50, Currency.getInstance("PHP")))
@@ -101,6 +103,7 @@ class DefaultTransactionRepositoryTest {
                         .type(TransactionType.EXPENSE)
                         .build(),
                 AddTransactionCommand.builder()
+                        .userId(userId)
                         .categoryId(food.getId())
                         .accountId(cash.getId())
                         .amount(Amount.of(200, Currency.getInstance("PHP")))
@@ -109,7 +112,7 @@ class DefaultTransactionRepositoryTest {
                         .type(TransactionType.EXPENSE)
                         .build()).forEach(transactionService::addTransaction);
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByYearAndUserIdGroupedByCategory(year, userId);
+        List<SummaryPoint> result = transactionRepository.getSummaryByYearAndUserIdGroupedByCategory(year, List.of(userId));
         Assertions.assertThat(result).hasSize(2);
         Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("FOOD", "RENT");
         Assertions.assertThat(result).extracting(SummaryPoint::total)
@@ -117,7 +120,7 @@ class DefaultTransactionRepositoryTest {
                 .usingElementComparator(BigDecimal::compareTo)
                 .containsExactlyInAnyOrder(BigDecimal.valueOf(250), BigDecimal.valueOf(8000));
 
-        verify(jpaTransactionRepository, times(1)).getSummaryByYearAndUserIdGroupedByCategory(year, userId);
+        verify(jpaTransactionRepository, times(1)).getSummaryByYearAndUserIdGroupedByCategory(year, List.of(userId));
     }
 
     @Test
@@ -125,15 +128,14 @@ class DefaultTransactionRepositoryTest {
         int year = 2025;
         UUID userId = UUID.randomUUID();
 
-        when(jpaTransactionRepository.getSummaryByYearAndUserIdGroupedByCategory(year, userId))
+        when(jpaTransactionRepository.getSummaryByYearAndUserIdGroupedByCategory(year, List.of(userId)))
                 .thenReturn(Streamable.empty());
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByYearAndUserIdGroupedByCategory(year, userId);
+        List<SummaryPoint> result = transactionRepository.getSummaryByYearAndUserIdGroupedByCategory(year, List.of(userId));
 
         Assertions.assertThat(result).isEmpty();
 
-        verify(jpaTransactionRepository, times(1)).getSummaryByYearAndUserIdGroupedByCategory(year, userId);
-    }
+          verify(jpaTransactionRepository, times(1)).getSummaryByYearAndUserIdGroupedByCategory(year, List.of(userId));   }
 
     private CategoryEntity createCategory(String categoryName) {
         CategoryEntity category = new CategoryEntity();
