@@ -65,17 +65,6 @@ public class AccountController {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         Page<Account> accounts = accountService.getAccountsByPageAndUserId(new PageQuery(page, size, sort, direction), userId);
 
-
-        var mappedPage = new com.fabiankevin.app.models.Page<>(
-                accounts.content().stream().map(AccountResponse::from).toList(),
-                accounts.page(),
-                accounts.size(),
-                accounts.totalElements(),
-                accounts.totalPages(),
-                accounts.last(),
-                accounts.first()
-        );
-
         return PageResponse.from(Page.<AccountResponse>builder()
                 .content(accounts.content().stream().map(AccountResponse::from).toList())
                 .page(accounts.page())
