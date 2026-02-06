@@ -5,6 +5,7 @@ import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
+import com.fabiankevin.app.web.controllers.dtos.PatchCategoryRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -175,5 +176,36 @@ class CategoryControllerTest {
                         && pageQuery.sort().equals("name")
                         && pageQuery.direction().equals("ASC")
         ), eq(userId));
+    }
+
+    @Test
+    void patchCategory_givenValidRequest_thenShouldReturnUpdated() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        PatchCategoryRequest request = PatchCategoryRequest.builder()
+                .name("GROCERIES")
+                .build();
+
+        when(categoryService.patchCategory(any())).thenAnswer(invocation -> {
+            com.fabiankevin.app.services.commands.PatchCategoryCommand cmd = invocation.getArgument(0);
+            return Category.builder()
+                    .id(cmd.id())
+                    .name(cmd.name())
+                    .userId(userId)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+        });
+
+        mockMvc.perform(patch("/api/categories/" + id)
+                        .with(jwt().jwt(jwt))
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.name").value("GROCERIES"));
+
+        verify(categoryService, times(1)).patchCategory(any());
     }
 }

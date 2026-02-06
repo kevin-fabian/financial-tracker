@@ -7,6 +7,7 @@ import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.web.controllers.dtos.CategoryResponse;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
 import com.fabiankevin.app.web.controllers.dtos.PageResponse;
+import com.fabiankevin.app.web.controllers.dtos.PatchCategoryRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -97,6 +98,24 @@ public class CategoryController {
                 .buildAndExpand(response.id())
                 .toUri();
         return ResponseEntity.created(location).body(response);
+    }
+
+    @Operation(
+            summary = "Patch a category",
+            description = "Updates provided fields of a category and returns the updated object",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - Resource updated successfully",
+                            content = @Content(schema = @Schema(implementation = CategoryResponse.class))),
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @PatchMapping("/{categoryId}")
+    public CategoryResponse patchCategory(@PathVariable UUID categoryId, @RequestBody PatchCategoryRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        Category updated = categoryService.patchCategory(request.toCommand(categoryId, userId));
+        return CategoryResponse.from(updated);
     }
 
     @Operation(

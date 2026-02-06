@@ -5,6 +5,7 @@ import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
+import com.fabiankevin.app.services.commands.PatchCategoryCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -139,5 +140,52 @@ class DefaultCategoryServiceTest {
         // result should be the same instance returned by repository
         assertEquals(expectedPage, result, "service should return the page provided by repository");
         verify(categoryRepository, times(1)).findAllByPageQuery(any(PageQuery.class), eq(userId));
+    }
+
+    @Test
+    void patchCategory_givenValidCommand_thenShouldUpdateName() {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        Category existing = Category.builder()
+                .id(id)
+                .name("FOOD")
+                .userId(userId)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        PatchCategoryCommand command = PatchCategoryCommand.builder()
+                .id(id)
+                .name("GROCERIES")
+                .userId(userId)
+                .build();
+
+        when(categoryRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(existing));
+        when(categoryRepository.existsByNameAndUserId("GROCERIES", userId)).thenReturn(false);
+        when(categoryRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Category updated = categoryService.patchCategory(command);
+
+        assertEquals("GROCERIES", updated.name(), "name should be updated");
+        verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
+        verify(categoryRepository, times(1)).save(any());
+    }
+
+    @Test
+    void patchCategory_givenNonExistingId_thenShouldThrow() {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        PatchCategoryCommand command = PatchCategoryCommand.builder()
+                .id(id)
+                .name("GROCERIES")
+                .userId(userId)
+                .build();
+
+        when(categoryRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.empty());
+
+        assertThrows(CategoryNotFoundException.class, () -> categoryService.patchCategory(command));
+        verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
+        verify(categoryRepository, never()).save(any());
     }
 }
