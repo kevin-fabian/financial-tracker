@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Currency;
+import java.util.Optional;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -51,15 +53,18 @@ public class DefaultAccountService implements AccountService {
                 .orElseThrow(AccountNotFoundException::new);
 
         String newName = command.name();
-        java.util.Currency newCurrency = command.currency();
+        Currency newCurrency = command.currency();
 
-        Account updated = existing.toBuilder()
-                .name(newName != null && !newName.isBlank() ? newName : existing.name())
-                .currency(newCurrency != null ? newCurrency : existing.currency())
-                .updatedAt(Instant.now())
-                .build();
+        Account.AccountBuilder builder = existing.toBuilder()
+                .updatedAt(Instant.now());
 
-        return accountRepository.save(updated);
+        Optional.ofNullable(newName)
+                .filter(n -> !n.isBlank())
+                .ifPresent(builder::name);
+        Optional.ofNullable(newCurrency)
+                .ifPresent(builder::currency);
+
+        return accountRepository.save(builder.build());
     }
 
     @Transactional

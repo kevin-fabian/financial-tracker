@@ -97,4 +97,22 @@ public class TransactionController {
                 .first(transactions.first())
                 .build());
     }
+
+    @Operation(
+            summary = "Patch a transaction",
+            description = "Updates provided fields of a transaction and returns the updated object",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - Resource updated successfully",
+                            content = @Content(schema = @Schema(implementation = TransactionResponse.class))),
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @PatchMapping("/{transactionId}")
+    public TransactionResponse patchTransaction(@PathVariable UUID transactionId, @RequestBody PatchTransactionRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        Transaction updated = transactionService.patchTransaction(request.toCommand(transactionId, userId));
+        return TransactionResponse.from(updated);
+    }
 }

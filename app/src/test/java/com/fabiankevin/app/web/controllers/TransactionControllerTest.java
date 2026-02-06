@@ -235,4 +235,39 @@ class TransactionControllerTest {
                         && pageQuery.direction().equals("ASC")
         ), eq(userId));
     }
+
+    @Test
+    void patchTransaction_givenValidRequest_thenShouldReturnUpdated() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        com.fabiankevin.app.web.controllers.dtos.PatchTransactionRequest request = com.fabiankevin.app.web.controllers.dtos.PatchTransactionRequest.builder()
+                .description("Updated description")
+                .build();
+
+        when(transactionService.patchTransaction(any())).thenAnswer(invocation -> {
+            com.fabiankevin.app.services.commands.PatchTransactionCommand cmd = invocation.getArgument(0);
+            return Transaction.builder()
+                    .id(cmd.id())
+                    .account(Account.builder().id(cmd.accountId() != null ? cmd.accountId() : UUID.randomUUID()).userId(userId).name("GCASH").currency(java.util.Currency.getInstance("PHP")).build())
+                    .category(Category.builder().id(cmd.categoryId() != null ? cmd.categoryId() : UUID.randomUUID()).userId(userId).name("FOOD").build())
+                    .type(cmd.type() != null ? cmd.type() : TransactionType.EXPENSE)
+                    .amount(cmd.amount() != null ? cmd.amount() : Amount.of(100, java.util.Currency.getInstance("PHP")))
+                    .description(cmd.description())
+                    .transactionDate(cmd.transactionDate() != null ? cmd.transactionDate() : LocalDate.now())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+        });
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/transactions/" + id)
+                        .with(jwt().jwt(jwt))
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.description").value("Updated description"));
+
+        verify(transactionService, times(1)).patchTransaction(any());
+    }
 }

@@ -1,5 +1,6 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.exceptions.TransactionNotFoundException;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Amount;
 import com.fabiankevin.app.models.Category;
@@ -9,18 +10,21 @@ import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
+import com.fabiankevin.app.services.commands.PatchTransactionCommand;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Currency;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -73,5 +77,64 @@ class DefaultTransactionServiceTest {
         verify(accountRepository, times(1)).findById(command.accountId());
         verify(categoryRepository, times(1)).findById(command.categoryId());
         verify(transactionRepository, times(1)).save(any());
+    }
+
+    @Test
+    void patchTransaction_givenValidCommand_thenShouldUpdate() {
+        UUID userId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        UUID newAccountId = UUID.randomUUID();
+        UUID newCategoryId = UUID.randomUUID();
+
+        Transaction existing = Transaction.builder()
+                .id(transactionId)
+                .account(Account.builder().id(UUID.randomUUID()).userId(userId).name("GCASH").currency(java.util.Currency.getInstance("PHP")).build())
+                .category(Category.builder().id(UUID.randomUUID()).userId(userId).name("FOOD").build())
+                .type(TransactionType.EXPENSE)
+                .amount(Amount.of(100, java.util.Currency.getInstance("PHP")))
+                .description("old")
+                .transactionDate(LocalDate.now())
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        PatchTransactionCommand command = PatchTransactionCommand.builder()
+                .id(transactionId)
+                .accountId(newAccountId)
+                .categoryId(newCategoryId)
+                .description("updated")
+                .userId(userId)
+                .build();
+
+        when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(existing));
+        when(accountRepository.findById(newAccountId)).thenReturn(Optional.of(Account.builder().id(newAccountId).userId(userId).name("NEW").currency(java.util.Currency.getInstance("PHP")).build()));
+        when(categoryRepository.findById(newCategoryId)).thenReturn(Optional.of(Category.builder().id(newCategoryId).userId(userId).name("NEWCAT").build()));
+        when(transactionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Transaction updated = transactionService.patchTransaction(command);
+
+        assertEquals("updated", updated.description());
+        verify(transactionRepository, times(1)).findById(transactionId);
+        verify(accountRepository, times(1)).findById(newAccountId);
+        verify(categoryRepository, times(1)).findById(newCategoryId);
+        verify(transactionRepository, times(1)).save(any());
+    }
+
+    @Test
+    void patchTransaction_givenNonExisting_thenShouldThrow() {
+        UUID userId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+
+        PatchTransactionCommand command = PatchTransactionCommand.builder()
+                .id(transactionId)
+                .description("updated")
+                .userId(userId)
+                .build();
+
+        when(transactionRepository.findById(transactionId)).thenReturn(Optional.empty());
+
+        assertThrows(TransactionNotFoundException.class, () -> transactionService.patchTransaction(command));
+        verify(transactionRepository, times(1)).findById(transactionId);
+        verify(transactionRepository, never()).save(any());
     }
 }
