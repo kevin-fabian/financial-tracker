@@ -8,6 +8,10 @@ public record SummaryPointProjection(
         String label,
         BigDecimal total
 ) {
+    public SummaryPointProjection(int label, BigDecimal total) {
+        this(String.valueOf(label), total);
+    }
+
     public SummaryPoint toModel() {
         return new SummaryPoint(label, total);
     }

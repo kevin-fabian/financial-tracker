@@ -129,19 +129,69 @@ class DefaultTransactionRepositoryTest {
     @Test
     void getSummaryByYearAndUserIdGroupedByCategory_givenEmptyStreamable_shouldReturnEmptyList() {
         int year = 2025;
-        UUID userId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
 
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
 
-        when(jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId)))
+        when(jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(otherUserId)))
                 .thenReturn(Streamable.empty());
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId));
+        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(otherUserId));
 
         Assertions.assertThat(result).isEmpty();
 
-          verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId));   }
+        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(otherUserId));
+    }
+
+    @Test
+    void getSummaryByYearAndMonthGroupedByMonth_givenTwoMonthsWithSameYear_shouldReturnTwoMonthsSummaryPoints() {
+        int year = 2026;
+        CategoryEntity food = createCategory("FOOD");
+        CategoryEntity gadget = createCategory("GADGET");;
+        AccountEntity cash = createAccount("CASH");
+
+        List.of(AddTransactionCommand.builder()
+                        .userId(userId)
+                        .categoryId(food.getId())
+                        .accountId(cash.getId())
+                        .amount(Amount.of(250, Currency.getInstance("PHP")))
+                        .transactionDate(LocalDate.of(2026, 3, 1))
+                        .description("Some expense")
+                        .type(TransactionType.EXPENSE)
+                        .build(),
+                AddTransactionCommand.builder()
+                        .userId(userId)
+                        .categoryId(food.getId())
+                        .accountId(cash.getId())
+                        .amount(Amount.of(8000, Currency.getInstance("PHP")))
+                        .transactionDate(LocalDate.of(2026, 5, 15))
+                        .description("Another expense")
+                        .type(TransactionType.EXPENSE)
+                        .build(),
+                AddTransactionCommand.builder()
+                        .userId(userId)
+                        .categoryId(gadget.getId())
+                        .accountId(cash.getId())
+                        .amount(Amount.of(70000, Currency.getInstance("PHP")))
+                        .transactionDate(LocalDate.of(2025, 5, 15))
+                        .description("Iphone 15 Pro Max")
+                        .type(TransactionType.EXPENSE)
+                        .build()).forEach(transactionService::addTransaction);
+
+        LocalDate from = LocalDate.of(year, 1, 1);
+        LocalDate to = LocalDate.of(year, 12, 31);
+
+        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId));
+
+        Assertions.assertThat(result).hasSize(2);
+        Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("3", "5");
+        Assertions.assertThat(result).extracting(SummaryPoint::total)
+                .usingElementComparator(BigDecimal::compareTo)
+                .containsExactlyInAnyOrder(BigDecimal.valueOf(250), BigDecimal.valueOf(8000));
+
+        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId));
+    }
 
     private CategoryEntity createCategory(String categoryName) {
         CategoryEntity category = new CategoryEntity();

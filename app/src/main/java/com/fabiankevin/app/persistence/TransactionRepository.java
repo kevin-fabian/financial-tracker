@@ -13,4 +13,5 @@ public interface TransactionRepository {
     Optional<Transaction> findById(UUID id);
     void deleteById(UUID id);
     List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByCategory(LocalDate from, LocalDate to, List<UUID> userIds);
+    List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByMonth(LocalDate from, LocalDate to, List<UUID> userIds);
 }

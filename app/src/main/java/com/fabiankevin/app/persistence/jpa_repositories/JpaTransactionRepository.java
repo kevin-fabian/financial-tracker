@@ -13,13 +13,25 @@ import java.util.UUID;
 
 public interface JpaTransactionRepository extends JpaRepository<TransactionEntity, UUID> {
     @Query("""
-                SELECT t.category.name AS category, SUM(t.amount.amount) AS sum
+                SELECT t.category.name AS label, SUM(t.amount.amount) AS sum
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds
                 GROUP BY t.category.name
             """)
     Streamable<SummaryPointProjection> getSummaryByDateRangeAndUserIdGroupedByCategory(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("userIds") List<UUID> userIds);
+
+    @Query("""
+                SELECT MONTH(t.transactionDate) AS label, SUM(t.amount.amount) AS sum
+                FROM TransactionEntity t
+                WHERE t.transactionDate BETWEEN :from AND :to
+                  AND t.account.userId IN :userIds
+                GROUP BY MONTH(t.transactionDate)
+            """)
+    Streamable<SummaryPointProjection> getSummaryByDateRangeAndUserIdGroupedByMonth(
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             @Param("userIds") List<UUID> userIds);
