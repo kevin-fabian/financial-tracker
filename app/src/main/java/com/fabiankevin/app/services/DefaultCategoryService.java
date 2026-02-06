@@ -3,8 +3,10 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.exceptions.CategoryAlreadyExistException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
+import com.fabiankevin.app.services.queries.PageQuery;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -38,5 +40,10 @@ public class DefaultCategoryService implements CategoryService {
     public void deleteCategoryById(UUID id, UUID userId) {
         categoryRepository.findByIdAndUserId(id, userId).orElseThrow(CategoryNotFoundException::new);
         categoryRepository.deleteByIdAndUserId(id, userId);
+    }
+
+    @Override
+    public Page<Category> getCategoriesByPageQuery(PageQuery query, UUID userId) {
+        return categoryRepository.findAllByPageQuery(query, userId);
     }
 }

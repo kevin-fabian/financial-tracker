@@ -1,9 +1,13 @@
 package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
+import com.fabiankevin.app.services.queries.PageQuery;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -40,5 +44,25 @@ public class DefaultCategoryRepository implements CategoryRepository {
     @Override
     public void deleteByIdAndUserId(UUID id, UUID userId) {
         jpaCategoryRepository.deleteByIdAndUserId(id, userId);
+    }
+
+    @Override
+    public Page<Category> findAllByPageQuery(PageQuery query, UUID userId) {
+        var pageable = PageRequest.of(
+                query.page(),
+                query.size(),
+                Sort.by(Sort.Direction.fromString(query.direction()), query.sort())
+        );
+        var page = jpaCategoryRepository.findAllByUserId(userId, pageable)
+                .map(CategoryEntity::toModel);
+        return  new Page<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isLast(),
+                page.isFirst()
+        );
     }
 }

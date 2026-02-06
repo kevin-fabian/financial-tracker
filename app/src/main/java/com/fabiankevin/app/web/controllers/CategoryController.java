@@ -1,9 +1,12 @@
 package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.web.controllers.dtos.CategoryResponse;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
+import com.fabiankevin.app.web.controllers.dtos.PageRequest;
+import com.fabiankevin.app.web.controllers.dtos.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -25,6 +28,23 @@ import java.util.UUID;
 @RequestMapping(value = "/api/categories", version = "v1")
 public class CategoryController {
     private final CategoryService categoryService;
+
+    @Operation(
+            summary = "Retrieves paginated categories",
+            description = "Retrieves a paginated list of transaction categories based on the provided pagination parameters",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - Resources retrieved successfully",
+                            content = @Content(schema = @Schema(implementation = PageResponse.class))),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @GetMapping
+    public PageResponse<Category> retrievePaginatedCategories(@RequestParam PageRequest pageRequest, JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        Page<Category> categoriesByPageQuery = categoryService.getCategoriesByPageQuery(pageRequest.toQuery(), userId);
+        return PageResponse.from(categoriesByPageQuery);
+    }
 
     @Operation(
             summary = "Retrieve a category",
