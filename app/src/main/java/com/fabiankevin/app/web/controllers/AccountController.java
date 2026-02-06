@@ -7,6 +7,7 @@ import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.web.controllers.dtos.AccountResponse;
 import com.fabiankevin.app.web.controllers.dtos.CreateAccountRequest;
 import com.fabiankevin.app.web.controllers.dtos.PageResponse;
+import com.fabiankevin.app.web.controllers.dtos.PatchAccountRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -96,6 +97,24 @@ public class AccountController {
                 .buildAndExpand(response.id())
                 .toUri();
         return ResponseEntity.created(location).body(response);
+    }
+
+    @Operation(
+            summary = "Patch an account",
+            description = "Updates provided fields of an account and returns the updated object",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - Resource updated successfully",
+                            content = @Content(schema = @Schema(implementation = AccountResponse.class))),
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @PatchMapping("/{accountId}")
+    public AccountResponse patchAccount(@PathVariable UUID accountId, @RequestBody PatchAccountRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        Account updated = accountService.patchAccount(request.toCommand(accountId, userId));
+        return AccountResponse.from(updated);
     }
 
     @Operation(

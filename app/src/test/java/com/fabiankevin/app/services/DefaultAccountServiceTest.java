@@ -5,6 +5,7 @@ import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
+import com.fabiankevin.app.services.commands.PatchAccountCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -147,5 +148,55 @@ class DefaultAccountServiceTest {
 
         assertEquals(page, result);
         verify(accountRepository, times(1)).getAccountsByPageAndUserId(query, userId);
+    }
+
+    @Test
+    void patchAccount_givenValidCommand_thenShouldUpdateFields() {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        Account existing = Account.builder()
+                .id(id)
+                .name("GCASH")
+                .userId(userId)
+                .currency(Currency.getInstance("PHP"))
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        PatchAccountCommand command = PatchAccountCommand.builder()
+                .id(id)
+                .name("GCASH_MAIN")
+                .currency(Currency.getInstance("PHP"))
+                .userId(userId)
+                .build();
+
+        when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
+        when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Account updated = accountService.patchAccount(command);
+
+        assertEquals("GCASH_MAIN", updated.name());
+        verify(accountRepository, times(1)).findById(id);
+        verify(accountRepository, times(1)).save(any());
+    }
+
+    @Test
+    void patchAccount_givenNonExistingId_thenShouldThrow() {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        PatchAccountCommand command = PatchAccountCommand.builder()
+                .id(id)
+                .name("GCASH_MAIN")
+                .currency(Currency.getInstance("PHP"))
+                .userId(userId)
+                .build();
+
+        when(accountRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(AccountNotFoundException.class, () -> accountService.patchAccount(command));
+        verify(accountRepository, times(1)).findById(id);
+        verify(accountRepository, never()).save(any());
     }
 }

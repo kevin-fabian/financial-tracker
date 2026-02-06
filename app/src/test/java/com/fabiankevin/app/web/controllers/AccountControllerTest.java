@@ -4,6 +4,7 @@ import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.web.controllers.dtos.CreateAccountRequest;
+import com.fabiankevin.app.web.controllers.dtos.PatchAccountRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -136,5 +137,38 @@ class AccountControllerTest {
                 .andExpect(jsonPath("$.totalElements").value(2));
 
         verify(accountService, times(1)).getAccountsByPageAndUserId(new com.fabiankevin.app.services.queries.PageQuery(0,2,"name","ASC"), userId);
+    }
+
+    @Test
+    void patchAccount_givenValidRequest_thenShouldReturnUpdated() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        PatchAccountRequest request = PatchAccountRequest.builder()
+                .name("GCASH_MAIN")
+                .currency("PHP")
+                .build();
+
+        when(accountService.patchAccount(any())).thenAnswer(invocation -> {
+            com.fabiankevin.app.services.commands.PatchAccountCommand cmd = invocation.getArgument(0);
+            return Account.builder()
+                    .id(cmd.id())
+                    .name(cmd.name())
+                    .userId(userId)
+                    .currency(java.util.Currency.getInstance("PHP"))
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+        });
+
+        mockMvc.perform(patch("/api/accounts/" + id)
+                        .with(jwt().jwt(jwt))
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.name").value("GCASH_MAIN"));
+
+        verify(accountService, times(1)).patchAccount(any());
     }
 }
