@@ -43,7 +43,7 @@ class TransactionControllerTest {
     private Jwt jwt;
 
     @BeforeEach
-    void setup(){
+    void setup() {
         jwt = Jwt.withTokenValue(UUID.randomUUID().toString())
                 .subject(UUID.randomUUID().toString())
                 .header("alg", "RS256")
@@ -60,7 +60,7 @@ class TransactionControllerTest {
                 .amount(Amount.of(100, Currency.getInstance("PHP")))
                 .type(TransactionType.EXPENSE)
                 .description("Dinner")
-                .transactionDate(LocalDate.now())
+                .transactionDate(LocalDate.of(2026, 1, 1))
                 .categoryId(UUID.randomUUID())
                 .accountId(UUID.randomUUID())
                 .build();
@@ -97,7 +97,17 @@ class TransactionControllerTest {
                 .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/transactions/[-a-f0-9]{36}")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNotEmpty())
-                .andExpect(jsonPath("$.description").value("Dinner"));
+                .andExpect(jsonPath("$.description").value("Dinner"))
+                .andExpect(jsonPath("$.amount.value").value(100))
+                .andExpect(jsonPath("$.amount.currency").value("PHP"))
+                .andExpect(jsonPath("$.type").value("EXPENSE"))
+                .andExpect(jsonPath("$.transactionDate").value("2026-01-01"))
+                .andExpect(jsonPath("$.account.id").isNotEmpty())
+                .andExpect(jsonPath("$.account.name").value("GCASH"))
+                .andExpect(jsonPath("$.category.id").isNotEmpty())
+                .andExpect(jsonPath("$.category.name").value("FOOD"))
+                .andExpect(jsonPath("$.createdAt").exists())
+                .andExpect(jsonPath("$.updatedAt").exists());
 
         verify(transactionService, times(1)).addTransaction(any());
     }
