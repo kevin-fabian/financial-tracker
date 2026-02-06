@@ -193,6 +193,63 @@ class DefaultTransactionRepositoryTest {
         verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId));
     }
 
+    @Test
+    void getSummaryByDateRangeAndUserIdGroupedByYear_givenTwoYearsWithSameUserId_shouldReturnTwoYearsSummaryPoints() {
+        CategoryEntity food = createCategory("FOOD");
+        AccountEntity cash = createAccount("CASH");
+
+        List.of(AddTransactionCommand.builder()
+                        .userId(userId)
+                        .categoryId(food.getId())
+                        .accountId(cash.getId())
+                        .amount(Amount.of(10000, Currency.getInstance("PHP")))
+                        .transactionDate(LocalDate.of(2025, 1, 1))
+                        .description("New Year Celebration")
+                        .type(TransactionType.EXPENSE)
+                        .build(),
+                AddTransactionCommand.builder()
+                        .userId(userId)
+                        .categoryId(food.getId())
+                        .accountId(cash.getId())
+                        .amount(Amount.of(15000, Currency.getInstance("PHP")))
+                        .transactionDate(LocalDate.of(2026, 1, 1))
+                        .description("New Year Celebration")
+                        .type(TransactionType.EXPENSE)
+                        .build()).forEach(transactionService::addTransaction);
+
+        LocalDate from = LocalDate.of(2025, 1, 1);
+        LocalDate to = LocalDate.of(2026, 12, 31);
+
+        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(userId));
+
+        Assertions.assertThat(result).hasSize(2);
+        Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("2025", "2026");
+        Assertions.assertThat(result).extracting(SummaryPoint::total)
+                .as("totals should match ignoring scale")
+                .usingElementComparator(BigDecimal::compareTo)
+                .containsExactlyInAnyOrder(BigDecimal.valueOf(10000), BigDecimal.valueOf(15000));
+
+        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(userId));
+    }
+
+    @Test
+    void getSummaryByDateRangeAndUserIdGroupedByYear_givenEmptyStreamable_shouldReturnEmptyList() {
+        int year = 2025;
+        UUID otherUserId = UUID.randomUUID();
+
+        LocalDate from = LocalDate.of(year, 1, 1);
+        LocalDate to = LocalDate.of(year, 12, 31);
+
+        when(jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(otherUserId)))
+                .thenReturn(Streamable.empty());
+
+        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(otherUserId));
+
+        Assertions.assertThat(result).isEmpty();
+
+        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(otherUserId));
+    }
+
     private CategoryEntity createCategory(String categoryName) {
         CategoryEntity category = new CategoryEntity();
         category.setName(categoryName);

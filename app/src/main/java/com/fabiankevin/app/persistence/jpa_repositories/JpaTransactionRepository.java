@@ -35,4 +35,28 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             @Param("userIds") List<UUID> userIds);
+
+    @Query("""
+                SELECT YEAR(t.transactionDate) AS label, SUM(t.amount.amount) AS sum
+                FROM TransactionEntity t
+                WHERE t.transactionDate BETWEEN :from AND :to
+                  AND t.account.userId IN :userIds
+                GROUP BY YEAR(t.transactionDate)
+            """)
+    Streamable<SummaryPointProjection> getSummaryByDateRangeAndUserIdGroupedByYear(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("userIds") List<UUID> userIds);
+
+    @Query("""
+                SELECT DAY(t.transactionDate) AS label, SUM(t.amount.amount) AS sum
+                FROM TransactionEntity t
+                WHERE t.transactionDate BETWEEN :from AND :to
+                  AND t.account.userId IN :userIds
+                GROUP BY DAY(t.transactionDate)
+            """)
+    Streamable<SummaryPointProjection> getSummaryByDateRangeAndUserIdGroupedByDay(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("userIds") List<UUID> userIds);
 }
