@@ -55,4 +55,11 @@ public class DefaultTransactionRepository implements TransactionRepository {
                 .map(SummaryPointProjection::toModel)
                 .toList();
     }
+
+    @Override
+    public List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByDay(LocalDate from, LocalDate to, List<UUID> userIds) {
+        return jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, userIds)
+                .map(SummaryPointProjection::toModel)
+                .toList();
+    }
 }
