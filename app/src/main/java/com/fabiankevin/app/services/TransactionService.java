@@ -7,5 +7,5 @@ import com.fabiankevin.app.services.queries.SummaryQuery;
 
 public interface TransactionService {
     Transaction addTransaction(AddTransactionCommand command);
-    SummarySeries getSummary(SummaryQuery query);;
+    SummarySeries getSummary(SummaryQuery query);
 }

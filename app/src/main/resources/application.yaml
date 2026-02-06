@@ -4,3 +4,9 @@ spring:
   profiles:
     active:
       - local
+  mvc:
+    apiversion:
+      default: v1
+      supported: v1
+      use:
+        header: X-API-VERSION

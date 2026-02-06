@@ -22,7 +22,7 @@ import java.util.UUID;
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/api/accounts")
+@RequestMapping(value = "/api/accounts", version = "v1")
 public class AccountController {
     private final AccountService accountService;
 

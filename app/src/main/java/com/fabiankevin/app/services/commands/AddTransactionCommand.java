@@ -14,5 +14,6 @@ public record AddTransactionCommand(
         String description,
         LocalDate transactionDate,
         UUID categoryId,
-        UUID accountId) {
+        UUID accountId,
+        UUID userId) {
 }

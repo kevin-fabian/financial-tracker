@@ -49,10 +49,12 @@ public class DefaultTransactionService implements TransactionService {
     @Transactional
     @Override
     public Transaction addTransaction(AddTransactionCommand command) {
+        UUID userId = command.userId();
         Account account = accountRepository.findById(command.accountId())
+                .filter(acc -> acc.userId().equals(userId))
                 .orElseThrow(AccountNotFoundException::new);
-        UUID userId = account.userId();
-        Category category = categoryRepository.findByIdAndUserId(command.categoryId(), userId)
+        Category category = categoryRepository.findById(command.categoryId())
+                .filter(cat -> cat.userId().equals(userId))
                 .orElseThrow(CategoryNotFoundException::new);
 
         Transaction transaction = Transaction.builder()
