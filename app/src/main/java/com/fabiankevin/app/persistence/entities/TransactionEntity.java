@@ -18,7 +18,10 @@ import java.util.UUID;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "transactions")
+@Table(name = "transactions", indexes = {
+        @Index(name = "idx_transactions_transaction_date_and_type", columnList = "transaction_date, type"),
+        @Index(name = "idx_transactions_category_id", columnList = "categoryId")
+})
 @Entity
 public class TransactionEntity {
     @Id
@@ -35,6 +38,7 @@ public class TransactionEntity {
     @Embedded
     private AmountEmbeddable amount;
     private String description;
+    @JoinColumn(nullable = false)
     private LocalDate transactionDate;
     private Instant createdAt;
     private Instant updatedAt;

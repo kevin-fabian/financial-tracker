@@ -18,7 +18,5 @@ public interface TransactionRepository {
     List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByMonth(LocalDate from, LocalDate to, List<UUID> userIds);
     List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByYear(LocalDate from, LocalDate to, List<UUID> userIds);
     List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByDay(LocalDate from, LocalDate to, List<UUID> userIds);
-
-    // Paginated retrieval of transactions for a user
     Page<Transaction> getTransactionsByPageAndUserId(PageQuery query, UUID userId);
 }

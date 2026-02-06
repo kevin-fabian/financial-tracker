@@ -16,13 +16,19 @@ import java.util.UUID;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "accounts")
+@Table(name = "accounts",
+        indexes = {
+                @Index(name = "idx_accounts_name", columnList = "name"),
+                @Index(name = "idx_accounts_user_id", columnList = "user_id")
+        },
+        uniqueConstraints = @UniqueConstraint(columnNames = {"name", "user_id"}))
 @Entity
 public class AccountEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     private String name;
+    @Column(name = "user_id")
     private UUID userId;
     private String currency;
     @Column(nullable = false)

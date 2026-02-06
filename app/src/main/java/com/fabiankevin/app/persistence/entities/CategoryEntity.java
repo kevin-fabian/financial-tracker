@@ -14,15 +14,20 @@ import java.util.UUID;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "categories")
+@Table(name = "categories",
+        indexes = {
+                @Index(name = "idx_categories_name", columnList = "name"),
+                @Index(name = "idx_categories_user_id", columnList = "user_id")
+        },
+        uniqueConstraints = @UniqueConstraint(columnNames = {"name", "user_id"}))
 @Entity
 public class CategoryEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-    @Column(unique = true, length = 128)
+    @Column(length = 128)
     private String name;
-    @Column(nullable = false)
+    @Column(name = "user_id", nullable = false)
     private UUID userId;
     @Column(nullable = false)
     private Instant createdAt;
