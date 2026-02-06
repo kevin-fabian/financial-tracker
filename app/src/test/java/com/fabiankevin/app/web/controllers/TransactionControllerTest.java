@@ -5,6 +5,7 @@ import com.fabiankevin.app.models.enums.SummaryType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
+import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.services.queries.SummaryQuery;
 import com.fabiankevin.app.web.controllers.dtos.CreateTransactionRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,8 +28,10 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -161,5 +164,75 @@ class TransactionControllerTest {
         assertNotNull(captured.userIds(), "userIds should not be null");
         assertEquals(1, captured.userIds().size(), "userIds should contain one entry extracted from JWT");
         assertEquals(jwt.getSubject(), captured.userIds().getFirst().toString(), "userId should be extracted from JWT subject");
+    }
+
+    @Test
+    void getTransactions_givenValidParams_thenShouldReturnPagedResponse() throws Exception {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        PageQuery query = new PageQuery(0, 2, "transactionDate", "ASC");
+
+        Transaction t1 = Transaction.builder()
+                .id(UUID.randomUUID())
+                .account(Account.builder().id(UUID.randomUUID()).userId(userId).name("A1").currency(Currency.getInstance("PHP")).build())
+                .category(Category.builder().id(UUID.randomUUID()).userId(userId).name("FOOD").build())
+                .type(TransactionType.EXPENSE)
+                .amount(Amount.of(100, Currency.getInstance("PHP")))
+                .description("t1")
+                .transactionDate(LocalDate.of(2026,1,1))
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        Transaction t2 = Transaction.builder()
+                .id(UUID.randomUUID())
+                .account(Account.builder().id(UUID.randomUUID()).userId(userId).name("A1").currency(Currency.getInstance("PHP")).build())
+                .category(Category.builder().id(UUID.randomUUID()).userId(userId).name("FOOD").build())
+                .type(TransactionType.EXPENSE)
+                .amount(Amount.of(200, Currency.getInstance("PHP")))
+                .description("t2")
+                .transactionDate(LocalDate.of(2026,1,2))
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(transactionService.getTransactionsByPageQuery(query, userId))
+                .thenReturn(new Page<>(List.of(t1, t2), 0, 2, 2L, 1, true, true));
+
+        mockMvc.perform(get("/api/transactions?page=0&size=2&sort=transactionDate&direction=ASC")
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(2))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(1));
+
+        verify(transactionService, times(1)).getTransactionsByPageQuery(query, userId);
+    }
+
+    @Test
+    void getTransactions_givenNoContent_thenShouldReturnEmptyPage() throws Exception {
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        when(transactionService.getTransactionsByPageQuery(any(PageQuery.class), eq(userId)))
+                .thenReturn(new Page<>(List.of(), 0, 10, 0L, 0, false, true));
+
+        mockMvc.perform(get("/api/transactions?page=0&size=10&sort=transactionDate&direction=ASC")
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.totalElements").value(0))
+                .andExpect(jsonPath("$.totalPages").value(0));
+
+        verify(transactionService, times(1)).getTransactionsByPageQuery(argThat(
+                pageQuery -> pageQuery.page() == 0
+                        && pageQuery.size() == 10
+                        && pageQuery.sort().equals("transactionDate")
+                        && pageQuery.direction().equals("ASC")
+        ), eq(userId));
     }
 }

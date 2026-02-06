@@ -40,15 +40,24 @@ public class CategoryController {
             }
     )
     @GetMapping
-    public PageResponse<Category> getCategories(
+    public PageResponse<CategoryResponse> getCategories(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sort,
             @RequestParam(defaultValue = "DESC") String direction,
             JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        Page<Category> categoriesByPageQuery = categoryService.getCategoriesByPageQuery(new PageQuery(page, size, sort, direction), userId);
-        return PageResponse.from(categoriesByPageQuery);
+        Page<Category> categories = categoryService.getCategoriesByPageQuery(new PageQuery(page, size, sort, direction), userId);
+
+        return PageResponse.from(Page.<CategoryResponse>builder()
+                .content(categories.content().stream().map(CategoryResponse::from).toList())
+                .page(categories.page())
+                .size(categories.size())
+                .totalElements(categories.totalElements())
+                .totalPages(categories.totalPages())
+                .last(categories.last())
+                .first(categories.first())
+                .build());
     }
 
     @Operation(

@@ -1,11 +1,10 @@
 package com.fabiankevin.app.web.controllers;
 
+import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.services.TransactionService;
-import com.fabiankevin.app.web.controllers.dtos.CreateTransactionRequest;
-import com.fabiankevin.app.web.controllers.dtos.SummaryRequest;
-import com.fabiankevin.app.web.controllers.dtos.SummarySeriesResponse;
-import com.fabiankevin.app.web.controllers.dtos.TransactionResponse;
+import com.fabiankevin.app.services.queries.PageQuery;
+import com.fabiankevin.app.web.controllers.dtos.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -66,5 +65,36 @@ public class TransactionController {
     public SummarySeriesResponse getSummary(@ModelAttribute SummaryRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         return SummarySeriesResponse.from(transactionService.getSummary(request.toCommand(List.of(userId))));
+    }
+
+    @Operation(
+            summary = "Retrieves paginated transactions",
+            description = "Retrieves a paginated list of transactions for the authenticated user",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - Resources retrieved successfully",
+                            content = @Content(schema = @Schema(implementation = PageResponse.class))),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @GetMapping
+    public PageResponse<TransactionResponse> getTransactions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "transactionDate") String sort,
+            @RequestParam(defaultValue = "DESC") String direction,
+            JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        Page<Transaction> transactions = transactionService.getTransactionsByPageQuery(new PageQuery(page, size, sort, direction), userId);
+
+        return PageResponse.from(Page.<TransactionResponse>builder()
+                .content(transactions.content().stream().map(TransactionResponse::from).toList())
+                .page(transactions.page())
+                .size(transactions.size())
+                .totalElements(transactions.totalElements())
+                .totalPages(transactions.totalPages())
+                .last(transactions.last())
+                .first(transactions.first())
+                .build());
     }
 }

@@ -11,6 +11,7 @@ import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
+import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.services.queries.SummaryQuery;
 import com.fabiankevin.app.services.summaries.SummaryGenerator;
 import jakarta.transaction.Transactional;
@@ -83,5 +84,10 @@ public class DefaultTransactionService implements TransactionService {
                 query.type(),
                 generator.generate(query)
         );
+    }
+
+    @Override
+    public com.fabiankevin.app.models.Page<Transaction> getTransactionsByPageQuery(PageQuery query, UUID userId) {
+        return transactionRepository.getTransactionsByPageAndUserId(query, userId);
     }
 }

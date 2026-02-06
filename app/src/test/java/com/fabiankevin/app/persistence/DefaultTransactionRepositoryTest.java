@@ -2,6 +2,7 @@ package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.Amount;
 import com.fabiankevin.app.models.SummaryPoint;
+import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.entities.AccountEntity;
 import com.fabiankevin.app.persistence.entities.CategoryEntity;
@@ -148,7 +149,7 @@ class DefaultTransactionRepositoryTest {
     void getSummaryByYearAndMonthGroupedByMonth_givenTwoMonthsWithSameYear_shouldReturnTwoMonthsSummaryPoints() {
         int year = 2026;
         CategoryEntity food = createCategory("FOOD");
-        CategoryEntity gadget = createCategory("GADGET");;
+        CategoryEntity gadget = createCategory("GADGET");
         AccountEntity cash = createAccount("CASH");
 
         List.of(AddTransactionCommand.builder()
@@ -314,6 +315,30 @@ class DefaultTransactionRepositoryTest {
         Assertions.assertThat(result).isEmpty();
 
         verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(otherUserId));
+    }
+
+    @Test
+    void getTransactionsByPageAndUserId_givenMultipleTransactions_thenShouldReturnPagedResults() {
+        CategoryEntity food = createCategory("FOOD");
+        AccountEntity cash = createAccount("CASH");
+
+        // create 3 transactions
+        List.of(
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,1)).description("t1").type(TransactionType.EXPENSE).build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,2)).description("t2").type(TransactionType.EXPENSE).build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(300, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,3)).description("t3").type(TransactionType.EXPENSE).build()
+        ).forEach(transactionService::addTransaction);
+
+        com.fabiankevin.app.services.queries.PageQuery query = new com.fabiankevin.app.services.queries.PageQuery(0, 2, "transactionDate", "ASC");
+
+        com.fabiankevin.app.models.Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserId(query, userId);
+
+        Assertions.assertThat(page).isNotNull();
+        Assertions.assertThat(page.content()).hasSize(2);
+        Assertions.assertThat(page.page()).isEqualTo(0);
+        Assertions.assertThat(page.size()).isEqualTo(2);
+        Assertions.assertThat(page.totalElements()).isEqualTo(3);
+        Assertions.assertThat(page.totalPages()).isEqualTo(2);
     }
 
     private CategoryEntity createCategory(String categoryName) {

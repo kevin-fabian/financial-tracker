@@ -64,6 +64,8 @@ public class AccountController {
             JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         Page<Account> accounts = accountService.getAccountsByPageAndUserId(new PageQuery(page, size, sort, direction), userId);
+
+
         var mappedPage = new com.fabiankevin.app.models.Page<>(
                 accounts.content().stream().map(AccountResponse::from).toList(),
                 accounts.page(),
@@ -74,7 +76,15 @@ public class AccountController {
                 accounts.first()
         );
 
-        return PageResponse.from(mappedPage);
+        return PageResponse.from(Page.<AccountResponse>builder()
+                .content(accounts.content().stream().map(AccountResponse::from).toList())
+                .page(accounts.page())
+                .size(accounts.size())
+                .totalElements(accounts.totalElements())
+                .totalPages(accounts.totalPages())
+                .last(accounts.last())
+                .first(accounts.first())
+                .build());
     }
 
     @Operation(

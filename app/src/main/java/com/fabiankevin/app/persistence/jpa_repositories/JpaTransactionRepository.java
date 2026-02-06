@@ -2,6 +2,8 @@ package com.fabiankevin.app.persistence.jpa_repositories;
 
 import com.fabiankevin.app.persistence.entities.TransactionEntity;
 import com.fabiankevin.app.persistence.entities.projections.SummaryPointProjection;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -59,4 +61,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             @Param("userIds") List<UUID> userIds);
+
+    // Pageable lookup for transactions by account.userId
+    Page<TransactionEntity> findAllByAccountUserId(UUID userId, Pageable pageable);
 }

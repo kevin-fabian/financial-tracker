@@ -5,7 +5,10 @@ import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.persistence.entities.TransactionEntity;
 import com.fabiankevin.app.persistence.entities.projections.SummaryPointProjection;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
+import com.fabiankevin.app.services.queries.PageQuery;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -61,5 +64,27 @@ public class DefaultTransactionRepository implements TransactionRepository {
         return jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, userIds)
                 .map(SummaryPointProjection::toModel)
                 .toList();
+    }
+
+    @Override
+    public com.fabiankevin.app.models.Page<Transaction> getTransactionsByPageAndUserId(PageQuery query, UUID userId) {
+        var pageable = PageRequest.of(
+                query.page(),
+                query.size(),
+                Sort.by(Sort.Direction.fromString(query.direction()), query.sort())
+        );
+
+        var page = jpaTransactionRepository.findAllByAccountUserId(userId, pageable)
+                .map(TransactionEntity::toModel);
+
+        return new com.fabiankevin.app.models.Page<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isLast(),
+                page.isFirst()
+        );
     }
 }

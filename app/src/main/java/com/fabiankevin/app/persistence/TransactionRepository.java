@@ -1,7 +1,9 @@
 package com.fabiankevin.app.persistence;
 
+import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.Transaction;
+import com.fabiankevin.app.services.queries.PageQuery;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -16,4 +18,7 @@ public interface TransactionRepository {
     List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByMonth(LocalDate from, LocalDate to, List<UUID> userIds);
     List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByYear(LocalDate from, LocalDate to, List<UUID> userIds);
     List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByDay(LocalDate from, LocalDate to, List<UUID> userIds);
+
+    // Paginated retrieval of transactions for a user
+    Page<Transaction> getTransactionsByPageAndUserId(PageQuery query, UUID userId);
 }
