@@ -37,7 +37,9 @@ class DefaultTransactionServiceTest {
 
     @Test
     void addTransaction_givenValidCommand_thenShouldSucceed() {
+        UUID userId = UUID.randomUUID();
         AddTransactionCommand command = AddTransactionCommand.builder()
+                .userId(userId)
                 .amount(Amount.of(100, Currency.getInstance("PHP")))
                 .accountId(UUID.randomUUID())
                 .description("Food and drinks")
@@ -45,14 +47,13 @@ class DefaultTransactionServiceTest {
                 .categoryId(UUID.randomUUID())
                 .transactionDate(LocalDate.now())
                 .build();
-        UUID userId = UUID.randomUUID();
         when(accountRepository.findById(command.accountId())).thenReturn(Optional.ofNullable(Account.builder()
                         .id(command.accountId())
                         .name("GCASH")
                         .currency(Currency.getInstance("PHP"))
                         .userId(userId)
                 .build()));
-        when(categoryRepository.findByIdAndUserId(command.categoryId(), userId)).thenReturn(Optional.of(Category.builder()
+        when(categoryRepository.findById(command.categoryId())).thenReturn(Optional.of(Category.builder()
                         .id(command.categoryId())
                         .name("FOOD")
                         .userId(userId)
@@ -70,7 +71,7 @@ class DefaultTransactionServiceTest {
         assertEquals("Food and drinks", transaction.description(), "description should match");
 
         verify(accountRepository, times(1)).findById(command.accountId());
-        verify(categoryRepository, times(1)).findByIdAndUserId(command.categoryId(), userId);
+        verify(categoryRepository, times(1)).findById(command.categoryId());
         verify(transactionRepository, times(1)).save(any());
     }
 }

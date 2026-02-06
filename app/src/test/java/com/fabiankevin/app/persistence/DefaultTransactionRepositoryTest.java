@@ -112,7 +112,10 @@ class DefaultTransactionRepositoryTest {
                         .type(TransactionType.EXPENSE)
                         .build()).forEach(transactionService::addTransaction);
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByYearAndUserIdGroupedByCategory(year, List.of(userId));
+        LocalDate from = LocalDate.of(year, 1, 1);
+        LocalDate to = LocalDate.of(year, 12, 31);
+
+        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId));
         Assertions.assertThat(result).hasSize(2);
         Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("FOOD", "RENT");
         Assertions.assertThat(result).extracting(SummaryPoint::total)
@@ -120,7 +123,7 @@ class DefaultTransactionRepositoryTest {
                 .usingElementComparator(BigDecimal::compareTo)
                 .containsExactlyInAnyOrder(BigDecimal.valueOf(250), BigDecimal.valueOf(8000));
 
-        verify(jpaTransactionRepository, times(1)).getSummaryByYearAndUserIdGroupedByCategory(year, List.of(userId));
+        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId));
     }
 
     @Test
@@ -128,14 +131,17 @@ class DefaultTransactionRepositoryTest {
         int year = 2025;
         UUID userId = UUID.randomUUID();
 
-        when(jpaTransactionRepository.getSummaryByYearAndUserIdGroupedByCategory(year, List.of(userId)))
+        LocalDate from = LocalDate.of(year, 1, 1);
+        LocalDate to = LocalDate.of(year, 12, 31);
+
+        when(jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId)))
                 .thenReturn(Streamable.empty());
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByYearAndUserIdGroupedByCategory(year, List.of(userId));
+        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId));
 
         Assertions.assertThat(result).isEmpty();
 
-          verify(jpaTransactionRepository, times(1)).getSummaryByYearAndUserIdGroupedByCategory(year, List.of(userId));   }
+          verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId));   }
 
     private CategoryEntity createCategory(String categoryName) {
         CategoryEntity category = new CategoryEntity();

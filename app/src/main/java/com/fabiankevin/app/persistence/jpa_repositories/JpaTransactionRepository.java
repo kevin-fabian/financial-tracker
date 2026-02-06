@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.util.Streamable;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,8 +15,12 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
     @Query("""
                 SELECT t.category.name AS category, SUM(t.amount.amount) AS sum
                 FROM TransactionEntity t
-                WHERE YEAR(t.transactionDate) = :year and t.account.userId IN :userIds
+                WHERE t.transactionDate BETWEEN :from AND :to
+                  AND t.account.userId IN :userIds
                 GROUP BY t.category.name
             """)
-    Streamable<SummaryPointProjection> getSummaryByYearAndUserIdGroupedByCategory(@Param("year") int year, @Param("userIds") List<UUID> userIds);
+    Streamable<SummaryPointProjection> getSummaryByDateRangeAndUserIdGroupedByCategory(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("userIds") List<UUID> userIds);
 }

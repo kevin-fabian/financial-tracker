@@ -22,8 +22,9 @@ public class CategorySummaryGenerator implements SummaryGenerator {
 
     @Override
     public List<SummaryPoint> generate(SummaryQuery query) {
-        return jpaTransactionRepository.getSummaryByYearAndUserIdGroupedByCategory(
-                        query.from().getYear(),
+        return jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(
+                        query.from(),
+                        query.to(),
                         query.userIds()
                 ).map(SummaryPointProjection::toModel)
                 .toList();

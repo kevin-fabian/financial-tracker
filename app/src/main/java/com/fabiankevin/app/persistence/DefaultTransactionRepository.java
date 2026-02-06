@@ -8,6 +8,7 @@ import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,8 +36,8 @@ public class DefaultTransactionRepository implements TransactionRepository {
     }
 
     @Override
-    public List<SummaryPoint> getSummaryByYearAndUserIdGroupedByCategory(int year, List<UUID> userIds) {
-        return jpaTransactionRepository.getSummaryByYearAndUserIdGroupedByCategory(year, userIds)
+    public List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByCategory(LocalDate from, LocalDate to, List<UUID> userIds) {
+        return jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, userIds)
                 .map(SummaryPointProjection::toModel)
                 .toList();
     }
