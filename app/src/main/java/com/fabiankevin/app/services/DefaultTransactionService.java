@@ -13,6 +13,7 @@ import com.fabiankevin.app.services.commands.PatchTransactionCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.services.queries.SummaryQuery;
 import com.fabiankevin.app.services.summaries.SummaryGenerator;
+import com.fabiankevin.app.web.controllers.dtos.TransactionResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -51,10 +52,16 @@ public class DefaultTransactionService implements TransactionService {
 
     @Override
     public void deleteTransaction(UUID transactionId, UUID userId) {
-        int affectedRows = transactionRepository.deleteByIdAndUserId(transactionId, userId);
-        if(affectedRows > 0){
-            log.info("Deleted transaction with id {} for user {}", transactionId, userId);
-        }
+        transactionRepository.deleteByIdAndUserId(transactionId, userId);
+    }
+
+    @Override
+    public TransactionResponse getTransactionById(UUID id, UUID userId) {
+        Transaction transaction = transactionRepository.findById(id)
+                .filter(t -> t.account().userId().equals(userId))
+                .orElseThrow(TransactionNotFoundException::new);
+
+        return TransactionResponse.from(transaction);
     }
 
     @Transactional

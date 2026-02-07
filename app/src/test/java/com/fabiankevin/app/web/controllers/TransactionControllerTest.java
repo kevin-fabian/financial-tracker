@@ -7,7 +7,7 @@ import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.services.queries.SummaryQuery;
-import com.fabiankevin.app.web.controllers.dtos.CreateTransactionRequest;
+import com.fabiankevin.app.web.controllers.dtos.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -269,6 +269,47 @@ class TransactionControllerTest {
                 .andExpect(jsonPath("$.description").value("Updated description"));
 
         verify(transactionService, times(1)).patchTransaction(any());
+    }
+
+    @Test
+    void getTransactionById_givenExisting_thenShouldReturnOk() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        TransactionResponse response = com.fabiankevin.app.web.controllers.dtos.TransactionResponse.builder()
+                .id(id)
+                .account(AccountResponse.builder().id(UUID.randomUUID()).name("A1").build())
+                .category(CategoryResponse.builder().id(UUID.randomUUID()).name("C1").build())
+                .amount(AmountResponse.builder()
+                        .value(BigDecimal.valueOf(100))
+                        .currency(Currency.getInstance("PHP"))
+                        .build())
+                .description("desc")
+                .type("EXPENSE")
+                .transactionDate(LocalDate.of(2026, 1, 1))
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(transactionService.getTransactionById(id, userId)).thenReturn(response);
+
+        mockMvc.perform(get("/api/transactions/" + id)
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.description").value("desc"))
+                .andExpect(jsonPath("$.amount.value").value(100))
+                .andExpect(jsonPath("$.amount.currency").value("PHP"))
+                .andExpect(jsonPath("$.type").value("EXPENSE"))
+                .andExpect(jsonPath("$.transactionDate").value("2026-01-01"))
+                .andExpect(jsonPath("$.account.id").isNotEmpty())
+                .andExpect(jsonPath("$.account.name").value("A1"))
+                .andExpect(jsonPath("$.category.id").isNotEmpty())
+                .andExpect(jsonPath("$.category.name").value("C1"))
+                .andExpect(jsonPath("$.createdAt").exists())
+                .andExpect(jsonPath("$.updatedAt").exists());
+
+        verify(transactionService, times(1)).getTransactionById(id, userId);
     }
 
     @Test

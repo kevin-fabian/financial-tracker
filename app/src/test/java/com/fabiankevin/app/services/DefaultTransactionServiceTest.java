@@ -149,4 +149,41 @@ class DefaultTransactionServiceTest {
 
         verify(transactionRepository, times(1)).deleteByIdAndUserId(transactionId, userId);
     }
+
+    @Test
+    void getTransactionById_givenExistingAndBelongsToUser_thenShouldReturnResponse() {
+        UUID userId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+
+        Transaction tx = Transaction.builder()
+                .id(transactionId)
+                .account(Account.builder().id(UUID.randomUUID()).userId(userId).name("ACCT").currency(java.util.Currency.getInstance("PHP")).build())
+                .category(Category.builder().id(UUID.randomUUID()).userId(userId).name("CAT").build())
+                .type(TransactionType.EXPENSE)
+                .amount(Amount.of(100, java.util.Currency.getInstance("PHP")))
+                .description("desc")
+                .transactionDate(LocalDate.now())
+                .createdAt(java.time.Instant.now())
+                .updatedAt(java.time.Instant.now())
+                .build();
+
+        when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(tx));
+
+        com.fabiankevin.app.web.controllers.dtos.TransactionResponse response = transactionService.getTransactionById(transactionId, userId);
+
+        assertEquals(transactionId, response.id());
+        assertEquals("desc", response.description());
+        verify(transactionRepository, times(1)).findById(transactionId);
+    }
+
+    @Test
+    void getTransactionById_givenNonExistingOrNotBelongToUser_thenShouldThrow() {
+        UUID userId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+
+        when(transactionRepository.findById(transactionId)).thenReturn(Optional.empty());
+
+        assertThrows(TransactionNotFoundException.class, () -> transactionService.getTransactionById(transactionId, userId));
+        verify(transactionRepository, times(1)).findById(transactionId);
+    }
 }

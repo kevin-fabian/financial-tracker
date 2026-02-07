@@ -7,6 +7,7 @@ import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.PatchTransactionCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.services.queries.SummaryQuery;
+import com.fabiankevin.app.web.controllers.dtos.TransactionResponse;
 
 import java.util.UUID;
 
@@ -17,4 +18,5 @@ public interface TransactionService {
     Page<Transaction> getTransactionsByPageQuery(PageQuery query, UUID userId);
     Transaction patchTransaction(PatchTransactionCommand command);
     void deleteTransaction(UUID transactionId, UUID userId);
+    TransactionResponse getTransactionById(UUID id, UUID userId);
 }
