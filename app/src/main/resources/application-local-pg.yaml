@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/financial_tracker_db
+    driver-class-name: org.postgresql.Driver
+    username: financial_tracker_apps
+    password: financial_tracker_apps
+    hikari:
+      schema: financial_tracker_schema
+      maximum-pool-size: 10
+      minimum-idle: 1
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: false
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jws-algorithms: RS256
+          jwk-set-uri: http://localhost:9000/oauth2/jwks
+          audiences:
+            - financial-tracker-test
+            - test-client
+
+logging:
+  level:
+    com.fabiankevin.app: DEBUG

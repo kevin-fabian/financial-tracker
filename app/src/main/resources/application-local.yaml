@@ -18,3 +18,7 @@ spring:
           audiences:
             - financial-tracker-test
             - test-client
+
+logging:
+  level:
+    com.fabiankevin.app: DEBUG

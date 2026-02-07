@@ -1,0 +1,34 @@
+databaseChangeLog:
+  - logicalFilePath: db.changelog.1.0.initial-schema.yml
+
+  - changeSet:
+      author: kevin.fabian
+      id: 1.0.0
+      tagDatabase:
+        tag: '1.0'
+
+  - changeSet:
+      author: kevin.fabian
+      id: 1.0.1
+      sqlFile:
+        dbms: 'postgresql'
+        path: rollouts/V1.0.0_initial_schema.sql
+        relativeToChangelogFile: true
+      rollback:
+        sqlFile:
+          dbms: postgresql
+          path: rollbacks/U1.0.0_initial_schema.sql
+          relativeToChangelogFile: true
+
+  - changeSet:
+      author: kevin.fabian
+      id: 1.0.2
+      sqlFile:
+        dbms: 'postgresql'
+        path: rollouts/V1.0.1_grants.sql
+        relativeToChangelogFile: true
+      rollback:
+        sqlFile:
+          dbms: postgresql
+          path: rollbacks/U1.0.1_grants.sql
+          relativeToChangelogFile: true

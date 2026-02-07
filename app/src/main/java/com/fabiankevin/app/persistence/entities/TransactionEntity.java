@@ -20,6 +20,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Table(name = "transactions", indexes = {
         @Index(name = "idx_transactions_transaction_date_and_type", columnList = "transaction_date, type"),
+        @Index(name = "idx_transactions_account_id", columnList = "accountId"),
         @Index(name = "idx_transactions_category_id", columnList = "categoryId")
 })
 @Entity
@@ -31,7 +32,7 @@ public class TransactionEntity {
     @JoinColumn(name = "accountId")
     private AccountEntity account;
     @Enumerated(EnumType.STRING)
-    private TransactionType type;
+    private TransactionType transactionType;
     @ManyToOne
     @JoinColumn(name = "categoryId")
     private CategoryEntity category;
@@ -48,7 +49,7 @@ public class TransactionEntity {
         return TransactionEntity.builder()
                 .id(transaction.id())
                 .account(AccountEntity.from(transaction.account()))
-                .type(transaction.type())
+                .transactionType(transaction.type())
                 .category(CategoryEntity.from(transaction.category()))
                 .amount(AmountEmbeddable.from(transaction.amount()))
                 .description(transaction.description())
@@ -62,7 +63,7 @@ public class TransactionEntity {
         return Transaction.builder()
                 .id(this.id)
                 .account(Optional.ofNullable(this.account).map(AccountEntity::toModel).orElse(null))
-                .type(this.type)
+                .type(this.transactionType)
                 .category(Optional.ofNullable(this.category).map(CategoryEntity::toModel).orElse(null))
                 .amount(Optional.ofNullable(this.amount).map(AmountEmbeddable::toModel).orElse(null))
                 .description(this.description)
