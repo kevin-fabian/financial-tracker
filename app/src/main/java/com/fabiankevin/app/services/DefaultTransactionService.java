@@ -15,6 +15,7 @@ import com.fabiankevin.app.services.queries.SummaryQuery;
 import com.fabiankevin.app.services.summaries.SummaryGenerator;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
 import java.util.List;
@@ -24,6 +25,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RequiredArgsConstructor
 public class DefaultTransactionService implements TransactionService {
     private final AccountRepository accountRepository;
@@ -49,7 +51,10 @@ public class DefaultTransactionService implements TransactionService {
 
     @Override
     public void deleteTransaction(UUID transactionId, UUID userId) {
-        transactionRepository.deleteByIdAndUserId(transactionId, userId);
+        int affectedRows = transactionRepository.deleteByIdAndUserId(transactionId, userId);
+        if(affectedRows > 0){
+            log.info("Deleted transaction with id {} for user {}", transactionId, userId);
+        }
     }
 
     @Transactional

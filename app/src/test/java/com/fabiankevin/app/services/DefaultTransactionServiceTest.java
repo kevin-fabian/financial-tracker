@@ -143,7 +143,7 @@ class DefaultTransactionServiceTest {
         UUID userId = UUID.randomUUID();
         UUID transactionId = UUID.randomUUID();
 
-        doNothing().when(transactionRepository).deleteByIdAndUserId(transactionId, userId);
+        when(transactionRepository.deleteByIdAndUserId(transactionId, userId)).thenReturn(1);
 
         transactionService.deleteTransaction(transactionId, userId);
 

@@ -75,5 +75,6 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
     Page<TransactionEntity> findAllByAccountUserId(UUID userId, Pageable pageable);
 
     // Delete a transaction by id only if it belongs to the specified user id (account.userId)
-    void deleteByIdAndAccountUserId(UUID id, UUID userId);
+    // Return number of rows deleted
+    int deleteByIdAndAccountUserId(UUID id, UUID userId);
 }

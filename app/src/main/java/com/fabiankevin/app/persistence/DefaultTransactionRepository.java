@@ -40,9 +40,10 @@ public class DefaultTransactionRepository implements TransactionRepository {
     }
 
     @Override
-    public void deleteByIdAndUserId(UUID transactionId, UUID userId) {
+    public int deleteByIdAndUserId(UUID transactionId, UUID userId) {
         // Use derived query from JpaRepository to delete only when the transaction belongs to the account.userId
-        jpaTransactionRepository.deleteByIdAndAccountUserId(transactionId, userId);
+        // JpaRepository derived delete returns number of entities deleted for some databases/providers when declared as int
+        return jpaTransactionRepository.deleteByIdAndAccountUserId(transactionId, userId);
     }
 
     @Override
