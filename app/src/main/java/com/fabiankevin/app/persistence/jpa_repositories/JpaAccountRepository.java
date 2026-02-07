@@ -9,4 +9,5 @@ import java.util.UUID;
 
 public interface JpaAccountRepository extends JpaRepository<AccountEntity, UUID> {
     Page<AccountEntity> findAllByUserId(UUID userId, Pageable pageable);
+    int deleteByIdAndUserId(UUID accountId, UUID userId);
 }

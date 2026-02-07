@@ -11,6 +11,6 @@ import java.util.UUID;
 public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUID> {
     Optional<CategoryEntity> findByIdAndUserId(UUID id, UUID userId);
     boolean existsByNameAndUserId(String name, UUID userId);
-    void deleteByIdAndUserId(UUID id, UUID userId);
+    int deleteByIdAndUserId(UUID id, UUID userId);
     Page<CategoryEntity> findAllByUserId(UUID userId, Pageable pageable);
 }

@@ -41,7 +41,6 @@ public class DefaultCategoryService implements CategoryService {
     @Transactional
     @Override
     public void deleteCategoryById(UUID id, UUID userId) {
-        categoryRepository.findByIdAndUserId(id, userId).orElseThrow(CategoryNotFoundException::new);
         categoryRepository.deleteByIdAndUserId(id, userId);
     }
 

@@ -12,6 +12,6 @@ public interface CategoryRepository {
     Optional<Category> findById(UUID id);
     boolean existsByNameAndUserId(String name, UUID userId);
     Category save(Category category);
-    void deleteByIdAndUserId(UUID id, UUID userId);
+    int deleteByIdAndUserId(UUID id, UUID userId);
     Page<Category> findAllByPageQuery(PageQuery query, UUID userId);
 }

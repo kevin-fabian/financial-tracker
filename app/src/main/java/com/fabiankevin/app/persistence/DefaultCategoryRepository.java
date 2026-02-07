@@ -42,8 +42,8 @@ public class DefaultCategoryRepository implements CategoryRepository {
     }
 
     @Override
-    public void deleteByIdAndUserId(UUID id, UUID userId) {
-        jpaCategoryRepository.deleteByIdAndUserId(id, userId);
+    public int deleteByIdAndUserId(UUID id, UUID userId) {
+        return jpaCategoryRepository.deleteByIdAndUserId(id, userId);
     }
 
     @Override
