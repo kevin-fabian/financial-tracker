@@ -40,6 +40,12 @@ public class DefaultTransactionRepository implements TransactionRepository {
     }
 
     @Override
+    public void deleteByIdAndUserId(UUID transactionId, UUID userId) {
+        // Use derived query from JpaRepository to delete only when the transaction belongs to the account.userId
+        jpaTransactionRepository.deleteByIdAndAccountUserId(transactionId, userId);
+    }
+
+    @Override
     public List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByCategory(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type) {
         return jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, userIds, type)
                 .map(SummaryPointProjection::toModel)

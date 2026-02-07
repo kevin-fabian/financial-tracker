@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
@@ -114,5 +115,21 @@ public class TransactionController {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         Transaction updated = transactionService.patchTransaction(request.toCommand(transactionId, userId));
         return TransactionResponse.from(updated);
+    }
+
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(
+            summary = "Delete a transaction",
+            description = "Deletes a transaction for the authenticated user",
+            responses = {
+                    @ApiResponse(responseCode = "204", description = "No Content - Resource deleted successfully"),
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @DeleteMapping("/{transactionId}")
+    public void  deleteTransaction(@PathVariable UUID transactionId, JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        transactionService.deleteTransaction(transactionId, userId);
     }
 }

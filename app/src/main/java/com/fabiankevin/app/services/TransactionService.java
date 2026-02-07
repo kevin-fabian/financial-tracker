@@ -16,4 +16,5 @@ public interface TransactionService {
 
     Page<Transaction> getTransactionsByPageQuery(PageQuery query, UUID userId);
     Transaction patchTransaction(PatchTransactionCommand command);
+    void deleteTransaction(UUID transactionId, UUID userId);
 }

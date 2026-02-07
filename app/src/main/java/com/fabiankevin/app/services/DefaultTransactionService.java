@@ -47,6 +47,10 @@ public class DefaultTransactionService implements TransactionService {
                 ));
     }
 
+    @Override
+    public void deleteTransaction(UUID transactionId, UUID userId) {
+        transactionRepository.deleteByIdAndUserId(transactionId, userId);
+    }
 
     @Transactional
     @Override

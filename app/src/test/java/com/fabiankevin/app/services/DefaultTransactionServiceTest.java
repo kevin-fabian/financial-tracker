@@ -137,4 +137,16 @@ class DefaultTransactionServiceTest {
         verify(transactionRepository, times(1)).findById(transactionId);
         verify(transactionRepository, never()).save(any());
     }
+
+    @Test
+    void deleteTransaction_givenExisting_thenShouldDelete() {
+        UUID userId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+
+        doNothing().when(transactionRepository).deleteByIdAndUserId(transactionId, userId);
+
+        transactionService.deleteTransaction(transactionId, userId);
+
+        verify(transactionRepository, times(1)).deleteByIdAndUserId(transactionId, userId);
+    }
 }

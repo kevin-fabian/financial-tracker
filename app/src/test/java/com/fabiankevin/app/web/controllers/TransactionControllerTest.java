@@ -270,4 +270,33 @@ class TransactionControllerTest {
 
         verify(transactionService, times(1)).patchTransaction(any());
     }
+
+    @Test
+    void deleteTransaction_givenExisting_thenShouldReturnNoContent() throws Exception {
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        doNothing().when(transactionService).deleteTransaction(transactionId, userId);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/transactions/" + transactionId)
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isNoContent());
+
+        verify(transactionService, times(1)).deleteTransaction(transactionId, userId);
+    }
+
+    @Test
+    void deleteTransaction_givenNonExisting_thenShouldReturnNoContent() throws Exception {
+        UUID transactionId = UUID.randomUUID();
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        // service should not throw even if transaction does not exist
+        doNothing().when(transactionService).deleteTransaction(transactionId, userId);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/transactions/" + transactionId)
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isNoContent());
+
+        verify(transactionService, times(1)).deleteTransaction(transactionId, userId);
+    }
 }
