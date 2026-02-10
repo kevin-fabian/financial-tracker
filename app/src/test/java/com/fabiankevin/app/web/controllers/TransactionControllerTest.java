@@ -45,7 +45,7 @@ class TransactionControllerTest {
     private TransactionService transactionService;
 
     @Autowired
-    private JsonMapper objectMapper;
+    private JsonMapper jsonMapper;
     private Jwt jwt;
 
     @BeforeEach
@@ -99,7 +99,7 @@ class TransactionControllerTest {
         mockMvc.perform(post("/api/transactions")
                         .with(jwt().jwt(jwt))
                         .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/transactions/[-a-f0-9]{36}")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNotEmpty())
@@ -119,6 +119,25 @@ class TransactionControllerTest {
     }
 
     @Test
+    void createTransaction_givenNoJwt_thenShouldReturnForbidden() throws Exception {
+        CreateTransactionRequest request = CreateTransactionRequest.builder()
+                .amount(Amount.of(100, Currency.getInstance("PHP")))
+                .type(TransactionType.EXPENSE)
+                .description("Dinner")
+                .transactionDate(LocalDate.of(2026, 1, 1))
+                .categoryId(UUID.randomUUID())
+                .accountId(UUID.randomUUID())
+                .build();
+
+        mockMvc.perform(post("/api/transactions")
+                        .contentType("application/json")
+                        .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(transactionService);
+    }
+
+    @Test
     void createTransaction_givenMissingRequiredFields_thenShouldReturnBadRequest() throws Exception {
         CreateTransactionRequest invalidRequest = CreateTransactionRequest.builder()
                 .type(TransactionType.EXPENSE)
@@ -131,7 +150,7 @@ class TransactionControllerTest {
         mockMvc.perform(post("/api/transactions")
                         .with(jwt().jwt(jwt))
                         .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(invalidRequest)))
+                        .content(jsonMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest());
 
         verify(transactionService, times(0)).addTransaction(any());
@@ -164,6 +183,17 @@ class TransactionControllerTest {
         assertNotNull(captured.userIds(), "userIds should not be null");
         assertEquals(1, captured.userIds().size(), "userIds should contain one entry extracted from JWT");
         assertEquals(jwt.getSubject(), captured.userIds().getFirst().toString(), "userId should be extracted from JWT subject");
+    }
+
+    @Test
+    void getSummary_givenNoJwt_thenShouldReturnUnauthorized() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/transactions/summary")
+                        .param("type", "CATEGORY")
+                        .param("from", "2026-01-01")
+                        .param("to", "2026-12-31"))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(transactionService);
     }
 
     @Test
@@ -209,6 +239,14 @@ class TransactionControllerTest {
                 .andExpect(jsonPath("$.totalPages").value(1));
 
         verify(transactionService, times(1)).getTransactionsByPageQuery(query, userId);
+    }
+
+    @Test
+    void getTransactions_givenNoJwt_thenShouldReturnUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/transactions?page=0&size=2&sort=transactionDate&direction=ASC"))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(transactionService);
     }
 
     @Test
@@ -263,12 +301,28 @@ class TransactionControllerTest {
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/transactions/" + id)
                         .with(jwt().jwt(jwt))
                         .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.description").value("Updated description"));
 
         verify(transactionService, times(1)).patchTransaction(any());
+    }
+
+    @Test
+    void patchTransaction_givenNoJwt_thenShouldReturnForbidden() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        com.fabiankevin.app.web.controllers.dtos.PatchTransactionRequest request = com.fabiankevin.app.web.controllers.dtos.PatchTransactionRequest.builder()
+                .description("Updated description")
+                .build();
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch("/api/transactions/" + id)
+                        .contentType("application/json")
+                        .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(transactionService);
     }
 
     @Test
@@ -313,6 +367,16 @@ class TransactionControllerTest {
     }
 
     @Test
+    void getTransactionById_givenNoJwt_thenShouldReturnUnauthorized() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        mockMvc.perform(get("/api/transactions/" + id))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(transactionService);
+    }
+
+    @Test
     void deleteTransaction_givenExisting_thenShouldReturnNoContent() throws Exception {
         UUID transactionId = UUID.randomUUID();
         UUID userId = UUID.fromString(jwt.getSubject());
@@ -324,6 +388,16 @@ class TransactionControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(transactionService, times(1)).deleteTransaction(transactionId, userId);
+    }
+
+    @Test
+    void deleteTransaction_givenNoJwt_thenShouldReturnForbidden() throws Exception {
+        UUID transactionId = UUID.randomUUID();
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/transactions/" + transactionId))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(transactionService);
     }
 
     @Test

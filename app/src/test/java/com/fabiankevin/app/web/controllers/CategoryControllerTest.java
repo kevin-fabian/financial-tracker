@@ -6,7 +6,6 @@ import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchCategoryRequest;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +13,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
 import java.util.List;
@@ -34,7 +34,9 @@ class CategoryControllerTest {
     @MockitoBean
     private CategoryService categoryService;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Autowired
+    private  JsonMapper jsonMapper;
+
     private Jwt jwt;
 
     @BeforeEach
@@ -72,13 +74,27 @@ class CategoryControllerTest {
         mockMvc.perform(post("/api/categories")
                         .with(jwt().jwt(jwt))
                         .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/categories/[-a-f0-9]{36}")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNotEmpty())
                 .andExpect(jsonPath("$.name").value("FOOD"));
 
         verify(categoryService, times(1)).createCategory(any());
+    }
+
+    @Test
+    void createCategory_givenNoJwt_thenShouldReturnForbidden() throws Exception {
+        CreateCategoryRequest request = CreateCategoryRequest.builder()
+                .name("FOOD")
+                .build();
+
+        mockMvc.perform(post("/api/categories")
+                        .contentType("application/json")
+                        .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(categoryService);
     }
 
     @Test
@@ -104,6 +120,16 @@ class CategoryControllerTest {
     }
 
     @Test
+    void getCategoryById_givenNoJwt_thenShouldReturnUnauthorized() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        mockMvc.perform(get("/api/categories/" + id))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(categoryService);
+    }
+
+    @Test
     void deleteCategoryById_givenExistingId_thenShouldReturnNoContent() throws Exception {
         UUID id = UUID.randomUUID();
         UUID userId = UUID.fromString(jwt.getSubject());
@@ -113,6 +139,16 @@ class CategoryControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(categoryService, times(1)).deleteCategoryById(id, userId);
+    }
+
+    @Test
+    void deleteCategoryById_givenNoJwt_thenShouldReturnForbidden() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        mockMvc.perform(delete("/api/categories/" + id))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(categoryService);
     }
 
     @Test
@@ -150,6 +186,14 @@ class CategoryControllerTest {
                 .andExpect(jsonPath("$.totalPages").value(1));
 
         verify(categoryService, times(1)).getCategoriesByPageQuery(query, userId);
+    }
+
+    @Test
+    void getCategoriesByPageQuery_givenNoJwt_thenShouldReturnUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/categories?page=0&size=2&sort=name&direction=ASC"))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(categoryService);
     }
 
     @Test
@@ -201,11 +245,27 @@ class CategoryControllerTest {
         mockMvc.perform(patch("/api/categories/" + id)
                         .with(jwt().jwt(jwt))
                         .contentType("application/json")
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.name").value("GROCERIES"));
 
         verify(categoryService, times(1)).patchCategory(any());
+    }
+
+    @Test
+    void patchCategory_givenNoJwt_thenShouldReturnForbidden() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        PatchCategoryRequest request = PatchCategoryRequest.builder()
+                .name("GROCERIES")
+                .build();
+
+        mockMvc.perform(patch("/api/categories/" + id)
+                        .contentType("application/json")
+                        .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(categoryService);
     }
 }
