@@ -4,11 +4,14 @@ import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.services.AccountService;
+import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateAccountRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchAccountRequest;
-import com.github.fabiankevin.quickstart.web.GlobalExceptionHandler;
+import com.github.fabiankevin.lemon.web.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -65,7 +68,7 @@ class AccountControllerTest {
 
         when(accountService.createAccount(any())).thenAnswer(invocation -> {
             java.util.UUID id = UUID.randomUUID();
-            com.fabiankevin.app.services.commands.CreateAccountCommand command = invocation.getArgument(0);
+            CreateAccountCommand command = invocation.getArgument(0);
             UUID userId = command.userId() != null ? command.userId() : UUID.randomUUID();
             return Account.builder()
                     .id(id)
@@ -90,9 +93,25 @@ class AccountControllerTest {
     }
 
     @Test
-    void createAccount_givenAccountNameIsBlank_thenShouldReturnBadRequest() throws Exception {
+    void createAccount_givenNoJwt_thenShouldReturnForbidden() throws Exception {
         CreateAccountRequest request = CreateAccountRequest.builder()
-                .name("")
+                .name("GCASH")
+                .currency("PHP")
+                .build();
+
+        mockMvc.perform(post("/api/accounts")
+                        .contentType("application/json")
+                        .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(accountService);
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void createAccount_givenNullAndEmptySource_thenShouldReturnBadRequest(String name) throws Exception {
+        CreateAccountRequest request = CreateAccountRequest.builder()
+                .name(name)
                 .currency("PHP")
                 .build();
 

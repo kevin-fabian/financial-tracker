@@ -21,11 +21,11 @@ import java.util.Optional;
 public class ResourceServerConfig {
     private static final String ROLE_PREFIX = "ROLE_";
     private static final String USER_ROLE = ROLE_PREFIX + "USER";
-//    private final InvalidJwtAuthenticationEntryPoint invalidJwtAuthenticationEntryPoint;
-//    private final BearerAccessDeniedHandler bearerAccessDeniedHandler;
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http)  {
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           InvalidTokenAuthenticationEntryPoint invalidTokenAuthenticationEntryPoint,
+                                           BearerAccessDeniedHandler bearerAccessDeniedHandler) {
         http
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/accounts", "/api/accounts/**", "/api/categories", "/api/categories/**").hasAnyAuthority(USER_ROLE)
@@ -35,6 +35,8 @@ public class ResourceServerConfig {
                 )
                 .oauth2ResourceServer(
                         oauth2 -> oauth2
+                                .accessDeniedHandler(bearerAccessDeniedHandler)
+                                .authenticationEntryPoint(invalidTokenAuthenticationEntryPoint)
                                 .jwt(jwtConfigurer -> jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter())));
         return http.build();
     }
