@@ -5,6 +5,7 @@ import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
+import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.web.controllers.dtos.CreateAccountRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchAccountRequest;
 import com.github.fabiankevin.lemon.web.GlobalExceptionHandler;
@@ -148,6 +149,16 @@ class AccountControllerTest {
     }
 
     @Test
+    void getAccountById_givenNoJwt_thenShouldReturnForbidden() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        mockMvc.perform(get("/api/accounts/" + id))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(accountService);
+    }
+
+    @Test
     void getAccountById_givenAccountNotFound_thenReturnNotFound() throws Exception {
         UUID id = UUID.randomUUID();
         UUID userId = UUID.fromString(jwt.getSubject());
@@ -175,6 +186,16 @@ class AccountControllerTest {
     }
 
     @Test
+    void deleteAccountById_givenNoJwt_thenShouldReturnForbidden() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        mockMvc.perform(delete("/api/accounts/" + id))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(accountService);
+    }
+
+    @Test
     void getAccounts_givenUser_thenShouldReturnPagedAccounts() throws Exception {
         UUID userId = UUID.fromString(jwt.getSubject());
 
@@ -183,7 +204,7 @@ class AccountControllerTest {
                 Account.builder().id(UUID.randomUUID()).name("A2").userId(userId).currency(java.util.Currency.getInstance("PHP")).createdAt(Instant.now()).updatedAt(Instant.now()).build()
         );
 
-        when(accountService.getAccountsByPageAndUserId(new com.fabiankevin.app.services.queries.PageQuery(0, 2, "name", "ASC"), userId))
+        when(accountService.getAccountsByPageAndUserId(new PageQuery(0, 2, "name", "ASC"), userId))
                 .thenReturn(new Page<>(accounts, 0, 2, accounts.size(), 1, true, true));
 
         mockMvc.perform(get("/api/accounts?page=0&size=2&sort=name&direction=ASC")
@@ -194,7 +215,16 @@ class AccountControllerTest {
                 .andExpect(jsonPath("$.content[0].name").value("A1"))
                 .andExpect(jsonPath("$.totalElements").value(2));
 
-        verify(accountService, times(1)).getAccountsByPageAndUserId(new com.fabiankevin.app.services.queries.PageQuery(0, 2, "name", "ASC"), userId);
+        verify(accountService, times(1)).getAccountsByPageAndUserId(new PageQuery(0, 2, "name", "ASC"), userId);
+    }
+
+
+    @Test
+    void getAccounts_givenNoJwt_thenShouldReturnForbidden() throws Exception {
+        mockMvc.perform(get("/api/accounts?page=0&size=2&sort=name&direction=ASC"))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(accountService);
     }
 
     @Test
@@ -228,5 +258,22 @@ class AccountControllerTest {
                 .andExpect(jsonPath("$.name").value("GCASH_MAIN"));
 
         verify(accountService, times(1)).patchAccount(any());
+    }
+
+    @Test
+    void patchAccount_givenNoJwt_thenShouldReturnForbidden() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        PatchAccountRequest request = PatchAccountRequest.builder()
+                .name("GCASH_MAIN")
+                .currency("PHP")
+                .build();
+
+        mockMvc.perform(patch("/api/accounts/" + id)
+                        .contentType("application/json")
+                        .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(accountService);
     }
 }
