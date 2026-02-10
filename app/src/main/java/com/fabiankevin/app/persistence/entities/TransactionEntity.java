@@ -19,9 +19,9 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "transactions", indexes = {
-        @Index(name = "idx_transactions_transaction_date_and_type", columnList = "transaction_date, type"),
-        @Index(name = "idx_transactions_account_id", columnList = "accountId"),
-        @Index(name = "idx_transactions_category_id", columnList = "categoryId")
+        @Index(name = "idx_transactions_transaction_date_and_type", columnList = "transaction_date, transaction_type"),
+        @Index(name = "idx_transactions_account_id", columnList = "account_id"),
+        @Index(name = "idx_transactions_category_id", columnList = "category_id")
 })
 @Entity
 public class TransactionEntity {
@@ -29,12 +29,12 @@ public class TransactionEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     @ManyToOne
-    @JoinColumn(name = "accountId")
+    @JoinColumn(name = "account_id")
     private AccountEntity account;
     @Enumerated(EnumType.STRING)
     private TransactionType transactionType;
     @ManyToOne
-    @JoinColumn(name = "categoryId")
+    @JoinColumn(name = "category_id")
     private CategoryEntity category;
     @Embedded
     private AmountEmbeddable amount;
