@@ -3,7 +3,7 @@ server:
 spring:
   profiles:
     active:
-      - local-pg
+      - local
   mvc:
     apiversion:
       default: v1

@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -73,6 +74,27 @@ class DefaultCategoryRepositoryTest {
         Assertions.assertThatThrownBy(() -> categoryRepository.save(null))
                 .as("saving null should throw InvalidDataAccessApiUsageException")
                 .isInstanceOf(InvalidDataAccessApiUsageException.class);
+    }
+
+    @Test
+    void save_givenExistingCategoryWithDifferentUser_thenSaveCategory() {
+        categoryRepository.save(category);
+
+        Category sameCategoryWithDifferentUser = Category.builder()
+                .name("FOOD")
+                .userId(UUID.randomUUID())
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        assertDoesNotThrow(() ->  categoryRepository.save(sameCategoryWithDifferentUser),
+                "should save");
+
+        Assertions.assertThat(jpaCategoryRepository.findAll())
+                .hasSize(2)
+                .as("category names should be `FOOD`")
+                .extracting("name")
+                .containsExactlyInAnyOrder("FOOD", "FOOD");
     }
 
     @Test

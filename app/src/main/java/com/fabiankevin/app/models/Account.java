@@ -14,8 +14,7 @@ public record Account(
         UUID userId,
         Currency currency,
         Instant createdAt,
-        Instant updatedAt
-) {
+        Instant updatedAt) {
     public Account {
         Optional.ofNullable(userId).orElseThrow(() -> new IllegalArgumentException("User ID is required"));
         Optional.ofNullable(currency).orElseThrow(() -> new IllegalArgumentException("Currency is required"));

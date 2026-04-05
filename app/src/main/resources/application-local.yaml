@@ -16,9 +16,18 @@ spring:
           jws-algorithms: RS256
           jwk-set-uri: http://localhost:9000/oauth2/jwks
           audiences:
-            - financial-tracker-test
+            - squeeze-web-client
             - test-client
 
 logging:
   level:
     com.fabiankevin.app: DEBUG
+    springframework.security: DEBUG
+
+management:
+  tracing:
+    enabled: false
+  otlp:
+    metrics:
+      export:
+        enabled: false
