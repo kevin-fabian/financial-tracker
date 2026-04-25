@@ -125,6 +125,23 @@ class AccountControllerTest {
         verifyNoInteractions(accountService);
     }
 
+    @ParameterizedTest
+    @NullAndEmptySource
+    void createAccount_givenNullAndEmptyCurrency_thenShouldReturnBadRequest(String currency) throws Exception {
+        CreateAccountRequest request = CreateAccountRequest.builder()
+                .name("GCASH")
+                .currency(currency)
+                .build();
+
+        mockMvc.perform(post("/api/accounts")
+                        .with(jwt().jwt(jwt))
+                        .contentType("application/json")
+                        .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(accountService);
+    }
+
     @Test
     void getAccountById_givenExistingId_thenShouldReturnAccount() throws Exception {
         UUID id = UUID.randomUUID();

@@ -60,7 +60,7 @@ class MonthlySummaryGeneratorTest {
         var result = generator.generate(query);
 
         Assertions.assertThat(result).hasSize(2);
-        Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("3", "5");
+        Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("MARCH", "MAY");
         Assertions.assertThat(result).extracting(SummaryPoint::total)
                 .usingElementComparator(BigDecimal::compareTo)
                 .containsExactlyInAnyOrder(BigDecimal.valueOf(250), BigDecimal.valueOf(8000));
