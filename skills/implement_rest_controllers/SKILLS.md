@@ -12,22 +12,78 @@ Use this skill to implement or update a Spring REST endpoint in this repository.
 
 Ask the user for:
 
-- the resource and endpoint behavior
-- request JSON, response JSON, or existing Java record models
-- whether the task also includes controller, service, or repository tests
+- [ ] endpoint behavior
+- [ ] request/response JSON or existing models
+- [ ] which tests are in scope
+
+---
+
+## Quick REST API Endpoint Flow Reference
+
+**3 Steps** Controller → Service → Repository
+
+Use the shared project structure:
+
+```text
+<base-package>
+├── web
+│   └── controllers
+│       ├── *Controller.java              <-- HTTP mapping, auth/context, DTO mapping
+│       └── dtos/
+│           ├── *Request.java             <-- validated request DTOs
+│           ├── *Response.java            <-- HTTP response DTOs
+│           └── PageResponse.java
+├── services
+│   ├── *Service.java                     <-- service interface
+│   ├── Default*Service.java              <-- business logic
+│   ├── commands/
+│   │   └── *Command.java
+│   └── queries/
+│       └── *Query.java
+└── persistence
+    ├── *Repository.java                  <-- domain-facing repository interface
+    ├── Default*Repository.java           <-- persistence implementation
+    ├── jpa_repositories/
+    │   └── Jpa*Repository.java           <-- Spring Data repository
+    └── entities/
+        └── *Entity.java                  <-- persistence entity
+```
+
+Typical flow:
+
+`*Request` → `*Controller` → `*Service` → `Default*Service` → `*Repository` → `Default*Repository` → `Jpa*Repository` → `*Entity`
+
+## Reuse Existing Resource Slice Before Creating New Classes
+
+Before adding classes, scan the existing resource slice first.
+
+- Extend an existing `*Controller` before creating another controller for the same resource.
+- Extend an existing `*Service` and `Default*Service` before creating another service.
+- Extend an existing `*Repository`, `Default*Repository`, and `Jpa*Repository` before creating another repository slice.
+- Reuse DTOs, commands, queries, and mappers when the contract is the same or close.
+- Create a new slice only when the resource does not exist.
 
 ## Workflow
 
-1. Confirm the HTTP contract from the user's JSON or Java records. Start with [repository architecture](../../copilot-instructions.md).
-2. Define or update web request and response DTOs for the endpoint. Follow [REST controller instructions](../../instrunctions/web/controllers/REST_CONTROLLER.instructions.md).
-3. Add boundary validation with `jakarta.validation` on request DTOs and `@Valid` in the controller. Follow [REST controller instructions](../../instrunctions/web/controllers/REST_CONTROLLER.instructions.md).
-4. Implement the controller endpoint, keep it limited to HTTP mapping, and delegate through a service interface. Follow [REST controller instructions](../../instrunctions/web/controllers/REST_CONTROLLER.instructions.md).
-5. Map request DTOs to service command or query objects before calling the service. Follow [service instructions](../../instrunctions/services/SERVICE.instructions.md).
-6. If the service needs persistence changes, implement that slice with [repository instructions](../../instrunctions/persistence/repositories/REPOSITORY.instructions.md) and [JPA repository instructions](../../instrunctions/persistence/jpa_repositories/JPA_REPOSITORY.instructions.md).
-7. Map the service result to a web response DTO. Return web models, not domain models or entities. Follow [REST controller instructions](../../instrunctions/web/controllers/REST_CONTROLLER.instructions.md).
-8. Add endpoint and schema documentation where the repository expects OpenAPI annotations. Follow [REST controller instructions](../../instrunctions/web/controllers/REST_CONTROLLER.instructions.md).
-9. Add focused tests for each touched layer: [controller tests](../../instrunctions/web/controllers/TEST_REST_CONTROLLER.instructions.md), [service tests](../../instrunctions/services/SERVICE_TEST.instructions.md), [repository tests](../../instrunctions/persistence/repositories/REPOSITORY_TEST.instructions.md), and [general test conventions](../../instrunctions/tests/TEST.instructions.md).
-10. Finish by running the relevant tests for the layers you changed.
+1. Scan the existing resource slice in `web`, `services`, and `persistence`.
+   Reuse what exists before creating new classes.
+2. Confirm the HTTP contract and fit it to `controller -> service -> repository`.
+3. Add or update DTOs in `web/controllers/dtos`.
+   Keep request and response models at the HTTP boundary.
+4. Add boundary validation with `jakarta.validation` and `@Valid`.
+5. Implement or extend the controller.
+   Keep it thin: map HTTP input, extract auth/context, call the service, map the response.
+   See [REST controller instructions](../../instructions/web/controllers/REST_CONTROLLER.instructions.md).
+6. Map controller input to service commands or queries.
+   Keep business logic in the service layer.
+7. Implement or extend the service interface and default implementation.
+   Services own business rules, orchestration, and transactions.
+   See [service instructions](../../instructions/services/SERVICE.instructions.md).
+8. If needed, extend the repository chain from `*Repository` to `Default*Repository` to `Jpa*Repository`.
+   Keep persistence mapping inside the persistence layer.
+   See [repository instructions](../../instructions/persistence/repositories/REPOSITORY.instructions.md), [JPA repository instructions](../../instructions/persistence/jpa_repositories/JPA_REPOSITORY.instructions.md), and [entity instructions](../../instructions/persistence/entities/ENTITY.instructions.md).
+9. Add focused tests for each touched layer and run them.
+   See [controller test instructions](../../instructions/web/controllers/TEST_REST_CONTROLLER.instructions.md), [service test instructions](../../instructions/services/SERVICE_TEST.instructions.md), [repository test instructions](../../instructions/persistence/repositories/REPOSITORY_TEST.instructions.md), and [general test instructions](../../instructions/tests/TEST.instructions.md).
 
 ## Completion Checks
 
@@ -40,7 +96,7 @@ Ask the user for:
 
 ## Example Prompts
 
-- Implement a `UserController` create endpoint from request and response JSON.
-- Add a `GET /api/users/{id}` endpoint using existing Java record models.
+- Implement a create endpoint from request and response JSON.
+- Add a `GET /api/resources/{id}` endpoint using existing models.
 - Refactor a controller so request DTOs map to service commands and response DTOs map from domain models.
-- Implement a controller and add focused `@WebMvcTest` coverage.
+- Implement an endpoint and add focused controller tests.
