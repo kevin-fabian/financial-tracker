@@ -18,6 +18,15 @@ controllers -> services -> repositories -> jpa_repositories -> entities
 
 ---
 
+## Copilot Instructions
+
+**Test Guideline Instruction**[TEST.instructions.md](/instrunctions/tests/TEST.instructions.md)
+**Service Implementation Instruction**[SERVICE.instructions.md](/instrunctions/services/SERVICE.instructions.md)
+**Repository Implementation Instruction**[REPOSITORY.instructions.md](/instrunctions/repositories/REPOSITORY.instructions.md)
+
+
+---
+
 ## Coding Standards and Best Practices
 
 ### Do
