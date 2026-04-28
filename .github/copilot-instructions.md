@@ -1,74 +1,98 @@
-## Repository Instructions & Project Architecture Guidelines
+# Project Architecture Guidelines
 
 ## Project Architecture Overview
-This project follows light hexagonal architecture principles, with a clear separation of concerns between the core domain logic, application services, and external interfaces. The architecture is designed to be modular, maintainable, and scalable.
-The project follows DDD-light principles, with a focus on defining domain models that handle invariants itself. A model should not exist if it cannot be in a valid state.
+This project follows light hexagonal architecture principles with DDD-light modeling. Keep domain models valid by construction: a model should not exist if it cannot be in a valid state.
 
----
-
-## Project Overview
-
-Multi-module Maven project with the following modules:
-
-- `app`: Spring Boot application entry point, configuration, and main class.
-- `autotest`: Spring Cucumber tests for end-to-end testing of the application.
-
-**Quick Architecture Reference**
+**Architecture reference**
 controllers -> services -> repositories -> jpa_repositories -> entities
 
+This file is intentionally repo agnostic. For concrete package names, module layout, infrastructure choices, profiles, and known exceptions in the current repository, consult `AGENTS.md`.
+
 ---
 
-## Copilot Instructions
+## Related Repository Instructions
 
-**Test Guideline Instruction**[TEST.instructions.md](/instrunctions/tests/TEST.instructions.md)
-**Service Implementation Instruction**[SERVICE.instructions.md](/instrunctions/services/SERVICE.instructions.md)
-**Repository Implementation Instruction**[REPOSITORY.instructions.md](/instrunctions/repositories/REPOSITORY.instructions.md)
+- [Test Guideline Instruction](instructions/tests/TEST.instructions.md)
+- [Service Implementation Instruction](instructions/services/SERVICE.instructions.md)
+- [Repository Implementation Instruction](instructions/persistence/repositories/REPOSITORY.instructions.md)
 
+---
+
+## General Implementation Rules
+
+### Web layer
+- Keep controllers in the web layer and keep web DTOs close to controllers.
+- Derive `userId`, tenant id, or similar ownership context from the authenticated principal or another trusted server-side context; clients must never send it in request payloads.
+- Keep DTO-to-command translation at the web edge. For example, request DTOs should expose `toCommand(...)` methods and controllers should pass commands to services.
+- Prefer converting domain models to response DTOs in controllers.
+
+### Service layer
+- Keep service APIs centered on commands, queries, and domain models.
+- Services own orchestration, validation that spans multiple collaborators, and timestamps such as `Instant.now()`.
+- Use standard Spring stereotypes such as `@Service` by default.
+- Use manual configuration only when bean composition is required, such as wiring a curated strategy list or another explicitly ordered dependency set.
+- If a repository already contains a known boundary leak, treat it as an exception to contain rather than a pattern to copy into new APIs.
+
+### Persistence layer
+- Keep repository adapters thin and map between domain models and JPA entities.
+- Follow the existing conversion pattern on entities such as `from(model)` and `toModel()`.
+- Keep Spring Data JPA interfaces separate from entities and domain-facing repository abstractions.
+- Enforce cross-user isolation in service and repository logic, not in request payloads.
+
+### Domain models
+- Prefer Java records for domain models and immutable carriers.
+- Use Lombok `@Builder(toBuilder = true)` where the existing model follows that pattern.
+- Use constructor invariants to reject invalid state early.
+- Use `Instant` for timestamps, `UUID` for identifiers, and `Optional` instead of returning `null` where absence is expected.
 
 ---
 
 ## Coding Standards and Best Practices
 
 ### Do
-- Follow existing code style and conventions in the project for consistency.
-- Use /config/AppConfig.java for manual Spring bean definitions and configuration.
-- Use Java 25 features and idioms where appropriate, such as records for simple data carriers, pattern matching for instanceof, and text blocks for multi-line strings.
-- Follow Java standard naming conventions for packages, classes, methods, and variables. e.g., packages in lowercase, classes in PascalCase, methods and variables in camelCase.
-- Use Lombok to reduce boilerplate code for entities and DTOs, but avoid overusing it.
-- Use `Builder(toBuilder = true)` for Java records to allow for easy construction and modification of immutable data carriers.
-- Prefer direct import over wildcard imports for better readability and to avoid namespace pollution.
-- Use Java `Instant` for timestamps and `UUID` for unique identifiers in domain models and entities.
-- Use Lombok's `@RequiredArgsConstructor` for service implementations to automatically generate constructors for required dependencies.
-- Use Java record for binding properties from `application.properties` or `application.yaml` configuration files.
-- Apply the Single Responsibility Principle at the class and method level, ensuring that each class and method has a clear and focused responsibility.
-- Use Java's `Optional` for return types that may be absent instead of returning null, to improve null safety and express intent.
+- Follow existing code style and naming conventions in the project.
+- Use Java 25 language features where they improve clarity without fighting the surrounding code style.
+- Prefer direct imports over wildcard imports.
+- Use Lombok selectively to reduce boilerplate in records, DTOs, and Spring components.
+- Keep classes and methods focused on a single responsibility.
+- Keep OpenAPI, security, and bean wiring changes close to configuration classes rather than scattering them across feature packages.
+- For pluggable behaviors such as summaries, exporters, or calculators, prefer a strategy pattern keyed by a clear enum or discriminator type.
 
-
-### Don't
+### Don’t
+- Don’t accept `userId` from API clients.
+- Don’t leak JPA entities or `Jpa*Repository` types outside the persistence layer.
+- Don’t put orchestration timestamps in controllers or repositories.
+- Don’t bypass repository/entity conversion methods by leaking entities into services.
+- Don’t assume packages, modules, or infrastructure exist without verifying the current repository.
 
 ---
 
 ## Package Structure Standards
+
 ```bash
-com.fabiankevin.app
-├── App.java            # Main application entry point
-├── config              # Spring configuration classes
-├── exceptions          # Custom exception classes
-├── utils               # Utility classes and helpers
-├── models              # Domain models
-│   ├── enums           # Enum types
-├── persistence         # Data access layer
-│   ├── entities         # JPA entities
-│   ├── jpa_repositories # JPA repositories
-│   ├── repositories     # Custom repositories
-├── services            # Application services
-│     ├── commands       # Command handlers
-│     ├── queries        # Query handlers
-├── clients            # External service clients
-│     ├── payment       # Payment service clients
-│     ├── identity      # Identity service clients
-├── web # Web layer
-│   ├── controllers     # REST controllers
-│   ├── dtos            # Web-specific DTOs for request/response
+<root package>
+├── <application entry>
+├── config
+├── exceptions
+├── models
+│   └── enums
+├── persistence
+│   ├── <domain-facing repositories>
+│   ├── entities
+│   └── jpa_repositories
+├── services
+│   ├── commands
+│   ├── queries
+│   └── summaries
+└── web
+	└── controllers
+		└── dtos
 ```
+
+## Testing and Profiles
+
+- Put controller tests with the web layer and follow the established `@WebMvcTest` + `@MockitoBean` + `MockMvc` + authenticated-request pattern when the repository uses Spring MVC slices.
+- Put repository tests with the persistence layer and follow the established `@DataJpaTest` + nested `@TestConfiguration` pattern when the repository uses JPA slices.
+- Keep service and strategy tests with the service layer.
+- Check the active profile before assuming datasource behavior, schema source, or security configuration.
 
