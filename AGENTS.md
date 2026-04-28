@@ -1,9 +1,26 @@
 # AGENTS.md
 
+## Scope
+- `.github/copilot-instructions.md` is the portable, repo-agnostic guidance for architecture, design, and coding style.
+- This file is the source of truth for repository-specific structure, package placement, runtime details, test locations, and known implementation exceptions.
+
 ## Snapshot
-- Root `pom.xml` currently builds only the `app` module; `.github/copilot-instructions.md` mentions `autotest`, but it is not listed under `<modules>` yet.
+- Root `pom.xml` currently builds only the `app` module.
 - App entry point is `app/src/main/java/com/fabiankevin/app/App.java`.
-- The implemented layering is: controllers -> services -> repositories -> jpa_repositories -> entities (see `.github/copilot-instructions.md`).
+- The implemented layering is: controllers -> services -> repositories -> jpa_repositories -> entities.
+
+## Package and module layout
+- Base package: `com.fabiankevin.app`.
+- Web endpoints live in `app/src/main/java/com/fabiankevin/app/web/controllers`.
+- Request and response DTOs live in `app/src/main/java/com/fabiankevin/app/web/controllers/dtos`.
+- Domain models live in `app/src/main/java/com/fabiankevin/app/models`, with enums under `models/enums`.
+- Repository interfaces and implementations live directly under `app/src/main/java/com/fabiankevin/app/persistence`.
+- JPA entities live in `app/src/main/java/com/fabiankevin/app/persistence/entities`.
+- Spring Data JPA repositories live in `app/src/main/java/com/fabiankevin/app/persistence/jpa_repositories`.
+- Services live in `app/src/main/java/com/fabiankevin/app/services`, with supporting types under `services/commands`, `services/queries`, and `services/summaries`.
+- Controller tests live in `app/src/test/java/com/fabiankevin/app/web/controllers`.
+- Repository tests live in `app/src/test/java/com/fabiankevin/app/persistence`.
+- Service and summary tests live in `app/src/test/java/com/fabiankevin/app/services`.
 
 ## How the app is structured
 - Web endpoints live in `app/src/main/java/com/fabiankevin/app/web/controllers`; request/response DTOs are nested under `web/controllers/dtos`, not `web/dtos`.
@@ -14,6 +31,7 @@
 - Repositories are thin adapters from domain models to Spring Data JPA entities (`DefaultTransactionRepository` -> `JpaTransactionRepository` -> `TransactionEntity`).
 - `TransactionService` is wired manually in `app/src/main/java/com/fabiankevin/app/config/AppConfig.java` because `DefaultTransactionService` needs a curated `List<SummaryGenerator>`.
 - Summary generation is a strategy map keyed by `SummaryType`; `CategorySummaryGenerator`, `MonthlySummaryGenerator`, `YearlySummaryGenerator`, and `DailySummaryGenerator` are Spring components consumed by `DefaultTransactionService`.
+- Known exception: `TransactionService#getTransactionById(...)` currently returns `TransactionResponse`, which leaks a web DTO into the service boundary. Treat this as technical debt to contain rather than a pattern to copy.
 
 ## Persistence and data flow
 - Entities keep conversion methods both ways (`AccountEntity.from(model)` / `toModel()`); follow that pattern instead of leaking entities into services.
@@ -39,5 +57,6 @@
 ## Testing patterns to copy
 - Controller tests use `@WebMvcTest`, `@MockitoBean`, `MockMvc`, and `jwt()` request post-processors; see `TransactionControllerTest`.
 - Repository tests use `@DataJpaTest` plus a nested `@TestConfiguration` to register adapter beans; see `DefaultAccountRepositoryTest` and `DefaultTransactionRepositoryTest`.
+- Service tests live under `app/src/test/java/com/fabiankevin/app/services`, and summary strategy tests live under `app/src/test/java/com/fabiankevin/app/services/summaries`.
 - Some slice tests run with profile `local`, but `DefaultTransactionRepositoryTest` explicitly uses `@ActiveProfiles("test")`; check each test before assuming the datasource/profile.
 
