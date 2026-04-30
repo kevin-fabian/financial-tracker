@@ -12,22 +12,22 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 @Schema(description = "Request DTO for creating a transaction")
 public record CreateTransactionRequest(
-        @NotNull
+        @NotNull(message = "Amount is required")
         @Schema(description = "Amount object")
         Amount amount,
 
         @Schema(description = "Transaction description", example = "Dinner with friends")
         String description,
 
-        @NotNull
+        @NotNull(message = "Transaction date is required")
         @Schema(description = "Date of transaction", example = "2025-02-01")
         LocalDate transactionDate,
 
-        @NotNull
+        @NotNull(message = "Category is required")
         @Schema(description = "Category id", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
         UUID categoryId,
 
-        @NotNull
+        @NotNull(message = "Account is required")
         @Schema(description = "Account id", example = "d290f1ee-6c54-4b01-90e6-d701748f0852")
         UUID accountId
 ) {
