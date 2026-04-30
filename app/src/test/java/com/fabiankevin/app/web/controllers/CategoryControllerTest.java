@@ -2,6 +2,7 @@ package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.Page;
+import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
@@ -55,6 +56,7 @@ class CategoryControllerTest {
     void createCategory_givenValidRequest_thenShouldCreateCategory() throws Exception {
         CreateCategoryRequest request = CreateCategoryRequest.builder()
                 .name("FOOD")
+                .type(TransactionType.EXPENSE)
                 .build();
 
         when(categoryService.createCategory(any())).thenAnswer(invocation -> {
@@ -64,6 +66,7 @@ class CategoryControllerTest {
             return Category.builder()
                     .id(id)
                     .name(command.name())
+                    .type(command.type() != null ? command.type() : TransactionType.EXPENSE)
                     .userId(userId)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -105,6 +108,7 @@ class CategoryControllerTest {
         when(categoryService.getCategoryById(id, userId)).thenReturn(Category.builder()
                 .id(id)
                 .name("FOOD")
+                .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -155,10 +159,12 @@ class CategoryControllerTest {
     void getCategoriesByPageQuery_givenValidParams_thenShouldReturnPagedResponse() throws Exception {
         UUID userId = UUID.fromString(jwt.getSubject());
         PageQuery query = new PageQuery(0, 2, "name", "ASC");
+        TransactionType type = TransactionType.EXPENSE;
 
         Category c1 = Category.builder()
                 .id(UUID.randomUUID())
                 .name("FOOD")
+                .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -167,15 +173,16 @@ class CategoryControllerTest {
         Category c2 = Category.builder()
                 .id(UUID.randomUUID())
                 .name("RENT")
+                .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
 
-        when(categoryService.getCategoriesByPageQuery(query, userId))
+        when(categoryService.getCategoriesByPageQuery(query, userId, type))
                 .thenReturn(new Page<>(List.of(c1, c2), 0, 2, 2L, 1, true, true));
 
-        mockMvc.perform(get("/api/categories?page=0&size=2&sort=name&direction=ASC")
+        mockMvc.perform(get("/api/categories?page=0&size=2&sort=name&direction=ASC&type=EXPENSE")
                         .with(jwt().jwt(jwt)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
@@ -185,7 +192,71 @@ class CategoryControllerTest {
                 .andExpect(jsonPath("$.totalElements").value(2))
                 .andExpect(jsonPath("$.totalPages").value(1));
 
-        verify(categoryService, times(1)).getCategoriesByPageQuery(query, userId);
+        verify(categoryService, times(1)).getCategoriesByPageQuery(query, userId, type);
+    }
+
+    @Test
+    void getCategoriesByPageQuery_givenTypeFilterINCOME_shouldReturnFilteredResponse() throws Exception {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        PageQuery query = new PageQuery(0, 2, "name", "ASC");
+        TransactionType type = TransactionType.INCOME;
+
+        Category c1 = Category.builder()
+                .id(UUID.randomUUID())
+                .name("SALARY")
+                .type(TransactionType.INCOME)
+                .userId(userId)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(categoryService.getCategoriesByPageQuery(query, userId, type))
+                .thenReturn(new Page<>(List.of(c1), 0, 2, 1L, 1, true, true));
+
+        mockMvc.perform(get("/api/categories?page=0&size=2&sort=name&direction=ASC&type=INCOME")
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].name").value("SALARY"));
+
+        verify(categoryService, times(1)).getCategoriesByPageQuery(query, userId, type);
+    }
+
+    @Test
+    void getCategoriesByPageQuery_givenNoTypeFilter_shouldDefaultToExpenseType() throws Exception {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        PageQuery query = new PageQuery(0, 2, "name", "ASC");
+        TransactionType type = null;
+
+        Category c1 = Category.builder()
+                .id(UUID.randomUUID())
+                .name("FOOD")
+                .type(TransactionType.EXPENSE)
+                .userId(userId)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        Category c2 = Category.builder()
+                .id(UUID.randomUUID())
+                .name("SALARY")
+                .type(TransactionType.INCOME)
+                .userId(userId)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(categoryService.getCategoriesByPageQuery(query, userId, TransactionType.EXPENSE))
+                .thenReturn(new Page<>(List.of(c1, c2), 0, 2, 2L, 1, true, true));
+
+        mockMvc.perform(get("/api/categories?page=0&size=2&sort=name&direction=ASC")
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2));
+
+        verify(categoryService, times(1)).getCategoriesByPageQuery(query, userId, TransactionType.EXPENSE);
     }
 
     @Test
@@ -200,8 +271,7 @@ class CategoryControllerTest {
     void getCategoriesByPageQuery_givenNoContent_thenShouldReturnEmptyPage() throws Exception {
         UUID userId = UUID.fromString(jwt.getSubject());
 
-        // return empty page
-        when(categoryService.getCategoriesByPageQuery(any(PageQuery.class), eq(userId)))
+        when(categoryService.getCategoriesByPageQuery(any(PageQuery.class), eq(userId), any()))
                 .thenReturn(new Page<>(List.of(), 0, 10, 0L, 0, false, true));
 
         mockMvc.perform(get("/api/categories?page=0&size=10&sort=name&direction=ASC")
@@ -219,7 +289,7 @@ class CategoryControllerTest {
                         && pageQuery.size() == 10
                         && pageQuery.sort().equals("name")
                         && pageQuery.direction().equals("ASC")
-        ), eq(userId));
+        ), eq(userId), any());
     }
 
     @Test
@@ -236,6 +306,7 @@ class CategoryControllerTest {
             return Category.builder()
                     .id(cmd.id())
                     .name(cmd.name())
+                    .type(cmd.type() != null ? cmd.type() : TransactionType.EXPENSE)
                     .userId(userId)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())

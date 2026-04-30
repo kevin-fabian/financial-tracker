@@ -2,6 +2,7 @@ package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.Page;
+import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.services.queries.PageQuery;
@@ -31,8 +32,8 @@ public class DefaultCategoryRepository implements CategoryRepository {
     }
 
     @Override
-    public boolean existsByNameAndUserId(String name, UUID userId) {
-        return jpaCategoryRepository.existsByNameAndUserId(name, userId);
+    public boolean existsByNameAndTypeAndUserId(String name, TransactionType type, UUID userId) {
+        return jpaCategoryRepository.existsByNameAndTransactionTypeAndUserId(name, type, userId);
     }
 
     @Override
@@ -47,22 +48,22 @@ public class DefaultCategoryRepository implements CategoryRepository {
     }
 
     @Override
-    public Page<Category> findAllByPageQuery(PageQuery query, UUID userId) {
+    public Page<Category> findAllByPageQuery(PageQuery query, UUID userId, TransactionType type) {
         var pageable = PageRequest.of(
                 query.page(),
                 query.size(),
                 Sort.by(Sort.Direction.fromString(query.direction()), query.sort())
         );
-        var page = jpaCategoryRepository.findAllByUserId(userId, pageable)
-                .map(CategoryEntity::toModel);
-        return  new Page<>(
-                page.getContent(),
-                page.getNumber(),
-                page.getSize(),
-                page.getTotalElements(),
-                page.getTotalPages(),
-                page.isLast(),
-                page.isFirst()
+        var entityPage = jpaCategoryRepository.findAllByUserIdAndTransactionType(userId, type, pageable);
+
+        return new Page<>(
+                entityPage.getContent().stream().map(CategoryEntity::toModel).toList(),
+                entityPage.getNumber(),
+                entityPage.getSize(),
+                entityPage.getTotalElements(),
+                entityPage.getTotalPages(),
+                entityPage.isLast(),
+                entityPage.isFirst()
         );
     }
 }

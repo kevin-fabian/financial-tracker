@@ -2,6 +2,7 @@ package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.Page;
+import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.web.controllers.dtos.CategoryResponse;
@@ -46,9 +47,10 @@ public class CategoryController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sort,
             @RequestParam(defaultValue = "DESC") String direction,
+            @RequestParam(defaultValue = "EXPENSE") TransactionType type,
             JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        Page<Category> categories = categoryService.getCategoriesByPageQuery(new PageQuery(page, size, sort, direction), userId);
+        Page<Category> categories = categoryService.getCategoriesByPageQuery(new PageQuery(page, size, sort, direction), userId, type);
 
         return PageResponse.from(Page.<CategoryResponse>builder()
                 .content(categories.content().stream().map(CategoryResponse::from).toList())

@@ -80,7 +80,7 @@ public class DefaultTransactionService implements TransactionService {
                 .account(account)
                 .description(command.description())
                 .amount(command.amount())
-                .type(command.type())
+                .type(category.type())
                 .transactionDate(command.transactionDate())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -118,7 +118,6 @@ public class DefaultTransactionService implements TransactionService {
                 .updatedAt(Instant.now());
 
         Optional.ofNullable(newAccount).ifPresent(builder::account);
-        Optional.ofNullable(command.type()).ifPresent(builder::type);
         Optional.ofNullable(command.description()).ifPresent(builder::description);
         Optional.ofNullable(newCategory).ifPresent(builder::category);
         Optional.ofNullable(command.amount()).ifPresent(builder::amount);

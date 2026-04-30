@@ -1,7 +1,7 @@
 package com.fabiankevin.app.persistence.entities;
 
+import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.Transaction;
-import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.entities.embeddables.AmountEmbeddable;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -19,7 +19,6 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "transactions", indexes = {
-        @Index(name = "idx_transactions_transaction_date_and_type", columnList = "transaction_date, transaction_type"),
         @Index(name = "idx_transactions_account_id", columnList = "account_id"),
         @Index(name = "idx_transactions_category_id", columnList = "category_id")
 })
@@ -31,8 +30,6 @@ public class TransactionEntity {
     @ManyToOne
     @JoinColumn(name = "account_id")
     private AccountEntity account;
-    @Enumerated(EnumType.STRING)
-    private TransactionType transactionType;
     @ManyToOne
     @JoinColumn(name = "category_id")
     private CategoryEntity category;
@@ -49,7 +46,6 @@ public class TransactionEntity {
         return TransactionEntity.builder()
                 .id(transaction.id())
                 .account(AccountEntity.from(transaction.account()))
-                .transactionType(transaction.type())
                 .category(CategoryEntity.from(transaction.category()))
                 .amount(AmountEmbeddable.from(transaction.amount()))
                 .description(transaction.description())
@@ -63,7 +59,7 @@ public class TransactionEntity {
         return Transaction.builder()
                 .id(this.id)
                 .account(Optional.ofNullable(this.account).map(AccountEntity::toModel).orElse(null))
-                .type(this.transactionType)
+                .type(Optional.ofNullable(this.category).map(CategoryEntity::toModel).map(Category::type).orElse(null))
                 .category(Optional.ofNullable(this.category).map(CategoryEntity::toModel).orElse(null))
                 .amount(Optional.ofNullable(this.amount).map(AmountEmbeddable::toModel).orElse(null))
                 .description(this.description)

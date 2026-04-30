@@ -64,7 +64,6 @@ class TransactionControllerTest {
     void createTransaction_givenValidRequest_thenShouldCreateTransaction() throws Exception {
         CreateTransactionRequest request = CreateTransactionRequest.builder()
                 .amount(Amount.of(100, Currency.getInstance("PHP")))
-                .type(TransactionType.EXPENSE)
                 .description("Dinner")
                 .transactionDate(LocalDate.of(2026, 1, 1))
                 .categoryId(UUID.randomUUID())
@@ -85,9 +84,10 @@ class TransactionControllerTest {
                     .category(Category.builder()
                             .id(command.categoryId())
                             .userId(command.userId())
+                            .type(TransactionType.EXPENSE)
                             .name("FOOD")
                             .build())
-                    .type(command.type())
+                    .type(TransactionType.EXPENSE)
                     .amount(command.amount())
                     .description(command.description())
                     .transactionDate(command.transactionDate())
@@ -122,7 +122,6 @@ class TransactionControllerTest {
     void createTransaction_givenNoJwt_thenShouldReturnForbidden() throws Exception {
         CreateTransactionRequest request = CreateTransactionRequest.builder()
                 .amount(Amount.of(100, Currency.getInstance("PHP")))
-                .type(TransactionType.EXPENSE)
                 .description("Dinner")
                 .transactionDate(LocalDate.of(2026, 1, 1))
                 .categoryId(UUID.randomUUID())
@@ -140,7 +139,6 @@ class TransactionControllerTest {
     @Test
     void createTransaction_givenMissingRequiredFields_thenShouldReturnBadRequest() throws Exception {
         CreateTransactionRequest invalidRequest = CreateTransactionRequest.builder()
-                .type(TransactionType.EXPENSE)
                 .description("Dinner")
                 .transactionDate(LocalDate.now())
                 .categoryId(UUID.randomUUID())
@@ -204,11 +202,15 @@ class TransactionControllerTest {
         Transaction t1 = Transaction.builder()
                 .id(UUID.randomUUID())
                 .account(Account.builder().id(UUID.randomUUID()).userId(userId).name("A1").currency(Currency.getInstance("PHP")).build())
-                .category(Category.builder().id(UUID.randomUUID()).userId(userId).name("FOOD").build())
+                .category(Category.builder()
+                        .id(UUID.randomUUID())
+                        .type(TransactionType.EXPENSE)
+                        .userId(userId)
+                        .name("FOOD").build())
                 .type(TransactionType.EXPENSE)
                 .amount(Amount.of(100, Currency.getInstance("PHP")))
                 .description("t1")
-                .transactionDate(LocalDate.of(2026,1,1))
+                .transactionDate(LocalDate.of(2026, 1, 1))
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -216,11 +218,11 @@ class TransactionControllerTest {
         Transaction t2 = Transaction.builder()
                 .id(UUID.randomUUID())
                 .account(Account.builder().id(UUID.randomUUID()).userId(userId).name("A1").currency(Currency.getInstance("PHP")).build())
-                .category(Category.builder().id(UUID.randomUUID()).userId(userId).name("FOOD").build())
+                .category(Category.builder().id(UUID.randomUUID()).type(TransactionType.EXPENSE).userId(userId).name("FOOD").build())
                 .type(TransactionType.EXPENSE)
                 .amount(Amount.of(200, Currency.getInstance("PHP")))
                 .description("t2")
-                .transactionDate(LocalDate.of(2026,1,2))
+                .transactionDate(LocalDate.of(2026, 1, 2))
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -279,7 +281,7 @@ class TransactionControllerTest {
         UUID id = UUID.randomUUID();
         UUID userId = UUID.fromString(jwt.getSubject());
 
-        com.fabiankevin.app.web.controllers.dtos.PatchTransactionRequest request = com.fabiankevin.app.web.controllers.dtos.PatchTransactionRequest.builder()
+        PatchTransactionRequest request = PatchTransactionRequest.builder()
                 .description("Updated description")
                 .build();
 
@@ -288,8 +290,11 @@ class TransactionControllerTest {
             return Transaction.builder()
                     .id(cmd.id())
                     .account(Account.builder().id(cmd.accountId() != null ? cmd.accountId() : UUID.randomUUID()).userId(userId).name("GCASH").currency(java.util.Currency.getInstance("PHP")).build())
-                    .category(Category.builder().id(cmd.categoryId() != null ? cmd.categoryId() : UUID.randomUUID()).userId(userId).name("FOOD").build())
-                    .type(cmd.type() != null ? cmd.type() : TransactionType.EXPENSE)
+                    .category(Category.builder()
+                            .id(cmd.categoryId() != null ? cmd.categoryId() : UUID.randomUUID())
+                            .type(TransactionType.EXPENSE)
+                            .userId(userId).name("FOOD").build())
+                    .type(TransactionType.EXPENSE)
                     .amount(cmd.amount() != null ? cmd.amount() : Amount.of(100, java.util.Currency.getInstance("PHP")))
                     .description(cmd.description())
                     .transactionDate(cmd.transactionDate() != null ? cmd.transactionDate() : LocalDate.now())

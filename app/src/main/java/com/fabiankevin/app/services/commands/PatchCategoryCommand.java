@@ -1,5 +1,6 @@
 package com.fabiankevin.app.services.commands;
 
+import com.fabiankevin.app.models.enums.TransactionType;
 import lombok.Builder;
 
 import java.util.UUID;
@@ -8,6 +9,7 @@ import java.util.UUID;
 public record PatchCategoryCommand(
         UUID id,
         String name,
+        TransactionType type,
         UUID userId
 ) {
 }

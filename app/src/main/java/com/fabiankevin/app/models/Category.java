@@ -1,5 +1,6 @@
 package com.fabiankevin.app.models;
 
+import com.fabiankevin.app.models.enums.TransactionType;
 import lombok.Builder;
 
 import java.time.Instant;
@@ -10,6 +11,7 @@ import java.util.UUID;
 public record Category(
         UUID id,
         String name,
+        TransactionType type,
         UUID userId,
         Instant createdAt,
         Instant updatedAt
@@ -18,13 +20,16 @@ public record Category(
         Optional.ofNullable(name)
                 .filter(n -> !n.isBlank())
                 .orElseThrow(() -> new IllegalArgumentException("Category name is required"));
+        Optional.ofNullable(type)
+                .orElseThrow(() -> new IllegalArgumentException("Category type is required"));
         Optional.ofNullable(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User ID is required"));
     }
 
-    public static Category of(String name, UUID userId){
+    public static Category of(String name, TransactionType type, UUID userId){
         return Category.builder()
                 .name(name)
+                .type(type)
                 .userId(userId)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())

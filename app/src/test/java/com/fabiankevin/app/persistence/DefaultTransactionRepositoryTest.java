@@ -92,7 +92,6 @@ class DefaultTransactionRepositoryTest {
                         .amount(Amount.of(8000, Currency.getInstance("PHP")))
                         .transactionDate(LocalDate.of(2026, 3, 1))
                         .description("Rent payment")
-                        .type(TransactionType.EXPENSE)
                         .build(),
                 AddTransactionCommand.builder()
                         .userId(userId)
@@ -101,7 +100,6 @@ class DefaultTransactionRepositoryTest {
                         .amount(Amount.of(50, Currency.getInstance("PHP")))
                         .transactionDate(LocalDate.of(2026, 5, 15))
                         .description("Food purchase")
-                        .type(TransactionType.EXPENSE)
                         .build(),
                 AddTransactionCommand.builder()
                         .userId(userId)
@@ -110,7 +108,6 @@ class DefaultTransactionRepositoryTest {
                         .amount(Amount.of(200, Currency.getInstance("PHP")))
                         .transactionDate(LocalDate.of(2026, 7, 15))
                         .description("Yogurt")
-                        .type(TransactionType.EXPENSE)
                         .build()).forEach(transactionService::addTransaction);
 
         LocalDate from = LocalDate.of(year, 1, 1);
@@ -159,7 +156,6 @@ class DefaultTransactionRepositoryTest {
                         .amount(Amount.of(250, Currency.getInstance("PHP")))
                         .transactionDate(LocalDate.of(2026, 3, 1))
                         .description("Some expense")
-                        .type(TransactionType.EXPENSE)
                         .build(),
                 AddTransactionCommand.builder()
                         .userId(userId)
@@ -168,7 +164,6 @@ class DefaultTransactionRepositoryTest {
                         .amount(Amount.of(8000, Currency.getInstance("PHP")))
                         .transactionDate(LocalDate.of(2026, 5, 15))
                         .description("Another expense")
-                        .type(TransactionType.EXPENSE)
                         .build(),
                 AddTransactionCommand.builder()
                         .userId(userId)
@@ -177,7 +172,6 @@ class DefaultTransactionRepositoryTest {
                         .amount(Amount.of(70000, Currency.getInstance("PHP")))
                         .transactionDate(LocalDate.of(2025, 5, 15))
                         .description("Iphone 15 Pro Max")
-                        .type(TransactionType.EXPENSE)
                         .build()).forEach(transactionService::addTransaction);
 
         LocalDate from = LocalDate.of(year, 1, 1);
@@ -206,7 +200,6 @@ class DefaultTransactionRepositoryTest {
                         .amount(Amount.of(10000, Currency.getInstance("PHP")))
                         .transactionDate(LocalDate.of(2025, 1, 1))
                         .description("New Year Celebration")
-                        .type(TransactionType.EXPENSE)
                         .build(),
                 AddTransactionCommand.builder()
                         .userId(userId)
@@ -215,7 +208,6 @@ class DefaultTransactionRepositoryTest {
                         .amount(Amount.of(15000, Currency.getInstance("PHP")))
                         .transactionDate(LocalDate.of(2026, 1, 1))
                         .description("New Year Celebration")
-                        .type(TransactionType.EXPENSE)
                         .build()).forEach(transactionService::addTransaction);
 
         LocalDate from = LocalDate.of(2025, 1, 1);
@@ -264,7 +256,6 @@ class DefaultTransactionRepositoryTest {
                         .amount(Amount.of(250, Currency.getInstance("PHP")))
                         .transactionDate(LocalDate.of(2026, 3, 1))
                         .description("Some expense")
-                        .type(TransactionType.EXPENSE)
                         .build(),
                 AddTransactionCommand.builder()
                         .userId(userId)
@@ -273,7 +264,6 @@ class DefaultTransactionRepositoryTest {
                         .amount(Amount.of(8000, Currency.getInstance("PHP")))
                         .transactionDate(LocalDate.of(2026, 3, 15))
                         .description("Another expense")
-                        .type(TransactionType.EXPENSE)
                         .build(),
                 AddTransactionCommand.builder()
                         .userId(userId)
@@ -282,7 +272,6 @@ class DefaultTransactionRepositoryTest {
                         .amount(Amount.of(70000, Currency.getInstance("PHP")))
                         .transactionDate(LocalDate.of(2026, 5, 15))
                         .description("Iphone 15 Pro Max")
-                        .type(TransactionType.EXPENSE)
                         .build()).forEach(transactionService::addTransaction);
 
         LocalDate from = LocalDate.of(year, 3, 1);
@@ -324,9 +313,9 @@ class DefaultTransactionRepositoryTest {
 
         // create 3 transactions
         List.of(
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,1)).description("t1").type(TransactionType.EXPENSE).build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,2)).description("t2").type(TransactionType.EXPENSE).build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(300, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,3)).description("t3").type(TransactionType.EXPENSE).build()
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,1)).description("t1").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,2)).description("t2").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(300, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,3)).description("t3").build()
         ).forEach(transactionService::addTransaction);
 
         com.fabiankevin.app.services.queries.PageQuery query = new com.fabiankevin.app.services.queries.PageQuery(0, 2, "transactionDate", "ASC");
@@ -344,6 +333,7 @@ class DefaultTransactionRepositoryTest {
     private CategoryEntity createCategory(String categoryName) {
         CategoryEntity category = new CategoryEntity();
         category.setName(categoryName);
+        category.setTransactionType(TransactionType.EXPENSE);
         category.setUserId(userId);
         category.setCreatedAt(Instant.now());
         category.setUpdatedAt(Instant.now());

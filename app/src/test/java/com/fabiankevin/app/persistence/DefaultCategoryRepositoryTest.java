@@ -1,6 +1,7 @@
 package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.services.queries.PageQuery;
 import org.assertj.core.api.Assertions;
@@ -8,8 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
@@ -25,6 +25,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @DataJpaTest
+@Import(DefaultCategoryRepository.class)
 class DefaultCategoryRepositoryTest {
 
     @MockitoSpyBean
@@ -35,18 +36,11 @@ class DefaultCategoryRepositoryTest {
 
     private Category category;
 
-    @TestConfiguration
-    public static class ContextConfiguration {
-        @Bean
-        public CategoryRepository categoryRepository(JpaCategoryRepository jpaCategoryRepository) {
-            return new DefaultCategoryRepository(jpaCategoryRepository);
-        }
-    }
-
     @BeforeEach
     void setUp() {
         category = Category.builder()
                 .name("FOOD")
+                .type(TransactionType.EXPENSE)
                 .userId(UUID.randomUUID())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -82,6 +76,7 @@ class DefaultCategoryRepositoryTest {
 
         Category sameCategoryWithDifferentUser = Category.builder()
                 .name("FOOD")
+                .type(TransactionType.EXPENSE)
                 .userId(UUID.randomUUID())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -138,6 +133,7 @@ class DefaultCategoryRepositoryTest {
         for (String n : names) {
             categoryRepository.save(Category.builder()
                     .name(n)
+                    .type(TransactionType.EXPENSE)
                     .userId(userId)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -146,12 +142,13 @@ class DefaultCategoryRepositoryTest {
         // another category for different user (should be ignored)
         categoryRepository.save(Category.builder()
                 .name("Z")
+                .type(TransactionType.EXPENSE)
                 .userId(UUID.randomUUID())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build());
 
-        var page0 = categoryRepository.findAllByPageQuery(new PageQuery(0, 2, "name", "ASC"), userId);
+        var page0 = categoryRepository.findAllByPageQuery(new PageQuery(0, 2, "name", "ASC"), userId, TransactionType.EXPENSE);
 
         Assertions.assertThat(page0.content()).hasSize(2);
         Assertions.assertThat(page0.content().stream().map(Category::name).toList())
@@ -163,7 +160,7 @@ class DefaultCategoryRepositoryTest {
         Assertions.assertThat(page0.first()).isTrue();
         Assertions.assertThat(page0.last()).isFalse();
 
-        verify(jpaCategoryRepository, times(1)).findAllByUserId(eq(userId), any());
+        verify(jpaCategoryRepository, times(1)).findAllByUserIdAndTransactionType(eq(userId), eq(TransactionType.EXPENSE), any());
     }
 
     @Test
@@ -173,13 +170,14 @@ class DefaultCategoryRepositoryTest {
         for (String n : names) {
             categoryRepository.save(Category.builder()
                     .name(n)
+                    .type(TransactionType.EXPENSE)
                     .userId(userId)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build());
         }
 
-        var page2 = categoryRepository.findAllByPageQuery(new PageQuery(2, 2, "name", "ASC"), userId);
+        var page2 = categoryRepository.findAllByPageQuery(new PageQuery(2, 2, "name", "ASC"), userId, TransactionType.EXPENSE);
 
         Assertions.assertThat(page2.content()).hasSize(1);
         Assertions.assertThat(page2.content().stream().map(Category::name).toList())
@@ -188,7 +186,7 @@ class DefaultCategoryRepositoryTest {
         Assertions.assertThat(page2.first()).isFalse();
         Assertions.assertThat(page2.last()).isTrue();
 
-        verify(jpaCategoryRepository, times(1)).findAllByUserId(eq(userId), any());
+        verify(jpaCategoryRepository, times(1)).findAllByUserIdAndTransactionType(eq(userId), eq(TransactionType.EXPENSE), any());
     }
 
     @Test
@@ -198,19 +196,20 @@ class DefaultCategoryRepositoryTest {
         for (String n : names) {
             categoryRepository.save(Category.builder()
                     .name(n)
+                    .type(TransactionType.EXPENSE)
                     .userId(userId)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build());
         }
 
-        var page = categoryRepository.findAllByPageQuery(new PageQuery(0, 3, "name", "DESC"), userId);
+        var page = categoryRepository.findAllByPageQuery(new PageQuery(0, 3, "name", "DESC"), userId, TransactionType.EXPENSE);
 
         Assertions.assertThat(page.content()).hasSize(3);
         Assertions.assertThat(page.content().stream().map(Category::name).toList())
                 .containsExactly("E", "D", "C");
 
-        verify(jpaCategoryRepository, times(1)).findAllByUserId(eq(userId), any());
+        verify(jpaCategoryRepository, times(1)).findAllByUserIdAndTransactionType(eq(userId), eq(TransactionType.EXPENSE), any());
     }
 
     @Test
@@ -218,12 +217,127 @@ class DefaultCategoryRepositoryTest {
         UUID userId = UUID.randomUUID();
         categoryRepository.save(Category.builder()
                 .name("A1")
+                .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build());
 
-        Assertions.assertThatThrownBy(() -> categoryRepository.findAllByPageQuery(new PageQuery(0, 2, "name", "INVALID"), userId))
+        Assertions.assertThatThrownBy(() -> categoryRepository.findAllByPageQuery(new PageQuery(0, 2, "name", "INVALID"), userId, TransactionType.EXPENSE))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void findAllByPageQuery_givenTypeFilter_shouldReturnFilteredCategories() {
+        UUID userId = UUID.randomUUID();
+        // create EXPENSE categories
+        categoryRepository.save(Category.builder().name("FOOD").type(TransactionType.EXPENSE).userId(userId).createdAt(Instant.now()).updatedAt(Instant.now()).build());
+        categoryRepository.save(Category.builder().name("RENT").type(TransactionType.EXPENSE).userId(userId).createdAt(Instant.now()).updatedAt(Instant.now()).build());
+        // create INCOME category
+        categoryRepository.save(Category.builder().name("SALARY").type(TransactionType.INCOME).userId(userId).createdAt(Instant.now()).updatedAt(Instant.now()).build());
+
+        var page = categoryRepository.findAllByPageQuery(new PageQuery(0, 10, "name", "ASC"), userId, TransactionType.EXPENSE);
+
+        Assertions.assertThat(page.content()).hasSize(2);
+        Assertions.assertThat(page.content().stream().map(Category::name).toList())
+                .containsExactly("FOOD", "RENT");
+
+        verify(jpaCategoryRepository, times(1)).findAllByUserIdAndTransactionType(eq(userId), eq(TransactionType.EXPENSE), any());
+    }
+
+    @Test
+    void findAllByPageQuery_givenTypeFilterNoMatch_shouldReturnEmptyPage() {
+        UUID userId = UUID.randomUUID();
+        categoryRepository.save(Category.builder().name("FOOD").type(TransactionType.EXPENSE).userId(userId).createdAt(Instant.now()).updatedAt(Instant.now()).build());
+
+        var page = categoryRepository.findAllByPageQuery(new PageQuery(0, 10, "name", "ASC"), userId, TransactionType.INCOME);
+
+        Assertions.assertThat(page.content()).isEmpty();
+
+        verify(jpaCategoryRepository, times(1)).findAllByUserIdAndTransactionType(eq(userId), eq(TransactionType.INCOME), any());
+    }
+
+    @Test
+    void findAllByPageQuery_givenNullType_shouldReturnEmptyPage() {
+        UUID userId = UUID.randomUUID();
+        categoryRepository.save(Category.builder().name("FOOD").type(TransactionType.EXPENSE).userId(userId).createdAt(Instant.now()).updatedAt(Instant.now()).build());
+        categoryRepository.save(Category.builder().name("SALARY").type(TransactionType.INCOME).userId(userId).createdAt(Instant.now()).updatedAt(Instant.now()).build());
+
+        var page = categoryRepository.findAllByPageQuery(new PageQuery(0, 10, "name", "ASC"), userId, null);
+
+        Assertions.assertThat(page.content()).isEmpty();
+
+        verify(jpaCategoryRepository, times(1)).findAllByUserIdAndTransactionType(eq(userId), eq(null), any());
+    }
+
+    @Test
+    void existsByNameAndTypeAndUserId_givenMatchingCategory_shouldReturnTrue() {
+        UUID userId = category.userId();
+        String name = category.name();
+        TransactionType type = category.type();
+
+        categoryRepository.save(category);
+
+        Assertions.assertThat(categoryRepository.existsByNameAndTypeAndUserId(name, type, userId))
+                .as("should return true for matching name, type, and userId")
+                .isTrue();
+
+        verify(jpaCategoryRepository, times(1)).existsByNameAndTransactionTypeAndUserId(name, type, userId);
+    }
+
+    @Test
+    void existsByNameAndTypeAndUserId_givenDifferentUserId_shouldReturnFalse() {
+        String name = category.name();
+        TransactionType type = category.type();
+        UUID differentUserId = UUID.randomUUID();
+
+        categoryRepository.save(category);
+
+        Assertions.assertThat(categoryRepository.existsByNameAndTypeAndUserId(name, type, differentUserId))
+                .as("should return false when userId does not match")
+                .isFalse();
+
+        verify(jpaCategoryRepository, times(1)).existsByNameAndTransactionTypeAndUserId(name, type, differentUserId);
+    }
+
+    @Test
+    void existsByNameAndTypeAndUserId_givenDifferentType_shouldReturnFalse() {
+        UUID userId = category.userId();
+        String name = category.name();
+        TransactionType differentType = TransactionType.INCOME;
+
+        categoryRepository.save(category);
+
+        Assertions.assertThat(categoryRepository.existsByNameAndTypeAndUserId(name, differentType, userId))
+                .as("should return false when type does not match")
+                .isFalse();
+
+        verify(jpaCategoryRepository, times(1)).existsByNameAndTransactionTypeAndUserId(name, differentType, userId);
+    }
+
+    @Test
+    void existsByNameAndTypeAndUserId_givenDifferentName_shouldReturnFalse() {
+        UUID userId = category.userId();
+        TransactionType type = category.type();
+        String differentName = "GROCERIES";
+
+        categoryRepository.save(category);
+
+        Assertions.assertThat(categoryRepository.existsByNameAndTypeAndUserId(differentName, type, userId))
+                .as("should return false when name does not match")
+                .isFalse();
+
+        verify(jpaCategoryRepository, times(1)).existsByNameAndTransactionTypeAndUserId(differentName, type, userId);
+    }
+
+    @Test
+    void existsByNameAndTypeAndUserId_givenNonExistingCategory_shouldReturnFalse() {
+        UUID userId = UUID.randomUUID();
+
+        Assertions.assertThat(categoryRepository.existsByNameAndTypeAndUserId("NONEXISTENT", TransactionType.EXPENSE, userId))
+                .as("should return false when no matching category exists")
+                .isFalse();
+
+        verify(jpaCategoryRepository, times(1)).existsByNameAndTransactionTypeAndUserId("NONEXISTENT", TransactionType.EXPENSE, userId);
     }
 }

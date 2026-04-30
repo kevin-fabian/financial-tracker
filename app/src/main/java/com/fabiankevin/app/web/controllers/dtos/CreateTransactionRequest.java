@@ -1,7 +1,6 @@
 package com.fabiankevin.app.web.controllers.dtos;
 
 import com.fabiankevin.app.models.Amount;
-import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
@@ -16,10 +15,6 @@ public record CreateTransactionRequest(
         @NotNull
         @Schema(description = "Amount object", required = true)
         Amount amount,
-
-        @NotNull
-        @Schema(description = "Transaction type", example = "EXPENSE", required = true)
-        TransactionType type,
 
         @Schema(description = "Transaction description", example = "Dinner with friends")
         String description,
@@ -39,7 +34,6 @@ public record CreateTransactionRequest(
     public AddTransactionCommand toCommand(UUID userId) {
         return AddTransactionCommand.builder()
                 .amount(this.amount())
-                .type(this.type())
                 .description(this.description())
                 .transactionDate(this.transactionDate())
                 .categoryId(this.categoryId())

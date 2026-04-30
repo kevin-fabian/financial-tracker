@@ -20,12 +20,13 @@ CREATE TABLE IF NOT EXISTS categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     name VARCHAR(128),
     user_id UUID NOT NULL,
+    transaction_type VARCHAR(10) NOT NULL CHECK (transaction_type IN ('INCOME', 'EXPENSE')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT uk_categories_name_user_id UNIQUE (name, user_id)
+    CONSTRAINT uk_categories_name_user_id UNIQUE (name, user_id, transaction_type)
 );
 
-CREATE INDEX IF NOT EXISTS idx_categories_name ON categories (name);
+CREATE INDEX IF NOT EXISTS idxs_accounts_name_transaction_type ON categories (name, transaction_type);
 CREATE INDEX IF NOT EXISTS idx_categories_user_id ON categories (user_id);
 
 CREATE TABLE IF NOT EXISTS transactions (

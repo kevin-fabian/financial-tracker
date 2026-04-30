@@ -14,6 +14,8 @@ public record CategoryResponse(
         UUID id,
         @Schema(description = "Name of the category", example = "FOOD")
         String name,
+        @Schema(description = "Transaction type of the category", example = "EXPENSE")
+        com.fabiankevin.app.models.enums.TransactionType type,
         @Schema(description = "Timestamp when the category was created")
         Instant createdAt,
         @Schema(description = "Timestamp when the category was last updated")
@@ -23,6 +25,7 @@ public record CategoryResponse(
         return CategoryResponse.builder()
                 .id(category.id())
                 .name(category.name())
+                .type(category.type())
                 .createdAt(category.createdAt())
                 .updatedAt(category.updatedAt())
                 .build();

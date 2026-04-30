@@ -3,6 +3,7 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.Page;
+import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.PatchCategoryCommand;
@@ -36,6 +37,7 @@ class DefaultCategoryServiceTest {
         UUID userId = UUID.randomUUID();
         CreateCategoryCommand command = CreateCategoryCommand.builder()
                 .name("FOOD")
+                .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .build();
 
@@ -47,6 +49,7 @@ class DefaultCategoryServiceTest {
         Category created = categoryService.createCategory(command);
 
         assertEquals("FOOD", created.name(), "name should match command");
+        assertEquals(TransactionType.EXPENSE, created.type(), "type should match command");
         assertEquals(userId, created.userId(), "userIds should be set from command");
         verify(categoryRepository, times(1)).save(any());
     }
@@ -58,6 +61,7 @@ class DefaultCategoryServiceTest {
         when(categoryRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(Category.builder()
                 .id(id)
                 .name("FOOD")
+                .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -66,6 +70,7 @@ class DefaultCategoryServiceTest {
         Category found = categoryService.getCategoryById(id, userId);
 
         assertEquals("FOOD", found.name(), "name should match saved category");
+        assertEquals(TransactionType.EXPENSE, found.type(), "type should match saved category");
         assertEquals(userId, found.userId(), "userIds should be preserved");
         verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
     }
@@ -106,10 +111,12 @@ class DefaultCategoryServiceTest {
     void getCategoriesByPageQuery_givenValidQuery_thenShouldReturnPagedCategories() {
         UUID userId = UUID.randomUUID();
         PageQuery query = new PageQuery(0, 2, "name", "ASC");
+        TransactionType type = TransactionType.EXPENSE;
 
         Category c1 = Category.builder()
                 .id(UUID.randomUUID())
                 .name("FOOD")
+                .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -118,6 +125,7 @@ class DefaultCategoryServiceTest {
         Category c2 = Category.builder()
                 .id(UUID.randomUUID())
                 .name("RENT")
+                .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -125,14 +133,40 @@ class DefaultCategoryServiceTest {
 
         Page<Category> expectedPage = new Page<>(List.of(c1, c2), 0, 2, 2L, 1, true, true);
 
-        when(categoryRepository.findAllByPageQuery(query, userId))
+        when(categoryRepository.findAllByPageQuery(query, userId, type))
                 .thenReturn(expectedPage);
 
-        Page<Category> result = categoryService.getCategoriesByPageQuery(query, userId);
+        Page<Category> result = categoryService.getCategoriesByPageQuery(query, userId, type);
 
         // result should be the same instance returned by repository
         assertEquals(expectedPage, result, "service should return the page provided by repository");
-        verify(categoryRepository, times(1)).findAllByPageQuery(any(PageQuery.class), eq(userId));
+        verify(categoryRepository, times(1)).findAllByPageQuery(any(PageQuery.class), eq(userId), eq(type));
+    }
+
+    @Test
+    void getCategoriesByPageQuery_givenNullType_shouldReturnExpenseCategories() {
+        UUID userId = UUID.randomUUID();
+        PageQuery query = new PageQuery(0, 2, "name", "ASC");
+        TransactionType type = null;
+
+        Category c1 = Category.builder()
+                .id(UUID.randomUUID())
+                .name("FOOD")
+                .type(TransactionType.EXPENSE)
+                .userId(userId)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        Page<Category> expectedPage = new Page<>(List.of(c1), 0, 2, 1L, 1, true, true);
+
+        when(categoryRepository.findAllByPageQuery(query, userId, TransactionType.EXPENSE))
+                .thenReturn(expectedPage);
+
+        Page<Category> result = categoryService.getCategoriesByPageQuery(query, userId, type);
+
+        assertEquals(expectedPage, result, "service should return the page provided by repository");
+        verify(categoryRepository, times(1)).findAllByPageQuery(any(PageQuery.class), eq(userId), eq(TransactionType.EXPENSE));
     }
 
     @Test
@@ -142,6 +176,7 @@ class DefaultCategoryServiceTest {
         Category existing = Category.builder()
                 .id(id)
                 .name("FOOD")
+                .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -150,16 +185,18 @@ class DefaultCategoryServiceTest {
         PatchCategoryCommand command = PatchCategoryCommand.builder()
                 .id(id)
                 .name("GROCERIES")
+                .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .build();
 
         when(categoryRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(existing));
-        when(categoryRepository.existsByNameAndUserId("GROCERIES", userId)).thenReturn(false);
+        when(categoryRepository.existsByNameAndTypeAndUserId("GROCERIES", TransactionType.EXPENSE, userId)).thenReturn(false);
         when(categoryRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         Category updated = categoryService.patchCategory(command);
 
         assertEquals("GROCERIES", updated.name(), "name should be updated");
+        assertEquals(TransactionType.EXPENSE, updated.type(), "type should be preserved");
         verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
         verify(categoryRepository, times(1)).save(any());
     }

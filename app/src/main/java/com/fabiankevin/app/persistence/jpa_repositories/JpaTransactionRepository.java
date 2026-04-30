@@ -21,7 +21,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds
-                  AND (:type IS NULL OR t.transactionType = :type)
+                  AND (:type IS NULL OR t.category.transactionType = :type)
                 GROUP BY t.category.name
             """)
     Streamable<SummaryPointProjection> getSummaryByDateRangeAndUserIdGroupedByCategory(
@@ -35,7 +35,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds
-                  AND (:type IS NULL OR t.transactionType = :type)
+                  AND (:type IS NULL OR t.category.transactionType = :type)
                 GROUP BY MONTH(t.transactionDate)
             """)
     Streamable<SummaryPointProjection> getSummaryByDateRangeAndUserIdGroupedByMonth(
@@ -49,7 +49,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds
-                  AND (:type IS NULL OR t.transactionType = :type)
+                  AND (:type IS NULL OR t.category.transactionType = :type)
                 GROUP BY YEAR(t.transactionDate)
             """)
     Streamable<SummaryPointProjection> getSummaryByDateRangeAndUserIdGroupedByYear(
@@ -63,7 +63,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds
-                  AND (:type IS NULL OR t.transactionType = :type)
+                  AND (:type IS NULL OR t.category.transactionType = :type)
                 GROUP BY DAY(t.transactionDate)
             """)
     Streamable<SummaryPointProjection> getSummaryByDateRangeAndUserIdGroupedByDay(

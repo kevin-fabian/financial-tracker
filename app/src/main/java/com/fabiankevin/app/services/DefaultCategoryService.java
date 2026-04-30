@@ -4,6 +4,7 @@ import com.fabiankevin.app.exceptions.CategoryAlreadyExistException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.Page;
+import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.PatchCategoryCommand;
@@ -30,9 +31,9 @@ public class DefaultCategoryService implements CategoryService {
     @Transactional
     @Override
     public Category createCategory(CreateCategoryCommand command) {
-        Category category = Category.of(command.name(), command.userId());
-        if (categoryRepository.existsByNameAndUserId(command.name(), command.userId())) {
-            throw new CategoryAlreadyExistException("Category with the same name already exists for the user");
+        Category category = Category.of(command.name(), command.type(), command.userId());
+        if (categoryRepository.existsByNameAndTypeAndUserId(command.name(), command.type(), command.userId())) {
+            throw new CategoryAlreadyExistException("Category with the same name and type already exists for the user");
         }
 
         return categoryRepository.save(category);
@@ -45,8 +46,9 @@ public class DefaultCategoryService implements CategoryService {
     }
 
     @Override
-    public Page<Category> getCategoriesByPageQuery(PageQuery query, UUID userId) {
-        return categoryRepository.findAllByPageQuery(query, userId);
+    public Page<Category> getCategoriesByPageQuery(PageQuery query, UUID userId, TransactionType type) {
+        TransactionType resolvedTransactionType = Optional.ofNullable(type).orElse(TransactionType.EXPENSE);
+        return categoryRepository.findAllByPageQuery(query, userId, resolvedTransactionType);
     }
 
     @Transactional
@@ -59,8 +61,9 @@ public class DefaultCategoryService implements CategoryService {
                 .orElseThrow(CategoryNotFoundException::new);
 
         String newName = command.name();
-        if (newName != null && !newName.isBlank() && !newName.equals(existing.name()) && categoryRepository.existsByNameAndUserId(newName, userId)) {
-            throw new CategoryAlreadyExistException("Category with the same name already exists for the user");
+        TransactionType newType = command.type();
+        if (newName != null && !newName.isBlank() && !newName.equals(existing.name()) && categoryRepository.existsByNameAndTypeAndUserId(newName, existing.type(), userId)) {
+            throw new CategoryAlreadyExistException("Category with the same name and type already exists for the user");
         }
 
         Category.CategoryBuilder categoryBuilder = existing.toBuilder()
@@ -69,6 +72,9 @@ public class DefaultCategoryService implements CategoryService {
         Optional.ofNullable(newName)
                 .filter(name -> !name.isBlank())
                 .ifPresent(categoryBuilder::name);
+
+        Optional.ofNullable(newType)
+                .ifPresent(categoryBuilder::type);
 
         return categoryRepository.save(categoryBuilder.build());
     }

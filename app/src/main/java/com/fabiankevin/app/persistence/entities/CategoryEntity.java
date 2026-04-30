@@ -1,6 +1,7 @@
 package com.fabiankevin.app.persistence.entities;
 
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.enums.TransactionType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,10 +17,10 @@ import java.util.UUID;
 @NoArgsConstructor
 @Table(name = "categories",
         indexes = {
-                @Index(name = "idx_categories_name", columnList = "name"),
+                @Index(name = "idx_categories_name_transaction_type", columnList = "name, transaction_type"),
                 @Index(name = "idx_categories_user_id", columnList = "user_id")
         },
-        uniqueConstraints = @UniqueConstraint(columnNames = {"name", "user_id"}))
+        uniqueConstraints = @UniqueConstraint(columnNames = {"name", "transaction_type", "user_id"}))
 @Entity
 public class CategoryEntity {
     @Id
@@ -27,6 +28,9 @@ public class CategoryEntity {
     private UUID id;
     @Column(length = 128)
     private String name;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TransactionType transactionType;
     @Column(name = "user_id", nullable = false)
     private UUID userId;
     @Column(nullable = false)
@@ -39,6 +43,7 @@ public class CategoryEntity {
         return CategoryEntity.builder()
                 .id(category.id())
                 .name(category.name())
+                .transactionType(category.type())
                 .userId(category.userId())
                 .createdAt(category.createdAt())
                 .updatedAt(category.updatedAt())
@@ -49,6 +54,7 @@ public class CategoryEntity {
         return Category.builder()
                 .id(this.id)
                 .name(this.name)
+                .type(this.transactionType)
                 .userId(this.userId)
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)

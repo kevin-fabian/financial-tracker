@@ -41,7 +41,7 @@ public record TransactionResponse(
         return TransactionResponse.builder()
                 .id(t.id())
                 .account(AccountResponse.from(t.account()))
-                .type(t.type().name())
+                .type(t.category().type().name())
                 .category(CategoryResponse.from(t.category()))
                 .amount(AmountResponse.from(t.amount()))
                 .description(t.description())
