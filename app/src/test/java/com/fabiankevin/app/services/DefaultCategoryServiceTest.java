@@ -144,7 +144,7 @@ class DefaultCategoryServiceTest {
     }
 
     @Test
-    void getCategoriesByPageQuery_givenNullType_shouldReturnExpenseCategories() {
+    void getCategoriesByPageQuery_givenNullType_shouldReturnAllCategories() {
         UUID userId = UUID.randomUUID();
         PageQuery query = new PageQuery(0, 2, "name", "ASC");
         TransactionType type = null;
@@ -160,13 +160,13 @@ class DefaultCategoryServiceTest {
 
         Page<Category> expectedPage = new Page<>(List.of(c1), 0, 2, 1L, 1, true, true);
 
-        when(categoryRepository.findAllByPageQuery(query, userId, TransactionType.EXPENSE))
+        when(categoryRepository.findAllByPageQuery(query, userId, null))
                 .thenReturn(expectedPage);
 
         Page<Category> result = categoryService.getCategoriesByPageQuery(query, userId, type);
 
         assertEquals(expectedPage, result, "service should return the page provided by repository");
-        verify(categoryRepository, times(1)).findAllByPageQuery(any(PageQuery.class), eq(userId), eq(TransactionType.EXPENSE));
+        verify(categoryRepository, times(1)).findAllByPageQuery(any(PageQuery.class), eq(userId), eq(null));
     }
 
     @Test

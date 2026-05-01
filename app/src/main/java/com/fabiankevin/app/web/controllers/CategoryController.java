@@ -47,7 +47,7 @@ public class CategoryController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sort,
             @RequestParam(defaultValue = "DESC") String direction,
-            @RequestParam(defaultValue = "EXPENSE") TransactionType type,
+            @RequestParam(required = false) TransactionType type,
             JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         Page<Category> categories = categoryService.getCategoriesByPageQuery(new PageQuery(page, size, sort, direction), userId, type);

@@ -258,16 +258,17 @@ class DefaultCategoryRepositoryTest {
     }
 
     @Test
-    void findAllByPageQuery_givenNullType_shouldReturnEmptyPage() {
+    void findAllByPageQuery_givenNullType_shouldReturnAllCategories() {
         UUID userId = UUID.randomUUID();
         categoryRepository.save(Category.builder().name("FOOD").type(TransactionType.EXPENSE).userId(userId).createdAt(Instant.now()).updatedAt(Instant.now()).build());
         categoryRepository.save(Category.builder().name("SALARY").type(TransactionType.INCOME).userId(userId).createdAt(Instant.now()).updatedAt(Instant.now()).build());
 
         var page = categoryRepository.findAllByPageQuery(new PageQuery(0, 10, "name", "ASC"), userId, null);
 
-        Assertions.assertThat(page.content()).isEmpty();
+        Assertions.assertThat(page.content())
+                .hasSize(2);
 
-        verify(jpaCategoryRepository, times(1)).findAllByUserIdAndTransactionType(eq(userId), eq(null), any());
+        verify(jpaCategoryRepository, times(1)).findAllByUserId(eq(userId), any());
     }
 
     @Test

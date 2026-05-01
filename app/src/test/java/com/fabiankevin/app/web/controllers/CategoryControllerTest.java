@@ -247,7 +247,7 @@ class CategoryControllerTest {
                 .updatedAt(Instant.now())
                 .build();
 
-        when(categoryService.getCategoriesByPageQuery(query, userId, TransactionType.EXPENSE))
+        when(categoryService.getCategoriesByPageQuery(query, userId, null))
                 .thenReturn(new Page<>(List.of(c1, c2), 0, 2, 2L, 1, true, true));
 
         mockMvc.perform(get("/api/categories?page=0&size=2&sort=name&direction=ASC")
@@ -256,7 +256,7 @@ class CategoryControllerTest {
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content.length()").value(2));
 
-        verify(categoryService, times(1)).getCategoriesByPageQuery(query, userId, TransactionType.EXPENSE);
+        verify(categoryService, times(1)).getCategoriesByPageQuery(query, userId, null);
     }
 
     @Test

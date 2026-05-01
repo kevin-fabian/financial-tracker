@@ -54,10 +54,13 @@ public class DefaultCategoryRepository implements CategoryRepository {
                 query.size(),
                 Sort.by(Sort.Direction.fromString(query.direction()), query.sort())
         );
-        var entityPage = jpaCategoryRepository.findAllByUserIdAndTransactionType(userId, type, pageable);
+        var entityPage  = Optional.ofNullable(type)
+                .map(t -> jpaCategoryRepository.findAllByUserIdAndTransactionType(userId, t, pageable))
+                .orElseGet(() -> jpaCategoryRepository.findAllByUserId(userId, pageable))
+                .map(CategoryEntity::toModel);
 
         return new Page<>(
-                entityPage.getContent().stream().map(CategoryEntity::toModel).toList(),
+                entityPage.getContent(),
                 entityPage.getNumber(),
                 entityPage.getSize(),
                 entityPage.getTotalElements(),

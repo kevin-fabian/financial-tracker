@@ -47,8 +47,7 @@ public class DefaultCategoryService implements CategoryService {
 
     @Override
     public Page<Category> getCategoriesByPageQuery(PageQuery query, UUID userId, TransactionType type) {
-        TransactionType resolvedTransactionType = Optional.ofNullable(type).orElse(TransactionType.EXPENSE);
-        return categoryRepository.findAllByPageQuery(query, userId, resolvedTransactionType);
+        return categoryRepository.findAllByPageQuery(query, userId, type);
     }
 
     @Transactional
