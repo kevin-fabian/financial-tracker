@@ -11,14 +11,12 @@ import com.fabiankevin.app.services.commands.PatchCategoryCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
 @RequiredArgsConstructor
-@Service
 public class DefaultCategoryService implements CategoryService {
     private final CategoryRepository categoryRepository;
 
@@ -28,6 +26,7 @@ public class DefaultCategoryService implements CategoryService {
                 .orElseThrow(CategoryNotFoundException::new);
     }
 
+//    @CacheEvict(value = "categories", key = "#userId + '-' + '*'")
     @Transactional
     @Override
     public Category createCategory(CreateCategoryCommand command) {
@@ -45,6 +44,7 @@ public class DefaultCategoryService implements CategoryService {
         categoryRepository.deleteByIdAndUserId(id, userId);
     }
 
+//    @Cacheable(value = "categories", key = "#userId + '-' + #query.toString() + '-' + #type")
     @Override
     public Page<Category> getCategoriesByPageQuery(PageQuery query, UUID userId, TransactionType type) {
         return categoryRepository.findAllByPageQuery(query, userId, type);
