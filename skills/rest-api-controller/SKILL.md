@@ -6,12 +6,9 @@ argument-hint: 'What resource or endpoint is being implemented? Include request 
 
 # REST API Controller
 
-Use this skill to implement or update a Spring REST endpoint in a project that follows the shared layered architecture.
+Use this skill to implement or update a Spring REST endpoint in a project that follows the shared light hexagonal architecture with DDD-light modeling.
 
-Before applying concrete paths, package names, naming patterns, or runtime conventions:
-
-- use `.github/copilot-instructions.md` for the portable architecture and design rules
-- use `AGENTS.md` for the current repository's actual layout, infrastructure, testing conventions, and known exceptions
+For the shared architecture, layer responsibilities, coding standards, testing guidelines, and granular instruction files, see [springboot_developer/SKILL.md](../springboot_developer/SKILL.md) and [springboot_developer/REFERENCES.md](../springboot_developer/REFERENCES.md).
 
 ## Clarify Up Front
 
@@ -78,22 +75,22 @@ Before adding classes, scan the existing resource slice first.
 1. Scan the existing resource slice in `web`, `services`, and `persistence`.
    Reuse what exists before creating new classes.
 2. Confirm the HTTP contract, ownership rules, and whether the change fits the existing `controller -> service -> repository` slice.
-3. Add or update request and response DTOs close to the controller layer used by the repository.
+3. Add or update request and response DTOs close to the controller layer.
    Keep request and response models at the HTTP boundary.
 4. Add boundary validation with `jakarta.validation` and `@Valid`.
 5. Implement or extend the controller.
    Keep it thin: map HTTP input, extract auth/context, call the service, map the response.
-   See [REST controller instructions](../../instructions/web/controllers/REST_CONTROLLER.instructions.md).
+   See [REST controller instructions](../springboot_developer/references/REST_CONTROLLER.instructions.md).
 6. Map controller input to service commands or queries.
    Keep business logic in the service layer.
 7. Implement or extend the service interface and service implementation.
    Services own business rules, orchestration, and transactions.
-   See [service instructions](../../instructions/services/SERVICE.instructions.md).
+   See [service instructions](../springboot_developer/references/SERVICE.instructions.md).
 8. If needed, extend the persistence slice from the domain-facing repository through the persistence implementation to Spring Data and entities.
    Keep persistence mapping inside the persistence layer.
-   See [repository instructions](../../instructions/persistence/repositories/REPOSITORY.instructions.md), [JPA repository instructions](../../instructions/persistence/jpa_repositories/JPA_REPOSITORY.instructions.md), and [entity instructions](../../instructions/persistence/entities/ENTITY.instructions.md).
+   See [repository instructions](../springboot_developer/references/REPOSITORY.instructions.md), [JPA repository instructions](../springboot_developer/references/JPA_REPOSITORY.instructions.md), and [entity instructions](../springboot_developer/references/ENTITY.instructions.md).
 9. Add focused tests for the touched layers that are in scope and run them.
-   See [controller test instructions](../../instructions/web/controllers/TEST_REST_CONTROLLER.instructions.md), [service test instructions](../../instructions/services/SERVICE_TEST.instructions.md), [repository test instructions](../../instructions/persistence/repositories/REPOSITORY_TEST.instructions.md), and [general test instructions](../../instructions/tests/TEST.instructions.md).
+   See [controller test instructions](../springboot_developer/references/TEST_REST_CONTROLLER.instructions.md), [service test instructions](../springboot_developer/references/SERVICE_TEST.instructions.md), [repository test instructions](../springboot_developer/references/REPOSITORY_TEST.instructions.md), and [general test instructions](../springboot_developer/references/TEST.instructions.md).
 
 ## Completion Checks
 

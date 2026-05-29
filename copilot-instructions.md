@@ -12,13 +12,15 @@ This file is intentionally repo agnostic. For concrete package names, module lay
 
 ## Related Repository Instructions
 
-- [Test Guideline Instruction](instructions/tests/TEST.instructions.md)
-- [Controller Implementation Instruction](instructions/web/controllers/CONTROLLER.instructions.md)
-- [Controller Test Implementation Instruction](instructions/web/controllers/CONTROLLER_TEST.instructions.md)
-- [Service Implementation Instruction](instructions/services/SERVICE.instructions.md)
-- [Service Test Implementation Instruction](instructions/services/SERVICE_TEST.instructions.md)
-- [Repository Implementation Instruction](instructions/persistence/repositories/REPOSITORY.instructions.md)
-- [Repository Test Implementation Instruction](instructions/persistence/repositories/REPOSITORY_TEST.instructions.md)
+- [Test Guideline Instruction](instructions/test/TEST.instructions.md)
+- [Controller Implementation Instruction](instructions/web/REST_CONTROLLER.instructions.md)
+- [Controller Test Implementation Instruction](instructions/web/TEST_REST_CONTROLLER.instructions.md)
+- [Service Implementation Instruction](instructions/core/SERVICE.instructions.md)
+- [Service Test Implementation Instruction](instructions/core/SERVICE_TEST.instructions.md)
+- [Repository Implementation Instruction](instructions/persistence/REPOSITORY.instructions.md)
+- [Repository Test Implementation Instruction](instructions/persistence/REPOSITORY_TEST.instructions.md)
+- [Entity Implementation Instruction](instructions/persistence/ENTITY.instructions.md)
+- [JPA Repository Implementation Instruction](instructions/persistence/JPA_REPOSITORY.instructions.md)
 
 
 ---
