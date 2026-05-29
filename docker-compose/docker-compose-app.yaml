@@ -1,0 +1,29 @@
+services:
+  zeny:
+    image: zeny:0.0.1-SNAPSHOT
+    container_name: zeny
+    user: "root:root"
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://host.docker.internal:9000/oauth2/jwks
+      JAVA_TOOL_OPTIONS: "-Xms256m -Xmx384m -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError"
+    ports:
+      - "8050:8050"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    networks:
+      - savi-network
+    volumes:
+      # Map the named volume to the container's data directory
+      - h2-data:/opt/app/data
+
+networks:
+  savi-network:
+    external: true
+
+volumes:
+  h2-data:
