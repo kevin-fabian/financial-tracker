@@ -92,7 +92,6 @@ class CategoryControllerTest {
 
     @Test
     void createCategory_givenValidRequestWithIcon_thenShouldCreateCategoryWithIcon() throws Exception {
-        UUID iconId = UUID.randomUUID();
         CreateIconRequest iconRequest = CreateIconRequest.builder()
                 .codePoint(128161)
                 .fontFamily("Material Icons")
