@@ -6,6 +6,8 @@ import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
+import com.fabiankevin.app.web.controllers.dtos.CreateIconRequest;
+import com.fabiankevin.app.web.controllers.dtos.IconResponse;
 import com.fabiankevin.app.web.controllers.dtos.PatchCategoryRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -68,6 +70,7 @@ class CategoryControllerTest {
                     .name(command.name())
                     .type(command.type() != null ? command.type() : TransactionType.EXPENSE)
                     .userId(userId)
+                    .icon(command.icon())
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -81,7 +84,51 @@ class CategoryControllerTest {
                 .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/categories/[-a-f0-9]{36}")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNotEmpty())
-                .andExpect(jsonPath("$.name").value("FOOD"));
+                .andExpect(jsonPath("$.name").value("FOOD"))
+                .andExpect(jsonPath("$.icon").doesNotExist());
+
+        verify(categoryService, times(1)).createCategory(any());
+    }
+
+    @Test
+    void createCategory_givenValidRequestWithIcon_thenShouldCreateCategoryWithIcon() throws Exception {
+        UUID iconId = UUID.randomUUID();
+        CreateIconRequest iconRequest = CreateIconRequest.builder()
+                .codePoint(128161)
+                .fontFamily("Material Icons")
+                .build();
+
+        CreateCategoryRequest request = CreateCategoryRequest.builder()
+                .name("FOOD")
+                .type(TransactionType.EXPENSE)
+                .icon(iconRequest)
+                .build();
+
+        when(categoryService.createCategory(any())).thenAnswer(invocation -> {
+            UUID id = UUID.randomUUID();
+            com.fabiankevin.app.services.commands.CreateCategoryCommand command = invocation.getArgument(0);
+            UUID userId = command.userId() != null ? command.userId() : UUID.randomUUID();
+            return Category.builder()
+                    .id(id)
+                    .name(command.name())
+                    .type(command.type() != null ? command.type() : TransactionType.EXPENSE)
+                    .userId(userId)
+                    .icon(command.icon())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+        });
+
+        mockMvc.perform(post("/api/categories")
+                        .with(jwt().jwt(jwt))
+                        .contentType("application/json")
+                        .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/categories/[-a-f0-9]{36}")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").isNotEmpty())
+                .andExpect(jsonPath("$.name").value("FOOD"))
+                .andExpect(jsonPath("$.icon.codePoint").value(128161))
+                .andExpect(jsonPath("$.icon.fontFamily").value("Material Icons"));
 
         verify(categoryService, times(1)).createCategory(any());
     }
@@ -110,6 +157,7 @@ class CategoryControllerTest {
                 .name("FOOD")
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
+                .icon(null)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build());
@@ -118,7 +166,40 @@ class CategoryControllerTest {
                         .with(jwt().jwt(jwt)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
-                .andExpect(jsonPath("$.name").value("FOOD"));
+                .andExpect(jsonPath("$.name").value("FOOD"))
+                .andExpect(jsonPath("$.icon").doesNotExist());
+
+        verify(categoryService, times(1)).getCategoryById(id, userId);
+    }
+
+    @Test
+    void getCategoryById_givenExistingIdWithIcon_thenShouldReturnCategoryWithIcon() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.fromString(jwt.getSubject());
+        UUID iconId = UUID.randomUUID();
+
+        when(categoryService.getCategoryById(id, userId)).thenReturn(Category.builder()
+                .id(id)
+                .name("FOOD")
+                .type(TransactionType.EXPENSE)
+                .userId(userId)
+                .icon(com.fabiankevin.app.models.IconData.builder()
+                        .id(iconId)
+                        .codePoint(128161)
+                        .fontFamily("Material Icons")
+                        .build())
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build());
+
+        mockMvc.perform(get("/api/categories/" + id)
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.name").value("FOOD"))
+                .andExpect(jsonPath("$.icon.id").value(iconId.toString()))
+                .andExpect(jsonPath("$.icon.codePoint").value(128161))
+                .andExpect(jsonPath("$.icon.fontFamily").value("Material Icons"));
 
         verify(categoryService, times(1)).getCategoryById(id, userId);
     }
@@ -166,6 +247,7 @@ class CategoryControllerTest {
                 .name("FOOD")
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
+                .icon(null)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -175,6 +257,7 @@ class CategoryControllerTest {
                 .name("RENT")
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
+                .icon(null)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -196,6 +279,60 @@ class CategoryControllerTest {
     }
 
     @Test
+    void getCategoriesByPageQuery_givenValidParamsWithIcons_thenShouldReturnPagedResponseWithIcons() throws Exception {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        PageQuery query = new PageQuery(0, 2, "name", "ASC");
+        TransactionType type = TransactionType.EXPENSE;
+        UUID iconId1 = UUID.randomUUID();
+        UUID iconId2 = UUID.randomUUID();
+
+        Category c1 = Category.builder()
+                .id(UUID.randomUUID())
+                .name("FOOD")
+                .type(TransactionType.EXPENSE)
+                .userId(userId)
+                .icon(com.fabiankevin.app.models.IconData.builder()
+                        .id(iconId1)
+                        .codePoint(128161)
+                        .fontFamily("Material Icons")
+                        .build())
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        Category c2 = Category.builder()
+                .id(UUID.randomUUID())
+                .name("RENT")
+                .type(TransactionType.EXPENSE)
+                .userId(userId)
+                .icon(com.fabiankevin.app.models.IconData.builder()
+                        .id(iconId2)
+                        .codePoint(128175)
+                        .fontFamily("Material Icons")
+                        .build())
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(categoryService.getCategoriesByPageQuery(query, userId, type))
+                .thenReturn(new Page<>(List.of(c1, c2), 0, 2, 2L, 1, true, true));
+
+        mockMvc.perform(get("/api/categories?page=0&size=2&sort=name&direction=ASC&type=EXPENSE")
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].icon.codePoint").value(128161))
+                .andExpect(jsonPath("$.content[1].icon.codePoint").value(128175))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(2))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(1));
+
+        verify(categoryService, times(1)).getCategoriesByPageQuery(query, userId, type);
+    }
+
+    @Test
     void getCategoriesByPageQuery_givenTypeFilterINCOME_shouldReturnFilteredResponse() throws Exception {
         UUID userId = UUID.fromString(jwt.getSubject());
         PageQuery query = new PageQuery(0, 2, "name", "ASC");
@@ -206,6 +343,7 @@ class CategoryControllerTest {
                 .name("SALARY")
                 .type(TransactionType.INCOME)
                 .userId(userId)
+                .icon(null)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -218,7 +356,44 @@ class CategoryControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content.length()").value(1))
-                .andExpect(jsonPath("$.content[0].name").value("SALARY"));
+                .andExpect(jsonPath("$.content[0].name").value("SALARY"))
+                .andExpect(jsonPath("$.content[0].icon").doesNotExist());
+
+        verify(categoryService, times(1)).getCategoriesByPageQuery(query, userId, type);
+    }
+
+    @Test
+    void getCategoriesByPageQuery_givenTypeFilterINCOMEWithIcon_shouldReturnFilteredResponseWithIcon() throws Exception {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        PageQuery query = new PageQuery(0, 2, "name", "ASC");
+        TransactionType type = TransactionType.INCOME;
+        UUID iconId = UUID.randomUUID();
+
+        Category c1 = Category.builder()
+                .id(UUID.randomUUID())
+                .name("SALARY")
+                .type(TransactionType.INCOME)
+                .userId(userId)
+                .icon(com.fabiankevin.app.models.IconData.builder()
+                        .id(iconId)
+                        .codePoint(128104)
+                        .fontFamily("Material Icons")
+                        .build())
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(categoryService.getCategoriesByPageQuery(query, userId, type))
+                .thenReturn(new Page<>(List.of(c1), 0, 2, 1L, 1, true, true));
+
+        mockMvc.perform(get("/api/categories?page=0&size=2&sort=name&direction=ASC&type=INCOME")
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].name").value("SALARY"))
+                .andExpect(jsonPath("$.content[0].icon.codePoint").value(128104))
+                .andExpect(jsonPath("$.content[0].icon.fontFamily").value("Material Icons"));
 
         verify(categoryService, times(1)).getCategoriesByPageQuery(query, userId, type);
     }
@@ -234,6 +409,7 @@ class CategoryControllerTest {
                 .name("FOOD")
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
+                .icon(null)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -243,6 +419,7 @@ class CategoryControllerTest {
                 .name("SALARY")
                 .type(TransactionType.INCOME)
                 .userId(userId)
+                .icon(null)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -254,7 +431,59 @@ class CategoryControllerTest {
                         .with(jwt().jwt(jwt)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content.length()").value(2));
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].icon").doesNotExist())
+                .andExpect(jsonPath("$.content[1].icon").doesNotExist());
+
+        verify(categoryService, times(1)).getCategoriesByPageQuery(query, userId, null);
+    }
+
+    @Test
+    void getCategoriesByPageQuery_givenNoTypeFilterWithIcons_shouldDefaultToExpenseType() throws Exception {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        PageQuery query = new PageQuery(0, 2, "name", "ASC");
+        TransactionType type = null;
+        UUID iconId1 = UUID.randomUUID();
+        UUID iconId2 = UUID.randomUUID();
+
+        Category c1 = Category.builder()
+                .id(UUID.randomUUID())
+                .name("FOOD")
+                .type(TransactionType.EXPENSE)
+                .userId(userId)
+                .icon(com.fabiankevin.app.models.IconData.builder()
+                        .id(iconId1)
+                        .codePoint(128161)
+                        .fontFamily("Material Icons")
+                        .build())
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        Category c2 = Category.builder()
+                .id(UUID.randomUUID())
+                .name("SALARY")
+                .type(TransactionType.INCOME)
+                .userId(userId)
+                .icon(com.fabiankevin.app.models.IconData.builder()
+                        .id(iconId2)
+                        .codePoint(128104)
+                        .fontFamily("Material Icons")
+                        .build())
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(categoryService.getCategoriesByPageQuery(query, userId, null))
+                .thenReturn(new Page<>(List.of(c1, c2), 0, 2, 2L, 1, true, true));
+
+        mockMvc.perform(get("/api/categories?page=0&size=2&sort=name&direction=ASC")
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].icon.codePoint").value(128161))
+                .andExpect(jsonPath("$.content[1].icon.codePoint").value(128104));
 
         verify(categoryService, times(1)).getCategoriesByPageQuery(query, userId, null);
     }
@@ -308,6 +537,7 @@ class CategoryControllerTest {
                     .name(cmd.name())
                     .type(cmd.type() != null ? cmd.type() : TransactionType.EXPENSE)
                     .userId(userId)
+                    .icon(cmd.icon())
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -319,7 +549,52 @@ class CategoryControllerTest {
                         .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
-                .andExpect(jsonPath("$.name").value("GROCERIES"));
+                .andExpect(jsonPath("$.name").value("GROCERIES"))
+                .andExpect(jsonPath("$.icon").doesNotExist());
+
+        verify(categoryService, times(1)).patchCategory(any());
+    }
+
+    @Test
+    void patchCategory_givenValidRequestWithIcon_thenShouldReturnUpdatedWithIcon() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.fromString(jwt.getSubject());
+        UUID iconId = UUID.randomUUID();
+
+        IconResponse iconResponse = IconResponse.builder()
+                .id(iconId)
+                .codePoint(128161)
+                .fontFamily("Material Icons")
+                .build();
+
+        PatchCategoryRequest request = PatchCategoryRequest.builder()
+                .name("GROCERIES")
+                .icon(iconResponse)
+                .build();
+
+        when(categoryService.patchCategory(any())).thenAnswer(invocation -> {
+            com.fabiankevin.app.services.commands.PatchCategoryCommand cmd = invocation.getArgument(0);
+            return Category.builder()
+                    .id(cmd.id())
+                    .name(cmd.name())
+                    .type(cmd.type() != null ? cmd.type() : TransactionType.EXPENSE)
+                    .userId(userId)
+                    .icon(cmd.icon())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+        });
+
+        mockMvc.perform(patch("/api/categories/" + id)
+                        .with(jwt().jwt(jwt))
+                        .contentType("application/json")
+                        .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.name").value("GROCERIES"))
+                .andExpect(jsonPath("$.icon.id").value(iconId.toString()))
+                .andExpect(jsonPath("$.icon.codePoint").value(128161))
+                .andExpect(jsonPath("$.icon.fontFamily").value("Material Icons"));
 
         verify(categoryService, times(1)).patchCategory(any());
     }

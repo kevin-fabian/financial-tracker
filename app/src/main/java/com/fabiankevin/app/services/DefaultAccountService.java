@@ -36,6 +36,7 @@ public class DefaultAccountService implements AccountService {
                 .userId(command.userId())
                 .currency(command.currency())
                 .type(command.type())
+                .icon(command.icon())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -57,6 +58,8 @@ public class DefaultAccountService implements AccountService {
         Currency newCurrency = command.currency();
         com.fabiankevin.app.models.enums.AccountType newType = command.type();
 
+        com.fabiankevin.app.models.IconData newIcon = command.icon();
+
         Account.AccountBuilder builder = existing.toBuilder()
                 .updatedAt(Instant.now());
 
@@ -67,6 +70,8 @@ public class DefaultAccountService implements AccountService {
                 .ifPresent(builder::currency);
         Optional.ofNullable(newType)
                 .ifPresent(builder::type);
+        Optional.ofNullable(newIcon)
+                .ifPresent(builder::icon);
 
         return accountRepository.save(builder.build());
     }

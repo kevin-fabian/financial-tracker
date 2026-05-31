@@ -10,6 +10,7 @@ public record CreateAccountCommand(
         String name,
         Currency currency,
         com.fabiankevin.app.models.enums.AccountType type,
+        com.fabiankevin.app.models.IconData icon,
         UUID userId
 ) {
 }

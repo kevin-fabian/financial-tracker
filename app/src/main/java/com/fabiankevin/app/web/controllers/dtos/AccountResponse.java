@@ -1,6 +1,7 @@
 package com.fabiankevin.app.web.controllers.dtos;
 
 import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.enums.AccountType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
@@ -17,7 +18,9 @@ public record AccountResponse(
         @Schema(description = "Currency code of the account", example = "PHP")
         String currency,
         @Schema(description = "Type of the account", example = "E_WALLET")
-        com.fabiankevin.app.models.enums.AccountType type,
+        AccountType type,
+        @Schema(description = "Icon for the account")
+        IconResponse icon,
         @Schema(description = "Timestamp when the account was created")
         Instant createdAt,
         @Schema(description = "Timestamp when the account was last updated")
@@ -29,6 +32,7 @@ public record AccountResponse(
                 .name(account.name())
                 .currency(account.currency().getCurrencyCode())
                 .type(account.type())
+                .icon(IconResponse.from(account.icon()))
                 .createdAt(account.createdAt())
                 .updatedAt(account.updatedAt())
                 .build();
