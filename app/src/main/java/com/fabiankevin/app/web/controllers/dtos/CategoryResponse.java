@@ -18,18 +18,19 @@ public record CategoryResponse(
         @Schema(description = "Transaction type of the category", example = "EXPENSE")
         TransactionType type,
         @Schema(description = "Icon for the category")
-        com.fabiankevin.app.models.IconData icon,
+        IconResponse icon,
         @Schema(description = "Timestamp when the category was created")
         Instant createdAt,
         @Schema(description = "Timestamp when the category was last updated")
         Instant updatedAt
 ) {
     public static CategoryResponse from(final Category category) {
+        IconResponse icon = category.icon() != null ? IconResponse.from(category.icon()) : null;
         return CategoryResponse.builder()
                 .id(category.id())
                 .name(category.name())
                 .type(category.type())
-                .icon(category.icon())
+                .icon(icon)
                 .createdAt(category.createdAt())
                 .updatedAt(category.updatedAt())
                 .build();
