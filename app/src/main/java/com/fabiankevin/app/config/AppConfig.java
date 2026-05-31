@@ -23,6 +23,11 @@ public class AppConfig {
     }
 
     @Bean
+    public AccountService accountService(CacheManager cacheManager, DefaultAccountService delegate) {
+        return new CachedAccountService(cacheManager, delegate);
+    }
+
+    @Bean
     public TransactionService transactionService(AccountRepository accountRepository,
                                                  CategoryRepository categoryRepository,
                                                  TransactionRepository transactionRepository,
