@@ -13,6 +13,7 @@ public record Category(
         String name,
         TransactionType type,
         UUID userId,
+        String iconName,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -24,13 +25,15 @@ public record Category(
                 .orElseThrow(() -> new IllegalArgumentException("Category type is required"));
         Optional.ofNullable(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User ID is required"));
+        iconName = Optional.ofNullable(iconName).orElse("");
     }
 
-    public static Category of(String name, TransactionType type, UUID userId){
+    public static Category of(String name, TransactionType type, UUID userId, String iconName){
         return Category.builder()
                 .name(name)
                 .type(type)
                 .userId(userId)
+                .iconName(iconName)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();

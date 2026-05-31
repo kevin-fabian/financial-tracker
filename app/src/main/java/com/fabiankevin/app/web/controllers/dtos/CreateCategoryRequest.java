@@ -17,12 +17,15 @@ public record CreateCategoryRequest(
         String name,
         @NotNull(message = "Type is required")
         @Schema(description = "Transaction type of the category", example = "EXPENSE")
-        TransactionType type
+        TransactionType type,
+        @Schema(description = "Icon name for the category", example = "food_icon")
+        String iconName
 ) {
     public CreateCategoryCommand toCommand(UUID userId) {
         return CreateCategoryCommand.builder()
                 .name(this.name())
                 .type(this.type())
+                .iconName(this.iconName)
                 .userId(userId)
                 .build();
     }

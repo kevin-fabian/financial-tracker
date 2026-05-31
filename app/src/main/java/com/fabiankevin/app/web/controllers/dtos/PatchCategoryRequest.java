@@ -13,13 +13,16 @@ public record PatchCategoryRequest(
         @Schema(description = "Name of the category", example = "FOOD")
         String name,
         @Schema(description = "Transaction type of the category", example = "EXPENSE")
-        TransactionType type
+        TransactionType type,
+        @Schema(description = "Icon name for the category")
+        String iconName
 ) {
     public PatchCategoryCommand toCommand(UUID id, UUID userId) {
         return PatchCategoryCommand.builder()
                 .id(id)
                 .name(this.name())
                 .type(this.type())
+                .iconName(this.iconName)
                 .userId(userId)
                 .build();
     }

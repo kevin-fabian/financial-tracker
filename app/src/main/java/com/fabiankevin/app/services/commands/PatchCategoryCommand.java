@@ -10,6 +10,7 @@ public record PatchCategoryCommand(
         UUID id,
         String name,
         TransactionType type,
+        String iconName,
         UUID userId
 ) {
 }

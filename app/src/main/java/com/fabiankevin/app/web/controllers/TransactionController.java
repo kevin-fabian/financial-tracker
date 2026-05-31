@@ -122,13 +122,13 @@ public class TransactionController {
             description = "Retrieves a transaction by id for the authenticated user",
             responses = {
                     @ApiResponse(responseCode = "200", description = "OK - Resource retrieved successfully",
-                            content = @Content(schema = @Schema(implementation = com.fabiankevin.app.web.controllers.dtos.TransactionResponse.class))),
+                            content = @Content(schema = @Schema(implementation = TransactionResponse.class))),
                     @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
                     @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
             }
     )
     @GetMapping("/{transactionId}")
-    public com.fabiankevin.app.web.controllers.dtos.TransactionResponse getTransactionById(@PathVariable UUID transactionId, JwtAuthenticationToken jwtAuthenticationToken) {
+    public TransactionResponse getTransactionById(@PathVariable UUID transactionId, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         return transactionService.getTransactionById(transactionId, userId);
     }

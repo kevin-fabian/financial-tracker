@@ -1,6 +1,7 @@
 package com.fabiankevin.app.web.controllers.dtos;
 
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.enums.TransactionType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
@@ -15,7 +16,9 @@ public record CategoryResponse(
         @Schema(description = "Name of the category", example = "FOOD")
         String name,
         @Schema(description = "Transaction type of the category", example = "EXPENSE")
-        com.fabiankevin.app.models.enums.TransactionType type,
+        TransactionType type,
+        @Schema(description = "Icon name for the category")
+        String iconName,
         @Schema(description = "Timestamp when the category was created")
         Instant createdAt,
         @Schema(description = "Timestamp when the category was last updated")
@@ -26,6 +29,7 @@ public record CategoryResponse(
                 .id(category.id())
                 .name(category.name())
                 .type(category.type())
+                .iconName(category.iconName())
                 .createdAt(category.createdAt())
                 .updatedAt(category.updatedAt())
                 .build();

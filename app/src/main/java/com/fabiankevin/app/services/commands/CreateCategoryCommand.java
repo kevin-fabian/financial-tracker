@@ -9,6 +9,7 @@ import java.util.UUID;
 public record CreateCategoryCommand(
         String name,
         TransactionType type,
+        String iconName,
         UUID userId
 ) {
 }

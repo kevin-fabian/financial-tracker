@@ -335,6 +335,7 @@ class DefaultTransactionRepositoryTest {
         category.setName(categoryName);
         category.setTransactionType(TransactionType.EXPENSE);
         category.setUserId(userId);
+        category.setIconName("");
         category.setCreatedAt(Instant.now());
         category.setUpdatedAt(Instant.now());
 
