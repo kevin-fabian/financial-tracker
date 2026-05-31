@@ -20,6 +20,7 @@ description: 'Unit test guidelines for this repository'
   - Use `CsvSource` for multiple related edge-case values, for example `@CsvSource({" ,true", "\t,false", "\n,true"})` for whitespace and expected boolean results.
 - Use `@BeforeEach` to set up mock objects and test fixtures to avoid duplication across tests.
 - Use `@Nested` test classes to group related tests for the same method or scenario when it improves organization and readability. e.g., a nested class for testing `createUser` method with various edge cases.
+- Keep the test cases organized by method or scenario under test.
 
 ### Don't
 
