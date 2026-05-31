@@ -16,7 +16,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Table(name = "icons",
         indexes = {
-                @Index(name = "idx_icons_code_point", columnList = "code_point")
+                @Index(name = "idx_icons_code_point_font_family", columnList = "code_point, font_family")
         })
 @Entity
 public class IconEntity {
@@ -30,7 +30,7 @@ public class IconEntity {
     @Column(name = "font_family", nullable = false, length = 128)
     private String fontFamily;
 
-    @Column(name = "icon_name", nullable = false, length = 128)
+    @Column(name = "icon_name", nullable = true, length = 128)
     private String iconName;
 
     @Column(name = "created_at", nullable = false)

@@ -3,9 +3,11 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.exceptions.CategoryAlreadyExistException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.IconData;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.CategoryRepository;
+import com.fabiankevin.app.persistence.IconRepository;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.PatchCategoryCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
@@ -21,6 +23,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class DefaultCategoryService implements CategoryService {
     private final CategoryRepository categoryRepository;
+    private final IconRepository iconRepository;
 
     @Override
     public Category getCategoryById(UUID id, UUID userId) {
@@ -31,12 +34,21 @@ public class DefaultCategoryService implements CategoryService {
     @Transactional
     @Override
     public Category createCategory(CreateCategoryCommand command) {
-        Category category = Category.of(command.name(), command.type(), command.userId(), command.icon());
+        Optional<IconData> optionalIconData = getIconData(command);
+
+        Category newCategory = Category.builder()
+                .name(command.name())
+                .type(command.type())
+                .icon(optionalIconData.orElse(null))
+                .userId(command.userId())
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
         if (categoryRepository.existsByNameAndTypeAndUserId(command.name(), command.type(), command.userId())) {
             throw new CategoryAlreadyExistException("Category with the same name and type already exists for the user");
         }
 
-        return categoryRepository.save(category);
+        return categoryRepository.save(newCategory);
     }
 
     @Transactional
@@ -79,5 +91,18 @@ public class DefaultCategoryService implements CategoryService {
                 .ifPresent(categoryBuilder::icon);
 
         return categoryRepository.save(categoryBuilder.build());
+    }
+
+    private Optional<IconData> getIconData(CreateCategoryCommand command) {
+        if (command.icon() != null && command.icon().id() != null) {
+            return Optional.ofNullable(iconRepository.findByCodePointAndFontFamily(command.icon().codePoint(), command.icon().fontFamily()))
+                    .orElse(Optional.of(IconData.builder()
+                            .codePoint(command.icon().codePoint())
+                            .fontFamily(command.icon().fontFamily())
+                            .iconName(command.icon().iconName())
+                            .build()));
+        }
+
+        return Optional.empty();
     }
 }

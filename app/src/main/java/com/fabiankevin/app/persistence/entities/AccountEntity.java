@@ -19,10 +19,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @Table(name = "accounts",
         indexes = {
-                @Index(name = "idx_accounts_name", columnList = "name"),
-                @Index(name = "idx_accounts_user_id", columnList = "user_id")
-        },
-        uniqueConstraints = @UniqueConstraint(columnNames = {"name", "user_id"}))
+                @Index(name = "idx_accounts_name_user_id", columnList = "name, user_id", unique = true),
+        })
 @Entity
 public class AccountEntity{
     @Id

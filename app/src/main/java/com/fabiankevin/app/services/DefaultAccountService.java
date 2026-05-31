@@ -2,8 +2,10 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.IconData;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.persistence.AccountRepository;
+import com.fabiankevin.app.persistence.IconRepository;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.PatchAccountCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
@@ -20,6 +22,7 @@ import java.util.UUID;
 @Service
 public class DefaultAccountService implements AccountService {
     private final AccountRepository accountRepository;
+    private final IconRepository iconRepository;
 
     @Override
     public Account getAccountById(UUID id, UUID userId) {
@@ -31,9 +34,12 @@ public class DefaultAccountService implements AccountService {
     @Transactional
     @Override
     public Account createAccount(CreateAccountCommand command) {
+        Optional<IconData> optionalIconData = getIconData(command);
+
         Account account = Account.builder()
                 .name(command.name())
                 .userId(command.userId())
+                .icon(optionalIconData.orElse(null))
                 .currency(command.currency())
                 .type(command.type())
                 .icon(command.icon())
@@ -89,5 +95,18 @@ public class DefaultAccountService implements AccountService {
     @Override
     public Page<Account> getAccountsByPageAndUserId(PageQuery query, UUID userId) {
         return accountRepository.getAccountsByPageAndUserId(query, userId);
+    }
+
+    private Optional<IconData> getIconData(CreateAccountCommand command) {
+        if (command.icon() != null && command.icon().id() != null) {
+            return Optional.ofNullable(iconRepository.findByCodePointAndFontFamily(command.icon().codePoint(), command.icon().fontFamily()))
+                    .orElse(Optional.of(IconData.builder()
+                            .codePoint(command.icon().codePoint())
+                            .fontFamily(command.icon().fontFamily())
+                            .iconName(command.icon().iconName())
+                            .build()));
+        }
+
+        return Optional.empty();
     }
 }

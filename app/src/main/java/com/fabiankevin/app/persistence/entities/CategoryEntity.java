@@ -17,10 +17,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @Table(name = "categories",
         indexes = {
-                @Index(name = "idx_categories_name_transaction_type", columnList = "name, transaction_type"),
-                @Index(name = "idx_categories_user_id", columnList = "user_id")
-        },
-        uniqueConstraints = @UniqueConstraint(columnNames = {"name", "transaction_type", "user_id"}))
+                @Index(name = "idx_categories_name_transaction_type_user_id", columnList = "name, transaction_type, user_id", unique = true),
+        })
 @Entity
 public class CategoryEntity {
     @Id
