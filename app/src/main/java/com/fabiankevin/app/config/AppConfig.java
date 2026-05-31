@@ -1,9 +1,15 @@
 package com.fabiankevin.app.config;
 
+import com.fabiankevin.app.persistence.AccountRepository;
+import com.fabiankevin.app.persistence.CategoryRepository;
+import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.*;
+import com.fabiankevin.app.services.summaries.SummaryGenerator;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 public class AppConfig {
@@ -22,5 +28,14 @@ public class AppConfig {
     public TransactionService transactionService(CacheManager cacheManager,
                                                  DefaultTransactionService delegate) {
         return new CachedTransactionService(cacheManager, delegate);
+    }
+
+    @Bean
+    public DefaultTransactionService defaultTransactionService(
+            AccountRepository accountRepository,
+            CategoryRepository categoryRepository,
+            TransactionRepository transactionRepository,
+            List<SummaryGenerator> generators) {
+        return new DefaultTransactionService(accountRepository, categoryRepository, transactionRepository, generators);
     }
 }

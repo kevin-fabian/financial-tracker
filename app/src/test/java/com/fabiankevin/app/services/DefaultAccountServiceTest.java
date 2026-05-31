@@ -2,8 +2,10 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.IconData;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.persistence.AccountRepository;
+import com.fabiankevin.app.persistence.IconRepository;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.PatchAccountCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
@@ -19,8 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -28,6 +29,9 @@ import static org.mockito.Mockito.*;
 class DefaultAccountServiceTest {
     @Mock
     private AccountRepository accountRepository;
+
+    @Mock
+    private IconRepository iconRepository;
 
     @InjectMocks
     private DefaultAccountService accountService;
@@ -205,5 +209,199 @@ class DefaultAccountServiceTest {
         assertThrows(AccountNotFoundException.class, () -> accountService.patchAccount(command));
         verify(accountRepository, times(1)).findById(id);
         verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void createAccount_givenExistingIcon_shouldResolveAndSaveAccount() {
+        UUID userId = UUID.randomUUID();
+        IconData existingIcon = IconData.builder()
+                .id(UUID.randomUUID())
+                .codePoint(0x1F697)
+                .fontFamily("MaterialIcons")
+                .iconName("car")
+                .build();
+
+        CreateAccountCommand command = CreateAccountCommand.builder()
+                .name("CAR_ACCOUNT")
+                .currency(Currency.getInstance("PHP"))
+                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .userId(userId)
+                .icon(com.fabiankevin.app.models.IconData.builder()
+                        .id(existingIcon.id())
+                        .codePoint(0x1F697)
+                        .fontFamily("MaterialIcons")
+                        .iconName("car")
+                        .build())
+                .build();
+
+        when(iconRepository.findByCodePointAndFontFamily(0x1F697, "MaterialIcons"))
+                .thenReturn(Optional.of(existingIcon));
+        when(accountRepository.save(any())).thenAnswer(invocation -> {
+            Account a = invocation.getArgument(0);
+            return a.toBuilder().id(UUID.randomUUID()).build();
+        });
+
+        Account created = accountService.createAccount(command);
+
+        assertEquals("CAR_ACCOUNT", created.name());
+        assertEquals(existingIcon, created.icon());
+        verify(iconRepository, times(1)).findByCodePointAndFontFamily(0x1F697, "MaterialIcons");
+        verify(accountRepository, times(1)).save(any());
+    }
+
+    @Test
+    void createAccount_givenNewIcon_shouldBuildAndSaveAccount() {
+        UUID userId = UUID.randomUUID();
+        IconData newIcon = IconData.builder()
+                .codePoint(0x1F354)
+                .fontFamily("MaterialIcons")
+                .iconName("restaurant")
+                .build();
+
+        CreateAccountCommand command = CreateAccountCommand.builder()
+                .name("FOOD_ACCOUNT")
+                .currency(Currency.getInstance("PHP"))
+                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .userId(userId)
+                .icon(newIcon)
+                .build();
+
+        when(accountRepository.save(any())).thenAnswer(invocation -> {
+            Account a = invocation.getArgument(0);
+            return a.toBuilder().id(UUID.randomUUID()).build();
+        });
+
+        Account created = accountService.createAccount(command);
+
+        assertEquals("FOOD_ACCOUNT", created.name());
+        assertEquals(newIcon.codePoint(), created.icon().codePoint());
+        assertEquals(newIcon.fontFamily(), created.icon().fontFamily());
+        assertEquals(newIcon.iconName(), created.icon().iconName());
+        assertNull(created.icon().id());
+        verify(iconRepository, times(1)).findByCodePointAndFontFamily(0x1F354, "MaterialIcons");
+        verify(accountRepository, times(1)).save(any());
+    }
+
+    @Test
+    void createAccount_givenIconWithId_shouldResolveAndSaveAccount() {
+        UUID userId = UUID.randomUUID();
+        IconData existingIcon = IconData.builder()
+                .id(UUID.randomUUID())
+                .codePoint(0x1F697)
+                .fontFamily("MaterialIcons")
+                .iconName("car")
+                .build();
+
+        CreateAccountCommand command = CreateAccountCommand.builder()
+                .name("CAR_ACCOUNT")
+                .currency(Currency.getInstance("PHP"))
+                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .userId(userId)
+                .icon(existingIcon)
+                .build();
+
+        when(iconRepository.findByCodePointAndFontFamily(0x1F697, "MaterialIcons"))
+                .thenReturn(Optional.of(existingIcon));
+        when(accountRepository.save(any())).thenAnswer(invocation -> {
+            Account a = invocation.getArgument(0);
+            return a.toBuilder().id(UUID.randomUUID()).build();
+        });
+
+        Account created = accountService.createAccount(command);
+
+        assertEquals("CAR_ACCOUNT", created.name());
+        assertEquals(existingIcon, created.icon());
+        verify(iconRepository, times(1)).findByCodePointAndFontFamily(0x1F697, "MaterialIcons");
+        verify(accountRepository, times(1)).save(any());
+    }
+
+    @Test
+    void patchAccount_givenNewIcon_shouldUpdateAccountIcon() {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        Account existing = Account.builder()
+                .id(id)
+                .name("GCASH")
+                .userId(userId)
+                .currency(Currency.getInstance("PHP"))
+                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        IconData newIcon = IconData.builder()
+                .codePoint(0x1F697)
+                .fontFamily("MaterialIcons")
+                .iconName("car")
+                .build();
+
+        PatchAccountCommand command = PatchAccountCommand.builder()
+                .id(id)
+                .name("GCASH_MAIN")
+                .currency(Currency.getInstance("PHP"))
+                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .userId(userId)
+                .icon(newIcon)
+                .build();
+
+        when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
+        when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Account updated = accountService.patchAccount(command);
+
+        assertEquals("GCASH_MAIN", updated.name());
+        assertEquals(newIcon, updated.icon());
+        verify(accountRepository, times(1)).findById(id);
+        verify(accountRepository, times(1)).save(any());
+    }
+
+    @Test
+    void patchAccount_givenExistingIcon_shouldUpdateAccountIcon() {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        IconData existingIcon = IconData.builder()
+                .id(UUID.randomUUID())
+                .codePoint(0x1F697)
+                .fontFamily("MaterialIcons")
+                .iconName("car")
+                .build();
+
+        Account existing = Account.builder()
+                .id(id)
+                .name("GCASH")
+                .userId(userId)
+                .currency(Currency.getInstance("PHP"))
+                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .icon(existingIcon)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        IconData newIcon = IconData.builder()
+                .codePoint(0x1F354)
+                .fontFamily("MaterialIcons")
+                .iconName("restaurant")
+                .build();
+
+        PatchAccountCommand command = PatchAccountCommand.builder()
+                .id(id)
+                .name("GCASH_MAIN")
+                .currency(Currency.getInstance("PHP"))
+                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .userId(userId)
+                .icon(newIcon)
+                .build();
+
+        when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
+        when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Account updated = accountService.patchAccount(command);
+
+        assertEquals("GCASH_MAIN", updated.name());
+        assertEquals(newIcon, updated.icon());
+        verify(accountRepository, times(1)).findById(id);
+        verify(accountRepository, times(1)).save(any());
     }
 }

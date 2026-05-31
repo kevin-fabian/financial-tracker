@@ -94,15 +94,16 @@ public class DefaultCategoryService implements CategoryService {
     }
 
     private Optional<IconData> getIconData(CreateCategoryCommand command) {
-        if (command.icon() != null && command.icon().id() != null) {
-            return Optional.ofNullable(iconRepository.findByCodePointAndFontFamily(command.icon().codePoint(), command.icon().fontFamily()))
-                    .orElse(Optional.of(IconData.builder()
-                            .codePoint(command.icon().codePoint())
-                            .fontFamily(command.icon().fontFamily())
-                            .iconName(command.icon().iconName())
-                            .build()));
+        if (command.icon() == null) {
+            return Optional.empty();
         }
 
-        return Optional.empty();
+        IconData icon = command.icon();
+        return Optional.of(iconRepository.findByCodePointAndFontFamily(icon.codePoint(), icon.fontFamily())
+                .orElse(IconData.builder()
+                        .codePoint(icon.codePoint())
+                        .fontFamily(icon.fontFamily())
+                        .iconName(icon.iconName())
+                        .build()));
     }
 }
