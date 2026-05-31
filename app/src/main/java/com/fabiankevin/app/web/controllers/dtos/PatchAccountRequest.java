@@ -13,13 +13,16 @@ public record PatchAccountRequest(
         @Schema(description = "Name of the account", example = "GCASH")
         String name,
         @Schema(description = "Currency code of the account", example = "PHP")
-        String currency
+        String currency,
+        @Schema(description = "Type of the account", example = "E_WALLET")
+        com.fabiankevin.app.models.enums.AccountType type
 ) {
     public PatchAccountCommand toCommand(UUID id, UUID userId) {
         return PatchAccountCommand.builder()
                 .id(id)
                 .name(this.name())
                 .currency(this.currency() != null ? Currency.getInstance(this.currency()) : null)
+                .type(this.type)
                 .userId(userId)
                 .build();
     }

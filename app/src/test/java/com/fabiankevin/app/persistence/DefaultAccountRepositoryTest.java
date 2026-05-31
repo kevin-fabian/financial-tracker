@@ -2,6 +2,7 @@ package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Page;
+import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
 import com.fabiankevin.app.services.queries.PageQuery;
 import org.assertj.core.api.Assertions;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
+import java.util.Currency;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -46,7 +48,8 @@ class DefaultAccountRepositoryTest {
         account = Account.builder()
                 .name("GCASH")
                 .userId(UUID.randomUUID())
-                .currency(java.util.Currency.getInstance("PHP"))
+                .currency(Currency.getInstance("PHP"))
+                .type(AccountType.E_WALLET)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -112,6 +115,7 @@ class DefaultAccountRepositoryTest {
                     .name("Account " + i)
                     .userId(userId)
                     .currency(java.util.Currency.getInstance("PHP"))
+                    .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();

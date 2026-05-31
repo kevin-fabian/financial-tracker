@@ -31,6 +31,7 @@ public class AccountEntity{
     @Column(name = "user_id")
     private UUID userId;
     private String currency;
+    private String type;
     @Column(nullable = false)
     private Instant createdAt;
     @Column(nullable = false)
@@ -43,6 +44,7 @@ public class AccountEntity{
                 .name(account.name())
                 .userId(account.userId())
                 .currency(Optional.ofNullable(account.currency()).map(Currency::getCurrencyCode).orElse(null))
+                .type(account.type() != null ? account.type().name() : null)
                 .createdAt(account.createdAt())
                 .updatedAt(account.updatedAt())
                 .build();
@@ -54,6 +56,7 @@ public class AccountEntity{
                 .name(this.name)
                 .userId(this.userId)
                 .currency(Optional.ofNullable(this.currency).map(Currency::getInstance).orElse(null))
+                .type(Optional.ofNullable(this.type).map(s -> com.fabiankevin.app.models.enums.AccountType.valueOf(s)).orElse(null))
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)
                 .build();

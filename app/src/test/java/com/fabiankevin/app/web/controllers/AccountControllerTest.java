@@ -65,6 +65,7 @@ class AccountControllerTest {
         CreateAccountRequest request = CreateAccountRequest.builder()
                 .name("GCASH")
                 .currency("PHP")
+                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
                 .build();
 
         when(accountService.createAccount(any())).thenAnswer(invocation -> {
@@ -76,6 +77,7 @@ class AccountControllerTest {
                     .name(command.name())
                     .userId(userId)
                     .currency(command.currency())
+                    .type(command.type())
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -98,6 +100,7 @@ class AccountControllerTest {
         CreateAccountRequest request = CreateAccountRequest.builder()
                 .name("GCASH")
                 .currency("PHP")
+                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
                 .build();
 
         mockMvc.perform(post("/api/accounts")
@@ -114,6 +117,7 @@ class AccountControllerTest {
         CreateAccountRequest request = CreateAccountRequest.builder()
                 .name(name)
                 .currency("PHP")
+                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
                 .build();
 
         mockMvc.perform(post("/api/accounts")
@@ -131,6 +135,7 @@ class AccountControllerTest {
         CreateAccountRequest request = CreateAccountRequest.builder()
                 .name("GCASH")
                 .currency(currency)
+                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
                 .build();
 
         mockMvc.perform(post("/api/accounts")
@@ -152,6 +157,7 @@ class AccountControllerTest {
                 .name("GCASH")
                 .userId(userId)
                 .currency(java.util.Currency.getInstance("PHP"))
+                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build());
@@ -217,8 +223,8 @@ class AccountControllerTest {
         UUID userId = UUID.fromString(jwt.getSubject());
 
         var accounts = List.of(
-                Account.builder().id(UUID.randomUUID()).name("A1").userId(userId).currency(java.util.Currency.getInstance("PHP")).createdAt(Instant.now()).updatedAt(Instant.now()).build(),
-                Account.builder().id(UUID.randomUUID()).name("A2").userId(userId).currency(java.util.Currency.getInstance("PHP")).createdAt(Instant.now()).updatedAt(Instant.now()).build()
+                Account.builder().id(UUID.randomUUID()).name("A1").userId(userId).currency(java.util.Currency.getInstance("PHP")).type(com.fabiankevin.app.models.enums.AccountType.E_WALLET).createdAt(Instant.now()).updatedAt(Instant.now()).build(),
+                Account.builder().id(UUID.randomUUID()).name("A2").userId(userId).currency(java.util.Currency.getInstance("PHP")).type(com.fabiankevin.app.models.enums.AccountType.E_WALLET).createdAt(Instant.now()).updatedAt(Instant.now()).build()
         );
 
         when(accountService.getAccountsByPageAndUserId(new PageQuery(0, 2, "name", "ASC"), userId))
@@ -261,6 +267,7 @@ class AccountControllerTest {
                     .name(cmd.name())
                     .userId(userId)
                     .currency(java.util.Currency.getInstance("PHP"))
+                    .type(cmd.type())
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();

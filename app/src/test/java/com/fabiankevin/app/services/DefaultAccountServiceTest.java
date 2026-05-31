@@ -38,6 +38,7 @@ class DefaultAccountServiceTest {
         CreateAccountCommand command = CreateAccountCommand.builder()
                 .name("GCASH")
                 .currency(Currency.getInstance("PHP"))
+                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
                 .userId(userId)
                 .build();
 
@@ -62,6 +63,7 @@ class DefaultAccountServiceTest {
                 .name("GCASH")
                 .userId(userId)
                 .currency(Currency.getInstance("PHP"))
+                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build()));
@@ -81,6 +83,7 @@ class DefaultAccountServiceTest {
                 .name("GCASH")
                 .userId(UUID.randomUUID())
                 .currency(Currency.getInstance("PHP"))
+                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build()));
@@ -109,6 +112,7 @@ class DefaultAccountServiceTest {
                 .name("GCASH")
                 .userId(userId)
                 .currency(Currency.getInstance("PHP"))
+                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build()));
@@ -134,8 +138,8 @@ class DefaultAccountServiceTest {
     void getAccountsByPageAndUserId_givenUserId_thenShouldReturnPagedAccounts() {
         UUID userId = UUID.randomUUID();
         var accounts = List.of(
-                Account.builder().id(UUID.randomUUID()).name("A1").userId(userId).currency(Currency.getInstance("PHP")).createdAt(Instant.now()).updatedAt(Instant.now()).build(),
-                Account.builder().id(UUID.randomUUID()).name("A2").userId(userId).currency(Currency.getInstance("PHP")).createdAt(Instant.now()).updatedAt(Instant.now()).build()
+                Account.builder().id(UUID.randomUUID()).name("A1").userId(userId).currency(Currency.getInstance("PHP")).type(com.fabiankevin.app.models.enums.AccountType.E_WALLET).createdAt(Instant.now()).updatedAt(Instant.now()).build(),
+                Account.builder().id(UUID.randomUUID()).name("A2").userId(userId).currency(Currency.getInstance("PHP")).type(com.fabiankevin.app.models.enums.AccountType.E_WALLET).createdAt(Instant.now()).updatedAt(Instant.now()).build()
         );
 
         Page<Account> page = new Page<>(accounts, 0, 10, accounts.size(), 1, true, true);
@@ -160,6 +164,7 @@ class DefaultAccountServiceTest {
                 .name("GCASH")
                 .userId(userId)
                 .currency(Currency.getInstance("PHP"))
+                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -168,6 +173,7 @@ class DefaultAccountServiceTest {
                 .id(id)
                 .name("GCASH_MAIN")
                 .currency(Currency.getInstance("PHP"))
+                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
                 .userId(userId)
                 .build();
 
@@ -190,6 +196,7 @@ class DefaultAccountServiceTest {
                 .id(id)
                 .name("GCASH_MAIN")
                 .currency(Currency.getInstance("PHP"))
+                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
                 .userId(userId)
                 .build();
 

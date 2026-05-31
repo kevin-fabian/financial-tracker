@@ -17,12 +17,16 @@ public record CreateAccountRequest(
 
         @NotBlank(message = "Currency is required")
         @Schema(description = "Currency code (ISO 4217)", example = "PHP")
-        String currency
+        String currency,
+
+        @Schema(description = "Type of the account", example = "E_WALLET")
+        com.fabiankevin.app.models.enums.AccountType type
 ) {
     public CreateAccountCommand toCommand(UUID userId) {
         return CreateAccountCommand.builder()
                 .name(this.name())
                 .currency(Currency.getInstance(this.currency()))
+                .type(this.type)
                 .userId(userId)
                 .build();
     }

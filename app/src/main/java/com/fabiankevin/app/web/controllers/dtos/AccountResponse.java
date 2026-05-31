@@ -16,6 +16,8 @@ public record AccountResponse(
         String name,
         @Schema(description = "Currency code of the account", example = "PHP")
         String currency,
+        @Schema(description = "Type of the account", example = "E_WALLET")
+        com.fabiankevin.app.models.enums.AccountType type,
         @Schema(description = "Timestamp when the account was created")
         Instant createdAt,
         @Schema(description = "Timestamp when the account was last updated")
@@ -26,6 +28,7 @@ public record AccountResponse(
                 .id(account.id())
                 .name(account.name())
                 .currency(account.currency().getCurrencyCode())
+                .type(account.type())
                 .createdAt(account.createdAt())
                 .updatedAt(account.updatedAt())
                 .build();

@@ -9,6 +9,7 @@ import java.util.UUID;
 public record CreateAccountCommand(
         String name,
         Currency currency,
+        com.fabiankevin.app.models.enums.AccountType type,
         UUID userId
 ) {
 }

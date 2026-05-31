@@ -13,6 +13,7 @@ public record Account(
         String name,
         UUID userId,
         Currency currency,
+        com.fabiankevin.app.models.enums.AccountType type,
         Instant createdAt,
         Instant updatedAt) {
     public Account {

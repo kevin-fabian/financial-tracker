@@ -35,6 +35,7 @@ public class DefaultAccountService implements AccountService {
                 .name(command.name())
                 .userId(command.userId())
                 .currency(command.currency())
+                .type(command.type())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -54,6 +55,7 @@ public class DefaultAccountService implements AccountService {
 
         String newName = command.name();
         Currency newCurrency = command.currency();
+        com.fabiankevin.app.models.enums.AccountType newType = command.type();
 
         Account.AccountBuilder builder = existing.toBuilder()
                 .updatedAt(Instant.now());
@@ -63,6 +65,8 @@ public class DefaultAccountService implements AccountService {
                 .ifPresent(builder::name);
         Optional.ofNullable(newCurrency)
                 .ifPresent(builder::currency);
+        Optional.ofNullable(newType)
+                .ifPresent(builder::type);
 
         return accountRepository.save(builder.build());
     }
