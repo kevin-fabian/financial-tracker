@@ -1,6 +1,7 @@
 package com.fabiankevin.app.persistence.entities;
 
 import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.enums.AccountType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -37,7 +38,7 @@ public class AccountEntity{
     @Column(nullable = false)
     private Instant updatedAt;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER, cascade = {CascadeType.REFRESH, CascadeType.PERSIST, CascadeType.MERGE, CascadeType.DETACH})
     @JoinColumn(name = "icon_id", nullable = true)
     private IconEntity icon;
 
@@ -61,10 +62,10 @@ public class AccountEntity{
                 .name(this.name)
                 .userId(this.userId)
                 .currency(Optional.ofNullable(this.currency).map(Currency::getInstance).orElse(null))
-                .type(Optional.ofNullable(this.type).map(s -> com.fabiankevin.app.models.enums.AccountType.valueOf(s)).orElse(null))
+                .type(Optional.ofNullable(this.type).map(AccountType::valueOf).orElse(null))
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)
-                .icon(this.icon != null ? this.icon.toModel() : null)
+                .icon(Optional.ofNullable(this.icon).map(IconEntity::toModel).orElse(null))
                 .build();
     }
 }
