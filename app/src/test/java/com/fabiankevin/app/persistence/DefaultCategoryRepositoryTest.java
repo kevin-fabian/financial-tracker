@@ -70,7 +70,7 @@ class DefaultCategoryRepositoryTest {
                 .icon(IconData.builder()
                         .codePoint(1235)
                         .fontFamily("Lucide")
-                        .iconName("transporation")
+                        .iconName("transportation")
                         .createdAt(Instant.now())
                         .build()
                 ).build());
@@ -78,7 +78,7 @@ class DefaultCategoryRepositoryTest {
         IconData icon = IconData.builder()
                 .codePoint(1235)
                 .fontFamily("Lucide")
-                .iconName("transporation")
+                .iconName("transportation")
                 .createdAt(Instant.now())
                 .build();
 
@@ -92,6 +92,40 @@ class DefaultCategoryRepositoryTest {
 
         assertNotNull(found.icon().id(), "updated icon should have been created");
         assertNotEquals(saved.icon().id(), found.icon().id(), "icon id should be retained");
+    }
+
+
+    @Test
+    void save_givenCategoryWithIcon_shouldPersistIcon() {
+        IconData icon = IconData.builder()
+                .codePoint(0x1F354)
+                .fontFamily("MaterialIcons")
+                .iconName("restaurant")
+                .createdAt(Instant.now())
+                .build();
+
+        Category categoryWithIcon = Category.builder()
+                .name("RESTAURANTS")
+                .type(TransactionType.EXPENSE)
+                .userId(category.userId())
+                .icon(icon)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        Category saved = categoryRepository.save(categoryWithIcon);
+
+        var found = categoryRepository.findByIdAndUserId(saved.id(), saved.userId()).orElseThrow();
+
+        Assertions.assertThat(found.icon())
+                .as("category icon should be persisted")
+                .isNotNull();
+        Assertions.assertThat(found.icon().codePoint())
+                .isEqualTo(icon.codePoint());
+        Assertions.assertThat(found.icon().fontFamily())
+                .isEqualTo(icon.fontFamily());
+        Assertions.assertThat(found.icon().iconName())
+                .isEqualTo(icon.iconName());
     }
 
     @Test
@@ -371,38 +405,5 @@ class DefaultCategoryRepositoryTest {
                 .isFalse();
 
         verify(jpaCategoryRepository, times(1)).existsByNameAndTransactionTypeAndUserId("NONEXISTENT", TransactionType.EXPENSE, userId);
-    }
-
-    @Test
-    void save_givenCategoryWithIcon_shouldPersistIcon() {
-        IconData icon = IconData.builder()
-                .codePoint(0x1F354)
-                .fontFamily("MaterialIcons")
-                .iconName("restaurant")
-                .createdAt(Instant.now())
-                .build();
-
-        Category categoryWithIcon = Category.builder()
-                .name("RESTAURANTS")
-                .type(TransactionType.EXPENSE)
-                .userId(category.userId())
-                .icon(icon)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-
-        Category saved = categoryRepository.save(categoryWithIcon);
-
-        var found = categoryRepository.findByIdAndUserId(saved.id(), saved.userId()).orElseThrow();
-
-        Assertions.assertThat(found.icon())
-                .as("category icon should be persisted")
-                .isNotNull();
-        Assertions.assertThat(found.icon().codePoint())
-                .isEqualTo(icon.codePoint());
-        Assertions.assertThat(found.icon().fontFamily())
-                .isEqualTo(icon.fontFamily());
-        Assertions.assertThat(found.icon().iconName())
-                .isEqualTo(icon.iconName());
     }
 }
