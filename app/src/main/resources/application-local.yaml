@@ -21,6 +21,7 @@ spring:
 
 logging:
   level:
+    org.zalando.logbook: TRACE
     com.fabiankevin.app: DEBUG
     springframework.security: DEBUG
 
