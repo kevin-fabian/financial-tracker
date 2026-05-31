@@ -31,7 +31,7 @@ public class CategoryEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TransactionType transactionType;
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "icon_id", nullable = true)
     private IconEntity icon;
     @Column(name = "user_id", nullable = false)

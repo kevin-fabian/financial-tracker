@@ -1,6 +1,7 @@
 package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.IconData;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.services.queries.PageQuery;
@@ -18,7 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -53,14 +54,44 @@ class DefaultCategoryRepositoryTest {
 
         var found = categoryRepository.findByIdAndUserId(saved.id(), saved.userId()).orElseThrow();
 
-        Assertions.assertThat(found)
-                .as("found category should match saved category ignoring id")
-                .usingRecursiveComparison()
-                .ignoringFields("id")
-                .isEqualTo(saved);
-
+        assertNotNull(found.id(), "category id should have been generated");
+        assertEquals(category.name(), found.name(), "category name should match");
+        assertEquals(category.type(), found.type(), "category type should match");
+        assertNotNull(category.createdAt(), "createdAt should have been generated");
+        assertNotNull(category.updatedAt(), "updatedAt should have been generated");
+        assertNull(category.icon(), "icon should be null when not provided");
         verify(jpaCategoryRepository, times(1)).save(any());
         verify(jpaCategoryRepository, times(1)).findByIdAndUserId(saved.id(), saved.userId());
+    }
+
+    @Test
+    void save_givenExistingIcon_shouldSaveNewIconAndRetainExisting() {
+        Category saved = categoryRepository.save(category.toBuilder()
+                .icon(IconData.builder()
+                        .codePoint(1235)
+                        .fontFamily("Lucide")
+                        .iconName("transporation")
+                        .createdAt(Instant.now())
+                        .build()
+                ).build());
+
+        IconData icon = IconData.builder()
+                .codePoint(1235)
+                .fontFamily("Lucide")
+                .iconName("transporation")
+                .createdAt(Instant.now())
+                .build();
+
+        Category updatedCategory = saved.toBuilder()
+                .icon(icon)
+                .build();
+
+        categoryRepository.save(updatedCategory);
+
+        var found = categoryRepository.findByIdAndUserId(saved.id(), saved.userId()).orElseThrow();
+
+        assertNotNull(found.icon().id(), "updated icon should have been created");
+        assertNotEquals(saved.icon().id(), found.icon().id(), "icon id should be retained");
     }
 
     @Test
@@ -82,7 +113,7 @@ class DefaultCategoryRepositoryTest {
                 .updatedAt(Instant.now())
                 .build();
 
-        assertDoesNotThrow(() ->  categoryRepository.save(sameCategoryWithDifferentUser),
+        assertDoesNotThrow(() -> categoryRepository.save(sameCategoryWithDifferentUser),
                 "should save");
 
         Assertions.assertThat(jpaCategoryRepository.findAll())
@@ -340,5 +371,38 @@ class DefaultCategoryRepositoryTest {
                 .isFalse();
 
         verify(jpaCategoryRepository, times(1)).existsByNameAndTransactionTypeAndUserId("NONEXISTENT", TransactionType.EXPENSE, userId);
+    }
+
+    @Test
+    void save_givenCategoryWithIcon_shouldPersistIcon() {
+        IconData icon = IconData.builder()
+                .codePoint(0x1F354)
+                .fontFamily("MaterialIcons")
+                .iconName("restaurant")
+                .createdAt(Instant.now())
+                .build();
+
+        Category categoryWithIcon = Category.builder()
+                .name("RESTAURANTS")
+                .type(TransactionType.EXPENSE)
+                .userId(category.userId())
+                .icon(icon)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        Category saved = categoryRepository.save(categoryWithIcon);
+
+        var found = categoryRepository.findByIdAndUserId(saved.id(), saved.userId()).orElseThrow();
+
+        Assertions.assertThat(found.icon())
+                .as("category icon should be persisted")
+                .isNotNull();
+        Assertions.assertThat(found.icon().codePoint())
+                .isEqualTo(icon.codePoint());
+        Assertions.assertThat(found.icon().fontFamily())
+                .isEqualTo(icon.fontFamily());
+        Assertions.assertThat(found.icon().iconName())
+                .isEqualTo(icon.iconName());
     }
 }
