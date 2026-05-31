@@ -17,8 +17,8 @@ public record CategoryResponse(
         String name,
         @Schema(description = "Transaction type of the category", example = "EXPENSE")
         TransactionType type,
-        @Schema(description = "Icon name for the category")
-        String iconName,
+        @Schema(description = "Icon for the category")
+        com.fabiankevin.app.models.IconData icon,
         @Schema(description = "Timestamp when the category was created")
         Instant createdAt,
         @Schema(description = "Timestamp when the category was last updated")
@@ -29,7 +29,7 @@ public record CategoryResponse(
                 .id(category.id())
                 .name(category.name())
                 .type(category.type())
-                .iconName(category.iconName())
+                .icon(category.icon())
                 .createdAt(category.createdAt())
                 .updatedAt(category.updatedAt())
                 .build();

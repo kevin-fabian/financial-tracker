@@ -18,14 +18,14 @@ public record CreateCategoryRequest(
         @NotNull(message = "Type is required")
         @Schema(description = "Transaction type of the category", example = "EXPENSE")
         TransactionType type,
-        @Schema(description = "Icon name for the category", example = "food_icon")
-        String iconName
+        @Schema(description = "Icon for the category", example = "food_icon")
+        com.fabiankevin.app.models.IconData icon
 ) {
     public CreateCategoryCommand toCommand(UUID userId) {
         return CreateCategoryCommand.builder()
                 .name(this.name())
                 .type(this.type())
-                .iconName(this.iconName)
+                .icon(this.icon)
                 .userId(userId)
                 .build();
     }

@@ -1,5 +1,8 @@
 # AGENTS.md
 
+## Agent Working Guidelines.
+Ask questions to clarify requirements, constraints, and preferences before starting work. If you encounter ambiguities or edge cases, seek clarification rather than making assumptions. When in doubt, ask for more information.
+
 ## Scope
 - `.github/copilot-instructions.md` is the portable, repo-agnostic guidance for architecture, design, and coding style.
 - This file is the source of truth for repository-specific structure, package placement, runtime details, test locations, and known implementation exceptions.

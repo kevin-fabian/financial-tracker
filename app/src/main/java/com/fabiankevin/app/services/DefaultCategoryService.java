@@ -31,7 +31,7 @@ public class DefaultCategoryService implements CategoryService {
     @Transactional
     @Override
     public Category createCategory(CreateCategoryCommand command) {
-        Category category = Category.of(command.name(), command.type(), command.userId(), command.iconName());
+        Category category = Category.of(command.name(), command.type(), command.userId(), command.icon());
         if (categoryRepository.existsByNameAndTypeAndUserId(command.name(), command.type(), command.userId())) {
             throw new CategoryAlreadyExistException("Category with the same name and type already exists for the user");
         }
@@ -75,8 +75,8 @@ public class DefaultCategoryService implements CategoryService {
         Optional.ofNullable(newType)
                 .ifPresent(categoryBuilder::type);
 
-        Optional.ofNullable(command.iconName())
-                .ifPresent(categoryBuilder::iconName);
+        Optional.ofNullable(command.icon())
+                .ifPresent(categoryBuilder::icon);
 
         return categoryRepository.save(categoryBuilder.build());
     }

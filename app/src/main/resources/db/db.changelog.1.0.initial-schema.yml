@@ -12,12 +12,12 @@ databaseChangeLog:
       id: 1.0.1
       sqlFile:
         dbms: 'postgresql'
-        path: rollouts/V1.0.0_initial_schema.sql
+        path: rollouts/V1.0.1_initial_schema.sql
         relativeToChangelogFile: true
       rollback:
         sqlFile:
           dbms: postgresql
-          path: rollbacks/U1.0.0_initial_schema.sql
+          path: rollbacks/U1.0.1_initial_schema.sql
           relativeToChangelogFile: true
 
   - changeSet:
@@ -25,10 +25,10 @@ databaseChangeLog:
       id: 1.0.2
       sqlFile:
         dbms: 'postgresql'
-        path: rollouts/V1.0.1_grants.sql
+        path: rollouts/V1.0.2_grants.sql
         relativeToChangelogFile: true
       rollback:
         sqlFile:
           dbms: postgresql
-          path: rollbacks/U1.0.1_grants.sql
+          path: rollbacks/U1.0.2_grants.sql
           relativeToChangelogFile: true

@@ -1,5 +1,6 @@
 package com.fabiankevin.app.models;
 
+import com.fabiankevin.app.models.enums.AccountType;
 import lombok.Builder;
 
 import java.time.Instant;
@@ -13,7 +14,8 @@ public record Account(
         String name,
         UUID userId,
         Currency currency,
-        com.fabiankevin.app.models.enums.AccountType type,
+        AccountType type,
+        IconData icon,
         Instant createdAt,
         Instant updatedAt) {
     public Account {

@@ -37,6 +37,10 @@ public class AccountEntity{
     @Column(nullable = false)
     private Instant updatedAt;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "icon_id", nullable = true)
+    private IconEntity icon;
+
     public static AccountEntity from(Account account) {
         if (account == null) return null;
         return AccountEntity.builder()
@@ -47,6 +51,7 @@ public class AccountEntity{
                 .type(account.type() != null ? account.type().name() : null)
                 .createdAt(account.createdAt())
                 .updatedAt(account.updatedAt())
+                .icon(account.icon() != null ? IconEntity.from(account.icon()) : null)
                 .build();
     }
 
@@ -59,6 +64,7 @@ public class AccountEntity{
                 .type(Optional.ofNullable(this.type).map(s -> com.fabiankevin.app.models.enums.AccountType.valueOf(s)).orElse(null))
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)
+                .icon(this.icon != null ? this.icon.toModel() : null)
                 .build();
     }
 }

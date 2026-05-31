@@ -9,7 +9,7 @@ import java.util.UUID;
 public record CreateCategoryCommand(
         String name,
         TransactionType type,
-        String iconName,
+        com.fabiankevin.app.models.IconData icon,
         UUID userId
 ) {
 }

@@ -14,15 +14,15 @@ public record PatchCategoryRequest(
         String name,
         @Schema(description = "Transaction type of the category", example = "EXPENSE")
         TransactionType type,
-        @Schema(description = "Icon name for the category")
-        String iconName
+        @Schema(description = "Icon for the category")
+        com.fabiankevin.app.models.IconData icon
 ) {
     public PatchCategoryCommand toCommand(UUID id, UUID userId) {
         return PatchCategoryCommand.builder()
                 .id(id)
                 .name(this.name())
                 .type(this.type())
-                .iconName(this.iconName)
+                .icon(this.icon)
                 .userId(userId)
                 .build();
     }
