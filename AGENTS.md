@@ -2,6 +2,8 @@
 
 ## Agent Working Guidelines.
 Ask questions to clarify requirements, constraints, and preferences before starting work. If you encounter ambiguities or edge cases, seek clarification rather than making assumptions. When in doubt, ask for more information.
+You must always read relevant copilot instructions and SKILL.md available in the repository before starting work. These documents contain important guidelines, patterns, and known exceptions that are critical for maintaining code quality and consistency.
+When implementing features or fixes, follow the established architecture, design patterns, and coding style as outlined in the copilot instructions. This ensures that your contributions align with the overall project structure and maintainability goals.
 
 ## Scope
 - `.github/copilot-instructions.md` is the portable, repo-agnostic guidance for architecture, design, and coding style.
