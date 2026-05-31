@@ -307,6 +307,54 @@ class DefaultTransactionRepositoryTest {
     }
 
     @Test
+    void deleteByIdAndUserId_givenExistingTransactionAndMatchingUserId_shouldDeleteAndReturnOne() {
+        CategoryEntity food = createCategory("FOOD");
+        AccountEntity cash = createAccount("CASH");
+
+        AddTransactionCommand command = AddTransactionCommand.builder()
+                .userId(userId)
+                .categoryId(food.getId())
+                .accountId(cash.getId())
+                .amount(Amount.of(500, Currency.getInstance("PHP")))
+                .transactionDate(LocalDate.of(2026, 5, 1))
+                .description("Test transaction")
+                .build();
+        Transaction saved = transactionService.addTransaction(command);
+
+        int deleted = transactionRepository.deleteByIdAndUserId(saved.id(), userId);
+
+        Assertions.assertThat(deleted).isEqualTo(1);
+        Assertions.assertThat(transactionRepository.findById(saved.id())).isEmpty();
+
+        verify(jpaTransactionRepository, times(1)).deleteByIdAndAccountUserId(saved.id(), userId);
+    }
+
+    @Test
+    void deleteByIdAndUserId_givenExistingTransactionWithDifferentUserId_shouldNotDeleteAndReturnZero() {
+        CategoryEntity food = createCategory("FOOD");
+        AccountEntity cash = createAccount("CASH");
+
+        AddTransactionCommand command = AddTransactionCommand.builder()
+                .userId(userId)
+                .categoryId(food.getId())
+                .accountId(cash.getId())
+                .amount(Amount.of(500, Currency.getInstance("PHP")))
+                .transactionDate(LocalDate.of(2026, 5, 1))
+                .description("Test transaction")
+                .build();
+        Transaction saved = transactionService.addTransaction(command);
+
+        UUID differentUserId = UUID.randomUUID();
+
+        int deleted = transactionRepository.deleteByIdAndUserId(saved.id(), differentUserId);
+
+        Assertions.assertThat(deleted).isEqualTo(0);
+        Assertions.assertThat(transactionRepository.findById(saved.id())).isPresent();
+
+        verify(jpaTransactionRepository, times(1)).deleteByIdAndAccountUserId(saved.id(), differentUserId);
+    }
+
+    @Test
     void getTransactionsByPageAndUserId_givenMultipleTransactions_thenShouldReturnPagedResults() {
         CategoryEntity food = createCategory("FOOD");
         AccountEntity cash = createAccount("CASH");
