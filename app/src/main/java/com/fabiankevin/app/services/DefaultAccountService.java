@@ -107,6 +107,7 @@ public class DefaultAccountService implements AccountService {
                         .codePoint(icon.codePoint())
                         .fontFamily(icon.fontFamily())
                         .iconName(icon.iconName())
+                        .createdAt(Instant.now())
                         .build()));
     }
 }

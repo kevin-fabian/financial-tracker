@@ -11,6 +11,7 @@ import com.fabiankevin.app.services.commands.PatchAccountCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -279,7 +280,18 @@ class DefaultAccountServiceTest {
         assertEquals(newIcon.iconName(), created.icon().iconName());
         assertNull(created.icon().id());
         verify(iconRepository, times(1)).findByCodePointAndFontFamily(0x1F354, "MaterialIcons");
-        verify(accountRepository, times(1)).save(any());
+        ArgumentCaptor<Account> accountArgumentCaptor = ArgumentCaptor.forClass(Account.class);
+        verify(accountRepository, times(1)).save(accountArgumentCaptor.capture());
+        Account value = accountArgumentCaptor.getValue();
+        assertNull(value.id(), "id");
+        assertEquals(value.name(), created.name(), "name");
+        assertEquals(value.currency(), created.currency(), "currency");
+        assertEquals(value.type(), created.type(), "type");
+        assertEquals(value.userId(), created.userId(), "userId");
+        assertNull(value.icon().id(), "icon.id");
+        assertEquals(newIcon.codePoint(), value.icon().codePoint(), "codePoint");
+        assertEquals(newIcon.fontFamily(), value.icon().fontFamily(), "fontFamily");
+        assertNotNull(value.icon().createdAt(), "createdAt");
     }
 
     @Test
