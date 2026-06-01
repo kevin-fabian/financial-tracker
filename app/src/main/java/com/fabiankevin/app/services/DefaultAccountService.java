@@ -4,6 +4,7 @@ import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.IconData;
 import com.fabiankevin.app.models.Page;
+import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.IconRepository;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
@@ -34,7 +35,7 @@ public class DefaultAccountService implements AccountService {
     @Transactional
     @Override
     public Account createAccount(CreateAccountCommand command) {
-        Optional<IconData> optionalIconData = getIconData(command);
+        Optional<IconData> optionalIconData = getOrSaveIcon(command.icon());
 
         Account account = Account.builder()
                 .name(command.name())
@@ -61,9 +62,7 @@ public class DefaultAccountService implements AccountService {
 
         String newName = command.name();
         Currency newCurrency = command.currency();
-        com.fabiankevin.app.models.enums.AccountType newType = command.type();
-
-        com.fabiankevin.app.models.IconData newIcon = command.icon();
+        AccountType newType = command.type();
 
         Account.AccountBuilder builder = existing.toBuilder()
                 .updatedAt(Instant.now());
@@ -75,8 +74,13 @@ public class DefaultAccountService implements AccountService {
                 .ifPresent(builder::currency);
         Optional.ofNullable(newType)
                 .ifPresent(builder::type);
-        Optional.ofNullable(newIcon)
-                .ifPresent(builder::icon);
+        Optional.ofNullable(command.icon())
+                .ifPresent(iconData -> {
+                    if(existing.icon() != null && iconData.id() == existing.icon().id() ){
+                        return;
+                    }
+                    builder.icon(getOrSaveIcon(iconData).orElse(null));
+                });
 
         return accountRepository.save(builder.build());
     }
@@ -96,18 +100,21 @@ public class DefaultAccountService implements AccountService {
         return accountRepository.getAccountsByPageAndUserId(query, userId);
     }
 
-    private Optional<IconData> getIconData(CreateAccountCommand command) {
-        if (command.icon() == null) {
+    private Optional<IconData> getOrSaveIcon(IconData icon) {
+        if (icon == null) {
             return Optional.empty();
         }
 
-        IconData icon = command.icon();
         return Optional.of(iconRepository.findByCodePointAndFontFamily(icon.codePoint(), icon.fontFamily())
-                .orElse(IconData.builder()
-                        .codePoint(icon.codePoint())
-                        .fontFamily(icon.fontFamily())
-                        .iconName(icon.iconName())
-                        .createdAt(Instant.now())
-                        .build()));
+                .orElseGet(() -> {
+                    IconData newIcon = IconData.builder()
+                            .codePoint(icon.codePoint())
+                            .fontFamily(icon.fontFamily())
+                            .iconName(icon.iconName())
+                            .createdAt(Instant.now())
+                            .build();
+
+                    return iconRepository.save(newIcon);
+                }));
     }
 }

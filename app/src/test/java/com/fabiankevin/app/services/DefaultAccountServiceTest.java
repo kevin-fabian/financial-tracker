@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static com.fabiankevin.app.models.enums.AccountType.E_WALLET;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -43,7 +44,7 @@ class DefaultAccountServiceTest {
         CreateAccountCommand command = CreateAccountCommand.builder()
                 .name("GCASH")
                 .currency(Currency.getInstance("PHP"))
-                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .type(E_WALLET)
                 .userId(userId)
                 .build();
 
@@ -68,7 +69,7 @@ class DefaultAccountServiceTest {
                 .name("GCASH")
                 .userId(userId)
                 .currency(Currency.getInstance("PHP"))
-                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .type(E_WALLET)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build()));
@@ -88,7 +89,7 @@ class DefaultAccountServiceTest {
                 .name("GCASH")
                 .userId(UUID.randomUUID())
                 .currency(Currency.getInstance("PHP"))
-                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .type(E_WALLET)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build()));
@@ -117,7 +118,7 @@ class DefaultAccountServiceTest {
                 .name("GCASH")
                 .userId(userId)
                 .currency(Currency.getInstance("PHP"))
-                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .type(E_WALLET)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build()));
@@ -143,8 +144,8 @@ class DefaultAccountServiceTest {
     void getAccountsByPageAndUserId_givenUserId_thenShouldReturnPagedAccounts() {
         UUID userId = UUID.randomUUID();
         var accounts = List.of(
-                Account.builder().id(UUID.randomUUID()).name("A1").userId(userId).currency(Currency.getInstance("PHP")).type(com.fabiankevin.app.models.enums.AccountType.E_WALLET).createdAt(Instant.now()).updatedAt(Instant.now()).build(),
-                Account.builder().id(UUID.randomUUID()).name("A2").userId(userId).currency(Currency.getInstance("PHP")).type(com.fabiankevin.app.models.enums.AccountType.E_WALLET).createdAt(Instant.now()).updatedAt(Instant.now()).build()
+                Account.builder().id(UUID.randomUUID()).name("A1").userId(userId).currency(Currency.getInstance("PHP")).type(E_WALLET).createdAt(Instant.now()).updatedAt(Instant.now()).build(),
+                Account.builder().id(UUID.randomUUID()).name("A2").userId(userId).currency(Currency.getInstance("PHP")).type(E_WALLET).createdAt(Instant.now()).updatedAt(Instant.now()).build()
         );
 
         Page<Account> page = new Page<>(accounts, 0, 10, accounts.size(), 1, true, true);
@@ -169,7 +170,7 @@ class DefaultAccountServiceTest {
                 .name("GCASH")
                 .userId(userId)
                 .currency(Currency.getInstance("PHP"))
-                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .type(E_WALLET)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -178,7 +179,7 @@ class DefaultAccountServiceTest {
                 .id(id)
                 .name("GCASH_MAIN")
                 .currency(Currency.getInstance("PHP"))
-                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .type(E_WALLET)
                 .userId(userId)
                 .build();
 
@@ -201,7 +202,7 @@ class DefaultAccountServiceTest {
                 .id(id)
                 .name("GCASH_MAIN")
                 .currency(Currency.getInstance("PHP"))
-                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .type(E_WALLET)
                 .userId(userId)
                 .build();
 
@@ -225,7 +226,7 @@ class DefaultAccountServiceTest {
         CreateAccountCommand command = CreateAccountCommand.builder()
                 .name("CAR_ACCOUNT")
                 .currency(Currency.getInstance("PHP"))
-                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .type(E_WALLET)
                 .userId(userId)
                 .icon(com.fabiankevin.app.models.IconData.builder()
                         .id(existingIcon.id())
@@ -262,10 +263,13 @@ class DefaultAccountServiceTest {
         CreateAccountCommand command = CreateAccountCommand.builder()
                 .name("FOOD_ACCOUNT")
                 .currency(Currency.getInstance("PHP"))
-                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .type(E_WALLET)
                 .userId(userId)
                 .icon(newIcon)
                 .build();
+
+        when(iconRepository.findByCodePointAndFontFamily(anyInt(), any())).thenReturn(Optional.empty());
+        when(iconRepository.save(any())).thenAnswer(invocation -> (IconData) invocation.getArguments()[0]);
 
         when(accountRepository.save(any())).thenAnswer(invocation -> {
             Account a = invocation.getArgument(0);
@@ -307,7 +311,7 @@ class DefaultAccountServiceTest {
         CreateAccountCommand command = CreateAccountCommand.builder()
                 .name("CAR_ACCOUNT")
                 .currency(Currency.getInstance("PHP"))
-                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .type(E_WALLET)
                 .userId(userId)
                 .icon(existingIcon)
                 .build();
@@ -332,12 +336,15 @@ class DefaultAccountServiceTest {
         UUID id = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
 
+        when(iconRepository.findByCodePointAndFontFamily(anyInt(), any())).thenReturn(Optional.empty());
+        when(iconRepository.save(any())).thenAnswer(invocation -> (IconData) invocation.getArguments()[0]);
+
         Account existing = Account.builder()
                 .id(id)
                 .name("GCASH")
                 .userId(userId)
                 .currency(Currency.getInstance("PHP"))
-                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .type(E_WALLET)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -352,7 +359,7 @@ class DefaultAccountServiceTest {
                 .id(id)
                 .name("GCASH_MAIN")
                 .currency(Currency.getInstance("PHP"))
-                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .type(E_WALLET)
                 .userId(userId)
                 .icon(newIcon)
                 .build();
@@ -363,9 +370,10 @@ class DefaultAccountServiceTest {
         Account updated = accountService.patchAccount(command);
 
         assertEquals("GCASH_MAIN", updated.name());
-        assertEquals(newIcon, updated.icon());
         verify(accountRepository, times(1)).findById(id);
         verify(accountRepository, times(1)).save(any());
+        verify(iconRepository, times(1)).save(any());
+        verify(iconRepository, times(1)).findByCodePointAndFontFamily(newIcon.codePoint(), "MaterialIcons");
     }
 
     @Test
@@ -385,7 +393,7 @@ class DefaultAccountServiceTest {
                 .name("GCASH")
                 .userId(userId)
                 .currency(Currency.getInstance("PHP"))
-                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .type(E_WALLET)
                 .icon(existingIcon)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -401,18 +409,25 @@ class DefaultAccountServiceTest {
                 .id(id)
                 .name("GCASH_MAIN")
                 .currency(Currency.getInstance("PHP"))
-                .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                .type(E_WALLET)
                 .userId(userId)
                 .icon(newIcon)
                 .build();
+
+        when(iconRepository.findByCodePointAndFontFamily(anyInt(), any())).thenReturn(Optional.of(newIcon.toBuilder().id(UUID.randomUUID()).build()));
 
         when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
         when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         Account updated = accountService.patchAccount(command);
 
+        IconData updatedIcon = updated.icon();
+
         assertEquals("GCASH_MAIN", updated.name());
-        assertEquals(newIcon, updated.icon());
+        assertNotNull(updatedIcon, "icon");
+        assertNotNull(updatedIcon.id(), "icon.id");
+        assertEquals(updatedIcon.fontFamily(), "MaterialIcons", "icon.fontFamily");
+        assertEquals(updatedIcon.codePoint(), 0x1F354, "icon.codePoint");
         verify(accountRepository, times(1)).findById(id);
         verify(accountRepository, times(1)).save(any());
     }
