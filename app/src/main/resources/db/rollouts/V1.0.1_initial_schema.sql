@@ -10,15 +10,15 @@ CREATE TABLE IF NOT EXISTS icons (
     font_family VARCHAR(128) NOT NULL,
     icon_name VARCHAR(128) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-CREATE INDEX IF NOT EXISTS idx_icons_code_point ON icons (code_point);
+);
+CREATE INDEX IF NOT EXISTS idx_icons_code_point_font_family ON icons (code_point, font_family);
 
 -- Accounts table
 CREATE TABLE IF NOT EXISTS accounts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     name VARCHAR(128) NOT NULL,
     user_id UUID NOT NULL,
-    icon_id UUID REFERENCES icons (id),
+    icon_id UUID NULL,
     currency VARCHAR(3) NOT NULL,
     type VARCHAR(32) NOT NULL DEFAULT 'OTHER',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     name VARCHAR(128),
     user_id UUID NOT NULL,
-    icon_id UUID REFERENCES icons (id),
+    icon_id UUID NULL,
     transaction_type VARCHAR(10) NOT NULL CHECK (transaction_type IN ('INCOME', 'EXPENSE')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS categories (
     CONSTRAINT fk_categories_icon_id FOREIGN KEY (icon_id) REFERENCES icons (id)
 );
 
-CREATE INDEX IF NOT EXISTS idxs_accounts_name_transaction_type ON categories (name, transaction_type);
+CREATE INDEX IF NOT EXISTS idx_categories_name_transaction_type_user_id ON categories (name, transaction_type, user_id);
 CREATE INDEX IF NOT EXISTS idx_categories_user_id ON categories (user_id);
 
 CREATE TABLE IF NOT EXISTS transactions (
