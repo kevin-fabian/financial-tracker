@@ -18,4 +18,9 @@ public class DefaultIconRepository implements IconRepository {
         return jpaIconRepository.findByCodePointAndFontFamily(codePoint, fontFamily)
                 .map(IconEntity::toModel);
     }
+
+    @Override
+    public IconData save(IconData iconData) {
+        return jpaIconRepository.save(IconEntity.from(iconData)).toModel();
+    }
 }

@@ -3,8 +3,11 @@ package com.fabiankevin.app.persistence;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.IconData;
 import com.fabiankevin.app.models.enums.TransactionType;
+import com.fabiankevin.app.persistence.entities.IconEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaIconRepository;
 import com.fabiankevin.app.services.queries.PageQuery;
+import jakarta.transaction.Transactional;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,6 +37,9 @@ class DefaultCategoryRepositoryTest {
 
     @Autowired
     private CategoryRepository categoryRepository;
+
+    @Autowired
+    private JpaIconRepository jpaIconRepository;
 
     private Category category;
 
@@ -65,38 +71,7 @@ class DefaultCategoryRepositoryTest {
     }
 
     @Test
-    void save_givenExistingIcon_shouldSaveNewIconAndRetainExisting() {
-        Category saved = categoryRepository.save(category.toBuilder()
-                .icon(IconData.builder()
-                        .codePoint(1235)
-                        .fontFamily("Lucide")
-                        .iconName("transportation")
-                        .createdAt(Instant.now())
-                        .build()
-                ).build());
-
-        IconData icon = IconData.builder()
-                .codePoint(1235)
-                .fontFamily("Lucide")
-                .iconName("transportation")
-                .createdAt(Instant.now())
-                .build();
-
-        Category updatedCategory = saved.toBuilder()
-                .icon(icon)
-                .build();
-
-        categoryRepository.save(updatedCategory);
-
-        var found = categoryRepository.findByIdAndUserId(saved.id(), saved.userId()).orElseThrow();
-
-        assertNotNull(found.icon().id(), "updated icon should have been created");
-        assertNotEquals(saved.icon().id(), found.icon().id(), "icon id should be retained");
-    }
-
-
-    @Test
-    void save_givenCategoryWithIcon_shouldPersistIcon() {
+    void save_givenCategoryNotExistingIcon_shouldThrowException() {
         IconData icon = IconData.builder()
                 .codePoint(0x1F354)
                 .fontFamily("MaterialIcons")
@@ -113,6 +88,32 @@ class DefaultCategoryRepositoryTest {
                 .updatedAt(Instant.now())
                 .build();
 
+        assertThrows(InvalidDataAccessApiUsageException.class, () -> {
+            categoryRepository.save(categoryWithIcon);
+            jpaCategoryRepository.flush();
+        }, "category with icon should throw InvalidDataAccessApiUsageException");
+    }
+
+    @Transactional
+    @Test
+    void save_givenExistingIcon_shouldUpdateToExistingIcon() {
+        IconData icon = IconData.builder()
+                .codePoint(0x1F354)
+                .fontFamily("MaterialIcons")
+                .iconName("restaurant")
+                .createdAt(Instant.now())
+                .build();
+
+        IconEntity iconEntity = jpaIconRepository.saveAndFlush(IconEntity.from(icon));
+
+        Category categoryWithIcon = Category.builder()
+                .name("RESTAURANTS")
+                .type(TransactionType.EXPENSE)
+                .userId(category.userId())
+                .icon(iconEntity.toModel())
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
         Category saved = categoryRepository.save(categoryWithIcon);
 
         var found = categoryRepository.findByIdAndUserId(saved.id(), saved.userId()).orElseThrow();

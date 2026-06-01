@@ -4,6 +4,7 @@ import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.CategoryService;
+import com.fabiankevin.app.services.commands.PatchCategoryCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
 import com.fabiankevin.app.web.controllers.dtos.CreateIconRequest;
@@ -530,7 +531,7 @@ class CategoryControllerTest {
                 .build();
 
         when(categoryService.patchCategory(any())).thenAnswer(invocation -> {
-            com.fabiankevin.app.services.commands.PatchCategoryCommand cmd = invocation.getArgument(0);
+            PatchCategoryCommand cmd = invocation.getArgument(0);
             return Category.builder()
                     .id(cmd.id())
                     .name(cmd.name())

@@ -6,4 +6,5 @@ import java.util.Optional;
 
 public interface IconRepository {
     Optional<IconData> findByCodePointAndFontFamily(int codePoint, String fontFamily);
+    IconData save(IconData iconData);
 }

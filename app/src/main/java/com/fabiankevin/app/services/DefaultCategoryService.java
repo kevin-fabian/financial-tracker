@@ -34,7 +34,7 @@ public class DefaultCategoryService implements CategoryService {
     @Transactional
     @Override
     public Category createCategory(CreateCategoryCommand command) {
-        Optional<IconData> optionalIconData = getIconData(command);
+        Optional<IconData> optionalIconData = getOrSaveIcon(command.icon());
 
         Category newCategory = Category.builder()
                 .name(command.name())
@@ -88,23 +88,30 @@ public class DefaultCategoryService implements CategoryService {
                 .ifPresent(categoryBuilder::type);
 
         Optional.ofNullable(command.icon())
-                .ifPresent(categoryBuilder::icon);
+                .ifPresent(iconData -> {
+                    if (existing.icon() != null && iconData.id() != existing.icon().id()) {
+                        categoryBuilder.icon(getOrSaveIcon(iconData).orElse(null));
+                    }
+                });
 
         return categoryRepository.save(categoryBuilder.build());
     }
 
-    private Optional<IconData> getIconData(CreateCategoryCommand command) {
-        if (command.icon() == null) {
+    private Optional<IconData> getOrSaveIcon(IconData icon) {
+        if (icon == null) {
             return Optional.empty();
         }
 
-        IconData icon = command.icon();
         return Optional.of(iconRepository.findByCodePointAndFontFamily(icon.codePoint(), icon.fontFamily())
-                .orElse(IconData.builder()
-                        .codePoint(icon.codePoint())
-                        .fontFamily(icon.fontFamily())
-                        .iconName(icon.iconName())
-                        .createdAt(Instant.now())
-                        .build()));
+                .orElseGet(() -> {
+                    IconData newIcon = IconData.builder()
+                            .codePoint(icon.codePoint())
+                            .fontFamily(icon.fontFamily())
+                            .iconName(icon.iconName())
+                            .createdAt(Instant.now())
+                            .build();
+
+                    return iconRepository.save(newIcon);
+                }));
     }
 }
