@@ -39,7 +39,7 @@ class DefaultAccountServiceTest {
     private DefaultAccountService accountService;
 
     @Test
-    void createAccount_givenValidCommand_thenShouldSaveAccount() {
+    void createAccount_givenNewAccount_thenShouldSaveAccount() {
         UUID userId = UUID.randomUUID();
         CreateAccountCommand command = CreateAccountCommand.builder()
                 .name("GCASH")
@@ -58,6 +58,91 @@ class DefaultAccountServiceTest {
         assertEquals("GCASH", created.name());
         assertEquals(userId, created.userId());
         verify(accountRepository, times(1)).save(any());
+    }
+
+    @Test
+    void createAccount_givenExistingIcon_shouldResolveAndSaveAccount() {
+        UUID userId = UUID.randomUUID();
+        IconData existingIcon = IconData.builder()
+                .id(UUID.randomUUID())
+                .codePoint(0x1F697)
+                .fontFamily("MaterialIcons")
+                .iconName("car")
+                .build();
+
+        CreateAccountCommand command = CreateAccountCommand.builder()
+                .name("CAR_ACCOUNT")
+                .currency(Currency.getInstance("PHP"))
+                .type(E_WALLET)
+                .userId(userId)
+                .icon(com.fabiankevin.app.models.IconData.builder()
+                        .id(existingIcon.id())
+                        .codePoint(0x1F697)
+                        .fontFamily("MaterialIcons")
+                        .iconName("car")
+                        .build())
+                .build();
+
+        when(iconRepository.findByCodePointAndFontFamily(0x1F697, "MaterialIcons"))
+                .thenReturn(Optional.of(existingIcon));
+        when(accountRepository.save(any())).thenAnswer(invocation -> {
+            Account a = invocation.getArgument(0);
+            return a.toBuilder().id(UUID.randomUUID()).build();
+        });
+
+        Account created = accountService.createAccount(command);
+
+        assertEquals("CAR_ACCOUNT", created.name());
+        assertEquals(existingIcon, created.icon());
+        verify(iconRepository, times(1)).findByCodePointAndFontFamily(0x1F697, "MaterialIcons");
+        verify(accountRepository, times(1)).save(any());
+    }
+
+    @Test
+    void createAccount_givenNewIcon_shouldBuildAndSaveAccount() {
+        UUID userId = UUID.randomUUID();
+        IconData newIcon = IconData.builder()
+                .codePoint(0x1F354)
+                .fontFamily("MaterialIcons")
+                .iconName("restaurant")
+                .build();
+
+        CreateAccountCommand command = CreateAccountCommand.builder()
+                .name("FOOD_ACCOUNT")
+                .currency(Currency.getInstance("PHP"))
+                .type(E_WALLET)
+                .userId(userId)
+                .icon(newIcon)
+                .build();
+
+        when(iconRepository.findByCodePointAndFontFamily(anyInt(), any())).thenReturn(Optional.empty());
+        when(iconRepository.save(any())).thenAnswer(invocation -> (IconData) invocation.getArguments()[0]);
+
+        when(accountRepository.save(any())).thenAnswer(invocation -> {
+            Account a = invocation.getArgument(0);
+            return a.toBuilder().id(UUID.randomUUID()).build();
+        });
+
+        Account created = accountService.createAccount(command);
+
+        assertEquals("FOOD_ACCOUNT", created.name());
+        assertEquals(newIcon.codePoint(), created.icon().codePoint());
+        assertEquals(newIcon.fontFamily(), created.icon().fontFamily());
+        assertEquals(newIcon.iconName(), created.icon().iconName());
+        assertNull(created.icon().id());
+        verify(iconRepository, times(1)).findByCodePointAndFontFamily(0x1F354, "MaterialIcons");
+        ArgumentCaptor<Account> accountArgumentCaptor = ArgumentCaptor.forClass(Account.class);
+        verify(accountRepository, times(1)).save(accountArgumentCaptor.capture());
+        Account value = accountArgumentCaptor.getValue();
+        assertNull(value.id(), "id");
+        assertEquals(value.name(), created.name(), "name");
+        assertEquals(value.currency(), created.currency(), "currency");
+        assertEquals(value.type(), created.type(), "type");
+        assertEquals(value.userId(), created.userId(), "userId");
+        assertNull(value.icon().id(), "icon.id");
+        assertEquals(newIcon.codePoint(), value.icon().codePoint(), "codePoint");
+        assertEquals(newIcon.fontFamily(), value.icon().fontFamily(), "fontFamily");
+        assertNotNull(value.icon().createdAt(), "createdAt");
     }
 
     @Test
@@ -161,7 +246,7 @@ class DefaultAccountServiceTest {
     }
 
     @Test
-    void patchAccount_givenValidCommand_thenShouldUpdateFields() {
+    void patchAccount_givenExistingAccount_thenShouldUpdateFields() {
         UUID id = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
 
@@ -211,124 +296,6 @@ class DefaultAccountServiceTest {
         assertThrows(AccountNotFoundException.class, () -> accountService.patchAccount(command));
         verify(accountRepository, times(1)).findById(id);
         verify(accountRepository, never()).save(any());
-    }
-
-    @Test
-    void createAccount_givenExistingIcon_shouldResolveAndSaveAccount() {
-        UUID userId = UUID.randomUUID();
-        IconData existingIcon = IconData.builder()
-                .id(UUID.randomUUID())
-                .codePoint(0x1F697)
-                .fontFamily("MaterialIcons")
-                .iconName("car")
-                .build();
-
-        CreateAccountCommand command = CreateAccountCommand.builder()
-                .name("CAR_ACCOUNT")
-                .currency(Currency.getInstance("PHP"))
-                .type(E_WALLET)
-                .userId(userId)
-                .icon(com.fabiankevin.app.models.IconData.builder()
-                        .id(existingIcon.id())
-                        .codePoint(0x1F697)
-                        .fontFamily("MaterialIcons")
-                        .iconName("car")
-                        .build())
-                .build();
-
-        when(iconRepository.findByCodePointAndFontFamily(0x1F697, "MaterialIcons"))
-                .thenReturn(Optional.of(existingIcon));
-        when(accountRepository.save(any())).thenAnswer(invocation -> {
-            Account a = invocation.getArgument(0);
-            return a.toBuilder().id(UUID.randomUUID()).build();
-        });
-
-        Account created = accountService.createAccount(command);
-
-        assertEquals("CAR_ACCOUNT", created.name());
-        assertEquals(existingIcon, created.icon());
-        verify(iconRepository, times(1)).findByCodePointAndFontFamily(0x1F697, "MaterialIcons");
-        verify(accountRepository, times(1)).save(any());
-    }
-
-    @Test
-    void createAccount_givenNewIcon_shouldBuildAndSaveAccount() {
-        UUID userId = UUID.randomUUID();
-        IconData newIcon = IconData.builder()
-                .codePoint(0x1F354)
-                .fontFamily("MaterialIcons")
-                .iconName("restaurant")
-                .build();
-
-        CreateAccountCommand command = CreateAccountCommand.builder()
-                .name("FOOD_ACCOUNT")
-                .currency(Currency.getInstance("PHP"))
-                .type(E_WALLET)
-                .userId(userId)
-                .icon(newIcon)
-                .build();
-
-        when(iconRepository.findByCodePointAndFontFamily(anyInt(), any())).thenReturn(Optional.empty());
-        when(iconRepository.save(any())).thenAnswer(invocation -> (IconData) invocation.getArguments()[0]);
-
-        when(accountRepository.save(any())).thenAnswer(invocation -> {
-            Account a = invocation.getArgument(0);
-            return a.toBuilder().id(UUID.randomUUID()).build();
-        });
-
-        Account created = accountService.createAccount(command);
-
-        assertEquals("FOOD_ACCOUNT", created.name());
-        assertEquals(newIcon.codePoint(), created.icon().codePoint());
-        assertEquals(newIcon.fontFamily(), created.icon().fontFamily());
-        assertEquals(newIcon.iconName(), created.icon().iconName());
-        assertNull(created.icon().id());
-        verify(iconRepository, times(1)).findByCodePointAndFontFamily(0x1F354, "MaterialIcons");
-        ArgumentCaptor<Account> accountArgumentCaptor = ArgumentCaptor.forClass(Account.class);
-        verify(accountRepository, times(1)).save(accountArgumentCaptor.capture());
-        Account value = accountArgumentCaptor.getValue();
-        assertNull(value.id(), "id");
-        assertEquals(value.name(), created.name(), "name");
-        assertEquals(value.currency(), created.currency(), "currency");
-        assertEquals(value.type(), created.type(), "type");
-        assertEquals(value.userId(), created.userId(), "userId");
-        assertNull(value.icon().id(), "icon.id");
-        assertEquals(newIcon.codePoint(), value.icon().codePoint(), "codePoint");
-        assertEquals(newIcon.fontFamily(), value.icon().fontFamily(), "fontFamily");
-        assertNotNull(value.icon().createdAt(), "createdAt");
-    }
-
-    @Test
-    void createAccount_givenIconWithId_shouldResolveAndSaveAccount() {
-        UUID userId = UUID.randomUUID();
-        IconData existingIcon = IconData.builder()
-                .id(UUID.randomUUID())
-                .codePoint(0x1F697)
-                .fontFamily("MaterialIcons")
-                .iconName("car")
-                .build();
-
-        CreateAccountCommand command = CreateAccountCommand.builder()
-                .name("CAR_ACCOUNT")
-                .currency(Currency.getInstance("PHP"))
-                .type(E_WALLET)
-                .userId(userId)
-                .icon(existingIcon)
-                .build();
-
-        when(iconRepository.findByCodePointAndFontFamily(0x1F697, "MaterialIcons"))
-                .thenReturn(Optional.of(existingIcon));
-        when(accountRepository.save(any())).thenAnswer(invocation -> {
-            Account a = invocation.getArgument(0);
-            return a.toBuilder().id(UUID.randomUUID()).build();
-        });
-
-        Account created = accountService.createAccount(command);
-
-        assertEquals("CAR_ACCOUNT", created.name());
-        assertEquals(existingIcon, created.icon());
-        verify(iconRepository, times(1)).findByCodePointAndFontFamily(0x1F697, "MaterialIcons");
-        verify(accountRepository, times(1)).save(any());
     }
 
     @Test

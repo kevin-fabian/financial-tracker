@@ -39,7 +39,7 @@ class DefaultCategoryServiceTest {
     private DefaultCategoryService categoryService;
 
     @Test
-    void createCategory_givenValidCommand_thenShouldSaveCategory() {
+    void createCategory_givenNewCategory_thenShouldSaveCategory() {
         UUID userId = UUID.randomUUID();
         CreateCategoryCommand command = CreateCategoryCommand.builder()
                 .name("FOOD")
@@ -58,6 +58,90 @@ class DefaultCategoryServiceTest {
         assertEquals(TransactionType.EXPENSE, created.type(), "type should match command");
         assertEquals(userId, created.userId(), "userIds should be set from command");
         verify(categoryRepository, times(1)).save(any());
+    }
+
+    @Test
+    void createCategory_givenExistingIcon_shouldResolveAndSaveCategory() {
+        UUID userId = UUID.randomUUID();
+        IconData existingIcon = IconData.builder()
+                .id(UUID.randomUUID())
+                .codePoint(0x1F370)
+                .fontFamily("MaterialIcons")
+                .iconName("restaurant")
+                .build();
+
+        CreateCategoryCommand command = CreateCategoryCommand.builder()
+                .name("FOOD")
+                .type(TransactionType.EXPENSE)
+                .userId(userId)
+                .icon(IconData.builder()
+                        .id(existingIcon.id())
+                        .codePoint(0x1F370)
+                        .fontFamily("MaterialIcons")
+                        .iconName("restaurant")
+                        .build())
+                .build();
+
+        when(iconRepository.findByCodePointAndFontFamily(0x1F370, "MaterialIcons"))
+                .thenReturn(Optional.of(existingIcon));
+        when(categoryRepository.save(any())).thenAnswer(invocation -> {
+            Category c = invocation.getArgument(0);
+            return c.toBuilder().id(UUID.randomUUID()).build();
+        });
+
+        Category created = categoryService.createCategory(command);
+
+        assertEquals("FOOD", created.name());
+        assertEquals(TransactionType.EXPENSE, created.type());
+        assertEquals(existingIcon, created.icon());
+        verify(iconRepository, times(1)).findByCodePointAndFontFamily(0x1F370, "MaterialIcons");
+        verify(categoryRepository, times(1)).save(any());
+    }
+
+    @Test
+    void createCategory_givenNewIcon_shouldBuildAndSaveCategory() {
+        UUID userId = UUID.randomUUID();
+        IconData newIcon = IconData.builder()
+                .codePoint(0x1F3E0)
+                .fontFamily("MaterialIcons")
+                .iconName("home")
+                .build();
+
+        CreateCategoryCommand command = CreateCategoryCommand.builder()
+                .name("RENT")
+                .type(TransactionType.EXPENSE)
+                .userId(userId)
+                .icon(newIcon)
+                .build();
+
+        when(iconRepository.findByCodePointAndFontFamily(anyInt(), any())).thenReturn(Optional.empty());
+        when(iconRepository.save(any())).thenAnswer(invocation -> (IconData) invocation.getArguments()[0]);
+
+        when(categoryRepository.save(any())).thenAnswer(invocation -> {
+            Category c = invocation.getArgument(0);
+            return c.toBuilder().id(UUID.randomUUID()).build();
+        });
+
+        Category created = categoryService.createCategory(command);
+
+        assertEquals("RENT", created.name());
+        assertEquals(TransactionType.EXPENSE, created.type());
+        assertEquals(newIcon.codePoint(), created.icon().codePoint());
+        assertEquals(newIcon.fontFamily(), created.icon().fontFamily());
+        assertEquals(newIcon.iconName(), created.icon().iconName());
+        assertNull(created.icon().id());
+        verify(iconRepository, times(1)).findByCodePointAndFontFamily(0x1F3E0, "MaterialIcons");
+        ArgumentCaptor<Category> categoryArgumentCaptor = ArgumentCaptor.forClass(Category.class);
+        verify(categoryRepository, times(1)).save(categoryArgumentCaptor.capture());
+        Category value = categoryArgumentCaptor.getValue();
+        assertNull(value.id(), "id");
+        assertEquals(value.name(), created.name(), "name");
+        assertEquals(value.type(), created.type(), "type");
+        assertEquals(value.userId(), created.userId(), "userId");
+        assertNull(value.icon().id(), "icon.id");
+        assertEquals(newIcon.codePoint(), value.icon().codePoint(), "codePoint");
+        assertEquals(newIcon.fontFamily(), value.icon().fontFamily(), "fontFamily");
+        assertNotNull(value.icon().createdAt(), "createdAt");
     }
 
     @Test
@@ -176,7 +260,7 @@ class DefaultCategoryServiceTest {
     }
 
     @Test
-    void patchCategory_givenValidCommand_thenShouldUpdateName() {
+    void patchCategory_givenExistingCategory_thenShouldUpdateName() {
         UUID id = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         Category existing = Category.builder()
@@ -223,123 +307,6 @@ class DefaultCategoryServiceTest {
         assertThrows(CategoryNotFoundException.class, () -> categoryService.patchCategory(command));
         verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
         verify(categoryRepository, never()).save(any());
-    }
-
-    @Test
-    void createCategory_givenExistingIcon_shouldResolveAndSaveCategory() {
-        UUID userId = UUID.randomUUID();
-        IconData existingIcon = IconData.builder()
-                .id(UUID.randomUUID())
-                .codePoint(0x1F370)
-                .fontFamily("MaterialIcons")
-                .iconName("restaurant")
-                .build();
-
-        CreateCategoryCommand command = CreateCategoryCommand.builder()
-                .name("FOOD")
-                .type(TransactionType.EXPENSE)
-                .userId(userId)
-                .icon(IconData.builder()
-                        .id(existingIcon.id())
-                        .codePoint(0x1F370)
-                        .fontFamily("MaterialIcons")
-                        .iconName("restaurant")
-                        .build())
-                .build();
-
-        when(iconRepository.findByCodePointAndFontFamily(0x1F370, "MaterialIcons"))
-                .thenReturn(Optional.of(existingIcon));
-        when(categoryRepository.save(any())).thenAnswer(invocation -> {
-            Category c = invocation.getArgument(0);
-            return c.toBuilder().id(UUID.randomUUID()).build();
-        });
-
-        Category created = categoryService.createCategory(command);
-
-        assertEquals("FOOD", created.name());
-        assertEquals(TransactionType.EXPENSE, created.type());
-        assertEquals(existingIcon, created.icon());
-        verify(iconRepository, times(1)).findByCodePointAndFontFamily(0x1F370, "MaterialIcons");
-        verify(categoryRepository, times(1)).save(any());
-    }
-
-    @Test
-    void createCategory_givenNewIcon_shouldBuildAndSaveCategory() {
-        UUID userId = UUID.randomUUID();
-        IconData newIcon = IconData.builder()
-                .codePoint(0x1F3E0)
-                .fontFamily("MaterialIcons")
-                .iconName("home")
-                .build();
-
-        CreateCategoryCommand command = CreateCategoryCommand.builder()
-                .name("RENT")
-                .type(TransactionType.EXPENSE)
-                .userId(userId)
-                .icon(newIcon)
-                .build();
-
-        when(iconRepository.findByCodePointAndFontFamily(anyInt(), any())).thenReturn(Optional.empty());
-        when(iconRepository.save(any())).thenAnswer(invocation -> (IconData) invocation.getArguments()[0]);
-
-        when(categoryRepository.save(any())).thenAnswer(invocation -> {
-            Category c = invocation.getArgument(0);
-            return c.toBuilder().id(UUID.randomUUID()).build();
-        });
-
-        Category created = categoryService.createCategory(command);
-
-        assertEquals("RENT", created.name());
-        assertEquals(TransactionType.EXPENSE, created.type());
-        assertEquals(newIcon.codePoint(), created.icon().codePoint());
-        assertEquals(newIcon.fontFamily(), created.icon().fontFamily());
-        assertEquals(newIcon.iconName(), created.icon().iconName());
-        assertNull(created.icon().id());
-        verify(iconRepository, times(1)).findByCodePointAndFontFamily(0x1F3E0, "MaterialIcons");
-        ArgumentCaptor<Category> categoryArgumentCaptor = ArgumentCaptor.forClass(Category.class);
-        verify(categoryRepository, times(1)).save(categoryArgumentCaptor.capture());
-        Category value = categoryArgumentCaptor.getValue();
-        assertNull(value.id(), "id");
-        assertEquals(value.name(), created.name(), "name");
-        assertEquals(value.type(), created.type(), "type");
-        assertEquals(value.userId(), created.userId(), "userId");
-        assertNull(value.icon().id(), "icon.id");
-        assertEquals(newIcon.codePoint(), value.icon().codePoint(), "codePoint");
-        assertEquals(newIcon.fontFamily(), value.icon().fontFamily(), "fontFamily");
-        assertNotNull(value.icon().createdAt(), "createdAt");
-    }
-
-    @Test
-    void createCategory_givenIconWithId_shouldResolveAndSaveCategory() {
-        UUID userId = UUID.randomUUID();
-        IconData existingIcon = IconData.builder()
-                .id(UUID.randomUUID())
-                .codePoint(0x1F370)
-                .fontFamily("MaterialIcons")
-                .iconName("restaurant")
-                .build();
-
-        CreateCategoryCommand command = CreateCategoryCommand.builder()
-                .name("FOOD")
-                .type(TransactionType.EXPENSE)
-                .userId(userId)
-                .icon(existingIcon)
-                .build();
-
-        when(iconRepository.findByCodePointAndFontFamily(0x1F370, "MaterialIcons"))
-                .thenReturn(Optional.of(existingIcon));
-        when(categoryRepository.save(any())).thenAnswer(invocation -> {
-            Category c = invocation.getArgument(0);
-            return c.toBuilder().id(UUID.randomUUID()).build();
-        });
-
-        Category created = categoryService.createCategory(command);
-
-        assertEquals("FOOD", created.name());
-        assertEquals(TransactionType.EXPENSE, created.type());
-        assertEquals(existingIcon, created.icon());
-        verify(iconRepository, times(1)).findByCodePointAndFontFamily(0x1F370, "MaterialIcons");
-        verify(categoryRepository, times(1)).save(any());
     }
 
     @Test
