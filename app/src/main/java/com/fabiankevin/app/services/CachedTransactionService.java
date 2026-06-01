@@ -3,6 +3,7 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.SummarySeries;
 import com.fabiankevin.app.models.Transaction;
+import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.PatchTransactionCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
@@ -89,9 +90,9 @@ public class CachedTransactionService implements TransactionService {
     }
 
     @Override
-    public Page<Transaction> getTransactionsByPageQuery(PageQuery query, UUID userId) {
+    public Page<Transaction> getTransactionsByPageQuery(PageQuery query, UUID userId, TransactionType type) {
         String key = String.format(KEY_PAGED, userId, query.page(), query.size(),
-                query.sort(), query.direction());
+                query.sort(), query.direction(), type);
         Cache cache = cacheManager.getCache(CACHE_NAME);
 
         Cache.ValueWrapper cached = cache.get(key);
@@ -99,7 +100,7 @@ public class CachedTransactionService implements TransactionService {
             return (Page<Transaction>) cached.get();
         }
 
-        Page<Transaction> result = delegatedTransactionService.getTransactionsByPageQuery(query, userId);
+        Page<Transaction> result = delegatedTransactionService.getTransactionsByPageQuery(query, userId, type);
         registerKey(userId, key);
         cache.put(key, result);
         return result;

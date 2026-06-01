@@ -5,7 +5,6 @@ import com.fabiankevin.app.persistence.entities.TransactionEntity;
 import com.fabiankevin.app.persistence.entities.projections.SummaryPointProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -72,11 +71,17 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("userIds") List<UUID> userIds,
             @Param("type") TransactionType type);
 
-    // Pageable lookup for transactions by account.userId
-    @EntityGraph(attributePaths = {"account", "category"})
     Page<TransactionEntity> findAllByAccountUserId(UUID userId, Pageable pageable);
 
-    // Delete a transaction by id only if it belongs to the specified user id (account.userId)
-    // Return number of rows deleted
+    @Query("""
+            SELECT t FROM TransactionEntity t
+            WHERE t.account.userId = :userId
+              AND (:type IS NULL OR t.category.transactionType = :type)
+            """)
+    Page<TransactionEntity> findAllByAccountUserIdAndType(
+            @Param("userId") UUID userId,
+            @Param("type") TransactionType type,
+            Pageable pageable);
+
     int deleteByIdAndAccountUserId(UUID id, UUID userId);
 }

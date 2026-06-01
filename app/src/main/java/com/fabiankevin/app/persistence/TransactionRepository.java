@@ -23,4 +23,5 @@ public interface TransactionRepository {
     List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByYear(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type);
     List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByDay(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type);
     Page<Transaction> getTransactionsByPageAndUserId(PageQuery query, UUID userId);
+    Page<Transaction> getTransactionsByPageAndUserIdAndType(PageQuery query, UUID userId, TransactionType type);
 }

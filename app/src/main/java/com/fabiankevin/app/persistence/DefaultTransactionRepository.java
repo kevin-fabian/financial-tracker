@@ -93,4 +93,26 @@ public class DefaultTransactionRepository implements TransactionRepository {
                 page.isFirst()
         );
     }
+
+    @Override
+    public com.fabiankevin.app.models.Page<Transaction> getTransactionsByPageAndUserIdAndType(PageQuery query, UUID userId, TransactionType type) {
+        var pageable = PageRequest.of(
+                query.page(),
+                query.size(),
+                Sort.by(Sort.Direction.fromString(query.direction()), query.sort())
+        );
+
+        var page = jpaTransactionRepository.findAllByAccountUserIdAndType(userId, type, pageable)
+                .map(TransactionEntity::toModel);
+
+        return new com.fabiankevin.app.models.Page<>(
+                page.getContent(),
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.isLast(),
+                page.isFirst()
+        );
+    }
 }

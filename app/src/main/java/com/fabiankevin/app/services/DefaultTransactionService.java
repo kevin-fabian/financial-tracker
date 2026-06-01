@@ -5,6 +5,7 @@ import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.exceptions.TransactionNotFoundException;
 import com.fabiankevin.app.models.*;
 import com.fabiankevin.app.models.enums.SummaryType;
+import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
@@ -141,7 +142,11 @@ public class DefaultTransactionService implements TransactionService {
     }
 
     @Override
-    public Page<Transaction> getTransactionsByPageQuery(PageQuery query, UUID userId) {
-        return transactionRepository.getTransactionsByPageAndUserId(query, userId);
+    public Page<Transaction> getTransactionsByPageQuery(PageQuery query, UUID userId, TransactionType type) {
+        if (type == null) {
+            return transactionRepository.getTransactionsByPageAndUserId(query, userId);
+        }
+
+        return transactionRepository.getTransactionsByPageAndUserIdAndType(query, userId, type);
     }
 }

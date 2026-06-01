@@ -1,6 +1,7 @@
 package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.Amount;
+import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.models.enums.TransactionType;
@@ -12,6 +13,7 @@ import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository
 import com.fabiankevin.app.services.DefaultTransactionService;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
+import com.fabiankevin.app.services.queries.PageQuery;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -19,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.util.Streamable;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
@@ -378,10 +381,130 @@ class DefaultTransactionRepositoryTest {
         Assertions.assertThat(page.totalPages()).isEqualTo(2);
     }
 
+    @Test
+    void getTransactionsByPageAndUserIdAndType_givenExpenseTypeFilter_thenShouldReturnOnlyExpenses() {
+        CategoryEntity food = createCategory("FOOD", TransactionType.EXPENSE);
+        CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
+        AccountEntity cash = createAccount("CASH");
+
+        List.of(
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,1)).description("expense1").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,2)).description("income1").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,3)).description("expense2").build()
+        ).forEach(transactionService::addTransaction);
+
+        PageQuery query = new PageQuery(0, 10, "transactionDate", "ASC");
+
+        Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, userId, TransactionType.EXPENSE);
+
+        Assertions.assertThat(page).isNotNull();
+        Assertions.assertThat(page.content()).hasSize(2);
+        Assertions.assertThat(page.totalElements()).isEqualTo(2);
+        Assertions.assertThat(page.content()).allMatch(t -> t.type() == TransactionType.EXPENSE);
+        Assertions.assertThat(page.content()).extracting(Transaction::description).containsExactly("expense1", "expense2");
+
+        verify(jpaTransactionRepository, times(1)).findAllByAccountUserIdAndType(eq(userId), eq(TransactionType.EXPENSE), any(Pageable.class));
+    }
+
+    @Test
+    void getTransactionsByPageAndUserIdAndType_givenIncomeTypeFilter_thenShouldReturnOnlyIncomes() {
+        CategoryEntity food = createCategory("FOOD", TransactionType.EXPENSE);
+        CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
+        AccountEntity cash = createAccount("CASH");
+
+        List.of(
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,1)).description("expense1").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,2)).description("income1").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(3000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,3)).description("income2").build()
+        ).forEach(transactionService::addTransaction);
+
+        com.fabiankevin.app.services.queries.PageQuery query = new com.fabiankevin.app.services.queries.PageQuery(0, 10, "transactionDate", "ASC");
+
+        com.fabiankevin.app.models.Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, userId, TransactionType.INCOME);
+
+        Assertions.assertThat(page).isNotNull();
+        Assertions.assertThat(page.content()).hasSize(2);
+        Assertions.assertThat(page.totalElements()).isEqualTo(2);
+        Assertions.assertThat(page.content()).allMatch(t -> t.type() == TransactionType.INCOME);
+        Assertions.assertThat(page.content()).extracting(Transaction::description).containsExactly("income1", "income2");
+
+        verify(jpaTransactionRepository, times(1)).findAllByAccountUserIdAndType(eq(userId), eq(TransactionType.INCOME), any(Pageable.class));
+    }
+
+    @Test
+    void getTransactionsByPageAndUserIdAndType_givenNullType_thenShouldReturnAllTransactions() {
+        CategoryEntity food = createCategory("FOOD");
+        CategoryEntity salary = createCategory("SALARY");
+        AccountEntity cash = createAccount("CASH");
+
+        List.of(
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,1)).description("expense1").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,2)).description("income1").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,3)).description("expense2").build()
+        ).forEach(transactionService::addTransaction);
+
+        com.fabiankevin.app.services.queries.PageQuery query = new com.fabiankevin.app.services.queries.PageQuery(0, 10, "transactionDate", "ASC");
+
+        com.fabiankevin.app.models.Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, userId, null);
+
+        Assertions.assertThat(page).isNotNull();
+        Assertions.assertThat(page.content()).hasSize(3);
+        Assertions.assertThat(page.totalElements()).isEqualTo(3);
+        Assertions.assertThat(page.content()).extracting(Transaction::description).containsExactly("expense1", "income1", "expense2");
+
+        verify(jpaTransactionRepository, times(1)).findAllByAccountUserIdAndType(eq(userId), eq(null), any(Pageable.class));
+    }
+
+    @Test
+    void getTransactionsByPageAndUserIdAndType_givenNonMatchingType_thenShouldReturnEmptyPage() {
+        CategoryEntity food = createCategory("FOOD");
+        AccountEntity cash = createAccount("CASH");
+
+        List.of(
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,1)).description("expense1").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,2)).description("expense2").build()
+        ).forEach(transactionService::addTransaction);
+
+        PageQuery query = new PageQuery(0, 10, "transactionDate", "ASC");
+
+        Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, userId, TransactionType.INCOME);
+
+        Assertions.assertThat(page).isNotNull();
+        Assertions.assertThat(page.content()).isEmpty();
+        Assertions.assertThat(page.totalElements()).isEqualTo(0);
+        Assertions.assertThat(page.totalPages()).isEqualTo(0);
+
+        verify(jpaTransactionRepository, times(1)).findAllByAccountUserIdAndType(eq(userId), eq(TransactionType.INCOME), any(Pageable.class));
+    }
+
+    @Test
+    void getTransactionsByPageAndUserIdAndType_givenWrongUserId_thenShouldReturnEmptyPage() {
+        CategoryEntity food = createCategory("FOOD");
+        AccountEntity cash = createAccount("CASH");
+
+        AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,1)).description("expense1").build();
+        transactionService.addTransaction(AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026,1,1)).description("expense1").build());
+
+        UUID differentUserId = UUID.randomUUID();
+        PageQuery query = new PageQuery(0, 10, "transactionDate", "ASC");
+
+        com.fabiankevin.app.models.Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, differentUserId, TransactionType.EXPENSE);
+
+        Assertions.assertThat(page).isNotNull();
+        Assertions.assertThat(page.content()).isEmpty();
+        Assertions.assertThat(page.totalElements()).isEqualTo(0);
+
+        verify(jpaTransactionRepository, times(1)).findAllByAccountUserIdAndType(eq(differentUserId), eq(TransactionType.EXPENSE), any(Pageable.class));
+    }
+
     private CategoryEntity createCategory(String categoryName) {
+        return createCategory(categoryName, TransactionType.EXPENSE);
+    }
+
+    private CategoryEntity createCategory(String categoryName, TransactionType type) {
         CategoryEntity category = new CategoryEntity();
         category.setName(categoryName);
-        category.setTransactionType(TransactionType.EXPENSE);
+        category.setTransactionType(type);
         category.setUserId(userId);
         category.setCreatedAt(Instant.now());
         category.setUpdatedAt(Instant.now());

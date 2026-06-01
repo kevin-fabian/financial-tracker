@@ -3,6 +3,7 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.SummarySeries;
 import com.fabiankevin.app.models.Transaction;
+import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.PatchTransactionCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
@@ -15,7 +16,7 @@ public interface TransactionService {
     Transaction addTransaction(AddTransactionCommand command);
     SummarySeries getSummary(SummaryQuery query);
 
-    Page<Transaction> getTransactionsByPageQuery(PageQuery query, UUID userId);
+    Page<Transaction> getTransactionsByPageQuery(PageQuery query, UUID userId, TransactionType type);
     Transaction patchTransaction(PatchTransactionCommand command);
     void deleteTransaction(UUID transactionId, UUID userId);
     TransactionResponse getTransactionById(UUID id, UUID userId);

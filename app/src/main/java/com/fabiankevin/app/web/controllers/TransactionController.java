@@ -2,6 +2,7 @@ package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.Transaction;
+import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.web.controllers.dtos.*;
@@ -84,9 +85,10 @@ public class TransactionController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "transactionDate") String sort,
             @RequestParam(defaultValue = "DESC") String direction,
+            @RequestParam(required = false) TransactionType type,
             JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        Page<Transaction> transactions = transactionService.getTransactionsByPageQuery(new PageQuery(page, size, sort, direction), userId);
+        Page<Transaction> transactions = transactionService.getTransactionsByPageQuery(new PageQuery(page, size, sort, direction), userId, type);
 
         return PageResponse.from(Page.<TransactionResponse>builder()
                 .content(transactions.content().stream().map(TransactionResponse::from).toList())
@@ -144,7 +146,7 @@ public class TransactionController {
             }
     )
     @DeleteMapping("/{transactionId}")
-    public void  deleteTransaction(@PathVariable UUID transactionId, JwtAuthenticationToken jwtAuthenticationToken) {
+    public void deleteTransaction(@PathVariable UUID transactionId, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         transactionService.deleteTransaction(transactionId, userId);
     }

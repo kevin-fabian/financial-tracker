@@ -10,6 +10,9 @@ import com.fabiankevin.app.services.queries.SummaryQuery;
 import com.fabiankevin.app.web.controllers.dtos.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -227,7 +230,7 @@ class TransactionControllerTest {
                 .updatedAt(Instant.now())
                 .build();
 
-        when(transactionService.getTransactionsByPageQuery(query, userId))
+        when(transactionService.getTransactionsByPageQuery(query, userId, null))
                 .thenReturn(new Page<>(List.of(t1, t2), 0, 2, 2L, 1, true, true));
 
         mockMvc.perform(get("/api/transactions?page=0&size=2&sort=transactionDate&direction=ASC")
@@ -240,7 +243,7 @@ class TransactionControllerTest {
                 .andExpect(jsonPath("$.totalElements").value(2))
                 .andExpect(jsonPath("$.totalPages").value(1));
 
-        verify(transactionService, times(1)).getTransactionsByPageQuery(query, userId);
+        verify(transactionService, times(1)).getTransactionsByPageQuery(query, userId, null);
     }
 
     @Test
@@ -252,10 +255,10 @@ class TransactionControllerTest {
     }
 
     @Test
-    void getTransactions_givenNoContent_thenShouldReturnEmptyPage() throws Exception {
+    void getTransactions_givenNoRecords_thenShouldReturnEmptyPage() throws Exception {
         UUID userId = UUID.fromString(jwt.getSubject());
 
-        when(transactionService.getTransactionsByPageQuery(any(PageQuery.class), eq(userId)))
+        when(transactionService.getTransactionsByPageQuery(any(PageQuery.class), eq(userId), eq(null)))
                 .thenReturn(new Page<>(List.of(), 0, 10, 0L, 0, false, true));
 
         mockMvc.perform(get("/api/transactions?page=0&size=10&sort=transactionDate&direction=ASC")
@@ -273,7 +276,7 @@ class TransactionControllerTest {
                         && pageQuery.size() == 10
                         && pageQuery.sort().equals("transactionDate")
                         && pageQuery.direction().equals("ASC")
-        ), eq(userId));
+        ), eq(userId), eq(null));
     }
 
     @Test
@@ -418,5 +421,46 @@ class TransactionControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(transactionService, times(1)).deleteTransaction(transactionId, userId);
+    }
+
+    @ParameterizedTest
+    @EnumSource(TransactionType.class)
+    @NullSource
+    void getTransactions_givenTransactionTypeFilter_thenShouldPassTypeToService(TransactionType type) throws Exception {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        PageQuery query = new PageQuery(0, 10, "transactionDate", "ASC");
+
+        Transaction t1 = Transaction.builder()
+                .id(UUID.randomUUID())
+                .account(Account.builder().id(UUID.randomUUID()).userId(userId).name("A1").currency(Currency.getInstance("PHP")).build())
+                .category(Category.builder()
+                        .id(UUID.randomUUID())
+                        .type(TransactionType.EXPENSE)
+                        .userId(userId)
+                        .name("FOOD").build())
+                .type(TransactionType.EXPENSE)
+                .amount(Amount.of(100, Currency.getInstance("PHP")))
+                .description("t1")
+                .transactionDate(LocalDate.of(2026, 1, 1))
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(transactionService.getTransactionsByPageQuery(eq(query), eq(userId), eq(type)))
+                .thenReturn(new Page<>(List.of(t1), 0, 10, 1L, 1, false, true));
+
+        mockMvc.perform(get("/api/transactions")
+                        .queryParam("type", type != null ? type.name() : "")
+                        .queryParam("page", "0")
+                        .queryParam("size", "10")
+                        .queryParam("direction", "ASC")
+                        .queryParam("sort", "transactionDate")
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.totalElements").value(1));
+
+        verify(transactionService, times(1)).getTransactionsByPageQuery(eq(query), eq(userId), eq(type));
     }
 }
