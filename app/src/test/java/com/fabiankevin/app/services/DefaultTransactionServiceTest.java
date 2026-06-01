@@ -1,16 +1,16 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.exceptions.TransactionNotFoundException;
-import com.fabiankevin.app.models.Account;
-import com.fabiankevin.app.models.Amount;
-import com.fabiankevin.app.models.Category;
-import com.fabiankevin.app.models.Transaction;
+import com.fabiankevin.app.models.*;
+import com.fabiankevin.app.models.enums.SummaryType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.PatchTransactionCommand;
+import com.fabiankevin.app.services.queries.PageQuery;
+import com.fabiankevin.app.services.queries.SummaryQuery;
 import com.fabiankevin.app.services.summaries.SummaryGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -189,5 +189,149 @@ class DefaultTransactionServiceTest {
 
         assertThrows(TransactionNotFoundException.class, () -> transactionService.getTransactionById(transactionId, userId));
         verify(transactionRepository, times(1)).findById(transactionId);
+    }
+
+    @Test
+    void getSummary_givenValidType_thenShouldReturnSummarySeries() {
+        SummaryQuery query = SummaryQuery.builder()
+                .type(SummaryType.CATEGORY)
+                .from(LocalDate.now().minusMonths(1))
+                .to(LocalDate.now())
+                .build();
+
+        List<SummaryPoint> expectedPoints = List.of(
+                new SummaryPoint("FOOD", java.math.BigDecimal.valueOf(500)),
+                new SummaryPoint("TRANSPORT", java.math.BigDecimal.valueOf(200))
+        );
+        SummaryGenerator mockGenerator = mock(SummaryGenerator.class);
+        when(mockGenerator.supports()).thenReturn(SummaryType.CATEGORY);
+        when(mockGenerator.generate(query)).thenReturn(expectedPoints);
+
+        transactionService = new DefaultTransactionService(
+                accountRepository, categoryRepository, transactionRepository, List.of(mockGenerator)
+        );
+
+        SummarySeries result = transactionService.getSummary(query);
+
+        assertEquals(SummaryType.CATEGORY, result.type());
+        assertEquals(2, result.points().size());
+        assertEquals("FOOD", result.points().get(0).label());
+        assertEquals(java.math.BigDecimal.valueOf(500), result.points().get(0).total());
+        verify(mockGenerator, times(1)).generate(query);
+    }
+
+    @Test
+    void getSummary_givenInvalidType_thenShouldThrow() {
+        SummaryQuery query = SummaryQuery.builder()
+                .type(SummaryType.CATEGORY)
+                .from(LocalDate.now().minusMonths(1))
+                .to(LocalDate.now())
+                .build();
+
+        transactionService = new DefaultTransactionService(
+                accountRepository, categoryRepository, transactionRepository, List.of()
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> transactionService.getSummary(query));
+    }
+
+    @Test
+    void getSummary_givenEmptyGeneratorList_thenShouldThrow() {
+        SummaryQuery query = SummaryQuery.builder()
+                .type(SummaryType.MONTHLY)
+                .build();
+
+        transactionService = new DefaultTransactionService(
+                accountRepository, categoryRepository, transactionRepository, List.of()
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> transactionService.getSummary(query));
+    }
+
+    @Test
+    void getTransactionsByPageQuery_givenTypeFilter_thenShouldCallRepositoryWithType() {
+        UUID userId = UUID.randomUUID();
+        PageQuery query = new PageQuery(0, 10, "transactionDate", "DESC");
+        TransactionType type = TransactionType.EXPENSE;
+
+        Page<Transaction> expectedPage = Page.<Transaction>builder()
+                .content(List.of())
+                .page(0)
+                .size(10)
+                .totalElements(0)
+                .totalPages(0)
+                .last(true)
+                .first(true)
+                .build();
+
+        when(transactionRepository.getTransactionsByPageAndUserIdAndType(query, userId, type)).thenReturn(expectedPage);
+
+        Page<Transaction> result = transactionService.getTransactionsByPageQuery(query, userId, type);
+
+        assertEquals(expectedPage, result);
+        verify(transactionRepository, times(1)).getTransactionsByPageAndUserIdAndType(query, userId, type);
+        verify(transactionRepository, never()).getTransactionsByPageAndUserId(any(), any());
+    }
+
+    @Test
+    void getTransactionsByPageQuery_givenNullType_thenShouldCallRepositoryWithoutType() {
+        UUID userId = UUID.randomUUID();
+        PageQuery query = new PageQuery(0, 20, "amount", "ASC");
+
+        Page<Transaction> expectedPage = Page.<Transaction>builder()
+                .content(List.of())
+                .page(0)
+                .size(20)
+                .totalElements(5)
+                .totalPages(1)
+                .last(true)
+                .first(true)
+                .build();
+
+        when(transactionRepository.getTransactionsByPageAndUserId(query, userId)).thenReturn(expectedPage);
+
+        Page<Transaction> result = transactionService.getTransactionsByPageQuery(query, userId, null);
+
+        assertEquals(expectedPage, result);
+        verify(transactionRepository, times(1)).getTransactionsByPageAndUserId(query, userId);
+        verify(transactionRepository, never()).getTransactionsByPageAndUserIdAndType(any(), any(), any());
+    }
+
+    @Test
+    void getTransactionsByPageQuery_givenTypeFilterWithResults_thenShouldReturnPaginatedTransactions() {
+        UUID userId = UUID.randomUUID();
+        UUID transactionId = UUID.randomUUID();
+        PageQuery query = new PageQuery(1, 5, "transactionDate", "ASC");
+        TransactionType type = TransactionType.INCOME;
+
+        Transaction tx = Transaction.builder()
+                .id(transactionId)
+                .account(Account.builder().id(UUID.randomUUID()).userId(userId).name("ACCT").currency(java.util.Currency.getInstance("PHP")).build())
+                .category(Category.builder().id(UUID.randomUUID()).type(TransactionType.INCOME).userId(userId).name("SALARY").build())
+                .type(TransactionType.INCOME)
+                .amount(Amount.of(5000, java.util.Currency.getInstance("PHP")))
+                .description("Salary")
+                .transactionDate(LocalDate.now())
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        Page<Transaction> expectedPage = Page.<Transaction>builder()
+                .content(List.of(tx))
+                .page(1)
+                .size(5)
+                .totalElements(1)
+                .totalPages(1)
+                .last(true)
+                .first(true)
+                .build();
+
+        when(transactionRepository.getTransactionsByPageAndUserIdAndType(query, userId, type)).thenReturn(expectedPage);
+
+        Page<Transaction> result = transactionService.getTransactionsByPageQuery(query, userId, type);
+
+        assertEquals(1, result.content().size());
+        assertEquals(transactionId, result.content().get(0).id());
+        verify(transactionRepository, times(1)).getTransactionsByPageAndUserIdAndType(query, userId, type);
     }
 }
