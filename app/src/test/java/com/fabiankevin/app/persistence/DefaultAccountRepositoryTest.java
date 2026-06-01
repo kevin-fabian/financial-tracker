@@ -89,7 +89,7 @@ class DefaultAccountRepositoryTest {
 
 
     @Test
-    void save_givenAccountWithIcon_shouldPersistIcon() {
+    void save_givenWithNewIcon_shouldPersistIcon() {
         IconData icon = IconData.builder()
                 .codePoint(0x1F4B0)
                 .fontFamily("MaterialIcons")
