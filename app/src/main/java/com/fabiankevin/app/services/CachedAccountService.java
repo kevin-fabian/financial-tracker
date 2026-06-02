@@ -65,6 +65,12 @@ public class CachedAccountService implements AccountService {
     }
 
     @Override
+    public void disableAccount(UUID id, UUID userId) {
+        delegatedAccountService.disableAccount(id, userId);
+        evictUserKeys(userId);
+    }
+
+    @Override
     public Page<Account> getAccountsByPageAndUserId(PageQuery query, UUID userId) {
         String key = String.format(KEY_PAGED, userId, query.page(), query.size(),
                 query.sort(), query.direction());

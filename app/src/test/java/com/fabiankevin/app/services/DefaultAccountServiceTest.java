@@ -398,4 +398,96 @@ class DefaultAccountServiceTest {
         verify(accountRepository, times(1)).findById(id);
         verify(accountRepository, times(1)).save(any());
     }
+
+    @Test
+    void disableAccount_givenExistingAndMatchingUser_thenShouldDisableAccount() {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        Account existing = Account.builder()
+                .id(id)
+                .name("GCASH")
+                .userId(userId)
+                .currency(Currency.getInstance("PHP"))
+                .type(E_WALLET)
+                .active(true)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
+        when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        accountService.disableAccount(id, userId);
+
+        verify(accountRepository, times(1)).findById(id);
+        verify(accountRepository, times(1)).save(any());
+        ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
+        verify(accountRepository).save(captor.capture());
+        assertFalse(captor.getValue().active(), "account should be disabled");
+    }
+
+    @Test
+    void disableAccount_givenNonExisting_thenShouldThrow() {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        when(accountRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(AccountNotFoundException.class, () -> accountService.disableAccount(id, userId));
+        verify(accountRepository, times(1)).findById(id);
+        verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void disableAccount_givenDifferentUser_thenShouldThrow() {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+
+        Account existing = Account.builder()
+                .id(id)
+                .name("GCASH")
+                .userId(otherUserId)
+                .currency(Currency.getInstance("PHP"))
+                .type(E_WALLET)
+                .active(true)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
+
+        assertThrows(AccountNotFoundException.class, () -> accountService.disableAccount(id, userId));
+        verify(accountRepository, times(1)).findById(id);
+        verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void disableAccount_givenAlreadyDisabled_thenShouldStillSucceedIdempotent() {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        Account existing = Account.builder()
+                .id(id)
+                .name("GCASH")
+                .userId(userId)
+                .currency(Currency.getInstance("PHP"))
+                .type(E_WALLET)
+                .active(false)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
+        when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        accountService.disableAccount(id, userId);
+
+        verify(accountRepository, times(1)).findById(id);
+        verify(accountRepository, times(1)).save(any());
+        ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
+        verify(accountRepository).save(captor.capture());
+        assertFalse(captor.getValue().active(), "account should remain disabled");
+    }
 }

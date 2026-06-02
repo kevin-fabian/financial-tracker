@@ -459,4 +459,40 @@ class AccountControllerTest {
 
         verifyNoInteractions(accountService);
     }
+
+    @Test
+    void disableAccount_givenExistingId_thenShouldDisableAccount() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        mockMvc.perform(patch("/api/accounts/" + id + "/disable")
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isOk());
+
+        verify(accountService, times(1)).disableAccount(id, userId);
+    }
+
+    @Test
+    void disableAccount_givenNoJwt_thenShouldReturnForbidden() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        mockMvc.perform(patch("/api/accounts/" + id + "/disable"))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(accountService);
+    }
+
+    @Test
+    void disableAccount_givenAccountNotFound_thenReturnNotFound() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        doThrow(new AccountNotFoundException()).when(accountService).disableAccount(id, userId);
+
+        mockMvc.perform(patch("/api/accounts/" + id + "/disable")
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isNotFound());
+
+        verify(accountService, times(1)).disableAccount(id, userId);
+    }
 }

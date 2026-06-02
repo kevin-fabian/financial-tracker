@@ -33,6 +33,9 @@ public class AccountEntity{
     @Column(nullable = false)
     private Instant updatedAt;
 
+    @Column(nullable = false)
+    private boolean active;
+
     @OneToOne(fetch = FetchType.EAGER, cascade = {CascadeType.REFRESH, CascadeType.PERSIST, CascadeType.MERGE, CascadeType.DETACH})
     @JoinColumn(name = "icon_id", nullable = true)
     private IconEntity icon;
@@ -45,6 +48,7 @@ public class AccountEntity{
                 .userId(account.userId())
                 .currency(Optional.ofNullable(account.currency()).map(Currency::getCurrencyCode).orElse(null))
                 .type(account.type() != null ? account.type().name() : null)
+                .active(account.active())
                 .createdAt(account.createdAt())
                 .updatedAt(account.updatedAt())
                 .icon(account.icon() != null ? IconEntity.from(account.icon()) : null)
@@ -58,6 +62,7 @@ public class AccountEntity{
                 .userId(this.userId)
                 .currency(Optional.ofNullable(this.currency).map(Currency::getInstance).orElse(null))
                 .type(Optional.ofNullable(this.type).map(AccountType::valueOf).orElse(null))
+                .active(this.active)
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)
                 .icon(Optional.ofNullable(this.icon).map(IconEntity::toModel).orElse(null))

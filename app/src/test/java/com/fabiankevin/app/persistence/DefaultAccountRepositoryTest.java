@@ -51,6 +51,7 @@ class DefaultAccountRepositoryTest {
                 .userId(UUID.randomUUID())
                 .currency(Currency.getInstance("PHP"))
                 .type(AccountType.E_WALLET)
+                .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -102,6 +103,7 @@ class DefaultAccountRepositoryTest {
                 .userId(UUID.randomUUID())
                 .currency(Currency.getInstance("USD"))
                 .type(AccountType.BANK_ACCOUNT)
+                .active(true)
                 .icon(icon)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())

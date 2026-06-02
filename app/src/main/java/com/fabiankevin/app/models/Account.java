@@ -15,6 +15,8 @@ public record Account(
         UUID userId,
         Currency currency,
         AccountType type,
+        boolean active,
+        boolean system,
         IconData icon,
         Instant createdAt,
         Instant updatedAt) {
