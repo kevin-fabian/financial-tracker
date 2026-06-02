@@ -29,7 +29,7 @@ public class CategoryEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TransactionType transactionType;
-    @OneToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "icon_id", nullable = true)
     private IconEntity icon;
     @Column(name = "user_id", nullable = false)

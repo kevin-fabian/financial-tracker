@@ -7,10 +7,12 @@ import com.fabiankevin.app.persistence.entities.IconEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaIconRepository;
 import com.fabiankevin.app.services.queries.PageQuery;
-import jakarta.transaction.Transactional;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
@@ -28,6 +30,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DataJpaTest
 @Import(DefaultCategoryRepository.class)
 class DefaultCategoryRepositoryTest {
@@ -42,6 +45,36 @@ class DefaultCategoryRepositoryTest {
     private JpaIconRepository jpaIconRepository;
 
     private Category category;
+
+    private IconData foodIcon;
+    private IconData transportationIcon;
+    private Category foodCategory;
+
+    @BeforeAll
+    void initialRecord() {
+        foodIcon = jpaIconRepository.save(IconEntity.builder()
+                .codePoint(12345)
+                .fontFamily("MaterialIcon")
+                .createdAt(Instant.now())
+                .build()).toModel();
+        transportationIcon = jpaIconRepository.save(IconEntity.builder()
+                .codePoint(11111)
+                .fontFamily("MaterialIcon")
+                .createdAt(Instant.now())
+                .build()).toModel();
+
+        foodCategory = Category.builder()
+                .name("FOOD")
+                .type(TransactionType.EXPENSE)
+                .userId(UUID.randomUUID())
+                .icon(foodIcon)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+        categoryRepository.save(foodCategory);
+
+        Mockito.reset(jpaCategoryRepository);
+    }
 
     @BeforeEach
     void setUp() {
@@ -94,39 +127,25 @@ class DefaultCategoryRepositoryTest {
         }, "category with icon should throw InvalidDataAccessApiUsageException");
     }
 
-    @Transactional
     @Test
-    void save_givenExistingIcon_shouldUpdateToExistingIcon() {
-        IconData icon = IconData.builder()
-                .codePoint(0x1F354)
-                .fontFamily("MaterialIcons")
-                .iconName("restaurant")
-                .createdAt(Instant.now())
-                .build();
-
-        IconEntity iconEntity = jpaIconRepository.saveAndFlush(IconEntity.from(icon));
-
-        Category categoryWithIcon = Category.builder()
-                .name("RESTAURANTS")
-                .type(TransactionType.EXPENSE)
-                .userId(category.userId())
-                .icon(iconEntity.toModel())
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-        Category saved = categoryRepository.save(categoryWithIcon);
+    void save_givenExistingCategoryAnd_shouldUpdateToExistingIcon() {
+        Category saved = categoryRepository.save(foodCategory.toBuilder()
+                .name("Transportation")
+                .icon(transportationIcon)
+                .build());
 
         var found = categoryRepository.findByIdAndUserId(saved.id(), saved.userId()).orElseThrow();
 
         Assertions.assertThat(found.icon())
                 .as("category icon should be persisted")
                 .isNotNull();
+        assertEquals(found.name(), "Transportation", "category name should match");
         Assertions.assertThat(found.icon().codePoint())
-                .isEqualTo(icon.codePoint());
+                .isEqualTo(transportationIcon.codePoint());
         Assertions.assertThat(found.icon().fontFamily())
-                .isEqualTo(icon.fontFamily());
+                .isEqualTo(transportationIcon.fontFamily());
         Assertions.assertThat(found.icon().iconName())
-                .isEqualTo(icon.iconName());
+                .isEqualTo(transportationIcon.iconName());
     }
 
     @Test
@@ -152,10 +171,10 @@ class DefaultCategoryRepositoryTest {
                 "should save");
 
         Assertions.assertThat(jpaCategoryRepository.findAll())
-                .hasSize(2)
+                .hasSize(3)
                 .as("category names should be `FOOD`")
                 .extracting("name")
-                .containsExactlyInAnyOrder("FOOD", "FOOD");
+                .containsExactlyInAnyOrder("FOOD", "FOOD", "FOOD");
     }
 
     @Test

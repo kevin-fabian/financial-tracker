@@ -13,7 +13,10 @@ public record Category(
         String name,
         TransactionType type,
         UUID userId,
-        com.fabiankevin.app.models.IconData icon,
+        IconData icon,
+        boolean active,
+        // This flag will be used for pre-added categories
+        boolean system,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -27,7 +30,7 @@ public record Category(
                 .orElseThrow(() -> new IllegalArgumentException("User ID is required"));
     }
 
-    public static Category of(String name, TransactionType type, UUID userId, com.fabiankevin.app.models.IconData icon){
+    public static Category of(String name, TransactionType type, UUID userId, IconData icon){
         return Category.builder()
                 .name(name)
                 .type(type)
