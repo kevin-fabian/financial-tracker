@@ -357,6 +357,57 @@ class DefaultCategoryRepositoryTest {
     }
 
     @Test
+    void findInactiveByNameAndTypeAndUserId_givenInactiveMatchingCategory_shouldReturnCategory() {
+        UUID userId = category.userId();
+        String name = category.name();
+        TransactionType type = category.type();
+
+        Category inactiveCategory = category.toBuilder()
+                .id(null)
+                .active(false)
+                .build();
+        Category saved = categoryRepository.save(inactiveCategory);
+
+        var found = categoryRepository.findInactiveByNameAndTypeAndUserId(name, type, userId);
+
+        Assertions.assertThat(found).as("should return the inactive category").isPresent();
+        Assertions.assertThat(found.get().id()).isEqualTo(saved.id());
+        Assertions.assertThat(found.get().active()).isFalse();
+
+        verify(jpaCategoryRepository, times(1)).findFirstByActiveFalseAndNameAndTransactionTypeAndUserId(name, type, userId);
+    }
+
+    @Test
+    void findInactiveByNameAndTypeAndUserId_givenActiveCategory_shouldReturnEmpty() {
+        UUID userId = category.userId();
+        String name = category.name();
+        TransactionType type = category.type();
+
+        Category activeCategory = category.toBuilder()
+                .id(null)
+                .active(true)
+                .build();
+        categoryRepository.save(activeCategory);
+
+        var found = categoryRepository.findInactiveByNameAndTypeAndUserId(name, type, userId);
+
+        Assertions.assertThat(found).as("should return empty when category is active").isEmpty();
+
+        verify(jpaCategoryRepository, times(1)).findFirstByActiveFalseAndNameAndTransactionTypeAndUserId(name, type, userId);
+    }
+
+    @Test
+    void findInactiveByNameAndTypeAndUserId_givenNonExistingCategory_shouldReturnEmpty() {
+        UUID userId = UUID.randomUUID();
+
+        var found = categoryRepository.findInactiveByNameAndTypeAndUserId("NONEXISTENT", TransactionType.EXPENSE, userId);
+
+        Assertions.assertThat(found).as("should return empty when no matching category exists").isEmpty();
+
+        verify(jpaCategoryRepository, times(1)).findFirstByActiveFalseAndNameAndTransactionTypeAndUserId("NONEXISTENT", TransactionType.EXPENSE, userId);
+    }
+
+    @Test
     void existsByNameAndTypeAndUserId_givenMatchingCategory_shouldReturnTrue() {
         UUID userId = category.userId();
         String name = category.name();
