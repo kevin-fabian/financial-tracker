@@ -34,7 +34,17 @@ public class DefaultCategoryService implements CategoryService {
     @Transactional
     @Override
     public Category createCategory(CreateCategoryCommand command) {
+        return categoryRepository.findInactiveByNameAndTypeAndUserId(command.name(), command.type(), command.userId())
+                .map(inactiveCategory -> reactivateCategory(inactiveCategory, command))
+                .orElseGet(() -> createNewCategory(command));
+    }
+
+    private Category createNewCategory(CreateCategoryCommand command) {
         Optional<IconData> optionalIconData = getOrSaveIcon(command.icon());
+
+        if (categoryRepository.existsByNameAndTypeAndUserId(command.name(), command.type(), command.userId())) {
+            throw new CategoryAlreadyExistException("Category with the same name and type already exists for the user");
+        }
 
         Category newCategory = Category.builder()
                 .name(command.name())
@@ -46,11 +56,20 @@ public class DefaultCategoryService implements CategoryService {
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
-        if (categoryRepository.existsByNameAndTypeAndUserId(command.name(), command.type(), command.userId())) {
-            throw new CategoryAlreadyExistException("Category with the same name and type already exists for the user");
-        }
 
         return categoryRepository.save(newCategory);
+    }
+
+    private Category reactivateCategory(Category inactiveCategory, CreateCategoryCommand command) {
+        IconData updatedIcon = command.icon() != null
+                ? getOrSaveIcon(command.icon()).orElse(null)
+                : inactiveCategory.icon();
+
+        return categoryRepository.save(inactiveCategory.toBuilder()
+                .active(true)
+                .icon(updatedIcon)
+                .updatedAt(Instant.now())
+                .build());
     }
 
     @Transactional

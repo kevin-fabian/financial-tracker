@@ -15,4 +15,5 @@ public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUI
     int deleteByIdAndUserId(UUID id, UUID userId);
     Page<CategoryEntity> findAllByUserId(UUID userId, Pageable pageable);
     Page<CategoryEntity> findAllByUserIdAndTransactionType(UUID userId, TransactionType type, Pageable pageable);
+    Optional<CategoryEntity> findFirstByActiveFalseAndNameAndTransactionTypeAndUserId(String name, TransactionType type, UUID userId);
 }
