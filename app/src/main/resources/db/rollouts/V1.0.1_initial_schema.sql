@@ -18,7 +18,6 @@ CREATE TABLE IF NOT EXISTS accounts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     name VARCHAR(128) NOT NULL,
     user_id UUID NOT NULL,
-    icon_id UUID NULL,
     currency VARCHAR(3) NOT NULL,
     type VARCHAR(32) NOT NULL DEFAULT 'OTHER',
     system BOOLEAN NOT NULL DEFAULT FALSE,
@@ -26,8 +25,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uk_accounts_name_user_id UNIQUE (name, user_id),
-    CONSTRAINT chk_accounts_type CHECK (type IN ('CASH', 'BANK_ACCOUNT', 'CREDIT_CARD', 'E_WALLET', 'INVESTMENT', 'LOAN', 'OTHER')),
-    CONSTRAINT fk_accounts_icon_id FOREIGN KEY (icon_id) REFERENCES icons (id)
+    CONSTRAINT chk_accounts_type CHECK (type IN ('CASH', 'BANK_ACCOUNT', 'CREDIT_CARD', 'E_WALLET', 'INVESTMENT', 'LOAN', 'OTHER'));
 );
 CREATE INDEX IF NOT EXISTS idx_accounts_user_id ON accounts (user_id);
 CREATE INDEX IF NOT EXISTS idxs_accounts_name ON accounts (name);
