@@ -14,5 +14,6 @@ public interface CategoryService {
     Category createCategory(CreateCategoryCommand command);
     Category patchCategory(PatchCategoryCommand command);
     void deleteCategoryById(UUID id, UUID userId);
+    void disableCategory(UUID id, UUID userId);
     Page<Category> getCategoriesByPageQuery(PageQuery query, UUID userId, TransactionType type);
 }

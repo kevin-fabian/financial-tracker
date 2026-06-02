@@ -10,10 +10,12 @@ import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
 import com.fabiankevin.app.web.controllers.dtos.CreateIconRequest;
 import com.fabiankevin.app.web.controllers.dtos.IconResponse;
 import com.fabiankevin.app.web.controllers.dtos.PatchCategoryRequest;
+import com.github.fabiankevin.lemon.web.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -30,6 +32,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(CategoryController.class)
+@Import({GlobalExceptionHandler.class})
 class CategoryControllerTest {
 
     @Autowired
@@ -613,5 +616,31 @@ class CategoryControllerTest {
                 .andExpect(status().isForbidden());
 
         verifyNoInteractions(categoryService);
+    }
+
+    @Test
+    void disableCategory_givenValidCategoryId_shouldDelegateCategoryIdAndUserIdAndReturnOk() throws Exception {
+        UUID categoryId = UUID.randomUUID();
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        mockMvc.perform(patch("/api/categories/" + categoryId + "/disable")
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isOk());
+
+        verify(categoryService, times(1)).disableCategory(categoryId, userId);
+    }
+
+    @Test
+    void disableCategory_givenInvalidCategoryId_shouldThrowCategoryNotFoundException() throws Exception {
+        UUID categoryId = UUID.randomUUID();
+
+        doThrow(new com.fabiankevin.app.exceptions.CategoryNotFoundException())
+                .when(categoryService).disableCategory(any(), any());
+
+        mockMvc.perform(patch("/api/categories/" + categoryId + "/disable")
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isNotFound());
+
+        verify(categoryService, times(1)).disableCategory(eq(categoryId), any());
     }
 }

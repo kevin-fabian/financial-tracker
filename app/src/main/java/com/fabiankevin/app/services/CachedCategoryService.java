@@ -66,6 +66,12 @@ public class CachedCategoryService implements CategoryService {
     }
 
     @Override
+    public void disableCategory(UUID id, UUID userId) {
+        delegatedCategoryService.disableCategory(id, userId);
+        evictUserKeys(userId);
+    }
+
+    @Override
     public Page<Category> getCategoriesByPageQuery(PageQuery query, UUID userId, TransactionType type) {
         String key = String.format(KEY_PAGED, userId, query.page(), query.size(),
                 query.sort(), query.direction(), type);

@@ -135,4 +135,20 @@ public class CategoryController {
         categoryService.deleteCategoryById(id, userId);
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(
+            summary = "Disable a category",
+            description = "Disables a transaction category by specified ID. This operation is idempotent.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - Resource disabled successfully"),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @PatchMapping("/{categoryId}/disable")
+    public ResponseEntity<Void> disableCategory(@PathVariable UUID categoryId, JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        categoryService.disableCategory(categoryId, userId);
+        return ResponseEntity.ok().build();
+    }
 }

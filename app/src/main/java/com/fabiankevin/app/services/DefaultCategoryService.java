@@ -41,6 +41,8 @@ public class DefaultCategoryService implements CategoryService {
                 .type(command.type())
                 .icon(optionalIconData.orElse(null))
                 .userId(command.userId())
+                .active(true)
+                .system(false)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -55,6 +57,16 @@ public class DefaultCategoryService implements CategoryService {
     @Override
     public void deleteCategoryById(UUID id, UUID userId) {
         categoryRepository.deleteByIdAndUserId(id, userId);
+    }
+
+    @Transactional
+    @Override
+    public void disableCategory(UUID id, UUID userId) {
+        categoryRepository.findByIdAndUserId(id, userId)
+                .ifPresentOrElse(
+                        category -> categoryRepository.save(category.toBuilder().active(false).build()),
+                        () -> { throw new CategoryNotFoundException(); }
+                );
     }
 
     @Override
