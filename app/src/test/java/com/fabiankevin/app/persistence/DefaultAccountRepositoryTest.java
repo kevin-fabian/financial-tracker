@@ -1,7 +1,6 @@
 package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.Account;
-import com.fabiankevin.app.models.IconData;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
@@ -86,90 +85,6 @@ class DefaultAccountRepositoryTest {
                 .isEqualTo(saved);
 
         verify(jpaAccountRepository, times(1)).findById(saved.id());
-    }
-
-
-    @Test
-    void save_givenWithNewIcon_shouldPersistIcon() {
-        IconData icon = IconData.builder()
-                .codePoint(0x1F4B0)
-                .fontFamily("MaterialIcons")
-                .iconName("attach_money")
-                .createdAt(Instant.now())
-                .build();
-
-        Account accountWithIcon = Account.builder()
-                .name("BANK")
-                .userId(UUID.randomUUID())
-                .currency(Currency.getInstance("USD"))
-                .type(AccountType.BANK_ACCOUNT)
-                .active(true)
-                .icon(icon)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-
-        Account saved = accountRepository.save(accountWithIcon);
-
-        var found = accountRepository.findById(saved.id()).orElseThrow();
-
-        Assertions.assertThat(found.icon())
-                .as("account icon should be persisted")
-                .isNotNull();
-        Assertions.assertThat(found.icon().codePoint())
-                .isEqualTo(icon.codePoint());
-        Assertions.assertThat(found.icon().fontFamily())
-                .isEqualTo(icon.fontFamily());
-        Assertions.assertThat(found.icon().iconName())
-                .isEqualTo(icon.iconName());
-    }
-
-    @Test
-    void save_givenAccountWithUpdatedIcon_shouldUpdateIcon() {
-        IconData originalIcon = IconData.builder()
-                .codePoint(0x1F4B0)
-                .fontFamily("MaterialIcons")
-                .iconName("attach_money")
-                .createdAt(Instant.now())
-                .build();
-
-        Account account = Account.builder()
-                .name("BANK")
-                .userId(UUID.randomUUID())
-                .currency(Currency.getInstance("USD"))
-                .type(AccountType.BANK_ACCOUNT)
-                .icon(originalIcon)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-
-        Account saved = accountRepository.save(account);
-
-        IconData updatedIcon = IconData.builder()
-                .codePoint(0x1F3E1)
-                .fontFamily("MaterialIcons")
-                .iconName("home")
-                .createdAt(Instant.now())
-                .build();
-
-        Account updatedAccount = saved.toBuilder()
-                .icon(updatedIcon)
-                .updatedAt(Instant.now())
-                .build();
-
-        Account persisted = accountRepository.save(updatedAccount);
-
-        var found = accountRepository.findById(persisted.id()).orElseThrow();
-
-        Assertions.assertThat(found.icon())
-                .as("account icon should be updated")
-                .isNotNull();
-        Assertions.assertThat(found.icon().codePoint())
-                .isEqualTo(updatedIcon.codePoint());
-        Assertions.assertThat(found.icon().fontFamily())
-                .isEqualTo(updatedIcon.fontFamily());
-        Assertions.assertThat(found.icon().iconName())
-                .isEqualTo(updatedIcon.iconName());
     }
 
     @Test

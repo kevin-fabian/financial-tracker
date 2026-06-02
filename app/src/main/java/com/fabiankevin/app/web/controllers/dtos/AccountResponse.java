@@ -19,8 +19,6 @@ public record AccountResponse(
         String currency,
         @Schema(description = "Type of the account", example = "E_WALLET")
         AccountType type,
-        @Schema(description = "Icon for the account")
-        IconResponse icon,
         @Schema(description = "Timestamp when the account was created")
         Instant createdAt,
         @Schema(description = "Timestamp when the account was last updated")
@@ -32,7 +30,6 @@ public record AccountResponse(
                 .name(account.name())
                 .currency(account.currency().getCurrencyCode())
                 .type(account.type())
-                .icon(IconResponse.from(account.icon()))
                 .createdAt(account.createdAt())
                 .updatedAt(account.updatedAt())
                 .build();

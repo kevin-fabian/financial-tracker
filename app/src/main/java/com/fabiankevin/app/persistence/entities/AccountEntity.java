@@ -39,10 +39,6 @@ public class AccountEntity{
     @Column(nullable = false)
     private boolean system = false;
 
-    @OneToOne(fetch = FetchType.EAGER, cascade = {CascadeType.REFRESH, CascadeType.PERSIST, CascadeType.MERGE, CascadeType.DETACH})
-    @JoinColumn(name = "icon_id", nullable = true)
-    private IconEntity icon;
-
     public static AccountEntity from(Account account) {
         if (account == null) return null;
         return AccountEntity.builder()
@@ -55,7 +51,6 @@ public class AccountEntity{
                 .system(account.system())
                 .createdAt(account.createdAt())
                 .updatedAt(account.updatedAt())
-                .icon(account.icon() != null ? IconEntity.from(account.icon()) : null)
                 .build();
     }
 
@@ -70,7 +65,6 @@ public class AccountEntity{
                 .system(this.system)
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)
-                .icon(Optional.ofNullable(this.icon).map(IconEntity::toModel).orElse(null))
                 .build();
     }
 }

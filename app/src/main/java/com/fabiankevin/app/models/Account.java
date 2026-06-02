@@ -17,7 +17,6 @@ public record Account(
         AccountType type,
         boolean active,
         boolean system,
-        IconData icon,
         Instant createdAt,
         Instant updatedAt) {
     public Account {
