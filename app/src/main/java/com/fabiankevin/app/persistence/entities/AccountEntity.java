@@ -36,7 +36,7 @@ public class AccountEntity{
     @Column(nullable = false)
     private boolean active = true;
 
-    @Column(nullable = false)
+    @Column(name = "`system`", nullable = false)
     private boolean system = false;
 
     public static AccountEntity from(Account account) {

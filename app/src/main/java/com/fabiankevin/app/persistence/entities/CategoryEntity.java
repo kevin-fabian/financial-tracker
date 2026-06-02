@@ -42,7 +42,7 @@ public class CategoryEntity {
     @Column(nullable = false)
     private boolean active = true;
 
-    @Column(nullable = false)
+    @Column(name = "`system`", nullable = false)
     private boolean system = false;
 
     public static CategoryEntity from(Category category) {
