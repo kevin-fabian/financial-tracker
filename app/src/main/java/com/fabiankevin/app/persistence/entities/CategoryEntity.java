@@ -29,9 +29,8 @@ public class CategoryEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TransactionType transactionType;
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "icon_id", nullable = true)
-    private IconEntity icon;
+    @Column(name = "icon", length = 128)
+    private String icon;
     @Column(name = "user_id", nullable = false)
     private UUID userId;
     @Column(nullable = false)
@@ -51,7 +50,7 @@ public class CategoryEntity {
                 .id(category.id())
                 .name(category.name())
                 .transactionType(category.type())
-                .icon(category.icon() != null ? IconEntity.from(category.icon()) : null)
+                .icon(category.icon())
                 .userId(category.userId())
                 .active(category.active())
                 .system(category.system())
@@ -65,7 +64,7 @@ public class CategoryEntity {
                 .id(this.id)
                 .name(this.name)
                 .type(this.transactionType)
-                .icon(this.icon != null ? this.icon.toModel() : null)
+                .icon(this.icon)
                 .userId(this.userId)
                 .active(this.active)
                 .system(this.system)

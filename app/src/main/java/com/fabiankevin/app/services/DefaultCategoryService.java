@@ -3,11 +3,9 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.exceptions.CategoryAlreadyExistException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.models.Category;
-import com.fabiankevin.app.models.IconData;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.CategoryRepository;
-import com.fabiankevin.app.persistence.IconRepository;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.PatchCategoryCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
@@ -23,7 +21,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class DefaultCategoryService implements CategoryService {
     private final CategoryRepository categoryRepository;
-    private final IconRepository iconRepository;
 
     @Override
     public Category getCategoryById(UUID id, UUID userId) {
@@ -40,8 +37,6 @@ public class DefaultCategoryService implements CategoryService {
     }
 
     private Category createNewCategory(CreateCategoryCommand command) {
-        Optional<IconData> optionalIconData = getOrSaveIcon(command.icon());
-
         if (categoryRepository.existsByNameAndTypeAndUserId(command.name(), command.type(), command.userId())) {
             throw new CategoryAlreadyExistException("Category with the same name and type already exists for the user");
         }
@@ -49,7 +44,7 @@ public class DefaultCategoryService implements CategoryService {
         Category newCategory = Category.builder()
                 .name(command.name())
                 .type(command.type())
-                .icon(optionalIconData.orElse(null))
+                .icon(command.icon())
                 .userId(command.userId())
                 .active(true)
                 .system(false)
@@ -61,13 +56,9 @@ public class DefaultCategoryService implements CategoryService {
     }
 
     private Category reactivateCategory(Category inactiveCategory, CreateCategoryCommand command) {
-        IconData updatedIcon = command.icon() != null
-                ? getOrSaveIcon(command.icon()).orElse(null)
-                : inactiveCategory.icon();
-
         return categoryRepository.save(inactiveCategory.toBuilder()
                 .active(true)
-                .icon(updatedIcon)
+                .icon(command.icon())
                 .updatedAt(Instant.now())
                 .build());
     }
@@ -119,30 +110,8 @@ public class DefaultCategoryService implements CategoryService {
                 .ifPresent(categoryBuilder::type);
 
         Optional.ofNullable(command.icon())
-                .ifPresent(iconData -> {
-                    if (existing.icon() != null && iconData.id() != existing.icon().id()) {
-                        categoryBuilder.icon(getOrSaveIcon(iconData).orElse(null));
-                    }
-                });
+                .ifPresent(categoryBuilder::icon);
 
         return categoryRepository.save(categoryBuilder.build());
-    }
-
-    private Optional<IconData> getOrSaveIcon(IconData icon) {
-        if (icon == null) {
-            return Optional.empty();
-        }
-
-        return Optional.of(iconRepository.findByCodePointAndFontFamily(icon.codePoint(), icon.fontFamily())
-                .orElseGet(() -> {
-                    IconData newIcon = IconData.builder()
-                            .codePoint(icon.codePoint())
-                            .fontFamily(icon.fontFamily())
-                            .iconName(icon.iconName())
-                            .createdAt(Instant.now())
-                            .build();
-
-                    return iconRepository.save(newIcon);
-                }));
     }
 }

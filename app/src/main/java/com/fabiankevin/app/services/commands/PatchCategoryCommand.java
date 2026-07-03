@@ -10,8 +10,7 @@ public record PatchCategoryCommand(
         UUID id,
         String name,
         TransactionType type,
-        com.fabiankevin.app.models.IconData icon,
+        String icon,
         UUID userId
 ) {
 }
-

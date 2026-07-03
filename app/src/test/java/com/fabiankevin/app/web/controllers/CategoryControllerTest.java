@@ -7,8 +7,6 @@ import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.services.commands.PatchCategoryCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
-import com.fabiankevin.app.web.controllers.dtos.CreateIconRequest;
-import com.fabiankevin.app.web.controllers.dtos.IconResponse;
 import com.fabiankevin.app.web.controllers.dtos.PatchCategoryRequest;
 import com.github.fabiankevin.lemon.web.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
@@ -96,15 +94,10 @@ class CategoryControllerTest {
 
     @Test
     void createCategory_givenValidRequestWithIcon_thenShouldCreateCategoryWithIcon() throws Exception {
-        CreateIconRequest iconRequest = CreateIconRequest.builder()
-                .codePoint(128161)
-                .fontFamily("Material Icons")
-                .build();
-
         CreateCategoryRequest request = CreateCategoryRequest.builder()
                 .name("FOOD")
                 .type(TransactionType.EXPENSE)
-                .icon(iconRequest)
+                .icon("food")
                 .build();
 
         when(categoryService.createCategory(any())).thenAnswer(invocation -> {
@@ -130,8 +123,7 @@ class CategoryControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNotEmpty())
                 .andExpect(jsonPath("$.name").value("FOOD"))
-                .andExpect(jsonPath("$.icon.codePoint").value(128161))
-                .andExpect(jsonPath("$.icon.fontFamily").value("Material Icons"));
+                .andExpect(jsonPath("$.icon").value("food"));
 
         verify(categoryService, times(1)).createCategory(any());
     }
@@ -179,18 +171,13 @@ class CategoryControllerTest {
     void getCategoryById_givenExistingIdWithIcon_thenShouldReturnCategoryWithIcon() throws Exception {
         UUID id = UUID.randomUUID();
         UUID userId = UUID.fromString(jwt.getSubject());
-        UUID iconId = UUID.randomUUID();
 
         when(categoryService.getCategoryById(id, userId)).thenReturn(Category.builder()
                 .id(id)
                 .name("FOOD")
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
-                .icon(com.fabiankevin.app.models.IconData.builder()
-                        .id(iconId)
-                        .codePoint(128161)
-                        .fontFamily("Material Icons")
-                        .build())
+                .icon("food")
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build());
@@ -200,9 +187,7 @@ class CategoryControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.name").value("FOOD"))
-                .andExpect(jsonPath("$.icon.id").value(iconId.toString()))
-                .andExpect(jsonPath("$.icon.codePoint").value(128161))
-                .andExpect(jsonPath("$.icon.fontFamily").value("Material Icons"));
+                .andExpect(jsonPath("$.icon").value("food"));
 
         verify(categoryService, times(1)).getCategoryById(id, userId);
     }
@@ -286,19 +271,13 @@ class CategoryControllerTest {
         UUID userId = UUID.fromString(jwt.getSubject());
         PageQuery query = new PageQuery(0, 2, "name", "ASC");
         TransactionType type = TransactionType.EXPENSE;
-        UUID iconId1 = UUID.randomUUID();
-        UUID iconId2 = UUID.randomUUID();
 
         Category c1 = Category.builder()
                 .id(UUID.randomUUID())
                 .name("FOOD")
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
-                .icon(com.fabiankevin.app.models.IconData.builder()
-                        .id(iconId1)
-                        .codePoint(128161)
-                        .fontFamily("Material Icons")
-                        .build())
+                .icon("food")
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -308,11 +287,7 @@ class CategoryControllerTest {
                 .name("RENT")
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
-                .icon(com.fabiankevin.app.models.IconData.builder()
-                        .id(iconId2)
-                        .codePoint(128175)
-                        .fontFamily("Material Icons")
-                        .build())
+                .icon("house")
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -325,8 +300,8 @@ class CategoryControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content.length()").value(2))
-                .andExpect(jsonPath("$.content[0].icon.codePoint").value(128161))
-                .andExpect(jsonPath("$.content[1].icon.codePoint").value(128175))
+                .andExpect(jsonPath("$.content[0].icon").value("food"))
+                .andExpect(jsonPath("$.content[1].icon").value("house"))
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(2))
                 .andExpect(jsonPath("$.totalElements").value(2))
@@ -370,18 +345,13 @@ class CategoryControllerTest {
         UUID userId = UUID.fromString(jwt.getSubject());
         PageQuery query = new PageQuery(0, 2, "name", "ASC");
         TransactionType type = TransactionType.INCOME;
-        UUID iconId = UUID.randomUUID();
 
         Category c1 = Category.builder()
                 .id(UUID.randomUUID())
                 .name("SALARY")
                 .type(TransactionType.INCOME)
                 .userId(userId)
-                .icon(com.fabiankevin.app.models.IconData.builder()
-                        .id(iconId)
-                        .codePoint(128104)
-                        .fontFamily("Material Icons")
-                        .build())
+                .icon("money")
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -395,8 +365,7 @@ class CategoryControllerTest {
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.content[0].name").value("SALARY"))
-                .andExpect(jsonPath("$.content[0].icon.codePoint").value(128104))
-                .andExpect(jsonPath("$.content[0].icon.fontFamily").value("Material Icons"));
+                .andExpect(jsonPath("$.content[0].icon").value("money"));
 
         verify(categoryService, times(1)).getCategoriesByPageQuery(query, userId, type);
     }
@@ -445,20 +414,13 @@ class CategoryControllerTest {
     void getCategoriesByPageQuery_givenNoTypeFilterWithIcons_shouldDefaultToExpenseType() throws Exception {
         UUID userId = UUID.fromString(jwt.getSubject());
         PageQuery query = new PageQuery(0, 2, "name", "ASC");
-        TransactionType type = null;
-        UUID iconId1 = UUID.randomUUID();
-        UUID iconId2 = UUID.randomUUID();
 
         Category c1 = Category.builder()
                 .id(UUID.randomUUID())
                 .name("FOOD")
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
-                .icon(com.fabiankevin.app.models.IconData.builder()
-                        .id(iconId1)
-                        .codePoint(128161)
-                        .fontFamily("Material Icons")
-                        .build())
+                .icon("food")
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -468,11 +430,7 @@ class CategoryControllerTest {
                 .name("SALARY")
                 .type(TransactionType.INCOME)
                 .userId(userId)
-                .icon(com.fabiankevin.app.models.IconData.builder()
-                        .id(iconId2)
-                        .codePoint(128104)
-                        .fontFamily("Material Icons")
-                        .build())
+                .icon("money")
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -485,8 +443,8 @@ class CategoryControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content.length()").value(2))
-                .andExpect(jsonPath("$.content[0].icon.codePoint").value(128161))
-                .andExpect(jsonPath("$.content[1].icon.codePoint").value(128104));
+                .andExpect(jsonPath("$.content[0].icon").value("food"))
+                .andExpect(jsonPath("$.content[1].icon").value("money"));
 
         verify(categoryService, times(1)).getCategoriesByPageQuery(query, userId, null);
     }
@@ -564,15 +522,9 @@ class CategoryControllerTest {
         UUID userId = UUID.fromString(jwt.getSubject());
         UUID iconId = UUID.randomUUID();
 
-        IconResponse iconResponse = IconResponse.builder()
-                .id(iconId)
-                .codePoint(128161)
-                .fontFamily("Material Icons")
-                .build();
-
         PatchCategoryRequest request = PatchCategoryRequest.builder()
                 .name("GROCERIES")
-                .icon(iconResponse)
+                .icon("groceries")
                 .build();
 
         when(categoryService.patchCategory(any())).thenAnswer(invocation -> {
@@ -595,9 +547,7 @@ class CategoryControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.name").value("GROCERIES"))
-                .andExpect(jsonPath("$.icon.id").value(iconId.toString()))
-                .andExpect(jsonPath("$.icon.codePoint").value(128161))
-                .andExpect(jsonPath("$.icon.fontFamily").value("Material Icons"));
+                .andExpect(jsonPath("$.icon").value("groceries"));
 
         verify(categoryService, times(1)).patchCategory(any());
     }

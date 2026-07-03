@@ -2,17 +2,14 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.models.Category;
-import com.fabiankevin.app.models.IconData;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.CategoryRepository;
-import com.fabiankevin.app.persistence.IconRepository;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.PatchCategoryCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -31,9 +28,6 @@ import static org.mockito.Mockito.*;
 class DefaultCategoryServiceTest {
     @Mock
     private CategoryRepository categoryRepository;
-
-    @Mock
-    private IconRepository iconRepository;
 
     @InjectMocks
     private DefaultCategoryService categoryService;
@@ -62,36 +56,25 @@ class DefaultCategoryServiceTest {
         assertEquals(TransactionType.EXPENSE, created.type(), "type should match command");
         assertEquals(userId, created.userId(), "userIds should be set from command");
         assertTrue(created.active(), "category should be active");
+        assertNull(created.icon(), "icon should be null when not provided");
         verify(categoryRepository, times(1)).findInactiveByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId);
         verify(categoryRepository, times(1)).save(any());
     }
 
     @Test
-    void createCategory_givenExistingIcon_shouldResolveAndSaveCategory() {
+    void createCategory_givenNewCategoryWithIcon_thenShouldSaveCategoryWithIcon() {
         UUID userId = UUID.randomUUID();
-        IconData existingIcon = IconData.builder()
-                .id(UUID.randomUUID())
-                .codePoint(0x1F370)
-                .fontFamily("MaterialIcons")
-                .iconName("restaurant")
-                .build();
+        String icon = "attach_money";
 
         CreateCategoryCommand command = CreateCategoryCommand.builder()
                 .name("FOOD")
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
-                .icon(IconData.builder()
-                        .id(existingIcon.id())
-                        .codePoint(0x1F370)
-                        .fontFamily("MaterialIcons")
-                        .iconName("restaurant")
-                        .build())
+                .icon(icon)
                 .build();
 
         when(categoryRepository.findInactiveByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId))
                 .thenReturn(Optional.empty());
-        when(iconRepository.findByCodePointAndFontFamily(0x1F370, "MaterialIcons"))
-                .thenReturn(Optional.of(existingIcon));
         when(categoryRepository.existsByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId))
                 .thenReturn(false);
         when(categoryRepository.save(any())).thenAnswer(invocation -> {
@@ -103,70 +86,15 @@ class DefaultCategoryServiceTest {
 
         assertEquals("FOOD", created.name());
         assertEquals(TransactionType.EXPENSE, created.type());
-        assertEquals(existingIcon, created.icon());
-        verify(iconRepository, times(1)).findByCodePointAndFontFamily(0x1F370, "MaterialIcons");
+        assertEquals(icon, created.icon());
         verify(categoryRepository, times(1)).save(any());
-    }
-
-    @Test
-    void createCategory_givenNewIcon_shouldBuildAndSaveCategory() {
-        UUID userId = UUID.randomUUID();
-        IconData newIcon = IconData.builder()
-                .codePoint(0x1F3E0)
-                .fontFamily("MaterialIcons")
-                .iconName("home")
-                .build();
-
-        CreateCategoryCommand command = CreateCategoryCommand.builder()
-                .name("RENT")
-                .type(TransactionType.EXPENSE)
-                .userId(userId)
-                .icon(newIcon)
-                .build();
-
-        when(categoryRepository.findInactiveByNameAndTypeAndUserId("RENT", TransactionType.EXPENSE, userId))
-                .thenReturn(Optional.empty());
-        when(iconRepository.findByCodePointAndFontFamily(anyInt(), any())).thenReturn(Optional.empty());
-        when(iconRepository.save(any())).thenAnswer(invocation -> (IconData) invocation.getArguments()[0]);
-        when(categoryRepository.existsByNameAndTypeAndUserId("RENT", TransactionType.EXPENSE, userId))
-                .thenReturn(false);
-        when(categoryRepository.save(any())).thenAnswer(invocation -> {
-            Category c = invocation.getArgument(0);
-            return c.toBuilder().id(UUID.randomUUID()).build();
-        });
-
-        Category created = categoryService.createCategory(command);
-
-        assertEquals("RENT", created.name());
-        assertEquals(TransactionType.EXPENSE, created.type());
-        assertEquals(newIcon.codePoint(), created.icon().codePoint());
-        assertEquals(newIcon.fontFamily(), created.icon().fontFamily());
-        assertEquals(newIcon.iconName(), created.icon().iconName());
-        assertNull(created.icon().id());
-        verify(iconRepository, times(1)).findByCodePointAndFontFamily(0x1F3E0, "MaterialIcons");
-        ArgumentCaptor<Category> categoryArgumentCaptor = ArgumentCaptor.forClass(Category.class);
-        verify(categoryRepository, times(1)).save(categoryArgumentCaptor.capture());
-        Category value = categoryArgumentCaptor.getValue();
-        assertNull(value.id(), "id");
-        assertEquals(value.name(), created.name(), "name");
-        assertEquals(value.type(), created.type(), "type");
-        assertEquals(value.userId(), created.userId(), "userId");
-        assertNull(value.icon().id(), "icon.id");
-        assertEquals(newIcon.codePoint(), value.icon().codePoint(), "codePoint");
-        assertEquals(newIcon.fontFamily(), value.icon().fontFamily(), "fontFamily");
-        assertNotNull(value.icon().createdAt(), "createdAt");
     }
 
     @Test
     void createCategory_givenInactiveCategory_shouldReactivateAndReturn() {
         UUID userId = UUID.randomUUID();
         UUID categoryId = UUID.randomUUID();
-        IconData existingIcon = IconData.builder()
-                .id(UUID.randomUUID())
-                .codePoint(0x1F370)
-                .fontFamily("MaterialIcons")
-                .iconName("restaurant")
-                .build();
+        String existingIcon = "restaurant";
 
         Category inactiveCategory = Category.builder()
                 .id(categoryId)
@@ -199,7 +127,7 @@ class DefaultCategoryServiceTest {
         assertEquals("FOOD", created.name());
         assertEquals(TransactionType.EXPENSE, created.type());
         assertTrue(created.active(), "category should be reactivated");
-        assertEquals(existingIcon, created.icon(), "should preserve existing icon");
+        assertNull(created.icon(), "should preserve existing icon when command has no icon");
         verify(categoryRepository, times(1)).findInactiveByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId);
         verify(categoryRepository, times(1)).save(any());
         verify(categoryRepository, never()).existsByNameAndTypeAndUserId(any(), any(), any());
@@ -209,18 +137,8 @@ class DefaultCategoryServiceTest {
     void createCategory_givenInactiveCategoryWithNewIcon_shouldReactivateAndReplaceIcon() {
         UUID userId = UUID.randomUUID();
         UUID categoryId = UUID.randomUUID();
-        IconData oldIcon = IconData.builder()
-                .id(UUID.randomUUID())
-                .codePoint(0x1F370)
-                .fontFamily("MaterialIcons")
-                .iconName("restaurant")
-                .build();
-
-        IconData newIcon = IconData.builder()
-                .codePoint(0x1F3E0)
-                .fontFamily("MaterialIcons")
-                .iconName("home")
-                .build();
+        String oldIcon = "restaurant";
+        String newIcon = "home";
 
         Category inactiveCategory = Category.builder()
                 .id(categoryId)
@@ -243,8 +161,6 @@ class DefaultCategoryServiceTest {
 
         when(categoryRepository.findInactiveByNameAndTypeAndUserId("RENT", TransactionType.EXPENSE, userId))
                 .thenReturn(Optional.of(inactiveCategory));
-        when(iconRepository.findByCodePointAndFontFamily(0x1F3E0, "MaterialIcons")).thenReturn(Optional.empty());
-        when(iconRepository.save(any())).thenAnswer(invocation -> (IconData) invocation.getArguments()[0]);
         when(categoryRepository.save(any())).thenAnswer(invocation -> {
             Category c = invocation.getArgument(0);
             return c.toBuilder().id(categoryId).build();
@@ -254,8 +170,7 @@ class DefaultCategoryServiceTest {
 
         assertEquals(categoryId, created.id(), "should return existing category id");
         assertTrue(created.active(), "category should be reactivated");
-        assertNotNull(created.icon(), "icon should be updated");
-        assertEquals(newIcon.codePoint(), created.icon().codePoint(), "icon should be replaced with new icon");
+        assertEquals(newIcon, created.icon(), "icon should be replaced with new icon");
         verify(categoryRepository, times(1)).findInactiveByNameAndTypeAndUserId("RENT", TransactionType.EXPENSE, userId);
         verify(categoryRepository, never()).existsByNameAndTypeAndUserId(any(), any(), any());
     }
@@ -426,20 +341,10 @@ class DefaultCategoryServiceTest {
     }
 
     @Test
-    void patchCategory_givenNewIcon_shouldUpdateCategoryIcon() {
+    void patchCategory_givenNewIconString_shouldUpdateCategoryIcon() {
         UUID id = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
-        UUID existingIconId = UUID.randomUUID();
-
-        IconData existingIcon = IconData.builder()
-                .id(existingIconId)
-                .codePoint(0x1F370)
-                .fontFamily("MaterialIcons")
-                .iconName("restaurant")
-                .build();
-
-        when(iconRepository.findByCodePointAndFontFamily(anyInt(), any())).thenReturn(Optional.empty());
-        when(iconRepository.save(any())).thenAnswer(invocation -> (IconData) invocation.getArguments()[0]);
+        String existingIcon = "restaurant";
 
         Category existing = Category.builder()
                 .id(id)
@@ -451,11 +356,7 @@ class DefaultCategoryServiceTest {
                 .updatedAt(Instant.now())
                 .build();
 
-        IconData newIcon = IconData.builder()
-                .codePoint(0x1F3E0)
-                .fontFamily("MaterialIcons")
-                .iconName("home")
-                .build();
+        String newIcon = "home";
 
         PatchCategoryCommand command = PatchCategoryCommand.builder()
                 .id(id)
@@ -472,27 +373,16 @@ class DefaultCategoryServiceTest {
         Category updated = categoryService.patchCategory(command);
 
         assertEquals("GROCERIES", updated.name());
-        assertNotNull(updated.icon(), "icon");
-        assertNull(updated.icon().id(), "icon.id should be null (new icon not yet persisted)");
-        assertEquals(newIcon.codePoint(), updated.icon().codePoint(), "icon.codePoint");
-        assertEquals(newIcon.fontFamily(), updated.icon().fontFamily(), "icon.fontFamily");
+        assertEquals(newIcon, updated.icon(), "icon should be updated to new string");
         verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
         verify(categoryRepository, times(1)).save(any());
-        verify(iconRepository, times(1)).save(any());
-        verify(iconRepository, times(1)).findByCodePointAndFontFamily(newIcon.codePoint(), "MaterialIcons");
     }
 
     @Test
-    void patchCategory_givenExistingIcon_shouldUpdateCategoryIcon() {
+    void patchCategory_givenNullIcon_shouldNotUpdateIcon() {
         UUID id = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
-
-        IconData existingIcon = IconData.builder()
-                .id(UUID.randomUUID())
-                .codePoint(0x1F370)
-                .fontFamily("MaterialIcons")
-                .iconName("restaurant")
-                .build();
+        String existingIcon = "restaurant";
 
         Category existing = Category.builder()
                 .id(id)
@@ -504,10 +394,37 @@ class DefaultCategoryServiceTest {
                 .updatedAt(Instant.now())
                 .build();
 
-        IconData newIcon = IconData.builder()
-                .codePoint(0x1F3E0)
-                .fontFamily("MaterialIcons")
-                .iconName("home")
+        PatchCategoryCommand command = PatchCategoryCommand.builder()
+                .id(id)
+                .name("GROCERIES")
+                .type(TransactionType.EXPENSE)
+                .userId(userId)
+                .build();
+
+        when(categoryRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(existing));
+        when(categoryRepository.existsByNameAndTypeAndUserId("GROCERIES", TransactionType.EXPENSE, userId)).thenReturn(false);
+        when(categoryRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Category updated = categoryService.patchCategory(command);
+
+        assertEquals("GROCERIES", updated.name());
+        assertEquals(existingIcon, updated.icon(), "icon should be preserved when not provided");
+        verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
+        verify(categoryRepository, times(1)).save(any());
+    }
+
+    @Test
+    void patchCategory_givenNewNameWithDuplicate_shouldThrow() {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        Category existing = Category.builder()
+                .id(id)
+                .name("FOOD")
+                .type(TransactionType.EXPENSE)
+                .userId(userId)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
                 .build();
 
         PatchCategoryCommand command = PatchCategoryCommand.builder()
@@ -515,25 +432,13 @@ class DefaultCategoryServiceTest {
                 .name("RENT")
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
-                .icon(newIcon)
                 .build();
 
-        when(iconRepository.findByCodePointAndFontFamily(anyInt(), any())).thenReturn(Optional.of(newIcon.toBuilder().id(UUID.randomUUID()).build()));
-
         when(categoryRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(existing));
-        when(categoryRepository.existsByNameAndTypeAndUserId("RENT", TransactionType.EXPENSE, userId)).thenReturn(false);
-        when(categoryRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(categoryRepository.existsByNameAndTypeAndUserId("RENT", TransactionType.EXPENSE, userId)).thenReturn(true);
 
-        Category updated = categoryService.patchCategory(command);
-
-        IconData updatedIcon = updated.icon();
-
-        assertEquals("RENT", updated.name());
-        assertNotNull(updatedIcon, "icon");
-        assertNotNull(updatedIcon.id(), "icon.id");
-        assertEquals(updatedIcon.fontFamily(), "MaterialIcons", "icon.fontFamily");
-        assertEquals(updatedIcon.codePoint(), 0x1F3E0, "icon.codePoint");
+        assertThrows(com.fabiankevin.app.exceptions.CategoryAlreadyExistException.class, () -> categoryService.patchCategory(command));
         verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
-        verify(categoryRepository, times(1)).save(any());
+        verify(categoryRepository, never()).save(any());
     }
 }

@@ -1,6 +1,5 @@
 package com.fabiankevin.app.web.controllers.dtos;
 
-import com.fabiankevin.app.models.IconData;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -19,15 +18,14 @@ public record CreateCategoryRequest(
         @NotNull(message = "Type is required")
         @Schema(description = "Transaction type of the category", example = "EXPENSE")
         TransactionType type,
-        @Schema(description = "Icon for the category")
-        CreateIconRequest icon
+        @Schema(description = "Icon for the category", example = "attach_money")
+        String icon
 ) {
     public CreateCategoryCommand toCommand(UUID userId) {
-        IconData iconData = this.icon != null ? this.icon.toIconData() : null;
         return CreateCategoryCommand.builder()
-                .name(this.name())
-                .type(this.type())
-                .icon(iconData)
+                .name(this.name)
+                .type(this.type)
+                .icon(this.icon)
                 .userId(userId)
                 .build();
     }

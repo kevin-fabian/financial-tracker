@@ -1,14 +1,10 @@
 package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.Category;
-import com.fabiankevin.app.models.IconData;
 import com.fabiankevin.app.models.enums.TransactionType;
-import com.fabiankevin.app.persistence.entities.IconEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
-import com.fabiankevin.app.persistence.jpa_repositories.JpaIconRepository;
 import com.fabiankevin.app.services.queries.PageQuery;
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -41,40 +37,9 @@ class DefaultCategoryRepositoryTest {
     @Autowired
     private CategoryRepository categoryRepository;
 
-    @Autowired
-    private JpaIconRepository jpaIconRepository;
-
     private Category category;
 
-    private IconData foodIcon;
-    private IconData transportationIcon;
     private Category foodCategory;
-
-    @BeforeAll
-    void initialRecord() {
-        foodIcon = jpaIconRepository.save(IconEntity.builder()
-                .codePoint(12345)
-                .fontFamily("MaterialIcon")
-                .createdAt(Instant.now())
-                .build()).toModel();
-        transportationIcon = jpaIconRepository.save(IconEntity.builder()
-                .codePoint(11111)
-                .fontFamily("MaterialIcon")
-                .createdAt(Instant.now())
-                .build()).toModel();
-
-        foodCategory = Category.builder()
-                .name("FOOD")
-                .type(TransactionType.EXPENSE)
-                .userId(UUID.randomUUID())
-                .icon(foodIcon)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-        categoryRepository.save(foodCategory);
-
-        Mockito.reset(jpaCategoryRepository);
-    }
 
     @BeforeEach
     void setUp() {
@@ -85,6 +50,18 @@ class DefaultCategoryRepositoryTest {
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
+
+        foodCategory = Category.builder()
+                .name("FOOD")
+                .type(TransactionType.EXPENSE)
+                .userId(UUID.randomUUID())
+                .icon("attach_money")
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+        categoryRepository.save(foodCategory);
+
+        Mockito.reset(jpaCategoryRepository);
     }
 
     @Test
@@ -104,48 +81,23 @@ class DefaultCategoryRepositoryTest {
     }
 
     @Test
-    void save_givenCategoryNotExistingIcon_shouldThrowException() {
-        IconData icon = IconData.builder()
-                .codePoint(0x1F354)
-                .fontFamily("MaterialIcons")
-                .iconName("restaurant")
-                .createdAt(Instant.now())
-                .build();
-
+    void save_givenCategoryWithIcon_shouldPersistIconAsColumn() {
         Category categoryWithIcon = Category.builder()
                 .name("RESTAURANTS")
                 .type(TransactionType.EXPENSE)
                 .userId(category.userId())
-                .icon(icon)
+                .icon("restaurant")
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
 
-        assertThrows(InvalidDataAccessApiUsageException.class, () -> {
-            categoryRepository.save(categoryWithIcon);
-            jpaCategoryRepository.flush();
-        }, "category with icon should throw InvalidDataAccessApiUsageException");
-    }
-
-    @Test
-    void save_givenExistingCategoryAnd_shouldUpdateToExistingIcon() {
-        Category saved = categoryRepository.save(foodCategory.toBuilder()
-                .name("Transportation")
-                .icon(transportationIcon)
-                .build());
+        Category saved = categoryRepository.save(categoryWithIcon);
+        jpaCategoryRepository.flush();
 
         var found = categoryRepository.findByIdAndUserId(saved.id(), saved.userId()).orElseThrow();
 
-        Assertions.assertThat(found.icon())
-                .as("category icon should be persisted")
-                .isNotNull();
-        assertEquals(found.name(), "Transportation", "category name should match");
-        Assertions.assertThat(found.icon().codePoint())
-                .isEqualTo(transportationIcon.codePoint());
-        Assertions.assertThat(found.icon().fontFamily())
-                .isEqualTo(transportationIcon.fontFamily());
-        Assertions.assertThat(found.icon().iconName())
-                .isEqualTo(transportationIcon.iconName());
+        assertNotNull(found.icon(), "icon should be persisted as string column");
+        assertEquals("restaurant", found.icon());
     }
 
     @Test
