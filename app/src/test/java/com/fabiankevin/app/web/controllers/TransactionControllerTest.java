@@ -346,7 +346,7 @@ class TransactionControllerTest {
                 .account(AccountResponse.builder().id(UUID.randomUUID()).name("A1").build())
                 .category(CategoryResponse.builder().id(UUID.randomUUID()).name("C1").build())
                 .amount(AmountResponse.builder()
-                        .value(BigDecimal.valueOf(100))
+                        .value(100.0)
                         .currency(Currency.getInstance("PHP"))
                         .build())
                 .description("desc")

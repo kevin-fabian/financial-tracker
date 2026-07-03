@@ -19,7 +19,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Table(name = "accounts")
 @Entity
-public class AccountEntity{
+public class AccountEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;

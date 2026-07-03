@@ -2,7 +2,14 @@ package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.enums.TransactionType;
+import com.fabiankevin.app.persistence.entities.AccountEntity;
+import com.fabiankevin.app.persistence.entities.CategoryEntity;
+import com.fabiankevin.app.persistence.entities.TransactionEntity;
+import com.fabiankevin.app.persistence.entities.embeddables.AmountEmbeddable;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
+import com.fabiankevin.app.persistence.projections.CategorySummaryProjection;
 import com.fabiankevin.app.services.queries.PageQuery;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,15 +37,15 @@ import static org.mockito.Mockito.verify;
 @DataJpaTest
 @Import(DefaultCategoryRepository.class)
 class DefaultCategoryRepositoryTest {
-
     @MockitoSpyBean
     private JpaCategoryRepository jpaCategoryRepository;
-
     @Autowired
     private CategoryRepository categoryRepository;
-
+    @Autowired
+    private JpaTransactionRepository jpaTransactionRepository;
+    @Autowired
+    private JpaAccountRepository jpaAccountRepository;
     private Category category;
-
     private Category foodCategory;
 
     @BeforeEach
@@ -428,5 +435,113 @@ class DefaultCategoryRepositoryTest {
                 .isFalse();
 
         verify(jpaCategoryRepository, times(1)).existsByNameAndTransactionTypeAndUserId("NONEXISTENT", TransactionType.EXPENSE, userId);
+    }
+
+    @Test
+    void findByUserIdWithSummary_givenNoCategories_shouldReturnEmptyList() {
+        UUID userId = UUID.randomUUID();
+        List<CategorySummaryProjection> result = jpaCategoryRepository.findByUserIdWithSummary(userId);
+
+        Assertions.assertThat(result).as("should return empty list when user has no categories").isEmpty();
+
+        verify(jpaCategoryRepository, times(1)).findByUserIdWithSummary(userId);
+    }
+
+    @Test
+    void findByUserIdWithSummary_givenCategoriesWithTransactions_shouldReturnCorrectSummary() {
+        UUID userId = UUID.randomUUID();
+
+        CategoryEntity food = CategoryEntity.builder()
+                .name("FOOD")
+                .transactionType(TransactionType.EXPENSE)
+                .userId(userId)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+        CategoryEntity rent = CategoryEntity.builder()
+                .name("RENT")
+                .transactionType(TransactionType.EXPENSE)
+                .userId(userId)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+        CategoryEntity salary = CategoryEntity.builder()
+                .name("SALARY")
+                .transactionType(TransactionType.INCOME)
+                .userId(userId)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+        jpaCategoryRepository.saveAll(List.of(food, rent, salary));
+        jpaCategoryRepository.flush();
+
+        // Create test transactions directly via JPA to avoid service-layer side effects
+        var account = AccountEntity.builder()
+                .userId(userId)
+                .name("CASH")
+                .currency("PHP")
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+        account = jpaAccountRepository.saveAndFlush(account);
+
+        var foodTx = TransactionEntity.builder()
+                .account(account)
+                .category(food)
+                .amount(new AmountEmbeddable(500.0, "PHP"))
+                .transactionDate(java.time.LocalDate.of(2026, 7, 1))
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        var rentTx = TransactionEntity.builder()
+                .account(account)
+                .category(rent)
+                .amount(new AmountEmbeddable(2000.0, "PHP"))
+                .transactionDate(java.time.LocalDate.of(2026, 7, 1))
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        var salaryTx = TransactionEntity.builder()
+                .account(account)
+                .category(salary)
+                .amount(new AmountEmbeddable(5000.0, "PHP"))
+                .transactionDate(java.time.LocalDate.of(2026, 7, 1))
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        var foodTx2 = TransactionEntity.builder()
+                .account(account)
+                .category(food)
+                .amount(new AmountEmbeddable(300.0, "PHP"))
+                .transactionDate(java.time.LocalDate.of(2026, 7, 2))
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        var allTransactions = List.of(foodTx, rentTx, salaryTx, foodTx2);
+        for (var tx : allTransactions) {
+            jpaTransactionRepository.saveAndFlush(tx);
+        }
+
+        List<CategorySummaryProjection> result = jpaCategoryRepository.findByUserIdWithSummary(userId);
+
+        Assertions.assertThat(result).hasSize(3);
+
+        var foodSummary = result.stream().filter(p -> "FOOD".equals(p.name())).findFirst().orElseThrow();
+        Assertions.assertThat(foodSummary.amount()).isEqualTo(800.0);
+        Assertions.assertThat(foodSummary.totalTransactions()).isEqualTo(2);
+
+        var rentSummary = result.stream().filter(p -> "RENT".equals(p.name())).findFirst().orElseThrow();
+        Assertions.assertThat(rentSummary.amount()).isEqualTo(2000.0);
+        Assertions.assertThat(rentSummary.totalTransactions()).isEqualTo(1);
+
+        var salarySummary = result.stream().filter(p -> "SALARY".equals(p.name())).findFirst().orElseThrow();
+        Assertions.assertThat(salarySummary.amount()).isEqualTo(5000.0);
+        Assertions.assertThat(salarySummary.totalTransactions()).isEqualTo(1);
+
+        verify(jpaCategoryRepository, times(1)).findByUserIdWithSummary(userId);
     }
 }

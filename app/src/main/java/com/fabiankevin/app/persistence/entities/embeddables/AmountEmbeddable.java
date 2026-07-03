@@ -8,7 +8,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.util.Currency;
 import java.util.Optional;
 
@@ -19,7 +18,7 @@ import java.util.Optional;
 @Embeddable
 public class AmountEmbeddable {
     @Column(nullable = false)
-    private BigDecimal amount;
+    private double amount;
 
     @Column(nullable = false)
     private String currency;
