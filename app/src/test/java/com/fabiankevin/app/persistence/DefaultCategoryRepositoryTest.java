@@ -7,7 +7,6 @@ import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.entities.AccountEntity;
 import com.fabiankevin.app.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.persistence.entities.TransactionEntity;
-import com.fabiankevin.app.persistence.entities.embeddables.AmountEmbeddable;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
@@ -492,7 +491,8 @@ class DefaultCategoryRepositoryTest {
             var foodTx = TransactionEntity.builder()
                     .account(account)
                     .category(food)
-                    .amount(new AmountEmbeddable(300.0, "PHP"))
+                    .amountValue(300.0)
+                    .amountCurrency("PHP")
                     .transactionDate(LocalDate.of(2026, 7, 1))
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -501,7 +501,8 @@ class DefaultCategoryRepositoryTest {
             var rentTx = TransactionEntity.builder()
                     .account(account)
                     .category(rent)
-                    .amount(new AmountEmbeddable(700.0, "PHP"))
+                    .amountValue(700.0)
+                    .amountCurrency("PHP")
                     .transactionDate(LocalDate.of(2026, 7, 1))
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -562,7 +563,8 @@ class DefaultCategoryRepositoryTest {
             var foodTx = TransactionEntity.builder()
                     .account(account)
                     .category(food)
-                    .amount(new AmountEmbeddable(500.0, "PHP"))
+                    .amountValue(500.0)
+                    .amountCurrency("PHP")
                     .transactionDate(java.time.LocalDate.of(2026, 7, 1))
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -571,7 +573,8 @@ class DefaultCategoryRepositoryTest {
             var salaryTx = TransactionEntity.builder()
                     .account(account)
                     .category(salary)
-                    .amount(new AmountEmbeddable(5000.0, "PHP"))
+                    .amountValue(5000.0)
+                    .amountCurrency("PHP")
                     .transactionDate(java.time.LocalDate.of(2026, 7, 1))
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())

@@ -9,7 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,20 +22,7 @@ public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUI
     @Query("""
             SELECT new com.fabiankevin.app.persistence.projections.CategorySummaryProjection(
                 c.id, c.name, c.transactionType, c.userId, c.icon, c.active, c.system,
-                SUM(t.amount.amount),
-                CAST(COUNT(t.id) AS int)
-            )
-            FROM CategoryEntity c
-            LEFT JOIN TransactionEntity t ON t.category.id = c.id
-            WHERE c.userId = :userId
-            GROUP BY c
-            """)
-    List<CategorySummaryProjection> findByUserIdWithSummary(@Param("userId") UUID userId);
-
-    @Query("""
-            SELECT new com.fabiankevin.app.persistence.projections.CategorySummaryProjection(
-                c.id, c.name, c.transactionType, c.userId, c.icon, c.active, c.system,
-                COALESCE(SUM(t.amount.amount), 0.0),
+                COALESCE(SUM(t.amountValue), 0.0),
                 CAST(COALESCE(COUNT(t.id), 0) AS int)
             )
             FROM CategoryEntity c

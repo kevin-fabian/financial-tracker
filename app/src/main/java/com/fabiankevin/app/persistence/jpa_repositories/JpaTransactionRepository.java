@@ -16,7 +16,7 @@ import java.util.UUID;
 
 public interface JpaTransactionRepository extends JpaRepository<TransactionEntity, UUID> {
     @Query("""
-                SELECT t.category.name AS label, SUM(t.amount.amount) AS sum
+                SELECT t.category.name AS label, SUM(t.amountValue) AS sum
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds
@@ -30,7 +30,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("type") TransactionType type);
 
     @Query("""
-                SELECT MONTH(t.transactionDate) AS label, SUM(t.amount.amount) AS sum
+                SELECT MONTH(t.transactionDate) AS label, SUM(t.amountValue) AS sum
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds
@@ -44,7 +44,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("type") TransactionType type);
 
     @Query("""
-                SELECT YEAR(t.transactionDate) AS label, SUM(t.amount.amount) AS sum
+                SELECT YEAR(t.transactionDate) AS label, SUM(t.amountValue) AS sum
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds
@@ -58,7 +58,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("type") TransactionType type);
 
     @Query("""
-                SELECT DAY(t.transactionDate) AS label, SUM(t.amount.amount) AS sum
+                SELECT DAY(t.transactionDate) AS label, SUM(t.amountValue) AS sum
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds

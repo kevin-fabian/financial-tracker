@@ -1,8 +1,8 @@
 package com.fabiankevin.app.persistence.entities;
 
+import com.fabiankevin.app.models.Amount;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.Transaction;
-import com.fabiankevin.app.persistence.entities.embeddables.AmountEmbeddable;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Currency;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,8 +34,10 @@ public class TransactionEntity {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id")
     private CategoryEntity category;
-    @Embedded
-    private AmountEmbeddable amount;
+    @Column(nullable = false)
+    private double amountValue;
+    @Column(nullable = false, length = 3)
+    private String amountCurrency;
     private String description;
     @JoinColumn(nullable = false)
     private LocalDate transactionDate;
@@ -47,7 +50,8 @@ public class TransactionEntity {
                 .id(transaction.id())
                 .account(AccountEntity.from(transaction.account()))
                 .category(CategoryEntity.from(transaction.category()))
-                .amount(AmountEmbeddable.from(transaction.amount()))
+                .amountValue(transaction.amount().value())
+                .amountCurrency(transaction.amount().currency().getCurrencyCode())
                 .description(transaction.description())
                 .transactionDate(transaction.transactionDate())
                 .createdAt(transaction.createdAt())
@@ -61,7 +65,10 @@ public class TransactionEntity {
                 .account(Optional.ofNullable(this.account).map(AccountEntity::toModel).orElse(null))
                 .type(Optional.ofNullable(this.category).map(CategoryEntity::toModel).map(Category::type).orElse(null))
                 .category(Optional.ofNullable(this.category).map(CategoryEntity::toModel).orElse(null))
-                .amount(Optional.ofNullable(this.amount).map(AmountEmbeddable::toModel).orElse(null))
+                .amount(Amount.of(
+                        this.amountValue,
+                        Currency.getInstance(this.amountCurrency)
+                ))
                 .description(this.description)
                 .transactionDate(this.transactionDate)
                 .createdAt(this.createdAt)
