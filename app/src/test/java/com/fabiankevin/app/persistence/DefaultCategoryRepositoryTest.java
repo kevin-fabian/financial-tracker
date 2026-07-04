@@ -1,6 +1,8 @@
 package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.CategorySummary;
+import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.entities.AccountEntity;
 import com.fabiankevin.app.persistence.entities.CategoryEntity;
@@ -9,7 +11,6 @@ import com.fabiankevin.app.persistence.entities.embeddables.AmountEmbeddable;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
-import com.fabiankevin.app.persistence.projections.CategorySummaryProjection;
 import com.fabiankevin.app.services.queries.PageQuery;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +25,7 @@ import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -456,19 +458,9 @@ class DefaultCategoryRepositoryTest {
     }
 
     @Nested
-    class FindByUserIdWithSummary {
+    class FindAllByPageQueryWithSummary {
         @Test
-        void givenNoCategories_shouldReturnEmptyList() {
-            UUID userId = UUID.randomUUID();
-            List<CategorySummaryProjection> result = jpaCategoryRepository.findByUserIdWithSummary(userId);
-
-            Assertions.assertThat(result).as("should return empty list when user has no categories").isEmpty();
-
-            verify(jpaCategoryRepository, times(1)).findByUserIdWithSummary(userId);
-        }
-
-        @Test
-        void givenCategoriesWithTransactions_shouldReturnCorrectSummary() {
+        void givenCategoriesWithTransactions_shouldReturnPagedSummariesWithPercentages() {
             UUID userId = UUID.randomUUID();
 
             CategoryEntity food = CategoryEntity.builder()
@@ -485,6 +477,69 @@ class DefaultCategoryRepositoryTest {
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
+            jpaCategoryRepository.saveAll(List.of(food, rent));
+            jpaCategoryRepository.flush();
+
+            var account = AccountEntity.builder()
+                    .userId(userId)
+                    .name("CASH")
+                    .currency("PHP")
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            account = jpaAccountRepository.saveAndFlush(account);
+
+            var foodTx = TransactionEntity.builder()
+                    .account(account)
+                    .category(food)
+                    .amount(new AmountEmbeddable(300.0, "PHP"))
+                    .transactionDate(LocalDate.of(2026, 7, 1))
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            var rentTx = TransactionEntity.builder()
+                    .account(account)
+                    .category(rent)
+                    .amount(new AmountEmbeddable(700.0, "PHP"))
+                    .transactionDate(LocalDate.of(2026, 7, 1))
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            jpaTransactionRepository.saveAndFlush(foodTx);
+            jpaTransactionRepository.saveAndFlush(rentTx);
+
+            Page<CategorySummary> page = categoryRepository.findAllByPageQueryWithSummary(
+                    new PageQuery(0, 10, "name", "ASC"), userId, TransactionType.EXPENSE);
+
+            Assertions.assertThat(page.content()).hasSize(2);
+
+            var foodSummary = page.content().stream().filter(c -> "FOOD".equals(c.name())).findFirst().orElseThrow();
+            Assertions.assertThat(foodSummary.amount()).isEqualTo(300.0);
+            Assertions.assertThat(foodSummary.totalTransactions()).isEqualTo(1);
+            Assertions.assertThat(foodSummary.percentage()).isCloseTo(30.0, Assertions.within(0.01));
+
+            var rentSummary = page.content().stream().filter(c -> "RENT".equals(c.name())).findFirst().orElseThrow();
+            Assertions.assertThat(rentSummary.amount()).isEqualTo(700.0);
+            Assertions.assertThat(rentSummary.totalTransactions()).isEqualTo(1);
+            Assertions.assertThat(rentSummary.percentage()).isCloseTo(70.0, Assertions.within(0.01));
+
+            Assertions.assertThat(page.totalElements()).isEqualTo(2);
+            Assertions.assertThat(page.totalPages()).isEqualTo(1);
+        }
+
+        @Test
+        void givenCategoriesWithTransactionsAndTypeFilter_shouldReturnFilteredSummaries() {
+            UUID userId = UUID.randomUUID();
+
+            CategoryEntity food = CategoryEntity.builder()
+                    .name("FOOD")
+                    .transactionType(TransactionType.EXPENSE)
+                    .userId(userId)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
             CategoryEntity salary = CategoryEntity.builder()
                     .name("SALARY")
                     .transactionType(TransactionType.INCOME)
@@ -492,10 +547,9 @@ class DefaultCategoryRepositoryTest {
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
-            jpaCategoryRepository.saveAll(List.of(food, rent, salary));
+            jpaCategoryRepository.saveAll(List.of(food, salary));
             jpaCategoryRepository.flush();
 
-            // Create test transactions directly via JPA to avoid service-layer side effects
             var account = AccountEntity.builder()
                     .userId(userId)
                     .name("CASH")
@@ -514,15 +568,6 @@ class DefaultCategoryRepositoryTest {
                     .updatedAt(Instant.now())
                     .build();
 
-            var rentTx = TransactionEntity.builder()
-                    .account(account)
-                    .category(rent)
-                    .amount(new AmountEmbeddable(2000.0, "PHP"))
-                    .transactionDate(java.time.LocalDate.of(2026, 7, 1))
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
-                    .build();
-
             var salaryTx = TransactionEntity.builder()
                     .account(account)
                     .category(salary)
@@ -532,37 +577,53 @@ class DefaultCategoryRepositoryTest {
                     .updatedAt(Instant.now())
                     .build();
 
-            var foodTx2 = TransactionEntity.builder()
-                    .account(account)
-                    .category(food)
-                    .amount(new AmountEmbeddable(300.0, "PHP"))
-                    .transactionDate(java.time.LocalDate.of(2026, 7, 2))
+            jpaTransactionRepository.saveAndFlush(foodTx);
+            jpaTransactionRepository.saveAndFlush(salaryTx);
+
+            Page<CategorySummary> page = categoryRepository.findAllByPageQueryWithSummary(
+                    new PageQuery(0, 10, "name", "ASC"), userId, TransactionType.EXPENSE);
+
+            Assertions.assertThat(page.content()).hasSize(1);
+            Assertions.assertThat(page.content().get(0).name()).isEqualTo("FOOD");
+            Assertions.assertThat(page.content().get(0).amount()).isEqualTo(500.0);
+            Assertions.assertThat(page.content().get(0).percentage()).isCloseTo(100.0, Assertions.within(0.01));
+        }
+
+        @Test
+        void givenCategoriesWithoutTransactions_shouldReturnZeroAmounts() {
+            UUID userId = UUID.randomUUID();
+
+            CategoryEntity groceries = CategoryEntity.builder()
+                    .name("GROCERIES")
+                    .transactionType(TransactionType.EXPENSE)
+                    .userId(userId)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
+            CategoryEntity entertainment = CategoryEntity.builder()
+                    .name("ENTERTAINMENT")
+                    .transactionType(TransactionType.EXPENSE)
+                    .userId(userId)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            jpaCategoryRepository.saveAll(List.of(groceries, entertainment));
+            jpaCategoryRepository.flush();
 
-            var allTransactions = List.of(foodTx, rentTx, salaryTx, foodTx2);
-            for (var tx : allTransactions) {
-                jpaTransactionRepository.saveAndFlush(tx);
-            }
+            Page<CategorySummary> page = categoryRepository.findAllByPageQueryWithSummary(
+                    new PageQuery(0, 10, "name", "ASC"), userId, TransactionType.EXPENSE);
 
-            List<CategorySummaryProjection> result = jpaCategoryRepository.findByUserIdWithSummary(userId);
+            Assertions.assertThat(page.content()).hasSize(2);
 
-            Assertions.assertThat(result).hasSize(3);
+            var groceriesSummary = page.content().stream().filter(c -> "GROCERIES".equals(c.name())).findFirst().orElseThrow();
+            Assertions.assertThat(groceriesSummary.amount()).isZero();
+            Assertions.assertThat(groceriesSummary.totalTransactions()).isZero();
+            Assertions.assertThat(groceriesSummary.percentage()).isZero();
 
-            var foodSummary = result.stream().filter(p -> "FOOD".equals(p.name())).findFirst().orElseThrow();
-            Assertions.assertThat(foodSummary.amount()).isEqualTo(800.0);
-            Assertions.assertThat(foodSummary.totalTransactions()).isEqualTo(2);
-
-            var rentSummary = result.stream().filter(p -> "RENT".equals(p.name())).findFirst().orElseThrow();
-            Assertions.assertThat(rentSummary.amount()).isEqualTo(2000.0);
-            Assertions.assertThat(rentSummary.totalTransactions()).isEqualTo(1);
-
-            var salarySummary = result.stream().filter(p -> "SALARY".equals(p.name())).findFirst().orElseThrow();
-            Assertions.assertThat(salarySummary.amount()).isEqualTo(5000.0);
-            Assertions.assertThat(salarySummary.totalTransactions()).isEqualTo(1);
-
-            verify(jpaCategoryRepository, times(1)).findByUserIdWithSummary(userId);
+            var entertainmentSummary = page.content().stream().filter(c -> "ENTERTAINMENT".equals(c.name())).findFirst().orElseThrow();
+            Assertions.assertThat(entertainmentSummary.amount()).isZero();
+            Assertions.assertThat(entertainmentSummary.totalTransactions()).isZero();
+            Assertions.assertThat(entertainmentSummary.percentage()).isZero();
         }
     }
 }

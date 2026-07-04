@@ -1,6 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.CategorySummary;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
@@ -83,6 +84,23 @@ public class CachedCategoryService implements CategoryService {
         }
 
         Page<Category> result = delegatedCategoryService.getCategoriesByPageQuery(query, userId, type);
+        registerKey(userId, key);
+        cache.put(key, result);
+        return result;
+    }
+
+    @Override
+    public Page<CategorySummary> getCategorySummariesByPageQuery(PageQuery query, UUID userId, TransactionType type) {
+        String key = String.format(KEY_PAGED, userId, query.page(), query.size(),
+                query.sort(), query.direction(), type) + ":summary";
+        Cache cache = cacheManager.getCache(CACHE_NAME);
+
+        Cache.ValueWrapper cached = cache.get(key);
+        if (cached != null) {
+            return (Page<CategorySummary>) cached.get();
+        }
+
+        Page<CategorySummary> result = delegatedCategoryService.getCategorySummariesByPageQuery(query, userId, type);
         registerKey(userId, key);
         cache.put(key, result);
         return result;

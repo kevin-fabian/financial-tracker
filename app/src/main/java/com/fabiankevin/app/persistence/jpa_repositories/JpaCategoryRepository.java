@@ -32,4 +32,25 @@ public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUI
             GROUP BY c
             """)
     List<CategorySummaryProjection> findByUserIdWithSummary(@Param("userId") UUID userId);
+
+    @Query("""
+            SELECT new com.fabiankevin.app.persistence.projections.CategorySummaryProjection(
+                c.id, c.name, c.transactionType, c.userId, c.icon, c.active, c.system,
+                COALESCE(SUM(t.amount.amount), 0.0),
+                CAST(COALESCE(COUNT(t.id), 0) AS int)
+            )
+            FROM CategoryEntity c
+            LEFT JOIN TransactionEntity t ON t.category.id = c.id
+                AND t.transactionDate >= :monthStart
+                AND t.transactionDate <= :monthEnd
+            WHERE c.userId = :userId
+            AND (:type IS NULL OR c.transactionType = :type)
+            GROUP BY c
+            """)
+    Page<CategorySummaryProjection> findAllByUserIdAndTransactionTypeWithSummary(
+            @Param("userId") UUID userId,
+            @Param("type") TransactionType type,
+            @Param("monthStart") java.time.LocalDate monthStart,
+            @Param("monthEnd") java.time.LocalDate monthEnd,
+            Pageable pageable);
 }

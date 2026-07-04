@@ -3,6 +3,7 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.exceptions.CategoryAlreadyExistException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.CategorySummary;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.CategoryRepository;
@@ -82,6 +83,11 @@ public class DefaultCategoryService implements CategoryService {
     @Override
     public Page<Category> getCategoriesByPageQuery(PageQuery query, UUID userId, TransactionType type) {
         return categoryRepository.findAllByPageQuery(query, userId, type);
+    }
+
+    @Override
+    public Page<CategorySummary> getCategorySummariesByPageQuery(PageQuery query, UUID userId, TransactionType type) {
+        return categoryRepository.findAllByPageQueryWithSummary(query, userId, type);
     }
 
     @Transactional

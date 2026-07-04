@@ -1,6 +1,7 @@
 package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.CategorySummary;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.queries.PageQuery;
@@ -16,4 +17,5 @@ public interface CategoryRepository {
     Category save(Category category);
     int deleteByIdAndUserId(UUID id, UUID userId);
     Page<Category> findAllByPageQuery(PageQuery query, UUID userId, TransactionType type);
+    Page<CategorySummary> findAllByPageQueryWithSummary(PageQuery query, UUID userId, TransactionType type);
 }

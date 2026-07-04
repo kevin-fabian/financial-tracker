@@ -1,6 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.CategorySummary;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
@@ -16,4 +17,5 @@ public interface CategoryService {
     void deleteCategoryById(UUID id, UUID userId);
     void disableCategory(UUID id, UUID userId);
     Page<Category> getCategoriesByPageQuery(PageQuery query, UUID userId, TransactionType type);
+    Page<CategorySummary> getCategorySummariesByPageQuery(PageQuery query, UUID userId, TransactionType type);
 }
