@@ -80,8 +80,13 @@ public class DefaultTransactionRepository implements TransactionRepository {
     }
 
     @Override
-    public double sumBalance(UUID userId, UUID accountId) {
-        return jpaTransactionRepository.sumBalance(userId, accountId);
+    public double sumBalance(UUID userId, LocalDate from, LocalDate to) {
+        return jpaTransactionRepository.sumBalance(userId, from, to);
+    }
+
+    @Override
+    public double sumBalance(UUID userId) {
+        return jpaTransactionRepository.sumBalance(userId);
     }
 
     @Override

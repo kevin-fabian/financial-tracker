@@ -627,15 +627,15 @@ class DefaultTransactionRepositoryTest {
                 AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(300, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 15)).description("food2").build()
         ).forEach(transactionService::addTransaction);
 
-        double result = transactionRepository.sumBalance(userId, cash.getId());
+        double result = transactionRepository.sumBalance(userId);
 
         Assertions.assertThat(result).isEqualTo(4200.0);
 
-        verify(jpaTransactionRepository, times(1)).sumBalance(eq(userId), eq(cash.getId()));
+        verify(jpaTransactionRepository, times(1)).sumBalance(eq(userId));
     }
 
     @Test
-    void sumBalance_givenNullAccountId_shouldSumAcrossAllUserAccounts() {
+    void sumBalance_givenTransactionsAcrossMultipleAccounts_shouldSumAll() {
         AccountEntity cash = createAccount("CASH");
         AccountEntity savings = createAccount("SAVINGS");
         CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
@@ -648,24 +648,22 @@ class DefaultTransactionRepositoryTest {
                 AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(savings.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 10)).description("food from savings").build()
         ).forEach(transactionService::addTransaction);
 
-        double result = transactionRepository.sumBalance(userId, null);
+        double result = transactionRepository.sumBalance(userId);
 
         Assertions.assertThat(result).isEqualTo(7300.0);
 
-        verify(jpaTransactionRepository, times(1)).sumBalance(eq(userId), eq(null));
+        verify(jpaTransactionRepository, times(1)).sumBalance(eq(userId));
     }
 
     @Test
     void sumBalance_givenNoMatchingTransactions_shouldReturnZero() {
-        AccountEntity cash = createAccount("CASH");
+        doReturn(0.0).when(jpaTransactionRepository).sumBalance(userId);
 
-        doReturn(0.0).when(jpaTransactionRepository).sumBalance(userId, cash.getId());
-
-        double result = transactionRepository.sumBalance(userId, cash.getId());
+        double result = transactionRepository.sumBalance(userId);
 
         Assertions.assertThat(result).isEqualTo(0.0);
 
-        verify(jpaTransactionRepository, times(1)).sumBalance(eq(userId), eq(cash.getId()));
+        verify(jpaTransactionRepository, times(1)).sumBalance(eq(userId));
     }
 
     private CategoryEntity createCategory(String categoryName) {

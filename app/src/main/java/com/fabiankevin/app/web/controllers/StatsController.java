@@ -1,5 +1,6 @@
 package com.fabiankevin.app.web.controllers;
 
+import com.fabiankevin.app.models.StatsSummary;
 import com.fabiankevin.app.services.StatsService;
 import com.fabiankevin.app.web.controllers.dtos.StatsQuery;
 import com.fabiankevin.app.web.controllers.dtos.StatsResponse;
@@ -48,6 +49,12 @@ public class StatsController {
                 .accountId(accountId)
                 .categoryId(categoryId)
                 .build();
-        return statsService.getStats(userId, query);
+        StatsSummary summary = statsService.getStatsSummary(userId, query);
+        return StatsResponse.builder()
+                .totalBalance(summary.totalBalance())
+                .totalExpenses(summary.totalExpenses())
+                .totalIncome(summary.totalIncome())
+                .growthPercentage(summary.growthPercentage())
+                .build();
     }
 }

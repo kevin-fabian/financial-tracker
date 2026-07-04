@@ -105,9 +105,17 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             SELECT COALESCE(SUM(CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amountValue ELSE -t.amountValue END), 0.0)
             FROM TransactionEntity t
             WHERE t.account.userId = :userId
-              AND (:accountId IS NULL OR t.account.id = :accountId)
+              AND t.transactionDate BETWEEN :from AND :to
             """)
     double sumBalance(
             @Param("userId") UUID userId,
-            @Param("accountId") java.util.UUID accountId);
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to);
+
+    @Query("""
+            SELECT COALESCE(SUM(CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amountValue ELSE -t.amountValue END), 0.0)
+            FROM TransactionEntity t
+            WHERE t.account.userId = :userId
+            """)
+    double sumBalance(@Param("userId") UUID userId);
 }

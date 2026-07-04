@@ -1,8 +1,8 @@
 package com.fabiankevin.app.web.controllers;
 
+import com.fabiankevin.app.models.StatsSummary;
 import com.fabiankevin.app.services.StatsService;
 import com.fabiankevin.app.web.controllers.dtos.StatsQuery;
-import com.fabiankevin.app.web.controllers.dtos.StatsResponse;
 import com.github.fabiankevin.lemon.web.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,14 +61,14 @@ class StatsControllerTest {
         LocalDate from = LocalDate.of(2026, 1, 1);
         LocalDate to = LocalDate.of(2026, 1, 31);
 
-        StatsResponse response = StatsResponse.builder()
+        StatsSummary summary = StatsSummary.builder()
                 .totalBalance(15000.0)
                 .totalExpenses(3000.0)
                 .totalIncome(5000.0)
                 .growthPercentage(50.0)
                 .build();
 
-        when(statsService.getStats(any(), any())).thenReturn(response);
+        when(statsService.getStatsSummary(any(), any())).thenReturn(summary);
 
         mockMvc.perform(get("/api/stats")
                         .with(jwt().jwt(jwt))
@@ -84,7 +84,7 @@ class StatsControllerTest {
 
         ArgumentCaptor<UUID> userIdCaptor = ArgumentCaptor.forClass(UUID.class);
         ArgumentCaptor<StatsQuery> queryCaptor = ArgumentCaptor.forClass(StatsQuery.class);
-        verify(statsService, times(1)).getStats(userIdCaptor.capture(), queryCaptor.capture());
+        verify(statsService, times(1)).getStatsSummary(userIdCaptor.capture(), queryCaptor.capture());
 
         StatsQuery capturedQuery = queryCaptor.getValue();
         assertEquals(from, capturedQuery.fromDate(), "fromDate should match request param");
