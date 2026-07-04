@@ -12,7 +12,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -38,8 +37,8 @@ class DailySummaryGeneratorTest {
         int year = 2026;
         TransactionType transactionType = TransactionType.EXPENSE;;
         UUID userId = UUID.randomUUID();
-        SummaryPoint p1 = new SummaryPoint("1", BigDecimal.valueOf(250));
-        SummaryPoint p2 = new SummaryPoint("15", BigDecimal.valueOf(8000));
+        SummaryPoint p1 = new SummaryPoint("1", 250.0);
+        SummaryPoint p2 = new SummaryPoint("15", 8000.0);
 
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
@@ -60,9 +59,8 @@ class DailySummaryGeneratorTest {
         Assertions.assertThat(result).hasSize(2);
         Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("1", "15");
         Assertions.assertThat(result).extracting(SummaryPoint::total)
-                .as("totals should match ignoring scale")
-                .usingElementComparator(BigDecimal::compareTo)
-                .containsExactlyInAnyOrder(BigDecimal.valueOf(250), BigDecimal.valueOf(8000));
+                .as("totals should match")
+                .containsExactlyInAnyOrder(250.0, 8000.0);
 
         verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), transactionType);
     }

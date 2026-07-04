@@ -11,7 +11,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -41,7 +40,7 @@ class YearlySummaryGeneratorTest  {
         LocalDate to = LocalDate.of(2026, 12, 31);
         UUID userId = UUID.randomUUID();
 
-        List<SummaryPoint> expected = List.of(new SummaryPoint("2025", BigDecimal.valueOf(100)), new SummaryPoint("2026", BigDecimal.valueOf(200)));
+        List<SummaryPoint> expected = List.of(new SummaryPoint("2025", 100.0), new SummaryPoint("2026", 200.0));
         when(repo.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(userId), transactionType)).thenReturn(expected);
 
         SummaryQuery query = new SummaryQuery(SummaryType.YEARLY, from, to, List.of(userId), transactionType);

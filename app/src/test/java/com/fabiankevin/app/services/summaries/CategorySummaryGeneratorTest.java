@@ -11,7 +11,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -36,8 +35,8 @@ class CategorySummaryGeneratorTest {
     void generate_givenRepositoryReturnsProjections_thenReturnMappedPoints() {
         int year = 2026;
         UUID userId = UUID.randomUUID();
-        SummaryPoint p1 = new SummaryPoint("FOOD", BigDecimal.valueOf(250));
-        SummaryPoint p2 = new SummaryPoint("RENT", BigDecimal.valueOf(8000));
+        SummaryPoint p1 = new SummaryPoint("FOOD", 250.0);
+        SummaryPoint p2 = new SummaryPoint("RENT", 8000.0);
 
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
@@ -57,9 +56,8 @@ class CategorySummaryGeneratorTest {
         Assertions.assertThat(result).hasSize(2);
         Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("FOOD", "RENT");
         Assertions.assertThat(result).extracting(SummaryPoint::total)
-                .as("totals should match ignoring scale")
-                .usingElementComparator(BigDecimal::compareTo)
-                .containsExactlyInAnyOrder(BigDecimal.valueOf(250), BigDecimal.valueOf(8000));
+                .as("totals should match")
+                .containsExactlyInAnyOrder(250.0, 8000.0);
 
         verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId), null);
     }

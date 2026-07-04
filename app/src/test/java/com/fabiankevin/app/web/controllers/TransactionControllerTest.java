@@ -23,7 +23,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Currency;
@@ -163,7 +162,7 @@ class TransactionControllerTest {
     @Test
     void getSummary_givenValidParams_thenShouldReturnSummary() throws Exception {
         SummarySeries summary = new SummarySeries(SummaryType.CATEGORY,
-                List.of(new SummaryPoint("FOOD", BigDecimal.valueOf(123))));
+                List.of(new SummaryPoint("FOOD", 123.0)));
 
         when(transactionService.getSummary(any())).thenReturn(summary);
 

@@ -12,7 +12,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -40,8 +39,8 @@ class MonthlySummaryGeneratorTest {
         int year = 2026;
         UUID userId = UUID.randomUUID();
         TransactionType expense = TransactionType.EXPENSE;
-        SummaryPoint p1 = new SummaryPoint("3", BigDecimal.valueOf(250));
-        SummaryPoint p2 = new SummaryPoint("5", BigDecimal.valueOf(8000));
+        SummaryPoint p1 = new SummaryPoint("3", 250.0);
+        SummaryPoint p2 = new SummaryPoint("5", 8000.0);
 
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
@@ -62,8 +61,7 @@ class MonthlySummaryGeneratorTest {
         Assertions.assertThat(result).hasSize(2);
         Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("MARCH", "MAY");
         Assertions.assertThat(result).extracting(SummaryPoint::total)
-                .usingElementComparator(BigDecimal::compareTo)
-                .containsExactlyInAnyOrder(BigDecimal.valueOf(250), BigDecimal.valueOf(8000));
+                .containsExactlyInAnyOrder(250.0, 8000.0);
 
         verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId), expense);
     }

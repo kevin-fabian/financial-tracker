@@ -200,8 +200,8 @@ class DefaultTransactionServiceTest {
                 .build();
 
         List<SummaryPoint> expectedPoints = List.of(
-                new SummaryPoint("FOOD", java.math.BigDecimal.valueOf(500)),
-                new SummaryPoint("TRANSPORT", java.math.BigDecimal.valueOf(200))
+                new SummaryPoint("FOOD", 500.0),
+                new SummaryPoint("TRANSPORT", 200.0)
         );
         SummaryGenerator mockGenerator = mock(SummaryGenerator.class);
         when(mockGenerator.supports()).thenReturn(SummaryType.CATEGORY);
@@ -216,7 +216,7 @@ class DefaultTransactionServiceTest {
         assertEquals(SummaryType.CATEGORY, result.type());
         assertEquals(2, result.points().size());
         assertEquals("FOOD", result.points().get(0).label());
-        assertEquals(java.math.BigDecimal.valueOf(500), result.points().get(0).total());
+        assertEquals(500.0, result.points().get(0).total());
         verify(mockGenerator, times(1)).generate(query);
     }
 

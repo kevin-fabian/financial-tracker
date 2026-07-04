@@ -26,7 +26,6 @@ import org.springframework.data.util.Streamable;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Currency;
@@ -120,9 +119,8 @@ class DefaultTransactionRepositoryTest {
         Assertions.assertThat(result).hasSize(2);
         Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("FOOD", "RENT");
         Assertions.assertThat(result).extracting(SummaryPoint::total)
-                .as("totals should match ignoring scale")
-                .usingElementComparator(BigDecimal::compareTo)
-                .containsExactlyInAnyOrder(BigDecimal.valueOf(250), BigDecimal.valueOf(8000));
+                .as("totals should match")
+                .containsExactlyInAnyOrder(250.0, 8000.0);
 
         verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId), TransactionType.EXPENSE);
     }
@@ -185,8 +183,7 @@ class DefaultTransactionRepositoryTest {
         Assertions.assertThat(result).hasSize(2);
         Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("3", "5");
         Assertions.assertThat(result).extracting(SummaryPoint::total)
-                .usingElementComparator(BigDecimal::compareTo)
-                .containsExactlyInAnyOrder(BigDecimal.valueOf(250), BigDecimal.valueOf(8000));
+                .containsExactlyInAnyOrder(250.0, 8000.0);
 
         verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId), TransactionType.EXPENSE);
     }
@@ -221,9 +218,8 @@ class DefaultTransactionRepositoryTest {
         Assertions.assertThat(result).hasSize(2);
         Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("2025", "2026");
         Assertions.assertThat(result).extracting(SummaryPoint::total)
-                .as("totals should match ignoring scale")
-                .usingElementComparator(BigDecimal::compareTo)
-                .containsExactlyInAnyOrder(BigDecimal.valueOf(10000), BigDecimal.valueOf(15000));
+                .as("totals should match")
+                .containsExactlyInAnyOrder(10000.0, 15000.0);
 
         verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(userId), TransactionType.EXPENSE);
     }
@@ -285,8 +281,7 @@ class DefaultTransactionRepositoryTest {
         Assertions.assertThat(result).hasSize(2);
         Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("1", "15");
         Assertions.assertThat(result).extracting(SummaryPoint::total)
-                .usingElementComparator(BigDecimal::compareTo)
-                .containsExactlyInAnyOrder(BigDecimal.valueOf(250), BigDecimal.valueOf(8000));
+                .containsExactlyInAnyOrder(250.0, 8000.0);
 
         verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), TransactionType.EXPENSE);
     }
@@ -511,11 +506,21 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(2026, 3, 1);
         LocalDate to = LocalDate.of(2026, 3, 31);
 
-        double result = transactionRepository.sumByTypeAndUserId(userId, TransactionType.EXPENSE, from, to, cash.getId(), food.getId());
+        var result = transactionRepository.sumByTypeAndUserId(userId, from, to, cash.getId(), food.getId());
 
-        Assertions.assertThat(result).isEqualTo(600.0);
+        double expenseTotal = result.stream()
+                .filter(p -> p.label().equals("EXPENSE"))
+                .mapToDouble(SummaryPoint::total)
+                .sum();
+        double incomeTotal = result.stream()
+                .filter(p -> p.label().equals("INCOME"))
+                .mapToDouble(SummaryPoint::total)
+                .sum();
 
-        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(userId), eq(TransactionType.EXPENSE), eq(from), eq(to), eq(cash.getId()), eq(food.getId()));
+        Assertions.assertThat(expenseTotal).isEqualTo(600.0);
+        Assertions.assertThat(incomeTotal).isEqualTo(0.0);
+
+        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(userId), eq(from), eq(to), eq(cash.getId()), eq(food.getId()));
     }
 
     @Test
@@ -533,11 +538,21 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(2026, 3, 1);
         LocalDate to = LocalDate.of(2026, 3, 31);
 
-        double result = transactionRepository.sumByTypeAndUserId(userId, TransactionType.EXPENSE, from, to, null, null);
+        var result = transactionRepository.sumByTypeAndUserId(userId, from, to, null, null);
 
-        Assertions.assertThat(result).isEqualTo(5300.0);
+        double expenseTotal = result.stream()
+                .filter(p -> p.label().equals("EXPENSE"))
+                .mapToDouble(SummaryPoint::total)
+                .sum();
+        double incomeTotal = result.stream()
+                .filter(p -> p.label().equals("INCOME"))
+                .mapToDouble(SummaryPoint::total)
+                .sum();
 
-        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(userId), eq(TransactionType.EXPENSE), eq(from), eq(to), eq(null), eq(null));
+        Assertions.assertThat(expenseTotal).isEqualTo(5300.0);
+        Assertions.assertThat(incomeTotal).isEqualTo(0.0);
+
+        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(userId), eq(from), eq(to), eq(null), eq(null));
     }
 
     @Test
@@ -548,13 +563,56 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(2026, 3, 1);
         LocalDate to = LocalDate.of(2026, 3, 31);
 
-        doReturn(0.0).when(jpaTransactionRepository).sumByTypeAndDateRange(userId, TransactionType.EXPENSE, from, to, cash.getId(), food.getId());
+        doReturn(Streamable.empty()).when(jpaTransactionRepository)
+                .sumByTypeAndDateRange(eq(userId), eq(from), eq(to), eq(cash.getId()), eq(food.getId()));
 
-        double result = transactionRepository.sumByTypeAndUserId(userId, TransactionType.EXPENSE, from, to, cash.getId(), food.getId());
+        var result = transactionRepository.sumByTypeAndUserId(userId, from, to, cash.getId(), food.getId());
 
-        Assertions.assertThat(result).isEqualTo(0.0);
+        double incomeTotal = result.stream()
+                .filter(p -> p.label().equals("INCOME"))
+                .mapToDouble(SummaryPoint::total)
+                .sum();
+        double expenseTotal = result.stream()
+                .filter(p -> p.label().equals("EXPENSE"))
+                .mapToDouble(SummaryPoint::total)
+                .sum();
 
-        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(userId), eq(TransactionType.EXPENSE), eq(from), eq(to), eq(cash.getId()), eq(food.getId()));
+        Assertions.assertThat(incomeTotal).isEqualTo(0.0);
+        Assertions.assertThat(expenseTotal).isEqualTo(0.0);
+
+        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(userId), eq(from), eq(to), eq(cash.getId()), eq(food.getId()));
+    }
+
+    @Test
+    void sumByTypeAndUserId_givenIncomeAndExpenses_shouldReturnBothTotals() {
+        AccountEntity cash = createAccount("CASH");
+        CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
+        CategoryEntity food = createCategory("FOOD");
+
+        List.of(
+                AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 1)).description("salary").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(500, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 5)).description("food1").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(300, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 15)).description("food2").build()
+        ).forEach(transactionService::addTransaction);
+
+        LocalDate from = LocalDate.of(2026, 3, 1);
+        LocalDate to = LocalDate.of(2026, 3, 31);
+
+        var result = transactionRepository.sumByTypeAndUserId(userId, from, to, cash.getId(), null);
+
+        double incomeTotal = result.stream()
+                .filter(p -> p.label().equals("INCOME"))
+                .mapToDouble(SummaryPoint::total)
+                .sum();
+        double expenseTotal = result.stream()
+                .filter(p -> p.label().equals("EXPENSE"))
+                .mapToDouble(SummaryPoint::total)
+                .sum();
+
+        Assertions.assertThat(incomeTotal).isEqualTo(5000.0);
+        Assertions.assertThat(expenseTotal).isEqualTo(800.0);
+
+        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(userId), eq(from), eq(to), eq(cash.getId()), eq(null));
     }
 
     @Test

@@ -22,7 +22,7 @@ public interface TransactionRepository {
     List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByMonth(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type);
     List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByYear(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type);
     List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByDay(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type);
-    double sumByTypeAndUserId(UUID userId, TransactionType type, LocalDate from, LocalDate to, UUID accountId, UUID categoryId);
+    List<SummaryPoint> sumByTypeAndUserId(UUID userId, LocalDate from, LocalDate to, UUID accountId, UUID categoryId);
     double sumBalance(UUID userId, UUID accountId);
     Page<Transaction> getTransactionsByPageAndUserId(PageQuery query, UUID userId);
     Page<Transaction> getTransactionsByPageAndUserIdAndType(PageQuery query, UUID userId, TransactionType type);
