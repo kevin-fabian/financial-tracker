@@ -16,7 +16,7 @@ import java.util.UUID;
 
 public interface JpaTransactionRepository extends JpaRepository<TransactionEntity, UUID> {
     @Query("""
-                SELECT t.category.name AS label, SUM(t.amountValue) AS sum
+                SELECT t.category.name AS label, COALESCE(SUM(t.amountValue), 0.0) AS sum
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds
@@ -30,7 +30,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("type") TransactionType type);
 
     @Query("""
-                SELECT MONTH(t.transactionDate) AS label, SUM(t.amountValue) AS sum
+                SELECT MONTH(t.transactionDate) AS label, COALESCE(SUM(t.amountValue), 0.0) AS sum
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds
@@ -44,7 +44,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("type") TransactionType type);
 
     @Query("""
-                SELECT YEAR(t.transactionDate) AS label, SUM(t.amountValue) AS sum
+                SELECT YEAR(t.transactionDate) AS label, COALESCE(SUM(t.amountValue), 0.0) AS sum
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds
@@ -58,7 +58,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("type") TransactionType type);
 
     @Query("""
-                SELECT DAY(t.transactionDate) AS label, SUM(t.amountValue) AS sum
+                SELECT DAY(t.transactionDate) AS label, COALESCE(SUM(t.amountValue), 0.0) AS sum
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds
@@ -102,7 +102,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("categoryId") UUID categoryId);
 
     @Query("""
-            SELECT SUM(CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amountValue ELSE -t.amountValue END)
+            SELECT COALESCE(SUM(CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amountValue ELSE -t.amountValue END), 0.0)
             FROM TransactionEntity t
             WHERE t.account.userId = :userId
               AND (:accountId IS NULL OR t.account.id = :accountId)

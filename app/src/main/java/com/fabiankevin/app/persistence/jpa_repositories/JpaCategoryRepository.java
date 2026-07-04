@@ -20,11 +20,9 @@ public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUI
     Page<CategoryEntity> findAllByUserIdAndTransactionType(UUID userId, TransactionType type, Pageable pageable);
     Optional<CategoryEntity> findFirstByActiveFalseAndNameAndTransactionTypeAndUserId(String name, TransactionType type, UUID userId);
     @Query("""
-            SELECT new com.fabiankevin.app.persistence.projections.CategorySummaryProjection(
-                c.id, c.name, c.transactionType, c.userId, c.icon, c.active, c.system,
+            SELECT c.id, c.name, c.transactionType, c.userId, c.icon, c.active, c.system,
                 COALESCE(SUM(t.amountValue), 0.0),
                 CAST(COALESCE(COUNT(t.id), 0) AS int)
-            )
             FROM CategoryEntity c
             LEFT JOIN TransactionEntity t ON t.category.id = c.id
                 AND t.transactionDate >= :monthStart
