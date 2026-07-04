@@ -73,6 +73,16 @@ public class DefaultTransactionRepository implements TransactionRepository {
     }
 
     @Override
+    public double sumByTypeAndUserId(UUID userId, TransactionType type, LocalDate from, LocalDate to, UUID accountId, UUID categoryId) {
+        return jpaTransactionRepository.sumByTypeAndDateRange(userId, type, from, to, accountId, categoryId);
+    }
+
+    @Override
+    public double sumBalance(UUID userId, UUID accountId) {
+        return jpaTransactionRepository.sumBalance(userId, accountId);
+    }
+
+    @Override
     public com.fabiankevin.app.models.Page<Transaction> getTransactionsByPageAndUserId(PageQuery query, UUID userId) {
         var pageable = PageRequest.of(
                 query.page(),

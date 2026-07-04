@@ -497,6 +497,119 @@ class DefaultTransactionRepositoryTest {
         verify(jpaTransactionRepository, times(1)).findAllByAccountUserIdAndType(eq(differentUserId), eq(TransactionType.EXPENSE), any(Pageable.class));
     }
 
+    @Test
+    void sumByTypeAndUserId_givenExpensesWithAllFilters_shouldReturnCorrectSum() {
+        CategoryEntity food = createCategory("FOOD");
+        AccountEntity cash = createAccount("CASH");
+
+        List.of(
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 1)).description("t1").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 15)).description("t2").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(300, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 25)).description("t3").build()
+        ).forEach(transactionService::addTransaction);
+
+        LocalDate from = LocalDate.of(2026, 3, 1);
+        LocalDate to = LocalDate.of(2026, 3, 31);
+
+        double result = transactionRepository.sumByTypeAndUserId(userId, TransactionType.EXPENSE, from, to, cash.getId(), food.getId());
+
+        Assertions.assertThat(result).isEqualTo(600.0);
+
+        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(userId), eq(TransactionType.EXPENSE), eq(from), eq(to), eq(cash.getId()), eq(food.getId()));
+    }
+
+    @Test
+    void sumByTypeAndUserId_givenExpensesWithNullOptionalFilters_shouldAggregateAcrossCategories() {
+        CategoryEntity food = createCategory("FOOD");
+        CategoryEntity rent = createCategory("RENT");
+        AccountEntity cash = createAccount("CASH");
+
+        List.of(
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 1)).description("food1").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 15)).description("food2").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(rent.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 10)).description("rent").build()
+        ).forEach(transactionService::addTransaction);
+
+        LocalDate from = LocalDate.of(2026, 3, 1);
+        LocalDate to = LocalDate.of(2026, 3, 31);
+
+        double result = transactionRepository.sumByTypeAndUserId(userId, TransactionType.EXPENSE, from, to, null, null);
+
+        Assertions.assertThat(result).isEqualTo(5300.0);
+
+        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(userId), eq(TransactionType.EXPENSE), eq(from), eq(to), eq(null), eq(null));
+    }
+
+    @Test
+    void sumByTypeAndUserId_givenNoMatchingTransactions_shouldReturnZero() {
+        CategoryEntity food = createCategory("FOOD");
+        AccountEntity cash = createAccount("CASH");
+
+        LocalDate from = LocalDate.of(2026, 3, 1);
+        LocalDate to = LocalDate.of(2026, 3, 31);
+
+        doReturn(0.0).when(jpaTransactionRepository).sumByTypeAndDateRange(userId, TransactionType.EXPENSE, from, to, cash.getId(), food.getId());
+
+        double result = transactionRepository.sumByTypeAndUserId(userId, TransactionType.EXPENSE, from, to, cash.getId(), food.getId());
+
+        Assertions.assertThat(result).isEqualTo(0.0);
+
+        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(userId), eq(TransactionType.EXPENSE), eq(from), eq(to), eq(cash.getId()), eq(food.getId()));
+    }
+
+    @Test
+    void sumBalance_givenIncomeAndExpenses_shouldReturnNetBalance() {
+        AccountEntity cash = createAccount("CASH");
+        CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
+        CategoryEntity food = createCategory("FOOD");
+
+        List.of(
+                AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 1)).description("salary").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(500, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 5)).description("food1").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(300, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 15)).description("food2").build()
+        ).forEach(transactionService::addTransaction);
+
+        double result = transactionRepository.sumBalance(userId, cash.getId());
+
+        Assertions.assertThat(result).isEqualTo(4200.0);
+
+        verify(jpaTransactionRepository, times(1)).sumBalance(eq(userId), eq(cash.getId()));
+    }
+
+    @Test
+    void sumBalance_givenNullAccountId_shouldSumAcrossAllUserAccounts() {
+        AccountEntity cash = createAccount("CASH");
+        AccountEntity savings = createAccount("SAVINGS");
+        CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
+        CategoryEntity food = createCategory("FOOD");
+
+        List.of(
+                AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 1)).description("salary to cash").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(savings.getId()).amount(Amount.of(3000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 1)).description("salary to savings").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(500, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 5)).description("food from cash").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(savings.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 10)).description("food from savings").build()
+        ).forEach(transactionService::addTransaction);
+
+        double result = transactionRepository.sumBalance(userId, null);
+
+        Assertions.assertThat(result).isEqualTo(7300.0);
+
+        verify(jpaTransactionRepository, times(1)).sumBalance(eq(userId), eq(null));
+    }
+
+    @Test
+    void sumBalance_givenNoMatchingTransactions_shouldReturnZero() {
+        AccountEntity cash = createAccount("CASH");
+
+        doReturn(0.0).when(jpaTransactionRepository).sumBalance(userId, cash.getId());
+
+        double result = transactionRepository.sumBalance(userId, cash.getId());
+
+        Assertions.assertThat(result).isEqualTo(0.0);
+
+        verify(jpaTransactionRepository, times(1)).sumBalance(eq(userId), eq(cash.getId()));
+    }
+
     private CategoryEntity createCategory(String categoryName) {
         return createCategory(categoryName, TransactionType.EXPENSE);
     }

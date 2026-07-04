@@ -84,4 +84,31 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             Pageable pageable);
 
     int deleteByIdAndAccountUserId(UUID id, UUID userId);
+
+    @Query("""
+            SELECT SUM(t.amountValue)
+            FROM TransactionEntity t
+            WHERE t.account.userId = :userId
+              AND t.category.transactionType = :type
+              AND t.transactionDate BETWEEN :from AND :to
+              AND (:accountId IS NULL OR t.account.id = :accountId)
+              AND (:categoryId IS NULL OR t.category.id = :categoryId)
+            """)
+    double sumByTypeAndDateRange(
+            @Param("userId") UUID userId,
+            @Param("type") com.fabiankevin.app.models.enums.TransactionType type,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("accountId") java.util.UUID accountId,
+            @Param("categoryId") java.util.UUID categoryId);
+
+    @Query("""
+            SELECT SUM(CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amountValue ELSE -t.amountValue END)
+            FROM TransactionEntity t
+            WHERE t.account.userId = :userId
+              AND (:accountId IS NULL OR t.account.id = :accountId)
+            """)
+    double sumBalance(
+            @Param("userId") UUID userId,
+            @Param("accountId") java.util.UUID accountId);
 }

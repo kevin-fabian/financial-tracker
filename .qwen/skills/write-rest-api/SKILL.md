@@ -40,35 +40,80 @@ References:
 
 ---
 
+## Web DTO Naming Convention
+
+When designing web-layer DTOs for REST endpoints, use a naming convention that signals the DTO's purpose at a glance.
+
+| Endpoint purpose | DTO name suffix | When to use |
+|---|---|---|
+| **Retrieve / filter** (GET) | `Query` | Any retrieval endpoint that accepts filter parameters (dates, IDs, pagination, etc.) |
+| **Create / mutate** (POST / PUT / PATCH / DELETE) | `Command` | When the payload has **2-3 or more fields**, or is expected to grow over time |
+| **Create / mutate** (POST / PUT / PATCH / DELETE) | `Request` | When the payload is trivially small (1-2 fields) and unlikely to grow |
+
+- `Query` signals a **read-only filter** — no side effects, just selection criteria.
+- `Command` signals an **intent to change state** — it carries enough fields to be a domain command.
+- `Request` is a fallback for trivial payloads where the extra naming overhead isn't worth it.
+
+**How to apply:**
+
+1. **GET endpoints** — always name the DTO `*Query`. Example: `StatsQuery`, `FindTransactionsQuery`.
+2. **POST/PUT endpoints** — if the payload has 2-3+ fields or is expected to grow, name it `*Command`. Example: `AddTransactionCommand`, `CreateAccountCommand`.
+3. **Trivial POST/PUT** (1-2 fields) — `*Request` is acceptable. Example: `RenameCategoryRequest`.
+
+**File naming:** The DTO file name matches the class name (`StatsQuery.java`, `AddTransactionCommand.java`). Keep DTOs in `web/controllers/dtos/`.
+
+---
+
 ## Practical: Step 1 - Define HTTP contracts and validation
+
+### Query DTO (GET)
 
 ```java
 @Builder(toBuilder = true)
-@Schema(description = "Request to create an item")
-public record CreateItemRequest(
-    @Schema(description = "Item name", example = "Premium Widget")
-    @NotBlank(message = "name is required")
-    String name,
-    @Schema(description = "Item price", example = "49.99")
-    @NotNull(message = "price is required")
-    BigDecimal price
+@Schema(description = "Query DTO for filtering stats queries")
+public record StatsQuery(
+        @Schema(description = "Start date for filtering transactions (inclusive)", example = "2025-01-01")
+        LocalDate fromDate,
+
+        @Schema(description = "End date for filtering transactions (inclusive)", example = "2025-01-31")
+        LocalDate toDate,
+
+        @Schema(description = "Account id to filter by", example = "d290f1ee-6c54-4b01-90e6-d701748f0852")
+        UUID accountId,
+
+        @Schema(description = "Category id to filter by", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
+        UUID categoryId
 ) {
-    public CreateItemCommand toCommand(UUID userId) {
-        return CreateItemCommand.builder()
-            .name(name)
-            .price(price)
-            .userId(userId)
-            .build();
-    }
 }
 ```
 
-Guidance:
-- Keep DTOs close to controllers.
-- Put validation annotations on request DTOs at the boundary.
-- Add field-level `@Schema` examples/descriptions so request payloads are self-documented in OpenAPI.
+### Command DTO (POST)
 
-Response DTO example:
+```java
+@Builder(toBuilder = true)
+@Schema(description = "Command to add a transaction")
+public record AddTransactionCommand(
+        @Schema(description = "Account id", example = "d290f1ee-6c54-4b01-90e6-d701748f0852")
+        UUID accountId,
+
+        @Schema(description = "Category id", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
+        UUID categoryId,
+
+        @Schema(description = "Transaction amount", example = "50.00")
+        @NotNull(message = "amount is required")
+        BigDecimal amount,
+
+        @Schema(description = "Transaction date", example = "2025-06-15")
+        @NotNull(message = "transactionDate is required")
+        LocalDate transactionDate,
+
+        @Schema(description = "User id (from auth context)", hidden = true)
+        UUID userId
+) {
+}
+```
+
+### Response DTO
 
 ```java
 @Builder(toBuilder = true)
@@ -90,6 +135,12 @@ public record ItemResponse(
     }
 }
 ```
+
+Guidance:
+- Keep DTOs close to controllers in `web/controllers/dtos/`.
+- Put validation annotations on request DTOs at the boundary.
+- Add field-level `@Schema` examples/descriptions so request payloads are self-documented in OpenAPI.
+- Request DTOs convert themselves to service commands (e.g., `Request#toCommand` → `Command`).
 
 ---
 
