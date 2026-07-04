@@ -79,6 +79,7 @@ class DefaultStatsServiceTest {
 
         LocalDate now = LocalDate.now();
         LocalDate expectedFromDate = now.withDayOfMonth(1);
+        LocalDate expectedToDate = now.plusDays(1);
 
         double currentIncome = 2000.0;
         double currentExpenses = 1500.0;
@@ -86,9 +87,9 @@ class DefaultStatsServiceTest {
         double priorExpenses = 0.0;
         double totalBalance = 10000.0;
 
-        when(transactionRepository.sumByTypeAndUserId(eq(userId), eq(TransactionType.INCOME), eq(expectedFromDate), eq(now), any(), any()))
+        when(transactionRepository.sumByTypeAndUserId(eq(userId), eq(TransactionType.INCOME), eq(expectedFromDate), eq(expectedToDate), any(), any()))
                 .thenReturn(currentIncome);
-        when(transactionRepository.sumByTypeAndUserId(eq(userId), eq(TransactionType.EXPENSE), eq(expectedFromDate), eq(now), any(), any()))
+        when(transactionRepository.sumByTypeAndUserId(eq(userId), eq(TransactionType.EXPENSE), eq(expectedFromDate), eq(expectedToDate), any(), any()))
                 .thenReturn(currentExpenses);
         when(transactionRepository.sumByTypeAndUserId(eq(userId), eq(TransactionType.INCOME), argThat(d -> d.isBefore(expectedFromDate)), any(), any(), any()))
                 .thenReturn(priorIncome);
@@ -105,7 +106,7 @@ class DefaultStatsServiceTest {
         assertEquals(currentExpenses, response.totalExpenses(), 0.001, "Total expenses should match");
         assertEquals(100.0, response.growthPercentage(), 0.001, "Growth percentage should be 100.0% when prior net is zero");
 
-        verify(transactionRepository, times(1)).sumByTypeAndUserId(eq(userId), eq(TransactionType.INCOME), eq(expectedFromDate), eq(now), any(), any());
+        verify(transactionRepository, times(1)).sumByTypeAndUserId(eq(userId), eq(TransactionType.INCOME), eq(expectedFromDate), eq(expectedToDate), any(), any());
         verify(transactionRepository, times(1)).sumBalance(eq(userId), any());
     }
 }

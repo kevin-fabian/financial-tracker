@@ -8,27 +8,27 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
 @RequiredArgsConstructor
 public class DefaultStatsService implements StatsService {
+
+    private record DateRange(LocalDate from, LocalDate to) {
+    }
+
     private final TransactionRepository transactionRepository;
 
     @Override
     public StatsResponse getStats(UUID userId, StatsQuery query) {
-        LocalDate fromDate = query.fromDate();
-        LocalDate toDate = query.toDate();
-
-        // Default to current month if no date range provided
-        if (fromDate == null || toDate == null) {
-            LocalDate now = LocalDate.now();
-            fromDate = fromDate != null ? fromDate : now.withDayOfMonth(1);
-            toDate = toDate != null ? toDate : now;
-        }
+        LocalDate now = LocalDate.now();
+        LocalDate fromDate = Optional.ofNullable(query.fromDate()).orElse(now.withDayOfMonth(1));
+        LocalDate toDate = Optional.ofNullable(query.toDate()).orElse(now.plusDays(1));
 
         // Calculate prior period (same duration, preceding the current period)
-        long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(fromDate, toDate);
+        long daysBetween = ChronoUnit.DAYS.between(fromDate, toDate);
         LocalDate priorFromDate = fromDate.minusDays(daysBetween);
         LocalDate priorToDate = fromDate.minusDays(1);
 
