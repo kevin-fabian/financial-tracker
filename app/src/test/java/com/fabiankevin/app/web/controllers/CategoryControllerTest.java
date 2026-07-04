@@ -570,13 +570,13 @@ class CategoryControllerTest {
     }
 
     @Test
-    void disableCategory_givenValidCategoryId_shouldDelegateCategoryIdAndUserIdAndReturnOk() throws Exception {
+    void disableCategory_givenValidCategoryId_shouldDelegateCategoryIdAndUserIdAndReturnNoContent() throws Exception {
         UUID categoryId = UUID.randomUUID();
         UUID userId = UUID.fromString(jwt.getSubject());
 
-        mockMvc.perform(patch("/api/categories/" + categoryId + "/disable")
+        mockMvc.perform(post("/api/categories/" + categoryId + "/disable")
                         .with(jwt().jwt(jwt)))
-                .andExpect(status().isOk());
+                .andExpect(status().isNoContent());
 
         verify(categoryService, times(1)).disableCategory(categoryId, userId);
     }
@@ -588,7 +588,7 @@ class CategoryControllerTest {
         doThrow(new com.fabiankevin.app.exceptions.CategoryNotFoundException())
                 .when(categoryService).disableCategory(any(), any());
 
-        mockMvc.perform(patch("/api/categories/" + categoryId + "/disable")
+        mockMvc.perform(post("/api/categories/" + categoryId + "/disable")
                         .with(jwt().jwt(jwt)))
                 .andExpect(status().isNotFound());
 
