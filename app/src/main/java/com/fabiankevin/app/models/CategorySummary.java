@@ -15,7 +15,7 @@ public record CategorySummary(
         String icon,
         boolean active,
         boolean system,
-        double amount,
+        double totalAmount,
         double percentage,
         int totalTransactions
 ) {

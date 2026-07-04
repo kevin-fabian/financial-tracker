@@ -276,7 +276,7 @@ class DefaultTransactionServiceTest {
     @Test
     void getTransactionsByPageQuery_givenNullType_thenShouldCallRepositoryWithoutType() {
         UUID userId = UUID.randomUUID();
-        PageQuery query = new PageQuery(0, 20, "amount", "ASC");
+        PageQuery query = new PageQuery(0, 20, "totalAmount", "ASC");
 
         Page<Transaction> expectedPage = Page.<Transaction>builder()
                 .content(List.of())

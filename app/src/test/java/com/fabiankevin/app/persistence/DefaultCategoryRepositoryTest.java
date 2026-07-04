@@ -517,12 +517,12 @@ class DefaultCategoryRepositoryTest {
             Assertions.assertThat(page.content()).hasSize(2);
 
             var foodSummary = page.content().stream().filter(c -> "FOOD".equals(c.name())).findFirst().orElseThrow();
-            Assertions.assertThat(foodSummary.amount()).isEqualTo(300.0);
+            Assertions.assertThat(foodSummary.totalAmount()).isEqualTo(300.0);
             Assertions.assertThat(foodSummary.totalTransactions()).isEqualTo(1);
             Assertions.assertThat(foodSummary.percentage()).isCloseTo(30.0, Assertions.within(0.01));
 
             var rentSummary = page.content().stream().filter(c -> "RENT".equals(c.name())).findFirst().orElseThrow();
-            Assertions.assertThat(rentSummary.amount()).isEqualTo(700.0);
+            Assertions.assertThat(rentSummary.totalAmount()).isEqualTo(700.0);
             Assertions.assertThat(rentSummary.totalTransactions()).isEqualTo(1);
             Assertions.assertThat(rentSummary.percentage()).isCloseTo(70.0, Assertions.within(0.01));
 
@@ -588,7 +588,7 @@ class DefaultCategoryRepositoryTest {
 
             Assertions.assertThat(page.content()).hasSize(1);
             Assertions.assertThat(page.content().get(0).name()).isEqualTo("FOOD");
-            Assertions.assertThat(page.content().get(0).amount()).isEqualTo(500.0);
+            Assertions.assertThat(page.content().get(0).totalAmount()).isEqualTo(500.0);
             Assertions.assertThat(page.content().get(0).percentage()).isCloseTo(100.0, Assertions.within(0.01));
         }
 
@@ -619,12 +619,12 @@ class DefaultCategoryRepositoryTest {
             Assertions.assertThat(page.content()).hasSize(2);
 
             var groceriesSummary = page.content().stream().filter(c -> "GROCERIES".equals(c.name())).findFirst().orElseThrow();
-            Assertions.assertThat(groceriesSummary.amount()).isZero();
+            Assertions.assertThat(groceriesSummary.totalAmount()).isZero();
             Assertions.assertThat(groceriesSummary.totalTransactions()).isZero();
             Assertions.assertThat(groceriesSummary.percentage()).isZero();
 
             var entertainmentSummary = page.content().stream().filter(c -> "ENTERTAINMENT".equals(c.name())).findFirst().orElseThrow();
-            Assertions.assertThat(entertainmentSummary.amount()).isZero();
+            Assertions.assertThat(entertainmentSummary.totalAmount()).isZero();
             Assertions.assertThat(entertainmentSummary.totalTransactions()).isZero();
             Assertions.assertThat(entertainmentSummary.percentage()).isZero();
         }

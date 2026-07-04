@@ -16,10 +16,10 @@ public record CategorySummaryResponse(
         String name,
         @Schema(description = "Transaction type of the category", example = "EXPENSE")
         TransactionType type,
-        @Schema(description = "Icon for the category")
+        @Schema(description = "Icon for the category", example = "food")
         String icon,
-        @Schema(description = "Total amount for this category", example = "150.75")
-        double amount,
+        @Schema(description = "Total totalAmount for this category", example = "150.75")
+        double totalAmount,
         @Schema(description = "Percentage of total transactions for this category", example = "25.5")
         double percentage,
         @Schema(description = "Total number of transactions in this category", example = "10")
@@ -31,7 +31,7 @@ public record CategorySummaryResponse(
                 .name(categorySummary.name())
                 .type(categorySummary.type())
                 .icon(categorySummary.icon())
-                .amount(categorySummary.amount())
+                .totalAmount(categorySummary.totalAmount())
                 .percentage(categorySummary.percentage())
                 .totalTransactions(categorySummary.totalTransactions())
                 .build();

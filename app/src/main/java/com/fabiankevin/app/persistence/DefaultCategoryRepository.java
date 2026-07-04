@@ -110,7 +110,7 @@ public class DefaultCategoryRepository implements CategoryRepository {
                             .icon(projection.icon())
                             .active(projection.active())
                             .system(projection.system())
-                            .amount(projection.amount())
+                            .totalAmount(projection.amount())
                             .percentage(percentage)
                             .totalTransactions(projection.totalTransactions())
                             .build();
