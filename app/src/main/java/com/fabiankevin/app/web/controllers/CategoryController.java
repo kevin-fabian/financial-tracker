@@ -1,14 +1,12 @@
 package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.CategorySummary;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.services.queries.PageQuery;
-import com.fabiankevin.app.web.controllers.dtos.CategoryResponse;
-import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
-import com.fabiankevin.app.web.controllers.dtos.PageResponse;
-import com.fabiankevin.app.web.controllers.dtos.PatchCategoryRequest;
+import com.fabiankevin.app.web.controllers.dtos.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -60,6 +58,38 @@ public class CategoryController {
                 .totalPages(categories.totalPages())
                 .last(categories.last())
                 .first(categories.first())
+                .build());
+    }
+
+    @Operation(
+            summary = "Retrieves paginated category summaries",
+            description = "Retrieves a paginated list of category summaries with aggregated transaction data based on the provided pagination parameters",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - Resources retrieved successfully",
+                            content = @Content(schema = @Schema(implementation = PageResponse.class))),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @GetMapping("/summaries")
+    public PageResponse<CategorySummaryResponse> getCategorySummaries(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "name") String sort,
+            @RequestParam(defaultValue = "ASC") String direction,
+            @RequestParam(required = false) TransactionType type,
+            JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        Page<CategorySummary> summaries = categoryService.getCategorySummariesByPageQuery(new PageQuery(page, size, sort, direction), userId, type);
+
+        return PageResponse.from(Page.<CategorySummaryResponse>builder()
+                .content(summaries.content().stream().map(CategorySummaryResponse::from).toList())
+                .page(summaries.page())
+                .size(summaries.size())
+                .totalElements(summaries.totalElements())
+                .totalPages(summaries.totalPages())
+                .last(summaries.last())
+                .first(summaries.first())
                 .build());
     }
 

@@ -1,6 +1,7 @@
 package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.CategorySummary;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.CategoryService;
@@ -592,5 +593,90 @@ class CategoryControllerTest {
                 .andExpect(status().isNotFound());
 
         verify(categoryService, times(1)).disableCategory(eq(categoryId), any());
+    }
+
+    @Test
+    void getCategorySummariesByPageQuery_givenValidParams_thenShouldReturnPagedSummaryResponse() throws Exception {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        PageQuery query = new PageQuery(0, 2, "name", "ASC");
+        TransactionType type = TransactionType.EXPENSE;
+
+        CategorySummary s1 = CategorySummary.builder()
+                .id(UUID.randomUUID())
+                .name("FOOD")
+                .type(TransactionType.EXPENSE)
+                .userId(userId)
+                .icon("food")
+                .amount(150.75)
+                .percentage(25.5)
+                .totalTransactions(10)
+                .build();
+
+        CategorySummary s2 = CategorySummary.builder()
+                .id(UUID.randomUUID())
+                .name("RENT")
+                .type(TransactionType.EXPENSE)
+                .userId(userId)
+                .icon("house")
+                .amount(1200.00)
+                .percentage(50.0)
+                .totalTransactions(2)
+                .build();
+
+        when(categoryService.getCategorySummariesByPageQuery(query, userId, type))
+                .thenReturn(new Page<>(List.of(s1, s2), 0, 2, 2L, 1, true, true));
+
+        mockMvc.perform(get("/api/categories/summaries?page=0&size=2&sort=name&direction=ASC&type=EXPENSE")
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].name").value("FOOD"))
+                .andExpect(jsonPath("$.content[0].amount").value(150.75))
+                .andExpect(jsonPath("$.content[0].percentage").value(25.5))
+                .andExpect(jsonPath("$.content[0].totalTransactions").value(10))
+                .andExpect(jsonPath("$.content[1].name").value("RENT"))
+                .andExpect(jsonPath("$.content[1].amount").value(1200.0))
+                .andExpect(jsonPath("$.content[1].percentage").value(50.0))
+                .andExpect(jsonPath("$.content[1].totalTransactions").value(2))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(2))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(1));
+
+        verify(categoryService, times(1)).getCategorySummariesByPageQuery(query, userId, type);
+    }
+
+    @Test
+    void getCategorySummariesByPageQuery_givenNoJwt_thenShouldReturnUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/categories/summaries?page=0&size=10&sort=name&direction=ASC"))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(categoryService);
+    }
+
+    @Test
+    void getCategorySummariesByPageQuery_givenNoContent_thenShouldReturnEmptyPage() throws Exception {
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        when(categoryService.getCategorySummariesByPageQuery(any(PageQuery.class), eq(userId), any()))
+                .thenReturn(new Page<>(List.of(), 0, 10, 0L, 0, false, true));
+
+        mockMvc.perform(get("/api/categories/summaries?page=0&size=10&sort=name&direction=ASC")
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.totalElements").value(0))
+                .andExpect(jsonPath("$.totalPages").value(0));
+
+        verify(categoryService, times(1)).getCategorySummariesByPageQuery(argThat(
+                pageQuery -> pageQuery.page() == 0
+                        && pageQuery.size() == 10
+                        && pageQuery.sort().equals("name")
+                        && pageQuery.direction().equals("ASC")
+        ), eq(userId), any());
     }
 }
