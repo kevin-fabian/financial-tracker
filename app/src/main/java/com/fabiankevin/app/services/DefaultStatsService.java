@@ -32,13 +32,13 @@ public class DefaultStatsService implements StatsService {
         LocalDate toDate = Optional.ofNullable(query.toDate()).orElse(now);
 
         // Query current period totals (single grouped query)
-        List<SummaryPoint> currentPeriod = transactionRepository.sumByTypeAndUserId(userId, fromDate, toDate, query.accountId(), query.categoryId());
+        List<SummaryPoint> currentPeriod = transactionRepository.sumByTypeAndUserId(userId, fromDate, toDate, query.categoryId());
         double currentIncome = sumByType(currentPeriod, TransactionType.INCOME);
         double currentExpenses = sumByType(currentPeriod, TransactionType.EXPENSE);
 
         // Calculate cumulative balance (all-time, across all accounts)
         double totalBalance = transactionRepository.sumBalance(userId);
-        double totalBalanceLastMonthWithSameDate =  transactionRepository.sumBalance(userId,
+        double totalBalanceLastMonthWithSameDate = transactionRepository.sumBalance(userId,
                 now.minusMonths(1).withDayOfMonth(1),
                 now.minusMonths(1)
         );

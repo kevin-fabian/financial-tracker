@@ -54,7 +54,7 @@ class DefaultStatsServiceTest {
         double totalBalance = 15000.0;
         double priorBalance = 12000.0;
 
-        when(transactionRepository.sumByTypeAndUserId(eq(userId), eq(fromDate), eq(toDate), eq(accountId), eq(categoryId)))
+        when(transactionRepository.sumByTypeAndUserId(eq(userId), eq(fromDate), eq(toDate), eq(categoryId)))
                 .thenReturn(summaryPoints(currentIncome, currentExpenses));
         when(transactionRepository.sumBalance(eq(userId)))
                 .thenReturn(totalBalance);
@@ -69,7 +69,7 @@ class DefaultStatsServiceTest {
         assertEquals(currentExpenses, summary.totalExpenses(), 0.001, "Total expenses should match");
         assertEquals(25.0, summary.growthPercentage(), 0.01, "Growth percentage should reflect month-over-month balance change");
 
-        verify(transactionRepository, times(1)).sumByTypeAndUserId(any(), any(), any(), any(), any());
+        verify(transactionRepository, times(1)).sumByTypeAndUserId(any(), any(), any(), any());
         verify(transactionRepository, times(1)).sumBalance(any(), any(), any());
         verify(transactionRepository, times(1)).sumBalance(eq(userId));
     }
@@ -81,14 +81,11 @@ class DefaultStatsServiceTest {
         StatsQuery query = StatsQuery.builder()
                 .build();
 
-        LocalDate now = LocalDate.now();
-        LocalDate expectedFromDate = now.withDayOfMonth(1);
-
         double currentIncome = 2000.0;
         double currentExpenses = 1500.0;
         double totalBalance = 10000.0;
 
-        when(transactionRepository.sumByTypeAndUserId(eq(userId), any(), any(), any(), any()))
+        when(transactionRepository.sumByTypeAndUserId(eq(userId), any(), any(), any()))
                 .thenReturn(summaryPoints(currentIncome, currentExpenses));
         when(transactionRepository.sumBalance(eq(userId)))
                 .thenReturn(totalBalance);
@@ -103,7 +100,7 @@ class DefaultStatsServiceTest {
         assertEquals(currentExpenses, summary.totalExpenses(), 0.001, "Total expenses should match");
         assertEquals(100.0, summary.growthPercentage(), 0.001, "Growth percentage should be 100.0% when prior balance is zero");
 
-        verify(transactionRepository, times(1)).sumByTypeAndUserId(any(), any(), any(), any(), any());
+        verify(transactionRepository, times(1)).sumByTypeAndUserId(any(), any(), any(), any());
         verify(transactionRepository, times(1)).sumBalance(any(), any(), any());
         verify(transactionRepository, times(1)).sumBalance(eq(userId));
     }

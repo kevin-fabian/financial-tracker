@@ -102,6 +102,20 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("categoryId") UUID categoryId);
 
     @Query("""
+            SELECT STR(t.category.transactionType) as label, COALESCE(SUM(t.amountValue), 0.0) as total
+            FROM TransactionEntity t
+            WHERE t.account.userId = :userId
+              AND t.transactionDate BETWEEN :from AND :to
+              AND (:categoryId IS NULL OR t.category.id = :categoryId)
+            GROUP BY t.category.transactionType
+            """)
+    Streamable<SummaryPointProjection> sumByTypeAndDateRangeByCategory(
+            @Param("userId") UUID userId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("categoryId") UUID categoryId);
+
+    @Query("""
             SELECT COALESCE(SUM(CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amountValue ELSE -t.amountValue END), 0.0)
             FROM TransactionEntity t
             WHERE t.account.userId = :userId
