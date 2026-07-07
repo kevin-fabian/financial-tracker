@@ -90,5 +90,31 @@ class DailySummaryGeneratorTest {
         Assertions.assertThat(result).as("result should be empty when repository returns no projections").isEmpty();
         verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), transactionType);
     }
+
+    @Test
+    void generate_givenNullFromAndTo_usesDefaultLocalDateNow() {
+        TransactionType transactionType = TransactionType.EXPENSE;
+        UUID userId = UUID.randomUUID();
+        LocalDate today = LocalDate.now();
+        SummaryPoint p1 = new SummaryPoint(today.toString(), 500.0);
+
+        when(transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(today, today, List.of(userId), transactionType))
+                .thenReturn(List.of(p1));
+
+        SummaryQuery query = SummaryQuery.builder()
+                .transactionType(transactionType)
+                .type(SummaryType.DAILY)
+                .from(null)
+                .to(null)
+                .userIds(List.of(userId))
+                .build();
+
+        var result = generator.generate(query);
+
+        Assertions.assertThat(result).hasSize(1);
+        Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactly(today.toString());
+        Assertions.assertThat(result).extracting(SummaryPoint::total).containsExactly(500.0);
+        verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(today, today, List.of(userId), transactionType);
+    }
 }
 

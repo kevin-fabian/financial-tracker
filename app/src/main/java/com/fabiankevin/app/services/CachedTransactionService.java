@@ -84,6 +84,9 @@ public class CachedTransactionService implements TransactionService {
             return (SummarySeries) cached.get();
         }
 
+        for (UUID userId : query.userIds()) {
+            registerKey(userId, key);
+        }
         SummarySeries result = delegatedTransactionService.getSummary(query);
         cache.put(key, result);
         return result;
@@ -107,7 +110,7 @@ public class CachedTransactionService implements TransactionService {
     }
 
     private void registerKey(UUID userId, String key) {
-        userKeys.computeIfAbsent(userId, k -> new CopyOnWriteArraySet<>()).add(key);
+        userKeys.computeIfAbsent(userId, _ -> new CopyOnWriteArraySet<>()).add(key);
     }
 
     private void evictUserKeys(UUID userId) {
