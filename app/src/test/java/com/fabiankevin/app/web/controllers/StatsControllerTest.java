@@ -1,6 +1,7 @@
 package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.models.StatsSummary;
+import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.services.StatsService;
 import com.fabiankevin.app.web.controllers.dtos.StatsQuery;
 import com.github.fabiankevin.lemon.web.GlobalExceptionHandler;
@@ -92,5 +93,73 @@ class StatsControllerTest {
         assertEquals(accountId, capturedQuery.accountId(), "accountId should match request param");
         assertEquals(categoryId, capturedQuery.categoryId(), "categoryId should match request param");
         assertEquals(jwt.getSubject(), userIdCaptor.getValue().toString(), "userId should be extracted from JWT subject");
+    }
+
+    @Test
+    void findDailyTotalBalanceByUserIdsAndDateTimeFrom_givenValidFrom_thenShouldReturnDailyBalances() throws Exception {
+        LocalDate from = LocalDate.of(2026, 7, 1);
+
+        List<SummaryPoint> dailyBalances = List.of(
+                new SummaryPoint("1", 1000.0),
+                new SummaryPoint("2", 1500.0),
+                new SummaryPoint("3", 1200.0)
+        );
+
+        when(statsService.findDailyTotalBalanceByUserIdsAndDateTimeFrom(any(), any())).thenReturn(dailyBalances);
+
+        mockMvc.perform(get("/api/stats/daily-balance")
+                        .with(jwt().jwt(jwt))
+                        .param("from", from.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$[0].label").value("1"))
+                .andExpect(jsonPath("$[0].total").value(1000.0))
+                .andExpect(jsonPath("$[1].label").value("2"))
+                .andExpect(jsonPath("$[1].total").value(1500.0))
+                .andExpect(jsonPath("$[2].label").value("3"))
+                .andExpect(jsonPath("$[2].total").value(1200.0));
+
+        ArgumentCaptor<UUID> userIdCaptor = ArgumentCaptor.forClass(UUID.class);
+        ArgumentCaptor<LocalDate> dateCaptor = ArgumentCaptor.forClass(LocalDate.class);
+        verify(statsService, times(1)).findDailyTotalBalanceByUserIdsAndDateTimeFrom(userIdCaptor.capture(), dateCaptor.capture());
+
+        assertEquals(jwt.getSubject(), userIdCaptor.getValue().toString(), "userId should be extracted from JWT subject");
+        assertEquals(from, dateCaptor.getValue(), "from date should match request param");
+    }
+
+    @Test
+    void findDailyTotalBalanceByUserIdsAndDateTimeFrom_givenNoFromParam_thenShouldDefaultToToday() throws Exception {
+        LocalDate today = LocalDate.now();
+
+        when(statsService.findDailyTotalBalanceByUserIdsAndDateTimeFrom(any(), eq(today)))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/api/stats/daily-balance")
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$").isEmpty());
+
+        ArgumentCaptor<LocalDate> dateCaptor = ArgumentCaptor.forClass(LocalDate.class);
+        verify(statsService, times(1)).findDailyTotalBalanceByUserIdsAndDateTimeFrom(any(), dateCaptor.capture());
+
+        assertEquals(today, dateCaptor.getValue(), "Should default to today when no from param provided");
+    }
+
+    @Test
+    void findDailyTotalBalanceByUserIdsAndDateTimeFrom_givenNoTransactions_thenShouldReturnEmptyArray() throws Exception {
+        LocalDate from = LocalDate.of(2026, 7, 1);
+
+        when(statsService.findDailyTotalBalanceByUserIdsAndDateTimeFrom(any(), any()))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/api/stats/daily-balance")
+                        .with(jwt().jwt(jwt))
+                        .param("from", from.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$").isEmpty());
+
+        verify(statsService, times(1)).findDailyTotalBalanceByUserIdsAndDateTimeFrom(any(), eq(from));
     }
 }

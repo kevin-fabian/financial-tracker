@@ -6,6 +6,7 @@ import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.web.controllers.dtos.StatsQuery;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -14,8 +15,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -103,5 +103,62 @@ class DefaultStatsServiceTest {
         verify(transactionRepository, times(1)).sumByTypeAndUserId(any(), any(), any(), any());
         verify(transactionRepository, times(1)).sumBalance(any(), any(), any());
         verify(transactionRepository, times(1)).sumBalance(eq(userId));
+    }
+
+    @Test
+    void findDailyTotalBalanceByUserIdsAndDateTimeFrom_givenValidUserIdAndDate_thenShouldReturnDailyBalances() {
+        UUID userId = UUID.randomUUID();
+        LocalDate fromDate = LocalDate.of(2026, 7, 1);
+
+        List<SummaryPoint> dailyBalances = List.of(
+                new SummaryPoint("1", 1000.0),
+                new SummaryPoint("2", 1500.0),
+                new SummaryPoint("3", 1200.0)
+        );
+
+        when(transactionRepository.findDailyTotalBalanceByUserIdsAndDateTimeFrom(eq(List.of(userId)), eq(fromDate)))
+                .thenReturn(dailyBalances);
+
+        List<SummaryPoint> result = statsService.findDailyTotalBalanceByUserIdsAndDateTimeFrom(userId, fromDate);
+
+        assertNotNull(result, "Result should not be null");
+        assertEquals(3, result.size(), "Should return 3 daily balances");
+        assertEquals("1", result.get(0).label(), "First day label should match");
+        assertEquals(1000.0, result.get(0).total(), 0.001, "First day total should match");
+
+        verify(transactionRepository, times(1)).findDailyTotalBalanceByUserIdsAndDateTimeFrom(eq(List.of(userId)), eq(fromDate));
+    }
+
+    @Test
+    void findDailyTotalBalanceByUserIdsAndDateTimeFrom_givenNoTransactions_thenShouldReturnEmptyList() {
+        UUID userId = UUID.randomUUID();
+        LocalDate fromDate = LocalDate.of(2026, 7, 1);
+
+        when(transactionRepository.findDailyTotalBalanceByUserIdsAndDateTimeFrom(eq(List.of(userId)), eq(fromDate)))
+                .thenReturn(List.of());
+
+        List<SummaryPoint> result = statsService.findDailyTotalBalanceByUserIdsAndDateTimeFrom(userId, fromDate);
+
+        assertNotNull(result, "Result should not be null");
+        assertTrue(result.isEmpty(), "Result should be empty when no transactions exist");
+
+        verify(transactionRepository, times(1)).findDailyTotalBalanceByUserIdsAndDateTimeFrom(eq(List.of(userId)), eq(fromDate));
+    }
+
+    @Test
+    void findDailyTotalBalanceByUserIdsAndDateTimeFrom_givenDifferentUserId_thenShouldWrapInSingletonList() {
+        UUID userId = UUID.randomUUID();
+        LocalDate fromDate = LocalDate.of(2026, 7, 1);
+
+        when(transactionRepository.findDailyTotalBalanceByUserIdsAndDateTimeFrom(eq(List.of(userId)), eq(fromDate)))
+                .thenReturn(List.of(new SummaryPoint("5", 500.0)));
+
+        statsService.findDailyTotalBalanceByUserIdsAndDateTimeFrom(userId, fromDate);
+
+        ArgumentCaptor<List<UUID>> userIdsCaptor = ArgumentCaptor.forClass(List.class);
+        verify(transactionRepository, times(1)).findDailyTotalBalanceByUserIdsAndDateTimeFrom(userIdsCaptor.capture(), eq(fromDate));
+
+        assertEquals(1, userIdsCaptor.getValue().size(), "Should wrap single userId in a list");
+        assertEquals(userId, userIdsCaptor.getValue().get(0), "List should contain the expected userId");
     }
 }

@@ -54,4 +54,9 @@ public class DefaultStatsService implements StatsService {
                 .growthPercentage(growthPercentage)
                 .build();
     }
+
+    @Override
+    public List<SummaryPoint> findDailyTotalBalanceByUserIdsAndDateTimeFrom(UUID userId, LocalDate fromDateTime) {
+        return transactionRepository.findDailyTotalBalanceByUserIdsAndDateTimeFrom(List.of(userId), fromDateTime);
+    }
 }

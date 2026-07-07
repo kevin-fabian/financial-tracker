@@ -1,6 +1,7 @@
 package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.models.StatsSummary;
+import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.services.StatsService;
 import com.fabiankevin.app.web.controllers.dtos.StatsQuery;
 import com.fabiankevin.app.web.controllers.dtos.StatsResponse;
@@ -17,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -56,5 +59,23 @@ public class StatsController {
                 .totalIncome(summary.totalIncome())
                 .growthPercentage(summary.growthPercentage())
                 .build();
+    }
+
+    @Operation(
+            summary = "Retrieve daily total balances",
+            description = "Returns daily total balance (income minus expenses) for the authenticated user from a given date onwards",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - Daily balances retrieved successfully",
+                            content = @Content(schema = @Schema(implementation = SummaryPoint.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @GetMapping("/daily-balance")
+    public List<SummaryPoint> findDailyTotalBalanceByUserIdsAndDateTimeFrom(
+            @RequestParam(required = false) LocalDate from,
+            JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        LocalDate fromDate = Optional.ofNullable(from).orElse(LocalDate.now());
+        return statsService.findDailyTotalBalanceByUserIdsAndDateTimeFrom(userId, fromDate);
     }
 }
