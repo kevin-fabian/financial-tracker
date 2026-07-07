@@ -58,7 +58,14 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("type") TransactionType type);
 
     @Query("""
-                SELECT DAY(t.transactionDate) AS label, COALESCE(SUM(t.amount), 0.0) AS sum
+                SELECT DAY(t.transactionDate) AS label,
+                       COALESCE(SUM(
+                           CASE
+                               WHEN :type IS NULL THEN
+                                   CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amount ELSE -t.amount END
+                               ELSE t.amount
+                           END
+                       ), 0.0) AS sum
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds

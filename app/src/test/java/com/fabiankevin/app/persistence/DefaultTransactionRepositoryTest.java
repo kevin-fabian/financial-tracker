@@ -82,6 +82,15 @@ class DefaultTransactionRepositoryTest {
         }
     }
 
+    @BeforeEach
+    void cleanUp() {
+        jpaTransactionRepository.deleteAll();
+        jpaCategoryRepository.deleteAll();
+        jpaAccountRepository.deleteAll();
+
+        clearInvocations(jpaTransactionRepository);
+    }
+
     @Test
     void getSummaryByYearAndUserIdGroupedByCategory_givenTwoCategoriesWithSameYear_shouldReturnTwoCategoriesSummaryPoints() {
         int year = 2026;
@@ -288,22 +297,154 @@ class DefaultTransactionRepositoryTest {
         verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), TransactionType.EXPENSE);
     }
 
-    @Test
-    void getSummaryByDateRangeAndUserIdGroupedByDay_givenEmptyStreamable_shouldReturnEmptyList() {
-        int year = 2025;
-        UUID otherUserId = UUID.randomUUID();
+    @Nested
+    class GetSummaryByDateRangeAndUserIdGroupedByDayWithTypeNull {
 
-        LocalDate from = LocalDate.of(year, 3, 1);
-        LocalDate to = LocalDate.of(year, 3, 31);
+        @Test
+        void ivenEmptyStreamable_shouldReturnEmptyList() {
+            int year = 2025;
+            UUID otherUserId = UUID.randomUUID();
 
-        when(jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(otherUserId), TransactionType.EXPENSE))
-                .thenReturn(Streamable.empty());
+            LocalDate from = LocalDate.of(year, 3, 1);
+            LocalDate to = LocalDate.of(year, 3, 31);
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(otherUserId), TransactionType.EXPENSE);
+            when(jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(otherUserId), TransactionType.EXPENSE))
+                    .thenReturn(Streamable.empty());
 
-        Assertions.assertThat(result).isEmpty();
+            List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(otherUserId), TransactionType.EXPENSE);
 
-        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(otherUserId), TransactionType.EXPENSE);
+            Assertions.assertThat(result).isEmpty();
+
+            verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(otherUserId), TransactionType.EXPENSE);
+        }
+
+        @Test
+        void givenIncomeAndExpenseOnSameDay_shouldReturnNetBalance() {
+            CategoryEntity salary = createCategory("SALARY_DAY_NULL_1", TransactionType.INCOME);
+            CategoryEntity food = createCategory("FOOD_DAY_NULL_1", TransactionType.EXPENSE);
+            AccountEntity cash = createAccount("CASH_DAY_NULL_1");
+
+            List.of(
+                    AddTransactionCommand.builder()
+                            .userId(userId)
+                            .categoryId(salary.getId())
+                            .accountId(cash.getId())
+                            .amount(Amount.of(5000, Currency.getInstance("PHP")))
+                            .transactionDate(LocalDate.of(2026, 3, 1))
+                            .description("Salary")
+                            .build(),
+                    AddTransactionCommand.builder()
+                            .userId(userId)
+                            .categoryId(food.getId())
+                            .accountId(cash.getId())
+                            .amount(Amount.of(500, Currency.getInstance("PHP")))
+                            .transactionDate(LocalDate.of(2026, 3, 1))
+                            .description("Food")
+                            .build()
+            ).forEach(transactionService::addTransaction);
+
+            LocalDate from = LocalDate.of(2026, 3, 1);
+            LocalDate to = LocalDate.of(2026, 3, 31);
+
+            List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), null);
+
+            Assertions.assertThat(result).hasSize(1);
+            Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactly("1");
+            Assertions.assertThat(result).extracting(SummaryPoint::total).containsExactly(4500.0);
+
+            verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), null);
+        }
+
+        @Test
+        void givenMultipleDaysWithMixedTransactions_shouldReturnDailyBalances() {
+            CategoryEntity salary = createCategory("SALARY_DAY_NULL_2", TransactionType.INCOME);
+            CategoryEntity food = createCategory("FOOD_DAY_NULL_2", TransactionType.EXPENSE);
+            CategoryEntity rent = createCategory("RENT_DAY_NULL_2", TransactionType.EXPENSE);
+            AccountEntity cash = createAccount("CASH_DAY_NULL_2");
+
+            List.of(
+                    AddTransactionCommand.builder()
+                            .userId(userId)
+                            .categoryId(salary.getId())
+                            .accountId(cash.getId())
+                            .amount(Amount.of(5000, Currency.getInstance("PHP")))
+                            .transactionDate(LocalDate.of(2026, 3, 1))
+                            .description("Salary")
+                            .build(),
+                    AddTransactionCommand.builder()
+                            .userId(userId)
+                            .categoryId(food.getId())
+                            .accountId(cash.getId())
+                            .amount(Amount.of(500, Currency.getInstance("PHP")))
+                            .transactionDate(LocalDate.of(2026, 3, 1))
+                            .description("Food")
+                            .build(),
+                    AddTransactionCommand.builder()
+                            .userId(userId)
+                            .categoryId(rent.getId())
+                            .accountId(cash.getId())
+                            .amount(Amount.of(2000, Currency.getInstance("PHP")))
+                            .transactionDate(LocalDate.of(2026, 3, 2))
+                            .description("Rent")
+                            .build(),
+                    AddTransactionCommand.builder()
+                            .userId(userId)
+                            .categoryId(salary.getId())
+                            .accountId(cash.getId())
+                            .amount(Amount.of(3000, Currency.getInstance("PHP")))
+                            .transactionDate(LocalDate.of(2026, 3, 2))
+                            .description("Freelance")
+                            .build()
+            ).forEach(transactionService::addTransaction);
+
+            LocalDate from = LocalDate.of(2026, 3, 1);
+            LocalDate to = LocalDate.of(2026, 3, 31);
+
+            List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), null);
+
+            Assertions.assertThat(result).hasSize(2);
+            Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("1", "2");
+            Assertions.assertThat(result).extracting(SummaryPoint::total).containsExactlyInAnyOrder(4500.0, 1000.0);
+
+            verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), null);
+        }
+
+        @Test
+        void givenOnlyExpenses_shouldReturnNegativeBalances() {
+            CategoryEntity food = createCategory("FOOD_DAY_NULL_3", TransactionType.EXPENSE);
+            CategoryEntity rent = createCategory("RENT_DAY_NULL_3", TransactionType.EXPENSE);
+            AccountEntity cash = createAccount("CASH_DAY_NULL_3");
+
+            List.of(
+                    AddTransactionCommand.builder()
+                            .userId(userId)
+                            .categoryId(food.getId())
+                            .accountId(cash.getId())
+                            .amount(Amount.of(250, Currency.getInstance("PHP")))
+                            .transactionDate(LocalDate.of(2026, 3, 1))
+                            .description("Food")
+                            .build(),
+                    AddTransactionCommand.builder()
+                            .userId(userId)
+                            .categoryId(rent.getId())
+                            .accountId(cash.getId())
+                            .amount(Amount.of(8000, Currency.getInstance("PHP")))
+                            .transactionDate(LocalDate.of(2026, 3, 15))
+                            .description("Rent")
+                            .build()
+            ).forEach(transactionService::addTransaction);
+
+            LocalDate from = LocalDate.of(2026, 3, 1);
+            LocalDate to = LocalDate.of(2026, 3, 31);
+
+            List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), null);
+
+            Assertions.assertThat(result).hasSize(2);
+            Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("1", "15");
+            Assertions.assertThat(result).extracting(SummaryPoint::total).containsExactlyInAnyOrder(-250.0, -8000.0);
+
+            verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), null);
+        }
     }
 
     @Test
@@ -779,84 +920,6 @@ class DefaultTransactionRepositoryTest {
         Assertions.assertThat(result).extracting(SummaryPoint::total).containsExactly(600.0);
 
         verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRangeByCategory(eq(userId), eq(from), eq(to), eq(food.getId()));
-    }
-
-    @Nested
-    class FindDailyTotalBalanceByUserIdsAndDateTimeFromTest {
-        @BeforeEach
-        void cleanUp() {
-            jpaTransactionRepository.deleteAll();
-            jpaCategoryRepository.deleteAll();
-            jpaAccountRepository.deleteAll();
-
-            clearInvocations(jpaTransactionRepository);
-        }
-
-        @Test
-        void findDailyTotalBalanceByUserIdsAndDateTimeFrom_givenTransactionsOnDifferentDays_shouldReturnDailyBalances() {
-            AccountEntity cash = createAccount("CASH");
-            CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
-            CategoryEntity food = createCategory("FOOD", TransactionType.EXPENSE);
-
-            LocalDate fromDateTime = LocalDate.now().minusDays(14);
-
-            // Day 1: income 1000, expense 200 → balance 800
-            List.of(
-                    AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(1000, Currency.getInstance("PHP"))).transactionDate(LocalDate.now().minusDays(2)).description("salary").build(),
-                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.now().minusDays(2)).description("food").build(),
-                    // Day 2: income 0, expense 100 → balance -100
-                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.now().minusDays(1)).description("food2").build()
-            ).forEach(transactionService::addTransaction);
-
-            List<SummaryPoint> result = transactionRepository.findDailyTotalBalanceByUserIdsAndDateTimeFrom(List.of(userId), fromDateTime);
-
-            Assertions.assertThat(result).hasSize(2);
-            Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder(
-                    String.valueOf(LocalDate.now().minusDays(2).getDayOfMonth()),
-                    String.valueOf(LocalDate.now().minusDays(1).getDayOfMonth())
-            );
-            Assertions.assertThat(result).extracting(SummaryPoint::total).containsExactlyInAnyOrder(800.0, -100.0);
-
-            verify(jpaTransactionRepository, times(1)).findDailyTotalBalanceByUserIdsAndDateTimeFrom(List.of(userId), fromDateTime);
-        }
-
-        @Test
-        void findDailyTotalBalanceByUserIdsAndDateTimeFrom_givenNoTransactions_shouldReturnEmptyList() {
-            UUID otherUserId = UUID.randomUUID();
-            LocalDate fromDateTime = LocalDate.now().minusDays(14);
-
-            List<SummaryPoint> result = transactionRepository.findDailyTotalBalanceByUserIdsAndDateTimeFrom(List.of(otherUserId), fromDateTime);
-
-            Assertions.assertThat(result).isEmpty();
-
-            verify(jpaTransactionRepository, times(1)).findDailyTotalBalanceByUserIdsAndDateTimeFrom(List.of(otherUserId), fromDateTime);
-        }
-
-        @Test
-        void findDailyTotalBalanceByUserIdsAndDateTimeFrom_givenMultipleTransactionsSameDay_shouldAggregateBalance() {
-            AccountEntity cash = createAccount("CASH");
-            CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
-            CategoryEntity food = createCategory("FOOD", TransactionType.EXPENSE);
-            CategoryEntity rent = createCategory("RENT", TransactionType.EXPENSE);
-
-            LocalDate fromDateTime = LocalDate.now().minusDays(14);
-
-            // Same day: income 5000, expenses 500 + 1500 → balance 3000
-            List.of(
-                    AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.now().minusDays(3)).description("salary").build(),
-                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(500, Currency.getInstance("PHP"))).transactionDate(LocalDate.now().minusDays(3)).description("food").build(),
-                    AddTransactionCommand.builder().userId(userId).categoryId(rent.getId()).accountId(cash.getId()).amount(Amount.of(1500, Currency.getInstance("PHP"))).transactionDate(LocalDate.now().minusDays(3)).description("rent").build()
-            ).forEach(transactionService::addTransaction);
-
-            List<SummaryPoint> result = transactionRepository.findDailyTotalBalanceByUserIdsAndDateTimeFrom(List.of(userId), fromDateTime);
-
-            Assertions.assertThat(result).hasSize(1);
-            Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactly(String.valueOf(LocalDate.now().minusDays(3).getDayOfMonth()));
-            Assertions.assertThat(result).extracting(SummaryPoint::total).containsExactly(3000.0);
-
-            verify(jpaTransactionRepository, times(1)).findDailyTotalBalanceByUserIdsAndDateTimeFrom(List.of(userId), fromDateTime);
-        }
-
     }
 
     private CategoryEntity createCategory(String categoryName) {
