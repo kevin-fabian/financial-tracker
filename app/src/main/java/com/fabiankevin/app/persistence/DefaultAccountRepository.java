@@ -74,13 +74,13 @@ public class DefaultAccountRepository implements AccountRepository {
 
         // Calculate percentages for each account
         double totalAmount = entityPage.getContent().stream()
-                .mapToDouble(AccountSummaryProjection::totalAmount)
+                .mapToDouble(AccountSummaryProjection::totalBalance)
                 .sum();
 
         List<AccountSummary> content = entityPage.getContent().stream()
                 .map(projection -> {
-                    double percentage = (totalAmount != 0 && projection.totalAmount() != 0)
-                            ? (projection.totalAmount() / totalAmount) * 100.0
+                    double percentage = (totalAmount != 0 && projection.totalBalance() != 0)
+                            ? (projection.totalBalance() / totalAmount) * 100.0
                             : 0.0;
                     return AccountSummary.builder()
                             .id(projection.id())
@@ -90,7 +90,7 @@ public class DefaultAccountRepository implements AccountRepository {
                             .type(AccountType.valueOf(projection.type()))
                             .active(projection.active())
                             .system(projection.system())
-                            .totalAmount(projection.totalAmount())
+                            .totalBalance(projection.totalBalance())
                             .percentage(percentage)
                             .totalTransactions(projection.totalTransactions())
                             .build();

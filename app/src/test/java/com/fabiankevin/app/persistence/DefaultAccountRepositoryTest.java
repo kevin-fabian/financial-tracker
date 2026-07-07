@@ -215,17 +215,17 @@ class DefaultAccountRepositoryTest {
             AccountSummary s2 = byName.get("Account 2");
             AccountSummary s3 = byName.get("Account 3");
 
-            Assertions.assertThat(s1.totalAmount()).as("Account 1 totalAmount").isEqualTo(100.0);
+            Assertions.assertThat(s1.totalBalance()).as("Account 1 totalBalance").isEqualTo(100.0);
             Assertions.assertThat(s1.totalTransactions()).as("Account 1 totalTransactions").isEqualTo(2);
             Assertions.assertThat(s1.percentage()).as("Account 1 percentage (100/600*100)")
                     .isEqualTo(100.0 / 600.0 * 100.0);
 
-            Assertions.assertThat(s2.totalAmount()).as("Account 2 totalAmount").isEqualTo(200.0);
+            Assertions.assertThat(s2.totalBalance()).as("Account 2 totalBalance").isEqualTo(200.0);
             Assertions.assertThat(s2.totalTransactions()).as("Account 2 totalTransactions").isEqualTo(1);
             Assertions.assertThat(s2.percentage()).as("Account 2 percentage (200/600*100)")
                     .isEqualTo(200.0 / 600.0 * 100.0);
 
-            Assertions.assertThat(s3.totalAmount()).as("Account 3 totalAmount").isEqualTo(300.0);
+            Assertions.assertThat(s3.totalBalance()).as("Account 3 totalBalance").isEqualTo(300.0);
             Assertions.assertThat(s3.totalTransactions()).as("Account 3 totalTransactions").isEqualTo(1);
             Assertions.assertThat(s3.percentage()).as("Account 3 percentage (300/600*100)")
                     .isEqualTo(300.0 / 600.0 * 100.0);
@@ -260,7 +260,7 @@ class DefaultAccountRepositoryTest {
 
             Assertions.assertThat(page.content()).as("page should contain 1 summary").hasSize(1);
             AccountSummary summary = page.content().getFirst();
-            Assertions.assertThat(summary.totalAmount()).as("totalAmount").isEqualTo(150.0);
+            Assertions.assertThat(summary.totalBalance()).as("totalBalance").isEqualTo(150.0);
             Assertions.assertThat(summary.totalTransactions()).as("totalTransactions").isEqualTo(2);
             Assertions.assertThat(summary.percentage())
                     .as("single account should have 100% percentage")

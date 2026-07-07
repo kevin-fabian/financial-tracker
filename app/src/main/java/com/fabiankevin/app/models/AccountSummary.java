@@ -17,7 +17,7 @@ public record AccountSummary(
         AccountType type,
         boolean active,
         boolean system,
-        double totalAmount,
+        double totalBalance,
         double percentage,
         int totalTransactions) {
     public AccountSummary {

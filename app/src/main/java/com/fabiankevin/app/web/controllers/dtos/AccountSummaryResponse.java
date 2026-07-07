@@ -18,8 +18,8 @@ public record AccountSummaryResponse(
         String currency,
         @Schema(description = "Type of the account", example = "E_WALLET")
         AccountType type,
-        @Schema(description = "Total totalAmount for this account", example = "5000.00")
-        double totalAmount,
+        @Schema(description = "Total balance for this account", example = "5000.00")
+        double totalBalance,
         @Schema(description = "Percentage of total balance for this account", example = "35.5")
         double percentage,
         @Schema(description = "Total number of transactions for this account", example = "25")
@@ -31,7 +31,7 @@ public record AccountSummaryResponse(
                 .name(accountSummary.name())
                 .currency(accountSummary.currency().getCurrencyCode())
                 .type(accountSummary.type())
-                .totalAmount(accountSummary.totalAmount())
+                .totalBalance(accountSummary.totalBalance())
                 .percentage(accountSummary.percentage())
                 .totalTransactions(accountSummary.totalTransactions())
                 .build();

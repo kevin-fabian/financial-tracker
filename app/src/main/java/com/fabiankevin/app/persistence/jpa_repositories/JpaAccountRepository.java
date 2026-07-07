@@ -17,7 +17,7 @@ public interface JpaAccountRepository extends JpaRepository<AccountEntity, UUID>
 
     @Query("""
             SELECT acc.id, acc.name, acc.userId, acc.currency, acc.type, acc.active, acc.system,
-                COALESCE(SUM(t.amount), 0.0),
+                COALESCE(SUM(t.amount), 0.0) AS totalBalance,
                 CAST(COALESCE(COUNT(t.id), 0) AS int)
             FROM AccountEntity acc
             LEFT JOIN TransactionEntity t ON t.account.id = acc.id
