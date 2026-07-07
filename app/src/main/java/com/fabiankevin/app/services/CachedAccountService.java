@@ -1,6 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.AccountSummary;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.PatchAccountCommand;
@@ -82,6 +83,23 @@ public class CachedAccountService implements AccountService {
         }
 
         Page<Account> result = delegatedAccountService.getAccountsByPageAndUserId(query, userId);
+        registerKey(userId, key);
+        cache.put(key, result);
+        return result;
+    }
+
+    @Override
+    public Page<AccountSummary> getAccountSummariesByPageQuery(PageQuery query, UUID userId) {
+        String key = String.format(KEY_PAGED, userId, query.page(), query.size(),
+                query.sort(), query.direction());
+        Cache cache = cacheManager.getCache(CACHE_NAME);
+
+        Cache.ValueWrapper cached = cache.get(key);
+        if (cached != null) {
+            return (Page<AccountSummary>) cached.get();
+        }
+
+        Page<AccountSummary> result = delegatedAccountService.getAccountSummariesByPageQuery(query, userId);
         registerKey(userId, key);
         cache.put(key, result);
         return result;

@@ -2,6 +2,7 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.AccountSummary;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.persistence.AccountRepository;
@@ -96,5 +97,10 @@ public class DefaultAccountService implements AccountService {
     @Override
     public Page<Account> getAccountsByPageAndUserId(PageQuery query, UUID userId) {
         return accountRepository.getAccountsByPageAndUserId(query, userId);
+    }
+
+    @Override
+    public Page<AccountSummary> getAccountSummariesByPageQuery(PageQuery query, UUID userId) {
+        return accountRepository.findAllByPageQueryWithSummary(query, userId);
     }
 }
