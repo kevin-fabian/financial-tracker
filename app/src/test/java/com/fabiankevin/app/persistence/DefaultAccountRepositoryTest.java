@@ -4,8 +4,11 @@ import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.AccountSummary;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.AccountType;
+import com.fabiankevin.app.models.enums.TransactionType;
+import com.fabiankevin.app.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.persistence.entities.TransactionEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import com.fabiankevin.app.services.queries.PageQuery;
 import org.assertj.core.api.Assertions;
@@ -148,6 +151,9 @@ class DefaultAccountRepositoryTest {
         @Autowired
         private JpaTransactionRepository jpaTransactionRepository;
 
+        @Autowired
+        private JpaCategoryRepository jpaCategoryRepository;
+
         @Test
         void findAllByPageQueryWithSummary_givenMultipleNewAccounts_shouldReturnPagedSummariesWithPercentages() {
             UUID userId = UUID.randomUUID();
@@ -184,21 +190,42 @@ class DefaultAccountRepositoryTest {
             acc2 = accountRepository.save(acc2);
             acc3 = accountRepository.save(acc3);
 
-            // create transactions: acc1=100, acc2=200, acc3=300 => total=600
-            // acc1 needs 2 transactions, acc2 needs 1, acc3 needs 1
+            // create categories: EXPENSE for acc1, INCOME for acc2, EXPENSE for acc3
             java.time.LocalDate today = java.time.LocalDate.now();
+            CategoryEntity expenseCategory1 = jpaCategoryRepository.save(CategoryEntity.builder()
+                    .name("Expense 1").transactionType(TransactionType.EXPENSE).userId(userId)
+                    .createdAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC))
+                    .updatedAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC)).build());
+            CategoryEntity incomeCategory = jpaCategoryRepository.save(CategoryEntity.builder()
+                    .name("Income 1").transactionType(TransactionType.INCOME).userId(userId)
+                    .createdAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC))
+                    .updatedAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC)).build());
+            CategoryEntity expenseCategory3 = jpaCategoryRepository.save(CategoryEntity.builder()
+                    .name("Expense 3").transactionType(TransactionType.EXPENSE).userId(userId)
+                    .createdAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC))
+                    .updatedAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC)).build());
+
+            // transactions with categories:
+            // acc1: 2x EXPENSE 50 => totalBalance = -100
+            // acc2: 1x INCOME 200 => totalBalance = +200
+            // acc3: 1x EXPENSE 300 => totalBalance = -300
+            // net total = -200 (absolute sum for percentage = 600)
             jpaTransactionRepository.save(TransactionEntity.builder()
                     .amount(50).currency("PHP").transactionDate(today)
-                    .account(jpaAccountRepository.findById(acc1.id()).orElseThrow()).build());
+                    .account(jpaAccountRepository.findById(acc1.id()).orElseThrow())
+                    .category(expenseCategory1).build());
             jpaTransactionRepository.save(TransactionEntity.builder()
                     .amount(50).currency("PHP").transactionDate(today)
-                    .account(jpaAccountRepository.findById(acc1.id()).orElseThrow()).build());
+                    .account(jpaAccountRepository.findById(acc1.id()).orElseThrow())
+                    .category(expenseCategory1).build());
             jpaTransactionRepository.save(TransactionEntity.builder()
                     .amount(200).currency("PHP").transactionDate(today)
-                    .account(jpaAccountRepository.findById(acc2.id()).orElseThrow()).build());
+                    .account(jpaAccountRepository.findById(acc2.id()).orElseThrow())
+                    .category(incomeCategory).build());
             jpaTransactionRepository.save(TransactionEntity.builder()
                     .amount(300).currency("PHP").transactionDate(today)
-                    .account(jpaAccountRepository.findById(acc3.id()).orElseThrow()).build());
+                    .account(jpaAccountRepository.findById(acc3.id()).orElseThrow())
+                    .category(expenseCategory3).build());
 
             PageQuery query = new PageQuery(0, 10, "name", "ASC");
             Page<AccountSummary> page = accountRepository.findAllByPageQueryWithSummary(query, userId);
@@ -215,20 +242,14 @@ class DefaultAccountRepositoryTest {
             AccountSummary s2 = byName.get("Account 2");
             AccountSummary s3 = byName.get("Account 3");
 
-            Assertions.assertThat(s1.totalBalance()).as("Account 1 totalBalance").isEqualTo(100.0);
+            Assertions.assertThat(s1.totalBalance()).as("Account 1 totalBalance (-100)").isEqualTo(-100.0);
             Assertions.assertThat(s1.totalTransactions()).as("Account 1 totalTransactions").isEqualTo(2);
-            Assertions.assertThat(s1.percentage()).as("Account 1 percentage (100/600*100)")
-                    .isEqualTo(100.0 / 600.0 * 100.0);
 
-            Assertions.assertThat(s2.totalBalance()).as("Account 2 totalBalance").isEqualTo(200.0);
+            Assertions.assertThat(s2.totalBalance()).as("Account 2 totalBalance (+200)").isEqualTo(200.0);
             Assertions.assertThat(s2.totalTransactions()).as("Account 2 totalTransactions").isEqualTo(1);
-            Assertions.assertThat(s2.percentage()).as("Account 2 percentage (200/600*100)")
-                    .isEqualTo(200.0 / 600.0 * 100.0);
 
-            Assertions.assertThat(s3.totalBalance()).as("Account 3 totalBalance").isEqualTo(300.0);
+            Assertions.assertThat(s3.totalBalance()).as("Account 3 totalBalance (-300)").isEqualTo(-300.0);
             Assertions.assertThat(s3.totalTransactions()).as("Account 3 totalTransactions").isEqualTo(1);
-            Assertions.assertThat(s3.percentage()).as("Account 3 percentage (300/600*100)")
-                    .isEqualTo(300.0 / 600.0 * 100.0);
         }
 
         @Test
@@ -246,25 +267,30 @@ class DefaultAccountRepositoryTest {
                     .build();
             account = accountRepository.save(account);
 
-            // add 2 transactions totaling 150
+            // create EXPENSE category
             java.time.LocalDate today = java.time.LocalDate.now();
+            CategoryEntity expenseCategory = jpaCategoryRepository.save(CategoryEntity.builder()
+                    .name("Expense").transactionType(TransactionType.EXPENSE).userId(userId)
+                    .createdAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC))
+                    .updatedAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC)).build());
+
+            // 2 EXPENSE transactions: 100 + 50 => totalBalance = -150
             jpaTransactionRepository.save(TransactionEntity.builder()
                     .amount(100).currency("USD").transactionDate(today)
-                    .account(jpaAccountRepository.findById(account.id()).orElseThrow()).build());
+                    .account(jpaAccountRepository.findById(account.id()).orElseThrow())
+                    .category(expenseCategory).build());
             jpaTransactionRepository.save(TransactionEntity.builder()
                     .amount(50).currency("USD").transactionDate(today)
-                    .account(jpaAccountRepository.findById(account.id()).orElseThrow()).build());
+                    .account(jpaAccountRepository.findById(account.id()).orElseThrow())
+                    .category(expenseCategory).build());
 
             PageQuery query = new PageQuery(0, 10, "name", "ASC");
             Page<AccountSummary> page = accountRepository.findAllByPageQueryWithSummary(query, userId);
 
             Assertions.assertThat(page.content()).as("page should contain 1 summary").hasSize(1);
             AccountSummary summary = page.content().getFirst();
-            Assertions.assertThat(summary.totalBalance()).as("totalBalance").isEqualTo(150.0);
+            Assertions.assertThat(summary.totalBalance()).as("totalBalance (-150)").isEqualTo(-150.0);
             Assertions.assertThat(summary.totalTransactions()).as("totalTransactions").isEqualTo(2);
-            Assertions.assertThat(summary.percentage())
-                    .as("single account should have 100% percentage")
-                    .isEqualTo(100.0);
         }
 
         @Test

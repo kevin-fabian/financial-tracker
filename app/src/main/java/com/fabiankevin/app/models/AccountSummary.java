@@ -18,7 +18,6 @@ public record AccountSummary(
         boolean active,
         boolean system,
         double totalBalance,
-        double percentage,
         int totalTransactions) {
     public AccountSummary {
         Optional.ofNullable(userIds).orElseThrow(() -> new IllegalArgumentException("User IDs are required"));

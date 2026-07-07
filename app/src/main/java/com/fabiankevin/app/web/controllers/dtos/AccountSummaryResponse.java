@@ -20,8 +20,6 @@ public record AccountSummaryResponse(
         AccountType type,
         @Schema(description = "Total balance for this account", example = "5000.00")
         double totalBalance,
-        @Schema(description = "Percentage of total balance for this account", example = "35.5")
-        double percentage,
         @Schema(description = "Total number of transactions for this account", example = "25")
         int totalTransactions
 ) {
@@ -32,7 +30,6 @@ public record AccountSummaryResponse(
                 .currency(accountSummary.currency().getCurrencyCode())
                 .type(accountSummary.type())
                 .totalBalance(accountSummary.totalBalance())
-                .percentage(accountSummary.percentage())
                 .totalTransactions(accountSummary.totalTransactions())
                 .build();
     }

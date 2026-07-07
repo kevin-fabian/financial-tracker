@@ -353,7 +353,6 @@ class AccountControllerTest {
                 .active(true)
                 .system(false)
                 .totalBalance(5000.00)
-                .percentage(35.5)
                 .totalTransactions(25)
                 .build();
 
@@ -366,7 +365,6 @@ class AccountControllerTest {
                 .active(true)
                 .system(false)
                 .totalBalance(9000.00)
-                .percentage(64.5)
                 .totalTransactions(15)
                 .build();
 

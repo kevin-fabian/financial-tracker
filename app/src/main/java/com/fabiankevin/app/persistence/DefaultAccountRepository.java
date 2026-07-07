@@ -5,7 +5,6 @@ import com.fabiankevin.app.models.AccountSummary;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.persistence.entities.AccountEntity;
-import com.fabiankevin.app.persistence.entities.projections.AccountSummaryProjection;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
 import com.fabiankevin.app.services.queries.PageQuery;
 import lombok.RequiredArgsConstructor;
@@ -72,29 +71,18 @@ public class DefaultAccountRepository implements AccountRepository {
         );
         var entityPage = jpaAccountRepository.findAllByUserIdWithSummary(userId, pageable);
 
-        // Calculate percentages for each account
-        double totalAmount = entityPage.getContent().stream()
-                .mapToDouble(AccountSummaryProjection::totalBalance)
-                .sum();
-
         List<AccountSummary> content = entityPage.getContent().stream()
-                .map(projection -> {
-                    double percentage = (totalAmount != 0 && projection.totalBalance() != 0)
-                            ? (projection.totalBalance() / totalAmount) * 100.0
-                            : 0.0;
-                    return AccountSummary.builder()
-                            .id(projection.id())
-                            .name(projection.name())
-                            .userIds(List.of(projection.userId()))
-                            .currency(Currency.getInstance(projection.currency()))
-                            .type(AccountType.valueOf(projection.type()))
-                            .active(projection.active())
-                            .system(projection.system())
-                            .totalBalance(projection.totalBalance())
-                            .percentage(percentage)
-                            .totalTransactions(projection.totalTransactions())
-                            .build();
-                })
+                .map(projection -> AccountSummary.builder()
+                        .id(projection.id())
+                        .name(projection.name())
+                        .userIds(List.of(projection.userId()))
+                        .currency(Currency.getInstance(projection.currency()))
+                        .type(AccountType.valueOf(projection.type()))
+                        .active(projection.active())
+                        .system(projection.system())
+                        .totalBalance(projection.totalBalance())
+                        .totalTransactions(projection.totalTransactions())
+                        .build())
                 .collect(Collectors.toList());
 
         return new Page<>(
