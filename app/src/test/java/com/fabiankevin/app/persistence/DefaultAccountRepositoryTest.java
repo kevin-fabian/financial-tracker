@@ -4,7 +4,9 @@ import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.AccountSummary;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.AccountType;
+import com.fabiankevin.app.persistence.entities.TransactionEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import com.fabiankevin.app.services.queries.PageQuery;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,8 +22,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
 import java.util.Currency;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static com.fabiankevin.app.models.enums.AccountType.BANK_ACCOUNT;
 import static org.mockito.ArgumentMatchers.any;
@@ -141,22 +145,60 @@ class DefaultAccountRepositoryTest {
 
     @Nested
     class FindAllByPageQueryWithSummaryTest {
+        @Autowired
+        private JpaTransactionRepository jpaTransactionRepository;
+
         @Test
         void findAllByPageQueryWithSummary_givenMultipleNewAccounts_shouldReturnPagedSummariesWithPercentages() {
             UUID userId = UUID.randomUUID();
 
-            for (int i = 1; i <= 3; i++) {
-                Account a = Account.builder()
-                        .name("Account " + i)
-                        .userId(userId)
-                        .currency(java.util.Currency.getInstance("PHP"))
-                        .type(BANK_ACCOUNT)
-                        .active(true)
-                        .createdAt(Instant.now())
-                        .updatedAt(Instant.now())
-                        .build();
-                accountRepository.save(a);
-            }
+            // create accounts
+            Account acc1 = Account.builder()
+                    .name("Account 1")
+                    .userId(userId)
+                    .currency(java.util.Currency.getInstance("PHP"))
+                    .type(BANK_ACCOUNT)
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            Account acc2 = Account.builder()
+                    .name("Account 2")
+                    .userId(userId)
+                    .currency(java.util.Currency.getInstance("PHP"))
+                    .type(BANK_ACCOUNT)
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            Account acc3 = Account.builder()
+                    .name("Account 3")
+                    .userId(userId)
+                    .currency(java.util.Currency.getInstance("PHP"))
+                    .type(BANK_ACCOUNT)
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            acc1 = accountRepository.save(acc1);
+            acc2 = accountRepository.save(acc2);
+            acc3 = accountRepository.save(acc3);
+
+            // create transactions: acc1=100, acc2=200, acc3=300 => total=600
+            // acc1 needs 2 transactions, acc2 needs 1, acc3 needs 1
+            java.time.LocalDate today = java.time.LocalDate.now();
+            jpaTransactionRepository.save(TransactionEntity.builder()
+                    .amount(50).currency("PHP").transactionDate(today)
+                    .account(jpaAccountRepository.findById(acc1.id()).orElseThrow()).build());
+            jpaTransactionRepository.save(TransactionEntity.builder()
+                    .amount(50).currency("PHP").transactionDate(today)
+                    .account(jpaAccountRepository.findById(acc1.id()).orElseThrow()).build());
+            jpaTransactionRepository.save(TransactionEntity.builder()
+                    .amount(200).currency("PHP").transactionDate(today)
+                    .account(jpaAccountRepository.findById(acc2.id()).orElseThrow()).build());
+            jpaTransactionRepository.save(TransactionEntity.builder()
+                    .amount(300).currency("PHP").transactionDate(today)
+                    .account(jpaAccountRepository.findById(acc3.id()).orElseThrow()).build());
 
             PageQuery query = new PageQuery(0, 10, "name", "ASC");
             Page<AccountSummary> page = accountRepository.findAllByPageQueryWithSummary(query, userId);
@@ -166,20 +208,31 @@ class DefaultAccountRepositoryTest {
             Assertions.assertThat(page.page()).isZero();
             Assertions.assertThat(page.size()).isEqualTo(10);
 
-            // verify each summary has required fields populated
-            for (AccountSummary summary : page.content()) {
-                Assertions.assertThat(summary.id()).isNotNull();
-                Assertions.assertThat(summary.name()).isNotNull();
-                Assertions.assertThat(summary.userIds()).isNotEmpty();
-                Assertions.assertThat(summary.currency()).isNotNull();
-                Assertions.assertThat(summary.type()).isEqualTo(BANK_ACCOUNT);
-                Assertions.assertThat(summary.totalAmount()).isNotNull();
-                Assertions.assertThat(summary.percentage()).isBetween(0.0, 100.0);
-            }
+            Map<String, AccountSummary> byName = page.content().stream()
+                    .collect(Collectors.toMap(AccountSummary::name, s -> s));
+
+            AccountSummary s1 = byName.get("Account 1");
+            AccountSummary s2 = byName.get("Account 2");
+            AccountSummary s3 = byName.get("Account 3");
+
+            Assertions.assertThat(s1.totalAmount()).as("Account 1 totalAmount").isEqualTo(100.0);
+            Assertions.assertThat(s1.totalTransactions()).as("Account 1 totalTransactions").isEqualTo(2);
+            Assertions.assertThat(s1.percentage()).as("Account 1 percentage (100/600*100)")
+                    .isEqualTo(100.0 / 600.0 * 100.0);
+
+            Assertions.assertThat(s2.totalAmount()).as("Account 2 totalAmount").isEqualTo(200.0);
+            Assertions.assertThat(s2.totalTransactions()).as("Account 2 totalTransactions").isEqualTo(1);
+            Assertions.assertThat(s2.percentage()).as("Account 2 percentage (200/600*100)")
+                    .isEqualTo(200.0 / 600.0 * 100.0);
+
+            Assertions.assertThat(s3.totalAmount()).as("Account 3 totalAmount").isEqualTo(300.0);
+            Assertions.assertThat(s3.totalTransactions()).as("Account 3 totalTransactions").isEqualTo(1);
+            Assertions.assertThat(s3.percentage()).as("Account 3 percentage (300/600*100)")
+                    .isEqualTo(300.0 / 600.0 * 100.0);
         }
 
         @Test
-        void findAllByPageQueryWithSummary_givenSingleAccount_shouldReturn100Percent() {
+        void findAllByPageQueryWithSummary_givenSingleAccountWithTransactions_shouldReturnCorrectTotals() {
             UUID userId = UUID.randomUUID();
 
             Account account = Account.builder()
@@ -191,13 +244,25 @@ class DefaultAccountRepositoryTest {
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
-            accountRepository.save(account);
+            account = accountRepository.save(account);
+
+            // add 2 transactions totaling 150
+            java.time.LocalDate today = java.time.LocalDate.now();
+            jpaTransactionRepository.save(TransactionEntity.builder()
+                    .amount(100).currency("USD").transactionDate(today)
+                    .account(jpaAccountRepository.findById(account.id()).orElseThrow()).build());
+            jpaTransactionRepository.save(TransactionEntity.builder()
+                    .amount(50).currency("USD").transactionDate(today)
+                    .account(jpaAccountRepository.findById(account.id()).orElseThrow()).build());
 
             PageQuery query = new PageQuery(0, 10, "name", "ASC");
             Page<AccountSummary> page = accountRepository.findAllByPageQueryWithSummary(query, userId);
 
             Assertions.assertThat(page.content()).as("page should contain 1 summary").hasSize(1);
-            Assertions.assertThat(page.content().getFirst().percentage())
+            AccountSummary summary = page.content().getFirst();
+            Assertions.assertThat(summary.totalAmount()).as("totalAmount").isEqualTo(150.0);
+            Assertions.assertThat(summary.totalTransactions()).as("totalTransactions").isEqualTo(2);
+            Assertions.assertThat(summary.percentage())
                     .as("single account should have 100% percentage")
                     .isEqualTo(100.0);
         }
