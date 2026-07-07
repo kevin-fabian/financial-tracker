@@ -139,11 +139,4 @@ public class DefaultTransactionRepository implements TransactionRepository {
                 page.isFirst()
         );
     }
-
-    @Override
-    public List<SummaryPoint> findDailyTotalBalanceByUserIdsAndDateTimeFrom(List<UUID> userIds, LocalDate fromDateTime) {
-        return jpaTransactionRepository.findDailyTotalBalanceByUserIdsAndDateTimeFrom(userIds, fromDateTime)
-                .map(SummaryPointProjection::toModel)
-                .toList();
-    }
 }
