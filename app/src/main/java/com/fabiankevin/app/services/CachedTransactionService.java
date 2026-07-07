@@ -26,7 +26,7 @@ public class CachedTransactionService implements TransactionService {
     private static final String KEY_PREFIX = "transactions:";
     private static final String KEY_BY_ID = KEY_PREFIX + "%s:byId:%s";
     private static final String KEY_PAGED = KEY_PREFIX + "%s:paged:%d:%d:%s:%s";
-    private static final String KEY_SUMMARY = KEY_PREFIX + "%s:summary:%s:%s:%s:%s:%s";
+    private static final String KEY_SUMMARY = KEY_PREFIX + "%s:summary:%s:%s:%s:%s";
 
     private final CacheManager cacheManager;
     private final TransactionService delegatedTransactionService;
@@ -73,8 +73,8 @@ public class CachedTransactionService implements TransactionService {
     public SummarySeries getSummary(SummaryQuery query) {
         String key = String.format(KEY_SUMMARY,
                 query.type(),
-                query.from(),
-                query.to(),
+                query.from() == null ? "null" : query.from(),
+                query.to() == null ? "null" : query.to(),
                 query.transactionType(),
                 query.userIds());
         Cache cache = cacheManager.getCache(CACHE_NAME);

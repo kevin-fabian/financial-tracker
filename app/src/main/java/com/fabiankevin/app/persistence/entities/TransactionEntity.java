@@ -39,7 +39,6 @@ public class TransactionEntity {
     @Column(nullable = false, length = 3)
     private String currency;
     private String description;
-    @JoinColumn(nullable = false)
     private LocalDate transactionDate;
     private Instant createdAt;
     private Instant updatedAt;

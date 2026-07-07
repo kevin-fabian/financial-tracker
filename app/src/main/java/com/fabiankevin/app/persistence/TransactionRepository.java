@@ -28,4 +28,5 @@ public interface TransactionRepository {
     double sumBalance(UUID userId);
     Page<Transaction> getTransactionsByPageAndUserId(PageQuery query, UUID userId);
     Page<Transaction> getTransactionsByPageAndUserIdAndType(PageQuery query, UUID userId, TransactionType type);
+    List<SummaryPoint> findDailyTotalBalanceByUserIdsAndDateTimeFrom(List<UUID> userIds, LocalDate fromDateTime);
 }

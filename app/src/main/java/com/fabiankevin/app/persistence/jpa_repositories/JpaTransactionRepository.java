@@ -132,4 +132,17 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             WHERE t.account.userId = :userId
             """)
     double sumBalance(@Param("userId") UUID userId);
+
+    @Query("""
+            SELECT DAY(t.transactionDate) AS label,
+                   COALESCE(SUM(CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amount ELSE -t.amount END), 0.0) AS total
+            FROM TransactionEntity t
+            WHERE t.account.userId IN :userIds
+              AND t.transactionDate >= :fromDateTime
+            GROUP BY t.transactionDate
+            ORDER BY t.transactionDate
+            """)
+    Streamable<SummaryPointProjection> findDailyTotalBalanceByUserIdsAndDateTimeFrom(
+            @Param("userIds") List<UUID> userIds,
+            @Param("fromDateTime") LocalDate fromDateTime);
 }
