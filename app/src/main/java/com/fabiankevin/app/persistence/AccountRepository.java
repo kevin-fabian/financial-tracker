@@ -1,6 +1,7 @@
 package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.AccountSummary;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.services.queries.PageQuery;
 
@@ -15,4 +16,6 @@ public interface AccountRepository {
     void deleteById(UUID id);
 
     Page<Account> getAccountsByPageAndUserId(PageQuery query, UUID userId);
+
+    Page<AccountSummary> findAllByPageQueryWithSummary(PageQuery query, UUID userId);
 }

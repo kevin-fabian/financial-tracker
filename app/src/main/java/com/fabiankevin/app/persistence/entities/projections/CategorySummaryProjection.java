@@ -1,4 +1,4 @@
-package com.fabiankevin.app.persistence.projections;
+package com.fabiankevin.app.persistence.entities.projections;
 
 import com.fabiankevin.app.models.enums.TransactionType;
 import lombok.Builder;

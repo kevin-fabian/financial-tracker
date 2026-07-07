@@ -1,8 +1,11 @@
 package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.AccountSummary;
 import com.fabiankevin.app.models.Page;
+import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.persistence.entities.AccountEntity;
+import com.fabiankevin.app.persistence.entities.projections.AccountSummaryProjection;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
 import com.fabiankevin.app.services.queries.PageQuery;
 import lombok.RequiredArgsConstructor;
@@ -10,8 +13,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
+import java.util.Currency;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Repository
@@ -54,6 +60,51 @@ public class DefaultAccountRepository implements AccountRepository {
                 page.getTotalPages(),
                 page.isLast(),
                 page.isFirst()
+        );
+    }
+
+    @Override
+    public Page<AccountSummary> findAllByPageQueryWithSummary(PageQuery query, UUID userId) {
+        var pageable = PageRequest.of(
+                query.page(),
+                query.size(),
+                Sort.by(Sort.Direction.fromString(query.direction()), query.sort())
+        );
+        var entityPage = jpaAccountRepository.findAllByUserIdWithSummary(userId, pageable);
+
+        // Calculate percentages for each account
+        double totalAmount = entityPage.getContent().stream()
+                .mapToDouble(AccountSummaryProjection::totalAmount)
+                .sum();
+
+        List<AccountSummary> content = entityPage.getContent().stream()
+                .map(projection -> {
+                    double percentage = (totalAmount != 0 && projection.totalAmount() != 0)
+                            ? (projection.totalAmount() / totalAmount) * 100.0
+                            : 0.0;
+                    return AccountSummary.builder()
+                            .id(projection.id())
+                            .name(projection.name())
+                            .userIds(List.of(projection.userId()))
+                            .currency(Currency.getInstance(projection.currency()))
+                            .type(AccountType.valueOf(projection.type()))
+                            .active(projection.active())
+                            .system(projection.system())
+                            .totalAmount(projection.totalAmount())
+                            .percentage(percentage)
+                            .totalTransactions(projection.totalTransactions())
+                            .build();
+                })
+                .collect(Collectors.toList());
+
+        return new Page<>(
+                content,
+                entityPage.getNumber(),
+                entityPage.getSize(),
+                entityPage.getTotalElements(),
+                entityPage.getTotalPages(),
+                entityPage.isLast(),
+                entityPage.isFirst()
         );
     }
 

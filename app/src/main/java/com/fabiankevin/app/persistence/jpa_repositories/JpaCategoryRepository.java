@@ -2,7 +2,7 @@ package com.fabiankevin.app.persistence.jpa_repositories;
 
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.entities.CategoryEntity;
-import com.fabiankevin.app.persistence.projections.CategorySummaryProjection;
+import com.fabiankevin.app.persistence.entities.projections.CategorySummaryProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
