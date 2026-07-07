@@ -32,7 +32,7 @@ public class ResourceServerConfig {
                                            BearerAccessDeniedHandler bearerAccessDeniedHandler) {
         http
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/accounts", "/api/accounts/**", "/api/categories", "/api/categories/**").hasAnyAuthority(USER_ROLE)
+                        .requestMatchers("/api/accounts", "/api/accounts/**", "/api/categories", "/api/categories/**", "/api/stats", "/api/stats*").hasAnyAuthority(USER_ROLE)
                         .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus**").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated()

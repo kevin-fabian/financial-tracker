@@ -16,7 +16,7 @@ import java.util.UUID;
 
 public interface JpaTransactionRepository extends JpaRepository<TransactionEntity, UUID> {
     @Query("""
-                SELECT t.category.name AS label, COALESCE(SUM(t.amountValue), 0.0) AS sum
+                SELECT t.category.name AS label, COALESCE(SUM(t.amount), 0.0) AS sum
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds
@@ -30,7 +30,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("type") TransactionType type);
 
     @Query("""
-                SELECT MONTH(t.transactionDate) AS label, COALESCE(SUM(t.amountValue), 0.0) AS sum
+                SELECT MONTH(t.transactionDate) AS label, COALESCE(SUM(t.amount), 0.0) AS sum
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds
@@ -44,7 +44,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("type") TransactionType type);
 
     @Query("""
-                SELECT YEAR(t.transactionDate) AS label, COALESCE(SUM(t.amountValue), 0.0) AS sum
+                SELECT YEAR(t.transactionDate) AS label, COALESCE(SUM(t.amount), 0.0) AS sum
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds
@@ -58,7 +58,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("type") TransactionType type);
 
     @Query("""
-                SELECT DAY(t.transactionDate) AS label, COALESCE(SUM(t.amountValue), 0.0) AS sum
+                SELECT DAY(t.transactionDate) AS label, COALESCE(SUM(t.amount), 0.0) AS sum
                 FROM TransactionEntity t
                 WHERE t.transactionDate BETWEEN :from AND :to
                   AND t.account.userId IN :userIds
@@ -86,7 +86,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
     int deleteByIdAndAccountUserId(UUID id, UUID userId);
 
     @Query("""
-            SELECT STR(t.category.transactionType) as label, COALESCE(SUM(t.amountValue), 0.0) as total
+            SELECT STR(t.category.transactionType) as label, COALESCE(SUM(t.amount), 0.0) as total
             FROM TransactionEntity t
             WHERE t.account.userId = :userId
               AND t.transactionDate BETWEEN :from AND :to
@@ -102,7 +102,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("categoryId") UUID categoryId);
 
     @Query("""
-            SELECT STR(t.category.transactionType) as label, COALESCE(SUM(t.amountValue), 0.0) as total
+            SELECT STR(t.category.transactionType) as label, COALESCE(SUM(t.amount), 0.0) as total
             FROM TransactionEntity t
             WHERE t.account.userId = :userId
               AND t.transactionDate BETWEEN :from AND :to
@@ -116,7 +116,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("categoryId") UUID categoryId);
 
     @Query("""
-            SELECT COALESCE(SUM(CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amountValue ELSE -t.amountValue END), 0.0)
+            SELECT COALESCE(SUM(CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amount ELSE -t.amount END), 0.0)
             FROM TransactionEntity t
             WHERE t.account.userId = :userId
               AND t.transactionDate BETWEEN :from AND :to
@@ -127,7 +127,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("to") LocalDate to);
 
     @Query("""
-            SELECT COALESCE(SUM(CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amountValue ELSE -t.amountValue END), 0.0)
+            SELECT COALESCE(SUM(CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amount ELSE -t.amount END), 0.0)
             FROM TransactionEntity t
             WHERE t.account.userId = :userId
             """)

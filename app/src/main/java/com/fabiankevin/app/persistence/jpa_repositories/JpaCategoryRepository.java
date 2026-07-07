@@ -21,7 +21,7 @@ public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUI
     Optional<CategoryEntity> findFirstByActiveFalseAndNameAndTransactionTypeAndUserId(String name, TransactionType type, UUID userId);
     @Query("""
             SELECT c.id, c.name, c.transactionType, c.userId, c.icon, c.active, c.system,
-                COALESCE(SUM(t.amountValue), 0.0),
+                COALESCE(SUM(t.amount), 0.0),
                 CAST(COALESCE(COUNT(t.id), 0) AS int)
             FROM CategoryEntity c
             LEFT JOIN TransactionEntity t ON t.category.id = c.id

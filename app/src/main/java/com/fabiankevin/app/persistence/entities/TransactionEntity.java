@@ -35,9 +35,9 @@ public class TransactionEntity {
     @JoinColumn(name = "category_id")
     private CategoryEntity category;
     @Column(nullable = false)
-    private double amountValue;
+    private double amount;
     @Column(nullable = false, length = 3)
-    private String amountCurrency;
+    private String currency;
     private String description;
     @JoinColumn(nullable = false)
     private LocalDate transactionDate;
@@ -50,8 +50,8 @@ public class TransactionEntity {
                 .id(transaction.id())
                 .account(AccountEntity.from(transaction.account()))
                 .category(CategoryEntity.from(transaction.category()))
-                .amountValue(transaction.amount().value())
-                .amountCurrency(transaction.amount().currency().getCurrencyCode())
+                .amount(transaction.amount().value())
+                .currency(transaction.amount().currency().getCurrencyCode())
                 .description(transaction.description())
                 .transactionDate(transaction.transactionDate())
                 .createdAt(transaction.createdAt())
@@ -66,8 +66,8 @@ public class TransactionEntity {
                 .type(Optional.ofNullable(this.category).map(CategoryEntity::toModel).map(Category::type).orElse(null))
                 .category(Optional.ofNullable(this.category).map(CategoryEntity::toModel).orElse(null))
                 .amount(Amount.of(
-                        this.amountValue,
-                        Currency.getInstance(this.amountCurrency)
+                        this.amount,
+                        Currency.getInstance(this.currency)
                 ))
                 .description(this.description)
                 .transactionDate(this.transactionDate)
