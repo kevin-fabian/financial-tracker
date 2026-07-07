@@ -155,7 +155,7 @@ class DefaultAccountRepositoryTest {
         private JpaCategoryRepository jpaCategoryRepository;
 
         @Test
-        void findAllByPageQueryWithSummary_givenMultipleNewAccounts_shouldReturnPagedSummariesWithPercentages() {
+        void findAllByPageQueryWithSummary_givenMultipleNewAccounts_shouldReturnPagedSummaries() {
             UUID userId = UUID.randomUUID();
 
             // create accounts
