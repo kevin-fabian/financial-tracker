@@ -1,46 +1,53 @@
 package com.fabiankevin.app.services;
 
-import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.enums.AccountType;
+import com.fabiankevin.app.services.commands.CreateAccountCommand;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
-import java.time.Instant;
 import java.util.*;
 
+@Component
+@RequiredArgsConstructor
 public class InMemoryUserAccountProvider implements UserAccountProvider {
+    private final AccountService accountService;
+
     @Override
-    public List<Account> provide(Set<String> accountInterests, UUID userId) {
+    public void provide(Set<String> accountInterests, UUID userId) {
         if (accountInterests == null || accountInterests.isEmpty()) {
-            return Collections.emptyList();
+            return;
         }
 
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
 
-        return accountInterests.stream()
+        accountInterests.stream()
                 .filter(ACCOUNT_INTERESTS_MAPPING::containsKey)
                 .flatMap(interest -> ACCOUNT_INTERESTS_MAPPING.get(interest).stream())
-                .map(account -> account.withUserId(userId))
-                .toList();
+                .forEach(command -> accountService.createAccount(command.toBuilder().userId(userId).build()));
     }
 
-    private static final Map<String, List<Account>> ACCOUNT_INTERESTS_MAPPING = Map.ofEntries(
-            Map.entry("gcash", List.of(buildAccount("GCash", AccountType.E_WALLET))),
-            Map.entry("maya", List.of(buildAccount("Maya", AccountType.E_WALLET))),
-            Map.entry("bank", List.of(buildAccount("Bank Account", AccountType.E_WALLET))),
-            Map.entry("credit_card", List.of(buildAccount("Credit Card", AccountType.E_WALLET)))
+    private static final Map<String, List<CreateAccountCommand>> ACCOUNT_INTERESTS_MAPPING = Map.ofEntries(
+            Map.entry("gcash", List.of(CreateAccountCommand.builder()
+                    .name("GCash")
+                    .currency(Currency.getInstance("PHP"))
+                    .type(AccountType.E_WALLET)
+                    .build())),
+            Map.entry("maya", List.of(CreateAccountCommand.builder()
+                    .name("Maya")
+                    .currency(Currency.getInstance("PHP"))
+                    .type(AccountType.E_WALLET)
+                    .build())),
+            Map.entry("bank", List.of(CreateAccountCommand.builder()
+                    .name("Bank Account")
+                    .currency(Currency.getInstance("PHP"))
+                    .type(AccountType.E_WALLET)
+                    .build())),
+            Map.entry("credit_card", List.of(CreateAccountCommand.builder()
+                    .name("Credit Card")
+                    .currency(Currency.getInstance("PHP"))
+                    .type(AccountType.E_WALLET)
+                    .build()))
     );
-
-    private static Account buildAccount(String name, AccountType type) {
-        return Account.builder()
-                .name(name)
-                .currency(Currency.getInstance("PHP"))
-                .userId(UUID.randomUUID())
-                .type(type)
-                .active(true)
-                .system(false)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-    }
 }

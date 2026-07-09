@@ -1,90 +1,139 @@
 package com.fabiankevin.app.services;
 
-import com.fabiankevin.app.models.Category;
-import com.fabiankevin.app.models.enums.TransactionType;
+import com.fabiankevin.app.services.commands.CreateCategoryCommand;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 import static com.fabiankevin.app.models.enums.TransactionType.EXPENSE;
 import static com.fabiankevin.app.models.enums.TransactionType.INCOME;
 
 @Component
+@RequiredArgsConstructor
 public class InMemoryUserCategoryProvider implements UserCategoryProvider {
+    private final CategoryService categoryService;
+
     @Override
-    public List<Category> provide(Set<String> categoryInterests, UUID userId) {
+    public void provide(Set<String> categoryInterests, UUID userId) {
         if (categoryInterests == null || categoryInterests.isEmpty()) {
-            return Collections.emptyList();
+            return;
         }
 
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
 
-        return categoryInterests.stream()
+        categoryInterests.stream()
                 .filter(CATEGORY_INTERESTS_MAPPING::containsKey)
                 .flatMap(interest -> CATEGORY_INTERESTS_MAPPING.get(interest).stream())
-                .map(category -> category.withUserId(userId))
-                .toList();
+                .forEach(command -> categoryService.createCategory(command.toBuilder().userId(userId).build()));
     }
 
-    private static final Map<String, List<Category>> CATEGORY_INTERESTS_MAPPING = Map.ofEntries(
-            Map.entry("groceries", List.of(buildCategory("Groceries", EXPENSE, "local_grocery_store"))),
+    private static final Map<String, List<CreateCategoryCommand>> CATEGORY_INTERESTS_MAPPING = Map.ofEntries(
+            Map.entry("groceries", List.of(CreateCategoryCommand.builder()
+                    .name("Groceries")
+                    .type(EXPENSE)
+                    .icon("local_grocery_store")
+                    .build())),
             Map.entry("bills", List.of(
-                    buildCategory("Utilities", EXPENSE, "bolt"),
-                    buildCategory("Subscriptions", EXPENSE, "card_membership")
-            )),
+                    CreateCategoryCommand.builder()
+                            .name("Utilities")
+                            .type(EXPENSE)
+                            .icon("bolt")
+                            .build(),
+                    CreateCategoryCommand.builder()
+                            .name("Subscriptions")
+                            .type(EXPENSE)
+                            .icon("card_membership")
+                            .build())),
             Map.entry("rent", List.of(
-                    buildCategory("Housing & Rent", EXPENSE, "home"),
-                    buildCategory("Home Maintenance", EXPENSE, "build")
-            )),
-            Map.entry("entertainment", List.of(
-                    buildCategory("Entertainment & Hobbies", EXPENSE, "sports_esports")
-            )),
-            Map.entry("savings", List.of(
-                    buildCategory("Savings & Goals", EXPENSE, "savings")
-            )),
+                    CreateCategoryCommand.builder()
+                            .name("Housing & Rent")
+                            .type(EXPENSE)
+                            .icon("home")
+                            .build(),
+                    CreateCategoryCommand.builder()
+                            .name("Home Maintenance")
+                            .type(EXPENSE)
+                            .icon("build")
+                            .build())),
+            Map.entry("entertainment", List.of(CreateCategoryCommand.builder()
+                    .name("Entertainment & Hobbies")
+                    .type(EXPENSE)
+                    .icon("sports_esports")
+                    .build())),
+            Map.entry("savings", List.of(CreateCategoryCommand.builder()
+                    .name("Savings & Goals")
+                    .type(EXPENSE)
+                    .icon("savings")
+                    .build())),
             Map.entry("shopping", List.of(
-                    buildCategory("Shopping", EXPENSE, "shopping_bag"),
-                    buildCategory("Personal Care", EXPENSE, "face")
-            )),
+                    CreateCategoryCommand.builder()
+                            .name("Shopping")
+                            .type(EXPENSE)
+                            .icon("shopping_bag")
+                            .build(),
+                    CreateCategoryCommand.builder()
+                            .name("Personal Care")
+                            .type(EXPENSE)
+                            .icon("face")
+                            .build())),
             Map.entry("health_fitness", List.of(
-                    buildCategory("Healthcare", EXPENSE, "medical_services"),
-                    buildCategory("Fitness & Wellness", EXPENSE, "fitness_center")
-            )),
+                    CreateCategoryCommand.builder()
+                            .name("Healthcare")
+                            .type(EXPENSE)
+                            .icon("medical_services")
+                            .build(),
+                    CreateCategoryCommand.builder()
+                            .name("Fitness & Wellness")
+                            .type(EXPENSE)
+                            .icon("fitness_center")
+                            .build())),
             Map.entry("family_pets", List.of(
-                    buildCategory("Family & Kids", EXPENSE, "family_restroom"),
-                    buildCategory("Pets", EXPENSE, "pets")
-            )),
+                    CreateCategoryCommand.builder()
+                            .name("Family & Kids")
+                            .type(EXPENSE)
+                            .icon("family_restroom")
+                            .build(),
+                    CreateCategoryCommand.builder()
+                            .name("Pets")
+                            .type(EXPENSE)
+                            .icon("pets")
+                            .build())),
             Map.entry("debt_loans", List.of(
-                    buildCategory("Debt & Loans", EXPENSE, "credit_card"),
-                    buildCategory("Installments & Amortization", EXPENSE, "receipt_long")
-            )),
-            Map.entry("salary_active", List.of(
-                    buildCategory("Salary", INCOME, "payments")
-            )),
-            Map.entry("business_sales", List.of(
-                    buildCategory("Business & Sales", INCOME, "storefront")
-            )),
-            Map.entry("passive_investments", List.of(
-                    buildCategory("Investments", INCOME, "trending_up")
-            )),
-            Map.entry("allowances_gifts", List.of(
-                    buildCategory("Gifts & Allowances", INCOME, "card_giftcard")
-            ))
+                    CreateCategoryCommand.builder()
+                            .name("Debt & Loans")
+                            .type(EXPENSE)
+                            .icon("credit_card")
+                            .build(),
+                    CreateCategoryCommand.builder()
+                            .name("Installments & Amortization")
+                            .type(EXPENSE)
+                            .icon("receipt_long")
+                            .build())),
+            Map.entry("salary_active", List.of(CreateCategoryCommand.builder()
+                    .name("Salary")
+                    .type(INCOME)
+                    .icon("payments")
+                    .build())),
+            Map.entry("business_sales", List.of(CreateCategoryCommand.builder()
+                    .name("Business & Sales")
+                    .type(INCOME)
+                    .icon("storefront")
+                    .build())),
+            Map.entry("passive_investments", List.of(CreateCategoryCommand.builder()
+                    .name("Investments")
+                    .type(INCOME)
+                    .icon("trending_up")
+                    .build())),
+            Map.entry("allowances_gifts", List.of(CreateCategoryCommand.builder()
+                    .name("Gifts & Allowances")
+                    .type(INCOME)
+                    .icon("card_giftcard")
+                    .build()))
     );
-
-    private static Category buildCategory(String name, TransactionType type, String icon) {
-        return Category.builder()
-                .name(name)
-                .type(type)
-                .userId(UUID.randomUUID())
-                .icon(icon)
-                .active(true)
-                .system(false)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-    }
 }
