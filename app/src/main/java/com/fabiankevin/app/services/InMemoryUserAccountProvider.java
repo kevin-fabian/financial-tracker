@@ -25,17 +25,22 @@ public class InMemoryUserAccountProvider implements UserAccountProvider {
     }
 
     private static final Map<String, List<Account>> ACCOUNT_INTERESTS_MAPPING = Map.ofEntries(
-            Map.entry("gcash", List.of(
-                    Account.builder().name("GCash").currency(Currency.getInstance("PHP")).userId(null).type(AccountType.E_WALLET).active(true).system(false).createdAt(Instant.now()).updatedAt(Instant.now()).build()
-            )),
-            Map.entry("maya", List.of(
-                    Account.builder().name("Maya").currency(Currency.getInstance("PHP")).userId(null).type(AccountType.E_WALLET).active(true).system(false).createdAt(Instant.now()).updatedAt(Instant.now()).build()
-            )),
-            Map.entry("bank", List.of(
-                    Account.builder().name("Bank Account").currency(Currency.getInstance("PHP")).userId(null).type(AccountType.E_WALLET).active(true).system(false).createdAt(Instant.now()).updatedAt(Instant.now()).build()
-            )),
-            Map.entry("credit_card", List.of(
-                    Account.builder().name("Credit Card").currency(Currency.getInstance("PHP")).userId(null).type(AccountType.E_WALLET).active(true).system(false).createdAt(Instant.now()).updatedAt(Instant.now()).build()
-            ))
+            Map.entry("gcash", List.of(buildAccount("GCash", AccountType.E_WALLET))),
+            Map.entry("maya", List.of(buildAccount("Maya", AccountType.E_WALLET))),
+            Map.entry("bank", List.of(buildAccount("Bank Account", AccountType.E_WALLET))),
+            Map.entry("credit_card", List.of(buildAccount("Credit Card", AccountType.E_WALLET)))
     );
+
+    private static Account buildAccount(String name, AccountType type) {
+        return Account.builder()
+                .name(name)
+                .currency(Currency.getInstance("PHP"))
+                .userId(UUID.randomUUID())
+                .type(type)
+                .active(true)
+                .system(false)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+    }
 }
