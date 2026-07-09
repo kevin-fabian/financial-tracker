@@ -2,11 +2,13 @@ package com.fabiankevin.app.models;
 
 import com.fabiankevin.app.models.enums.TransactionType;
 import lombok.Builder;
+import lombok.With;
 
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
+@With
 @Builder(toBuilder = true)
 public record Category(
         UUID id,

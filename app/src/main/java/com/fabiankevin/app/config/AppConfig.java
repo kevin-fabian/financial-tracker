@@ -18,11 +18,11 @@ public class AppConfig {
     public CategoryService categoryService(CacheManager cacheManager, DefaultCategoryService delegate) {
         return new CachedCategoryService(cacheManager, delegate);
     }
-
-    @Bean
-    public AccountService accountService(CacheManager cacheManager, DefaultAccountService delegate) {
-        return new CachedAccountService(cacheManager, delegate);
-    }
+//
+//    @Bean
+//    public AccountService accountService(CacheManager cacheManager, DefaultAccountService delegate) {
+//        return new DefaultAccountService(cacheManager, delegate);
+//    }
 
     @Bean
     public TransactionService transactionService(CacheManager cacheManager,

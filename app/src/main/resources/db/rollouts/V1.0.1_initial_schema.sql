@@ -7,7 +7,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE IF NOT EXISTS accounts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     name VARCHAR(128) NOT NULL,
-    user_id UUID NOT NULL,
+    user_id UUID NULL,
     currency VARCHAR(3) NOT NULL,
     type VARCHAR(32) NOT NULL DEFAULT 'OTHER',
     system BOOLEAN NOT NULL DEFAULT FALSE,
@@ -23,7 +23,8 @@ CREATE INDEX IF NOT EXISTS idxs_accounts_name ON accounts (name);
 CREATE TABLE IF NOT EXISTS categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     name VARCHAR(128),
-    user_id UUID NOT NULL,
+    user_id UUID NULL,
+    icon VARCHAR(128) NULL,
     transaction_type VARCHAR(10) NOT NULL CHECK (transaction_type IN ('INCOME', 'EXPENSE')),
     system BOOLEAN NOT NULL DEFAULT FALSE,
     active BOOLEAN NOT NULL DEFAULT TRUE,

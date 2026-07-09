@@ -31,7 +31,7 @@ public class CategoryEntity {
     private TransactionType transactionType;
     @Column(name = "icon", length = 128)
     private String icon;
-    @Column(name = "user_id", nullable = false)
+    @Column(name = "user_id")
     private UUID userId;
     @Column(nullable = false)
     private Instant createdAt;

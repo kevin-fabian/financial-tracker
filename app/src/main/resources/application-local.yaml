@@ -16,7 +16,6 @@ spring:
           jws-algorithms: RS256
           jwk-set-uri: http://localhost:9000/oauth2/jwks
           audiences:
-            - zeny-app
             - test-client
             - zeny-app-password
 
