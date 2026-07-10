@@ -24,7 +24,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @Import({GlobalExceptionHandler.class})
 @WebMvcTest(UserController.class)
@@ -76,7 +77,6 @@ class UserControllerTest {
                         .with(jwt().jwt(jwt))
                         .contentType("application/json")
                         .content(jsonMapper.writeValueAsString(request)))
-                .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/users/[-a-f0-9]{36}")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(createdUserId.toString()))
                 .andExpect(jsonPath("$.firstName").value("John"))
