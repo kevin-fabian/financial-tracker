@@ -30,7 +30,7 @@ public class DefaultUserRegistrationService implements UserRegistrationService {
         UserResponse userResponse = userClient.createUser(request);
         UUID userId = userResponse.id();
 
-        userCategoryProvider.provide(createUserCommand.spendingInterest(), userId);
-        userAccountProvider.provide(createUserCommand.accountsInterest(), userId);
+        userCategoryProvider.provide(createUserCommand.categoryInterests(), userId);
+        userAccountProvider.provide(createUserCommand.accountInterests(), userId);
     }
 }

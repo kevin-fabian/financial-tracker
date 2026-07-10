@@ -8,6 +8,6 @@ public record CreateUserCommand(
         String username,
         String password,
         String confirmPassword,
-        Set<String> spendingInterest,
-        Set<String> accountsInterest) {
+        Set<String> categoryInterests,
+        Set<String> accountInterests) {
 }
