@@ -4,6 +4,7 @@ import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.clients.dtos.CreateUserRequest;
 import com.fabiankevin.app.clients.dtos.UserResponse;
 import com.fabiankevin.app.services.commands.CreateUserCommand;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +17,7 @@ public class DefaultUserRegistrationService implements UserRegistrationService {
     private final UserAccountProvider userAccountProvider;
     private final UserClient userClient;
 
+    @Transactional
     @Override
     public void register(CreateUserCommand createUserCommand) {
         CreateUserRequest request = new CreateUserRequest(
