@@ -14,6 +14,9 @@ public class DefaultUserProvisioningService implements UserProvisioningService {
 
     @Override
     public void provisionUser(UUID userId, Set<String> accountInterests, Set<String> categoryInterests) {
+        if (userId == null) {
+            throw new IllegalArgumentException("User ID cannot be null");
+        }
         accountProvider.provision(accountInterests, userId);
         categoryProvider.provision(categoryInterests, userId);
     }

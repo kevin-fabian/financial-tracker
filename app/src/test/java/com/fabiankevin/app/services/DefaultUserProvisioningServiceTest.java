@@ -1,5 +1,6 @@
 package com.fabiankevin.app.services;
 
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -83,7 +84,7 @@ class DefaultUserProvisioningServiceTest {
 
         @Test
         void provisionUser_givenNullUserId_throwsIllegalArgumentException() {
-            org.assertj.core.api.Assertions.assertThatThrownBy(
+            Assertions.assertThatThrownBy(
                     () -> service.provisionUser(null, Set.of("gcash"), Set.of("groceries")))
                     .isInstanceOf(IllegalArgumentException.class);
         }

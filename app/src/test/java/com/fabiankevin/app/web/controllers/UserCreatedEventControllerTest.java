@@ -20,11 +20,10 @@ import java.util.UUID;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(UserCreatedEventController.class)
-@Import(GlobalExceptionHandler.class)
+@Import({GlobalExceptionHandler.class})
 class UserCreatedEventControllerTest {
 
     @Autowired
@@ -41,7 +40,7 @@ class UserCreatedEventControllerTest {
                 .subject(UUID.randomUUID().toString())
                 .header("alg", "RS256")
                 .audience(List.of("identity-service"))
-                .claim("scope", "user:provision")
+                .claim("scope", List.of("user:provision"))
                 .issuedAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(3600))
                 .build();
@@ -115,34 +114,9 @@ class UserCreatedEventControllerTest {
     }
 
     @Test
-    void provisionUser_givenEventWithUnknownInterests_thenShouldIgnoreUnknown() throws Exception {
-        UUID userId = UUID.randomUUID();
-
-        mockMvc.perform(post("/api/users/provision")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "userId": "%s",
-                                  "metadata": {
-                                    "accountInterests": "unknown_wallet",
-                                    "categoryInterests": "unknown_category"
-                                  }
-                                }
-                                """.formatted(userId)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.userId").value(userId.toString()))
-                .andExpect(jsonPath("$.provisionedAccounts").isArray())
-                .andExpect(jsonPath("$.provisionedAccounts").isEmpty())
-                .andExpect(jsonPath("$.provisionedCategories").isArray())
-                .andExpect(jsonPath("$.provisionedCategories").isEmpty());
-
-        verify(userProvisioningService, times(1))
-                .provisionUser(eq(userId), eq(Set.of("unknown_wallet")), eq(Set.of("unknown_category")));
-    }
-
-    @Test
     void provisionUser_givenEventWithMissingUserId_thenShouldReturnBadRequest() throws Exception {
         mockMvc.perform(post("/api/users/provision")
+                        .with(jwt().jwt(jwt))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -157,19 +131,21 @@ class UserCreatedEventControllerTest {
     }
 
     @Test
-    void provisionUser_givenEventWithMissingMetadata_thenShouldReturnBadRequest() throws Exception {
+    void provisionUser_givenEventWithMissingMetadata_thenShouldProvisionWithEmptyInterests() throws Exception {
         UUID userId = UUID.randomUUID();
 
         mockMvc.perform(post("/api/users/provision")
+                        .with(jwt().jwt(jwt))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "userId": "%s"
                                 }
                                 """.formatted(userId)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isCreated());
 
-        verifyNoInteractions(userProvisioningService);
+        verify(userProvisioningService, times(1))
+                .provisionUser(eq(userId), eq(Set.of()), eq(Set.of()));
     }
 
     @Test
@@ -180,14 +156,12 @@ class UserCreatedEventControllerTest {
                 .when(userProvisioningService).provisionUser(eq(userId), any(), any());
 
         mockMvc.perform(post("/api/users/provision")
+                        .with(jwt().jwt(jwt))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "userId": "%s",
-                                  "metadata": {
-                                    "accountInterests": "gcash",
-                                    "categoryInterests": "groceries"
-                                  }
+                                  "metadata": {}
                                 }
                                 """.formatted(userId)))
                 .andExpect(status().isInternalServerError());
