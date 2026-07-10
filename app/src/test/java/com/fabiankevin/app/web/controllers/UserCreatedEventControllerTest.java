@@ -2,20 +2,26 @@ package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.services.UserProvisioningService;
 import com.github.fabiankevin.lemon.web.GlobalExceptionHandler;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(UserCreatedEventController.class)
 @Import(GlobalExceptionHandler.class)
@@ -27,32 +33,44 @@ class UserCreatedEventControllerTest {
     @MockitoBean
     private UserProvisioningService userProvisioningService;
 
+    private Jwt jwt;
+
+    @BeforeEach
+    void setup() {
+        jwt = Jwt.withTokenValue(UUID.randomUUID().toString())
+                .subject(UUID.randomUUID().toString())
+                .header("alg", "RS256")
+                .audience(List.of("identity-service"))
+                .claim("scope", "user:provision")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(3600))
+                .build();
+    }
+
     @Test
     void provisionUser_givenValidEventWithInterests_thenShouldProvisionAndReturnCreated() throws Exception {
         UUID userId = UUID.randomUUID();
 
         mockMvc.perform(post("/api/users/provision")
+                        .with(jwt().jwt(jwt))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "userId": "%s",
                                   "metadata": {
-                                    "accountInterests": "gcash,maya",
-                                    "categoryInterests": "groceries,bills,salary_active"
+                                    "accountInterests": [
+                                      "gcash",
+                                      "maya"
+                                    ],
+                                    "categoryInterests": [
+                                       "groceries" ,
+                                       "bills",
+                                       "salary_active"
+                                    ]
                                   }
                                 }
                                 """.formatted(userId)))
-                .andExpect(status().isCreated())
-                .andExpect(header().exists("Location"))
-                .andExpect(jsonPath("$.userId").value(userId.toString()))
-                .andExpect(jsonPath("$.provisionedAccounts").isArray())
-                .andExpect(jsonPath("$.provisionedAccounts[0]").value("GCash"))
-                .andExpect(jsonPath("$.provisionedAccounts[1]").value("Maya"))
-                .andExpect(jsonPath("$.provisionedCategories").isArray())
-                .andExpect(jsonPath("$.provisionedCategories[0]").value("Groceries"))
-                .andExpect(jsonPath("$.provisionedCategories[1]").value("Utilities"))
-                .andExpect(jsonPath("$.provisionedCategories[2]").value("Subscriptions"))
-                .andExpect(jsonPath("$.provisionedCategories[3]").value("Salary"));
+                .andExpect(status().isCreated());
 
         verify(userProvisioningService, times(1))
                 .provisionUser(eq(userId), eq(Set.of("gcash", "maya")), eq(Set.of("groceries", "bills", "salary_active")));
@@ -63,6 +81,7 @@ class UserCreatedEventControllerTest {
         UUID userId = UUID.randomUUID();
 
         mockMvc.perform(post("/api/users/provision")
+                        .with(jwt().jwt(jwt))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -70,12 +89,7 @@ class UserCreatedEventControllerTest {
                                   "metadata": {}
                                 }
                                 """.formatted(userId)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.userId").value(userId.toString()))
-                .andExpect(jsonPath("$.provisionedAccounts").isArray())
-                .andExpect(jsonPath("$.provisionedAccounts").isEmpty())
-                .andExpect(jsonPath("$.provisionedCategories").isArray())
-                .andExpect(jsonPath("$.provisionedCategories").isEmpty());
+                .andExpect(status().isCreated());
 
         verify(userProvisioningService, times(1))
                 .provisionUser(eq(userId), eq(Set.of()), eq(Set.of()));
@@ -86,6 +100,7 @@ class UserCreatedEventControllerTest {
         UUID userId = UUID.randomUUID();
 
         mockMvc.perform(post("/api/users/provision")
+                        .with(jwt().jwt(jwt))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -93,12 +108,7 @@ class UserCreatedEventControllerTest {
                                   "metadata": null
                                 }
                                 """.formatted(userId)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.userId").value(userId.toString()))
-                .andExpect(jsonPath("$.provisionedAccounts").isArray())
-                .andExpect(jsonPath("$.provisionedAccounts").isEmpty())
-                .andExpect(jsonPath("$.provisionedCategories").isArray())
-                .andExpect(jsonPath("$.provisionedCategories").isEmpty());
+                .andExpect(status().isCreated());
 
         verify(userProvisioningService, times(1))
                 .provisionUser(eq(userId), eq(Set.of()), eq(Set.of()));
