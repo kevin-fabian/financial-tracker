@@ -1,6 +1,6 @@
 package com.fabiankevin.app.web.controllers;
 
-import com.fabiankevin.app.clients.dtos.UserResponse;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.services.UserRegistrationService;
 import com.fabiankevin.app.services.commands.CreateUserCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateUserRequest;
@@ -66,7 +66,7 @@ class UserControllerTest {
                 .build();
 
         UUID createdUserId = UUID.randomUUID();
-        UserResponse userResponse = UserResponse.builder()
+        User userResponse = User.builder()
                 .id(createdUserId)
                 .firstName("John")
                 .lastName("Doe")

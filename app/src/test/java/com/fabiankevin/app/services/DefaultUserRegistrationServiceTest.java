@@ -1,8 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.clients.dtos.CreateUserRequest;
-import com.fabiankevin.app.clients.dtos.UserResponse;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.services.commands.CreateUserCommand;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,25 +44,25 @@ class DefaultUserRegistrationServiceTest {
         Set<String> spendingInterest = Set.of("groceries", "bills");
         Set<String> accountsInterest = Set.of("gcash", "bank");
 
-        CreateUserCommand command = new CreateUserCommand(
+        com.fabiankevin.app.services.commands.CreateUserCommand command = new com.fabiankevin.app.services.commands.CreateUserCommand(
                 firstName, lastName, username, password, confirmPassword,
                 spendingInterest, accountsInterest
         );
-        UserResponse userResponse = UserResponse.builder()
+        User userResponse = User.builder()
                 .id(userId)
                 .firstName(firstName)
                 .lastName(lastName)
                 .build();
 
-        when(userClient.createUser(any(CreateUserRequest.class))).thenReturn(userResponse);
+        when(userClient.createUser(any(CreateUserCommand.class))).thenReturn(userResponse);
         doNothing().when(userCategoryProvider).provide(spendingInterest, userId);
         doNothing().when(userAccountProvider).provide(accountsInterest, userId);
 
         service.register(command);
 
-        ArgumentCaptor<CreateUserRequest> requestCaptor = ArgumentCaptor.forClass(CreateUserRequest.class);
+        ArgumentCaptor<CreateUserCommand> requestCaptor = ArgumentCaptor.forClass(CreateUserCommand.class);
         verify(userClient).createUser(requestCaptor.capture());
-        CreateUserRequest capturedRequest = requestCaptor.getValue();
+        CreateUserCommand capturedRequest = requestCaptor.getValue();
         assertThat(capturedRequest.firstName()).isEqualTo(firstName);
         assertThat(capturedRequest.lastName()).isEqualTo(lastName);
         assertThat(capturedRequest.username()).isEqualTo(username);
@@ -76,7 +75,7 @@ class DefaultUserRegistrationServiceTest {
 
     @Test
     void register_givenNullUserClient_throwsException() {
-        CreateUserCommand command = new CreateUserCommand(
+        com.fabiankevin.app.services.commands.CreateUserCommand command = new com.fabiankevin.app.services.commands.CreateUserCommand(
                 "John", "Doe", "johndoe", "secret", "secret",
                 Set.of("groceries"), Set.of("gcash")
         );
@@ -90,12 +89,12 @@ class DefaultUserRegistrationServiceTest {
 
     @Test
     void register_givenUserClientReturnsNull_throwsException() {
-        CreateUserCommand command = new CreateUserCommand(
+        com.fabiankevin.app.services.commands.CreateUserCommand command = new com.fabiankevin.app.services.commands.CreateUserCommand(
                 "John", "Doe", "johndoe", "secret", "secret",
                 Set.of("groceries"), Set.of("gcash")
         );
 
-        when(userClient.createUser(any(CreateUserRequest.class))).thenReturn(null);
+        when(userClient.createUser(any(CreateUserCommand.class))).thenReturn(null);
 
         assertThatThrownBy(() -> service.register(command))
                 .isInstanceOf(NullPointerException.class);
@@ -104,17 +103,17 @@ class DefaultUserRegistrationServiceTest {
     @Test
     void register_givenProviderThrows_throwsExceptionPropagation() {
         UUID userId = UUID.randomUUID();
-        CreateUserCommand command = new CreateUserCommand(
+        com.fabiankevin.app.services.commands.CreateUserCommand command = new com.fabiankevin.app.services.commands.CreateUserCommand(
                 "John", "Doe", "johndoe", "secret", "secret",
                 Set.of("groceries"), Set.of("gcash")
         );
-        UserResponse userResponse = UserResponse.builder()
+        User userResponse = User.builder()
                 .id(userId)
                 .firstName("John")
                 .lastName("Doe")
                 .build();
 
-        when(userClient.createUser(any(CreateUserRequest.class))).thenReturn(userResponse);
+        when(userClient.createUser(any(CreateUserCommand.class))).thenReturn(userResponse);
         doThrow(new RuntimeException("Provider error")).when(userCategoryProvider).provide(any(), any());
 
         assertThatThrownBy(() -> service.register(command))

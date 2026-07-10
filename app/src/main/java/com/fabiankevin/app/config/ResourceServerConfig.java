@@ -29,6 +29,9 @@ public class ResourceServerConfig {
                                            InvalidTokenAuthenticationEntryPoint invalidTokenAuthenticationEntryPoint,
                                            BearerAccessDeniedHandler bearerAccessDeniedHandler) {
         http
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/api/users")
+                )
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/accounts", "/api/accounts/**", "/api/categories", "/api/categories/**", "/api/stats", "/api/stats*").hasAnyAuthority(USER_ROLE)
                         .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus**").permitAll()

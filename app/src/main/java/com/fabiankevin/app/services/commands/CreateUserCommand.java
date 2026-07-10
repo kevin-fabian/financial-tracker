@@ -1,7 +1,10 @@
 package com.fabiankevin.app.services.commands;
 
+import lombok.Builder;
+
 import java.util.Set;
 
+@Builder
 public record CreateUserCommand(
         String firstName,
         String lastName,

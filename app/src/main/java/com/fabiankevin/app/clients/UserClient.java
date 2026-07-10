@@ -1,8 +1,8 @@
 package com.fabiankevin.app.clients;
 
-import com.fabiankevin.app.clients.dtos.CreateUserRequest;
-import com.fabiankevin.app.clients.dtos.UserResponse;
+import com.fabiankevin.app.models.User;
+import com.fabiankevin.app.services.commands.CreateUserCommand;
 
 public interface UserClient {
-    UserResponse createUser(CreateUserRequest request);
+    User createUser(CreateUserCommand command);
 }

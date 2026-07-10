@@ -1,5 +1,6 @@
 package com.fabiankevin.app.web.controllers.dtos;
 
+import com.fabiankevin.app.models.User;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
@@ -17,7 +18,7 @@ public record CreateUserResponse(
         @Schema(description = "User's last name", example = "Doe")
         String lastName
 ) {
-    public static CreateUserResponse from(com.fabiankevin.app.clients.dtos.UserResponse userResponse) {
+    public static CreateUserResponse from(User userResponse) {
         return CreateUserResponse.builder()
                 .id(userResponse.id())
                 .firstName(userResponse.firstName())

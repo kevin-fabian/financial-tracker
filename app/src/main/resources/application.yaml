@@ -10,3 +10,7 @@ spring:
       supported: v1
       use:
         header: X-API-VERSION
+  http:
+    clients:
+      connect-timeout: 30s
+      read-timeout: 30s

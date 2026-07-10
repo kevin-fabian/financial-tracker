@@ -1,6 +1,6 @@
 package com.fabiankevin.app.web.controllers;
 
-import com.fabiankevin.app.clients.dtos.UserResponse;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.services.UserRegistrationService;
 import com.fabiankevin.app.web.controllers.dtos.CreateUserRequest;
 import com.fabiankevin.app.web.controllers.dtos.CreateUserResponse;
@@ -11,7 +11,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -32,8 +31,8 @@ public class UserController {
             }
     )
     @PostMapping
-    public CreateUserResponse createUser(@Valid @RequestBody CreateUserRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
-        UserResponse user = userRegistrationService.register(request.toCommand());
+    public CreateUserResponse createUser(@Valid @RequestBody CreateUserRequest request) {
+        User user = userRegistrationService.register(request.toCommand());
         return CreateUserResponse.from(user);
     }
 }

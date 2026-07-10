@@ -1,7 +1,7 @@
 package com.fabiankevin.app.clients;
 
-import com.fabiankevin.app.clients.dtos.CreateUserRequest;
-import com.fabiankevin.app.clients.dtos.UserResponse;
+import com.fabiankevin.app.models.User;
+import com.fabiankevin.app.services.commands.CreateUserCommand;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -45,8 +45,13 @@ class DefaultUserClientTest {
                 }
                 """.formatted(expectedId);
 
-        CreateUserRequest request = new CreateUserRequest(
-                "John", "Doe", "johndoe", "password123", "password123");
+        CreateUserCommand request = CreateUserCommand.builder()
+                .firstName("John")
+                .lastName("Doe")
+                .username("johndoe")
+                .password("password123")
+                .confirmPassword("password123")
+                .build();
 
         this.mockServer.expect(requestTo("http://localhost:9000/api/users"))
                 .andExpect(method(HttpMethod.POST))
@@ -54,7 +59,7 @@ class DefaultUserClientTest {
                 .andExpect(header("Content-Type", MediaType.APPLICATION_JSON_VALUE))
                 .andRespond(withSuccess(mockJsonResponse, MediaType.APPLICATION_JSON));
 
-        UserResponse result = userClient.createUser(request);
+        User result = userClient.createUser(request);
 
         assertThat(result).isNotNull();
         assertThat(result.id()).isEqualTo(expectedId);
@@ -67,8 +72,13 @@ class DefaultUserClientTest {
     @ParameterizedTest
     @ValueSource(ints = {400, 401, 403, 404})
     void createUser_invalidRequest_throwsHttpClientErrorException(int httpStatus) {
-        CreateUserRequest request = new CreateUserRequest(
-                "", "", "", "", "");
+        CreateUserCommand request = CreateUserCommand.builder()
+                .firstName("")
+                .lastName("")
+                .username("")
+                .password("")
+                .confirmPassword("")
+                .build();
 
         this.mockServer.expect(requestTo("http://localhost:9000/api/users"))
                 .andExpect(method(HttpMethod.POST))
@@ -86,8 +96,13 @@ class DefaultUserClientTest {
     @ParameterizedTest
     @ValueSource(ints = {500, 502, 503})
     void createUser_serverError_throwsHttpServerErrorException(int httpStatus) {
-        CreateUserRequest request = new CreateUserRequest(
-                "John", "Doe", "johndoe", "password123", "password123");
+        CreateUserCommand request = CreateUserCommand.builder()
+                .firstName("John")
+                .lastName("Doe")
+                .username("johndoe")
+                .password("password123")
+                .confirmPassword("password123")
+                .build();
 
         this.mockServer.expect(requestTo("http://localhost:9000/api/users"))
                 .andExpect(method(HttpMethod.POST))
@@ -104,8 +119,13 @@ class DefaultUserClientTest {
 
     @Test
     void createUser_apiUnreachable_throwsResourceAccessException() {
-        CreateUserRequest request = new CreateUserRequest(
-                "John", "Doe", "johndoe", "password123", "password123");
+        CreateUserCommand request = CreateUserCommand.builder()
+                .firstName("John")
+                .lastName("Doe")
+                .username("johndoe")
+                .password("password123")
+                .confirmPassword("password123")
+                .build();
 
         this.mockServer.expect(requestTo("http://localhost:9000/api/users"))
                 .andExpect(method(HttpMethod.POST))

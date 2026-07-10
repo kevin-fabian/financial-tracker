@@ -1,8 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.clients.dtos.CreateUserRequest;
-import com.fabiankevin.app.clients.dtos.UserResponse;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.services.commands.CreateUserCommand;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -17,15 +16,8 @@ public class DefaultUserRegistrationService implements UserRegistrationService {
 
     @Transactional
     @Override
-    public UserResponse register(CreateUserCommand createUserCommand) {
-        CreateUserRequest request = new CreateUserRequest(
-                createUserCommand.firstName(),
-                createUserCommand.lastName(),
-                createUserCommand.username(),
-                createUserCommand.password(),
-                createUserCommand.confirmPassword()
-        );
-        UserResponse userResponse = userClient.createUser(request);
+    public User register(CreateUserCommand createUserCommand) {
+        User userResponse = userClient.createUser(createUserCommand);
 
         userCategoryProvider.provide(createUserCommand.categoryInterests(), userResponse.id());
         userAccountProvider.provide(createUserCommand.accountInterests(), userResponse.id());

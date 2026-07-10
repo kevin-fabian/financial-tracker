@@ -48,6 +48,14 @@ public record CreateUserRequest(
         Set<String> accountInterests) {
 
     public CreateUserCommand toCommand() {
-        return new CreateUserCommand(username, password, confirmPassword, lastName, firstName, categoryInterests, accountInterests);
+        return CreateUserCommand.builder()
+                .firstName(firstName)
+                .lastName(lastName)
+                .username(username)
+                .password(password)
+                .confirmPassword(confirmPassword)
+                .categoryInterests(categoryInterests)
+                .accountInterests(accountInterests)
+                .build();
     }
 }
