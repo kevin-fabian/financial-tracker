@@ -32,7 +32,7 @@ class DefaultUserClientTest {
     private MockRestServiceServer mockServer;
 
     private final JsonMapper jsonMapper = JsonMapper.builder().build();
-s
+
     @Test
     void createUser_validRequest_apiReturns200_returnsUserResponse() {
         UUID expectedId = UUID.randomUUID();
