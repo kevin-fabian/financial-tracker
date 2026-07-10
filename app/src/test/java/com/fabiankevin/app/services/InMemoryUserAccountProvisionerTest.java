@@ -18,17 +18,17 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class InMemoryUserAccountProviderTest {
+class InMemoryUserAccountProvisionerTest {
 
     @Mock
     private AccountService accountService;
 
-    private InMemoryUserAccountProvider provider;
+    private InMemoryUserAccountProvisioner provider;
     private UUID testUserId;
 
     @BeforeEach
     void setUp() {
-        provider = new InMemoryUserAccountProvider(accountService);
+        provider = new InMemoryUserAccountProvisioner(accountService);
         testUserId = UUID.randomUUID();
     }
 
@@ -37,19 +37,19 @@ class InMemoryUserAccountProviderTest {
 
         @Test
         void provide_nullInterests_doesNotCallService() {
-            provider.provide(null, testUserId);
+            provider.provision(null, testUserId);
             verify(accountService, never()).createAccount(any());
         }
 
         @Test
         void provide_emptyInterests_doesNotCallService() {
-            provider.provide(Set.of(), testUserId);
+            provider.provision(Set.of(), testUserId);
             verify(accountService, never()).createAccount(any());
         }
 
         @Test
         void provide_nullUserId_throwsIllegalArgumentException() {
-            org.assertj.core.api.Assertions.assertThatThrownBy(() -> provider.provide(Set.of("gcash"), null))
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> provider.provision(Set.of("gcash"), null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("User ID cannot be null");
         }
@@ -58,7 +58,7 @@ class InMemoryUserAccountProviderTest {
         void provide_knownInterests_callsServiceWithCorrectCommands() {
             Set<String> interests = Set.of("gcash", "maya");
 
-            provider.provide(interests, testUserId);
+            provider.provision(interests, testUserId);
 
             verify(accountService, times(2)).createAccount(any(CreateAccountCommand.class));
             verify(accountService).createAccount(eq(CreateAccountCommand.builder()
@@ -79,7 +79,7 @@ class InMemoryUserAccountProviderTest {
         void provide_unknownInterests_doesNotCallService() {
             Set<String> interests = Set.of("unknown_interest");
 
-            provider.provide(interests, testUserId);
+            provider.provision(interests, testUserId);
 
             verify(accountService, never()).createAccount(any());
         }
@@ -88,7 +88,7 @@ class InMemoryUserAccountProviderTest {
         void provide_mixedInterests_callsServiceOnlyForKnown() {
             Set<String> interests = Set.of("gcash", "unknown", "bank");
 
-            provider.provide(interests, testUserId);
+            provider.provision(interests, testUserId);
 
             verify(accountService).createAccount(eq(CreateAccountCommand.builder()
                     .name("GCash")
@@ -108,7 +108,7 @@ class InMemoryUserAccountProviderTest {
         void provide_allInterests_callsServiceForAllAccounts() {
             Set<String> interests = Set.of("gcash", "maya", "bank", "credit_card");
 
-            provider.provide(interests, testUserId);
+            provider.provision(interests, testUserId);
 
             verify(accountService).createAccount(eq(CreateAccountCommand.builder()
                     .name("GCash")

@@ -18,6 +18,7 @@ spring:
           audiences:
             - test-client
             - zeny-app-password
+            - identity-service
 
 logging:
   level:

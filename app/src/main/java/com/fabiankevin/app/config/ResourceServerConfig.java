@@ -21,8 +21,7 @@ import java.util.Optional;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class ResourceServerConfig {
-    private static final String ROLE_PREFIX = "ROLE_";
-    private static final String USER_ROLE = ROLE_PREFIX + "USER";
+    private static final String USER_ROLE = "USER";
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
@@ -36,7 +35,7 @@ public class ResourceServerConfig {
                         .requestMatchers("/api/accounts", "/api/accounts/**", "/api/categories", "/api/categories/**", "/api/stats", "/api/stats*").hasAnyAuthority(USER_ROLE)
                         .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus**").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/users/**").hasAnyAuthority("user:provision")
                         .anyRequest().authenticated()
                 )
                 .cors(Customizer.withDefaults())
@@ -51,7 +50,7 @@ public class ResourceServerConfig {
 
     @Bean
     public RoleHierarchyImpl roleHierarchy() {
-        return RoleHierarchyImpl.fromHierarchy("ROLE_ADMIN > ROLE_USER");
+        return RoleHierarchyImpl.fromHierarchy("ADMIN > USER");
     }
 
     @Bean
@@ -59,14 +58,14 @@ public class ResourceServerConfig {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
 
-            List<String> scopes = List.of(jwt.getClaimAsString("scope").split(" "));
+            List<String> scopes = jwt.getClaimAsStringList("scope");
             List<GrantedAuthority> authorities = new ArrayList<>(scopes.stream()
-                    .map(scope -> new SimpleGrantedAuthority("SCOPE_" + scope))
+                    .map(SimpleGrantedAuthority::new)
                     .toList());
 
             Optional.ofNullable(jwt.getClaimAsStringList("roles"))
                     .ifPresent(roles -> authorities.addAll(
-                            roles.stream().map(role -> new SimpleGrantedAuthority(ROLE_PREFIX + role)).toList()
+                            roles.stream().map(SimpleGrantedAuthority::new).toList()
                     ));
 
             return authorities;

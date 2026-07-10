@@ -14,11 +14,11 @@ import static com.fabiankevin.app.models.enums.TransactionType.INCOME;
 
 @Component
 @RequiredArgsConstructor
-public class InMemoryUserCategoryProvider implements UserCategoryProvider {
+public class InMemoryUserCategoryProvisioner implements UserCategoryProvisioner {
     private final CategoryService categoryService;
 
     @Override
-    public void provide(Set<String> categoryInterests, UUID userId) {
+    public void provision(Set<String> categoryInterests, UUID userId) {
         if (categoryInterests == null || categoryInterests.isEmpty()) {
             return;
         }

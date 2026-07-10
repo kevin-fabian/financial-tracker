@@ -9,11 +9,11 @@ import java.util.*;
 
 @Component
 @RequiredArgsConstructor
-public class InMemoryUserAccountProvider implements UserAccountProvider {
+public class InMemoryUserAccountProvisioner implements UserAccountProvisioner {
     private final AccountService accountService;
 
     @Override
-    public void provide(Set<String> accountInterests, UUID userId) {
+    public void provision(Set<String> accountInterests, UUID userId) {
         if (accountInterests == null || accountInterests.isEmpty()) {
             return;
         }
