@@ -8,10 +8,7 @@ import com.fabiankevin.app.services.summaries.SummaryGenerator;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.web.client.RestClient;
 
-import java.time.Duration;
 import java.util.List;
 
 @Configuration
@@ -45,16 +42,5 @@ public class AppConfig {
             TransactionRepository transactionRepository,
             List<SummaryGenerator> generators) {
         return new DefaultTransactionService(accountRepository, categoryRepository, transactionRepository, generators);
-    }
-
-    @Bean
-    public RestClient restClient() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(Duration.ofSeconds(30));
-        factory.setReadTimeout(Duration.ofSeconds(30));
-
-        return RestClient.builder()
-                .requestFactory(factory)
-                .build();
     }
 }

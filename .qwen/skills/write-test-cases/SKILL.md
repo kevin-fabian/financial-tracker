@@ -10,7 +10,7 @@ Primary goal: write test cases that are readable, behavior-focused, and consiste
 ## Workflow
 
 1. Analyze method signatures and expected behavior without looking at internal logic.
-2. Write a maximum of 3 test cases per method using a black-box approach.
+2. Write a maximum of 3 test cases per method using a black-box approach but feel free to add more test cases if the missing scenarios are must have.
 3. Evaluate the actual implementation against your newly written tests. If the implementation fails, refactor it to resolve the bug.
 4. Name each test using `methodName_<given>_<then>`.
 5. Arrange only the minimum data needed for the scenario.

@@ -10,8 +10,8 @@ import org.springframework.web.client.RestClient;
 public class DefaultUserClient implements UserClient {
     private final RestClient restClient;
 
-    public DefaultUserClient(RestClient restClient) {
-        this.restClient = restClient.mutate()
+    public DefaultUserClient(RestClient.Builder restClientBuilder) {
+        this.restClient = restClientBuilder
                 .baseUrl("http://localhost:9000/api")
                 .build();
     }
