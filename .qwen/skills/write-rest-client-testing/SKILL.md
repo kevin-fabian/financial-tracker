@@ -54,9 +54,13 @@ The first provides the production `RestClient` support; the second provides `@Re
 | Server error | `withStatus(HttpStatus.INTERNAL_SERVER_ERROR)` | `HttpServerErrorException` |
 | Network failure | `withException(new SocketTimeoutException(...))` | `ResourceAccessException` |
 
+## Test Scenarios to Cover
+
+Cover all four scenarios per client method where applicable: success, client errors (4xx), server errors (5xx), and network failure. Consolidate repetitive HTTP error codes into a single `@ParameterizedTest` using `@ValueSource`.
+
 ## Parameterizing HTTP Errors
 
-Replace multiple individual error tests with one parameterized test:
+Replace multiple individual error tests with one parameterized test for client errors:
 
 ```java
 @ParameterizedTest
@@ -73,6 +77,28 @@ void methodName_invalidInput_apiReturns4xx_throwsHttpClientErrorException(int ht
             () -> client.methodName(request));
 
     assertThat(exception.getStatusCode().is4xxClientError()).isTrue();
+
+    this.mockServer.verify();
+}
+```
+
+And one for server errors:
+
+```java
+@ParameterizedTest
+@ValueSource(ints = {500, 502, 503})
+void methodName_serverError_apiReturns5xx_throwsHttpServerErrorException(int httpStatus) {
+    // Arrange
+    this.mockServer.expect(requestTo("http://localhost:8080/api/endpoint"))
+            .andExpect(method(HttpMethod.POST))
+            .andRespond(withStatus(HttpStatus.valueOf(httpStatus)));
+
+    // Act & Assert
+    HttpServerErrorException exception = assertThrows(
+            HttpServerErrorException.class,
+            () -> client.methodName(request));
+
+    assertThat(exception.getStatusCode().is5xxServerError()).isTrue();
 
     this.mockServer.verify();
 }
@@ -141,7 +167,7 @@ class DefaultUserClientTest {
 - used `JsonMapper` to serialize request bodies for assertion
 - asserted request shape (method, headers, body)
 - asserted response mapping (DTO fields, status)
-- covered success, client error, and network failure
+- covered success, client errors (4xx), server errors (5xx), and network failure
 - used `@ValueSource` to parameterize repetitive error codes
 - used `MockRestResponseCreators` for all mock responses
 - called `mockServer.verify()` in every test

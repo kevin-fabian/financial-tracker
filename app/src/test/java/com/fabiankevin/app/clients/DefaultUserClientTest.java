@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -65,7 +66,7 @@ class DefaultUserClientTest {
 
     @ParameterizedTest
     @ValueSource(ints = {400, 401, 403, 404})
-    void createUser_invalidRequest_apiReturns4xx_throwsHttpClientErrorException(int httpStatus) {
+    void createUser_invalidRequest_throwsHttpClientErrorException(int httpStatus) {
         CreateUserRequest request = new CreateUserRequest(
                 "", "", "", "", "");
 
@@ -78,6 +79,25 @@ class DefaultUserClientTest {
                 () -> userClient.createUser(request));
 
         assertThat(exception.getStatusCode().is4xxClientError()).isTrue();
+
+        this.mockServer.verify();
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {500, 502, 503})
+    void createUser_serverError_throwsHttpServerErrorException(int httpStatus) {
+        CreateUserRequest request = new CreateUserRequest(
+                "John", "Doe", "johndoe", "password123", "password123");
+
+        this.mockServer.expect(requestTo("http://localhost:9000/api/users"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(withStatus(HttpStatus.valueOf(httpStatus)));
+
+        HttpServerErrorException exception = assertThrows(
+                HttpServerErrorException.class,
+                () -> userClient.createUser(request));
+
+        assertThat(exception.getStatusCode().is5xxServerError()).isTrue();
 
         this.mockServer.verify();
     }
