@@ -8,8 +8,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
-
 @RequiredArgsConstructor
 @Service
 public class DefaultUserRegistrationService implements UserRegistrationService {
@@ -19,7 +17,7 @@ public class DefaultUserRegistrationService implements UserRegistrationService {
 
     @Transactional
     @Override
-    public void register(CreateUserCommand createUserCommand) {
+    public UserResponse register(CreateUserCommand createUserCommand) {
         CreateUserRequest request = new CreateUserRequest(
                 createUserCommand.firstName(),
                 createUserCommand.lastName(),
@@ -28,9 +26,10 @@ public class DefaultUserRegistrationService implements UserRegistrationService {
                 createUserCommand.confirmPassword()
         );
         UserResponse userResponse = userClient.createUser(request);
-        UUID userId = userResponse.id();
 
-        userCategoryProvider.provide(createUserCommand.categoryInterests(), userId);
-        userAccountProvider.provide(createUserCommand.accountInterests(), userId);
+        userCategoryProvider.provide(createUserCommand.categoryInterests(), userResponse.id());
+        userAccountProvider.provide(createUserCommand.accountInterests(), userResponse.id());
+
+        return userResponse;
     }
 }

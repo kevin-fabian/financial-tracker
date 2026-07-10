@@ -41,10 +41,10 @@ public record CreateUserRequest(
         @NotBlank(message = "Confirm password is required")
         String confirmPassword,
 
-        @Schema(description = "User's spending & saving interests", examples = "groceries, bills")
+        @Schema(description = "User's spending & saving interests for initial categories", examples = "groceries, bills")
         Set<String> categoryInterests,
 
-        @Schema(description = "User's account interests", examples = "bank, credit_card")
+        @Schema(description = "User's account interests for initial accounts", examples = "bank, credit_card")
         Set<String> accountInterests) {
 
     public CreateUserCommand toCommand() {
