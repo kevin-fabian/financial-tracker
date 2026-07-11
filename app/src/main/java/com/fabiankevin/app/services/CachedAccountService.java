@@ -30,8 +30,8 @@
 //    private final ConcurrentMap<UUID, CopyOnWriteArraySet<String>> userKeys = new ConcurrentHashMap<>();
 //
 //    @Override
-//    public Account getAccountById(UUID id, UUID userId) {
-//        String key = String.format(KEY_BY_ID, userId, id);
+//    public Account getAccountById(UUID id, UUID id) {
+//        String key = String.format(KEY_BY_ID, id, id);
 //        Cache cache = cacheManager.getCache(CACHE_NAME);
 //
 //        Cache.ValueWrapper cached = cache.get(key);
@@ -39,8 +39,8 @@
 //            return (Account) cached.get();
 //        }
 //
-//        Account result = delegatedAccountService.getAccountById(id, userId);
-//        registerKey(userId, key);
+//        Account result = delegatedAccountService.getAccountById(id, id);
+//        registerKey(id, key);
 //        cache.put(key, result);
 //        return result;
 //    }
@@ -48,32 +48,32 @@
 //    @Override
 //    public Account createAccount(CreateAccountCommand command) {
 //        Account result = delegatedAccountService.createAccount(command);
-//        evictUserKeys(command.userId());
+//        evictUserKeys(command.id());
 //        return result;
 //    }
 //
 //    @Override
 //    public Account patchAccount(PatchAccountCommand command) {
 //        Account result = delegatedAccountService.patchAccount(command);
-//        evictUserKeys(command.userId());
+//        evictUserKeys(command.id());
 //        return result;
 //    }
 //
 //    @Override
-//    public void deleteAccountById(UUID id, UUID userId) {
-//        delegatedAccountService.deleteAccountById(id, userId);
-//        evictUserKeys(userId);
+//    public void deleteAccountById(UUID id, UUID id) {
+//        delegatedAccountService.deleteAccountById(id, id);
+//        evictUserKeys(id);
 //    }
 //
 //    @Override
-//    public void disableAccount(UUID id, UUID userId) {
-//        delegatedAccountService.disableAccount(id, userId);
-//        evictUserKeys(userId);
+//    public void disableAccount(UUID id, UUID id) {
+//        delegatedAccountService.disableAccount(id, id);
+//        evictUserKeys(id);
 //    }
 //
 //    @Override
-//    public Page<Account> getAccountsByPageAndUserId(PageQuery query, UUID userId) {
-//        String key = String.format(KEY_PAGED, userId, query.page(), query.size(),
+//    public Page<Account> getAccountsByPageAndUserId(PageQuery query, UUID id) {
+//        String key = String.format(KEY_PAGED, id, query.page(), query.size(),
 //                query.sort(), query.direction());
 //        Cache cache = cacheManager.getCache(CACHE_NAME);
 //
@@ -82,15 +82,15 @@
 //            return (Page<Account>) cached.get();
 //        }
 //
-//        Page<Account> result = delegatedAccountService.getAccountsByPageAndUserId(query, userId);
-//        registerKey(userId, key);
+//        Page<Account> result = delegatedAccountService.getAccountsByPageAndUserId(query, id);
+//        registerKey(id, key);
 //        cache.put(key, result);
 //        return result;
 //    }
 //
 //    @Override
-//    public Page<AccountSummary> getAccountSummariesByPageQuery(PageQuery query, UUID userId) {
-//        String key = String.format(KEY_PAGED, userId, query.page(), query.size(),
+//    public Page<AccountSummary> getAccountSummariesByPageQuery(PageQuery query, UUID id) {
+//        String key = String.format(KEY_PAGED, id, query.page(), query.size(),
 //                query.sort(), query.direction());
 //        Cache cache = cacheManager.getCache(CACHE_NAME);
 //
@@ -99,18 +99,18 @@
 //            return (Page<AccountSummary>) cached.get();
 //        }
 //
-//        Page<AccountSummary> result = delegatedAccountService.getAccountSummariesByPageQuery(query, userId);
-//        registerKey(userId, key);
+//        Page<AccountSummary> result = delegatedAccountService.getAccountSummariesByPageQuery(query, id);
+//        registerKey(id, key);
 //        cache.put(key, result);
 //        return result;
 //    }
 //
-//    private void registerKey(UUID userId, String key) {
-//        userKeys.computeIfAbsent(userId, k -> new CopyOnWriteArraySet<>()).add(key);
+//    private void registerKey(UUID id, String key) {
+//        userKeys.computeIfAbsent(id, k -> new CopyOnWriteArraySet<>()).add(key);
 //    }
 //
-//    private void evictUserKeys(UUID userId) {
-//        CopyOnWriteArraySet<String> keys = userKeys.remove(userId);
+//    private void evictUserKeys(UUID id) {
+//        CopyOnWriteArraySet<String> keys = userKeys.remove(id);
 //        if (keys == null || keys.isEmpty()) {
 //            return;
 //        }

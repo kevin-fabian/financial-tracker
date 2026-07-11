@@ -33,7 +33,7 @@ class InMemoryUserAccountProvisionerTest {
     }
 
     @Nested
-    class Provide {
+    class Provision {
 
         @Test
         void provide_nullInterests_doesNotCallService() {
@@ -134,6 +134,8 @@ class InMemoryUserAccountProvisionerTest {
                     .type(AccountType.E_WALLET)
                     .userId(testUserId)
                     .build()));
+
+            verify(accountService, times(1)).deleteAllByUserId(testUserId);
         }
     }
 }

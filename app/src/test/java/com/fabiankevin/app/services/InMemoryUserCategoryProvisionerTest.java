@@ -23,42 +23,42 @@ class InMemoryUserCategoryProvisionerTest {
     @Mock
     private CategoryService categoryService;
 
-    private InMemoryUserCategoryProvisioner provider;
+    private InMemoryUserCategoryProvisioner provisioner;
     private UUID testUserId;
 
     @BeforeEach
     void setUp() {
-        provider = new InMemoryUserCategoryProvisioner(categoryService);
+        provisioner = new InMemoryUserCategoryProvisioner(categoryService);
         testUserId = UUID.randomUUID();
     }
 
     @Nested
-    class Provide {
+    class Provision {
 
         @Test
-        void provide_nullInterests_doesNotCallService() {
-            provider.provision(null, testUserId);
+        void provision_nullInterests_doesNotCallService() {
+            provisioner.provision(null, testUserId);
             verify(categoryService, never()).createCategory(any());
         }
 
         @Test
-        void provide_emptyInterests_doesNotCallService() {
-            provider.provision(Set.of(), testUserId);
+        void provision_emptyInterests_doesNotCallService() {
+            provisioner.provision(Set.of(), testUserId);
             verify(categoryService, never()).createCategory(any());
         }
 
         @Test
-        void provide_nullUserId_throwsIllegalArgumentException() {
-            org.assertj.core.api.Assertions.assertThatThrownBy(() -> provider.provision(Set.of("groceries"), null))
+        void provision_nullUserId_throwsIllegalArgumentException() {
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> provisioner.provision(Set.of("groceries"), null))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("User ID cannot be null");
         }
 
         @Test
-        void provide_knownInterests_callsServiceWithCorrectCommands() {
+        void provision_knownInterests_callsServiceWithCorrectCommands() {
             Set<String> interests = Set.of("groceries", "bills");
 
-            provider.provision(interests, testUserId);
+            provisioner.provision(interests, testUserId);
 
             verify(categoryService, times(3)).createCategory(any(CreateCategoryCommand.class));
             verify(categoryService).createCategory(eq(CreateCategoryCommand.builder()
@@ -82,28 +82,28 @@ class InMemoryUserCategoryProvisionerTest {
         }
 
         @Test
-        void provide_unknownInterests_doesNotCallService() {
+        void provision_unknownInterests_doesNotCallService() {
             Set<String> interests = Set.of("unknown_category");
 
-            provider.provision(interests, testUserId);
+            provisioner.provision(interests, testUserId);
 
             verify(categoryService, never()).createCategory(any());
         }
 
         @Test
-        void provide_mixedInterests_callsServiceOnlyForKnown() {
+        void provision_mixedInterests_callsServiceOnlyForKnown() {
             Set<String> interests = Set.of("groceries", "unknown", "rent");
 
-            provider.provision(interests, testUserId);
+            provisioner.provision(interests, testUserId);
 
             verify(categoryService, times(3)).createCategory(any(CreateCategoryCommand.class));
         }
 
         @Test
-        void provide_incomeInterests_callsServiceWithIncomeCategories() {
+        void provision_incomeInterests_callsServiceWithIncomeCategories() {
             Set<String> interests = Set.of("salary_active", "passive_investments");
 
-            provider.provision(interests, testUserId);
+            provisioner.provision(interests, testUserId);
 
             verify(categoryService, times(2)).createCategory(any(CreateCategoryCommand.class));
             verify(categoryService).createCategory(eq(CreateCategoryCommand.builder()
@@ -121,25 +121,26 @@ class InMemoryUserCategoryProvisionerTest {
         }
 
         @Test
-        void provide_multiCategoryInterests_callsServiceForAllSubCategories() {
+        void provision_multiCategoryInterests_callsServiceForAllSubCategories() {
             Set<String> interests = Set.of("shopping", "health_fitness");
 
-            provider.provision(interests, testUserId);
+            provisioner.provision(interests, testUserId);
 
             verify(categoryService, times(4)).createCategory(any(CreateCategoryCommand.class));
         }
 
         @Test
-        void provide_allInterests_callsServiceForAllCategories() {
+        void provision_allInterests_callsServiceForAllCategories() {
             Set<String> interests = Set.of(
                     "groceries", "bills", "rent", "entertainment", "savings",
                     "shopping", "health_fitness", "family_pets", "debt_loans",
                     "salary_active", "business_sales", "passive_investments", "allowances_gifts"
             );
 
-            provider.provision(interests, testUserId);
+            provisioner.provision(interests, testUserId);
 
             verify(categoryService, times(19)).createCategory(any(CreateCategoryCommand.class));
+            verify(categoryService, times(1)).deleteAllByUserId(testUserId);
         }
     }
 }

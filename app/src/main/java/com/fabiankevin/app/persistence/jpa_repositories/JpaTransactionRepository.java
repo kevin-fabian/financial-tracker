@@ -86,7 +86,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
               AND (:type IS NULL OR t.category.transactionType = :type)
             """)
     Page<TransactionEntity> findAllByAccountUserIdAndType(
-            @Param("userId") UUID userId,
+            @Param("id") UUID userId,
             @Param("type") TransactionType type,
             Pageable pageable);
 
@@ -102,7 +102,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             GROUP BY t.category.transactionType
             """)
     Streamable<SummaryPointProjection> sumByTypeAndDateRange(
-            @Param("userId") UUID userId,
+            @Param("id") UUID userId,
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             @Param("accountId") UUID accountId,
@@ -117,7 +117,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             GROUP BY t.category.transactionType
             """)
     Streamable<SummaryPointProjection> sumByTypeAndDateRangeByCategory(
-            @Param("userId") UUID userId,
+            @Param("id") UUID userId,
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             @Param("categoryId") UUID categoryId);
@@ -129,7 +129,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
               AND t.transactionDate BETWEEN :from AND :to
             """)
     double sumBalance(
-            @Param("userId") UUID userId,
+            @Param("id") UUID userId,
             @Param("from") LocalDate from,
             @Param("to") LocalDate to);
 
@@ -138,5 +138,5 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             FROM TransactionEntity t
             WHERE t.account.userId = :userId
             """)
-    double sumBalance(@Param("userId") UUID userId);
+    double sumBalance(@Param("id") UUID userId);
 }

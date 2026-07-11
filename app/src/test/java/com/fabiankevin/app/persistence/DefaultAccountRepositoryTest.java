@@ -24,10 +24,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
-import java.util.Currency;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.fabiankevin.app.models.enums.AccountType.BANK_ACCOUNT;
@@ -303,6 +300,46 @@ class DefaultAccountRepositoryTest {
             Assertions.assertThat(page.content()).as("page should be empty when no accounts exist").isEmpty();
             Assertions.assertThat(page.totalElements()).isZero();
             Assertions.assertThat(page.totalPages()).isZero();
+        }
+    }
+
+    @Nested
+    class DeleteAllByUserId {
+        @Test
+        void givenExistingAccountsForUser_shouldDeleteAllAndReturnCount() {
+            UUID userId = UUID.randomUUID();
+
+            for (int i = 0; i < 3; i++) {
+                Account a = Account.builder()
+                        .name("Account " + i)
+                        .userId(userId)
+                        .currency(java.util.Currency.getInstance("PHP"))
+                        .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
+                        .createdAt(Instant.now())
+                        .updatedAt(Instant.now())
+                        .build();
+                accountRepository.save(a);
+            }
+
+            long deleted = accountRepository.deleteAllByUserId(userId);
+
+            Assertions.assertThat(deleted).as("should return the number of deleted accounts").isEqualTo(3);
+            Assertions.assertThat(accountRepository.findAllByNamesIn(List.of("Account 0", "Account 1", "Account 2")))
+                    .as("all accounts for user should be deleted")
+                    .isEmpty();
+
+            verify(jpaAccountRepository, times(1)).deleteAllByUserId(userId);
+        }
+
+        @Test
+        void givenNonExistingUserId_shouldDeleteNothingAndReturnZero() {
+            UUID nonExistingUserId = UUID.randomUUID();
+
+            long deleted = accountRepository.deleteAllByUserId(nonExistingUserId);
+
+            Assertions.assertThat(deleted).as("should return 0 when no accounts exist for user").isZero();
+
+            verify(jpaAccountRepository, times(1)).deleteAllByUserId(nonExistingUserId);
         }
     }
 }

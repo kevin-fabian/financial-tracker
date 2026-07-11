@@ -106,6 +106,12 @@ public class CachedCategoryService implements CategoryService {
         return result;
     }
 
+    @Override
+    public void deleteAllByUserId(UUID userId) {
+        evictUserKeys(userId);
+        delegatedCategoryService.deleteAllByUserId(userId);
+    }
+
     private void registerKey(UUID userId, String key) {
         userKeys.computeIfAbsent(userId, k -> new CopyOnWriteArraySet<>()).add(key);
     }

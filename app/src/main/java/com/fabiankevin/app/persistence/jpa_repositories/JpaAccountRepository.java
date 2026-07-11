@@ -8,12 +8,17 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface JpaAccountRepository extends JpaRepository<AccountEntity, UUID> {
     Page<AccountEntity> findAllByUserId(UUID userId, Pageable pageable);
 
+    List<AccountEntity> findAllByNameIn(List<String> accountNames);
+
     int deleteByIdAndUserId(UUID accountId, UUID userId);
+
+    long deleteAllByUserId(UUID userId);
 
     @Query("""
             SELECT acc.id, acc.name, acc.userId, acc.currency, acc.type, acc.active, acc.system,
@@ -26,6 +31,6 @@ public interface JpaAccountRepository extends JpaRepository<AccountEntity, UUID>
             GROUP BY acc
             """)
     Page<AccountSummaryProjection> findAllByUserIdWithSummary(
-            @Param("userId") UUID userId,
+            @Param("id") UUID userId,
             Pageable pageable);
 }

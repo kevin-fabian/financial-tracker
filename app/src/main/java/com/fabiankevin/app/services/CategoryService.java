@@ -18,4 +18,5 @@ public interface CategoryService {
     void disableCategory(UUID id, UUID userId);
     Page<Category> getCategoriesByPageQuery(PageQuery query, UUID userId, TransactionType type);
     Page<CategorySummary> getCategorySummariesByPageQuery(PageQuery query, UUID userId, TransactionType type);
+    void deleteAllByUserId(UUID userId);
 }

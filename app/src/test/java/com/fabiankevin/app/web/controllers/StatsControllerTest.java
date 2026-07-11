@@ -91,6 +91,6 @@ class StatsControllerTest {
         assertEquals(to, capturedQuery.toDate(), "toDate should match request param");
         assertEquals(accountId, capturedQuery.accountId(), "accountId should match request param");
         assertEquals(categoryId, capturedQuery.categoryId(), "categoryId should match request param");
-        assertEquals(jwt.getSubject(), userIdCaptor.getValue().toString(), "userId should be extracted from JWT subject");
+        assertEquals(jwt.getSubject(), userIdCaptor.getValue().toString(), "id should be extracted from JWT subject");
     }
 }

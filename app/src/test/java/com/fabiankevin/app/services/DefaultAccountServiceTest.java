@@ -299,4 +299,31 @@ class DefaultAccountServiceTest {
         verify(accountRepository).save(captor.capture());
         assertFalse(captor.getValue().active(), "account should remain disabled");
     }
+
+    @Test
+    void deleteAllByUserId_givenAccounts_shouldDeleteAll() {
+        UUID userId = UUID.randomUUID();
+
+        accountService.deleteAllByUserId(userId);
+
+        verify(accountRepository, times(1)).deleteAllByUserId(userId);
+    }
+
+    @Test
+    void deleteAllByUserId_givenNoAccounts_shouldStillSucceed() {
+        UUID userId = UUID.randomUUID();
+
+        accountService.deleteAllByUserId(userId);
+
+        verify(accountRepository, times(1)).deleteAllByUserId(userId);
+    }
+
+    @Test
+    void deleteAllByUserId_isTransactional_shouldRollbackOnException() {
+        UUID userId = UUID.randomUUID();
+        when(accountRepository.deleteAllByUserId(userId)).thenThrow(new RuntimeException("database error"));
+
+        assertThrows(RuntimeException.class, () -> accountService.deleteAllByUserId(userId));
+        verify(accountRepository, times(1)).deleteAllByUserId(userId);
+    }
 }

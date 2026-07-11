@@ -46,11 +46,11 @@
 //    @Test
 //    void getAccountById_cacheMiss_delegatesAndCaches() {
 //        UUID id = UUID.randomUUID();
-//        UUID userId = UUID.randomUUID();
+//        UUID id = UUID.randomUUID();
 //        Account expected = Account.builder()
 //                .id(id)
 //                .name("GCASH")
-//                .userId(userId)
+//                .id(id)
 //                .currency(Currency.getInstance("PHP"))
 //                .type(AccountType.E_WALLET)
 //                .createdAt(Instant.now())
@@ -58,23 +58,23 @@
 //                .build();
 //
 //        when(cache.get(any(String.class))).thenReturn(null);
-//        when(delegatedService.getAccountById(id, userId)).thenReturn(expected);
+//        when(delegatedService.getAccountById(id, id)).thenReturn(expected);
 //
-//        Account result = cachedAccountService.getAccountById(id, userId);
+//        Account result = cachedAccountService.getAccountById(id, id);
 //
 //        assertSame(expected, result);
-//        verify(delegatedService, times(1)).getAccountById(id, userId);
-//        verify(cache, times(1)).put(eq(String.format("accounts:%s:byId:%s", userId, id)), eq(expected));
+//        verify(delegatedService, times(1)).getAccountById(id, id);
+//        verify(cache, times(1)).put(eq(String.format("accounts:%s:byId:%s", id, id)), eq(expected));
 //    }
 //
 //    @Test
 //    void getAccountById_cacheHit_returnsCachedValue() {
 //        UUID id = UUID.randomUUID();
-//        UUID userId = UUID.randomUUID();
+//        UUID id = UUID.randomUUID();
 //        Account cached = Account.builder()
 //                .id(id)
 //                .name("GCASH")
-//                .userId(userId)
+//                .id(id)
 //                .currency(Currency.getInstance("PHP"))
 //                .type(AccountType.E_WALLET)
 //                .createdAt(Instant.now())
@@ -83,7 +83,7 @@
 //        Cache.ValueWrapper wrapper = mockValueWrapper(cached);
 //        when(cache.get(any(String.class))).thenReturn(wrapper);
 //
-//        Account result = cachedAccountService.getAccountById(id, userId);
+//        Account result = cachedAccountService.getAccountById(id, id);
 //
 //        assertSame(cached, result);
 //        verify(delegatedService, never()).getAccountById(any(), any());
@@ -91,12 +91,12 @@
 //
 //    @Test
 //    void getAccountsByPageAndUserId_cacheMiss_delegatesAndCaches() {
-//        UUID userId = UUID.randomUUID();
+//        UUID id = UUID.randomUUID();
 //        PageQuery query = new PageQuery(0, 10, "name", "ASC");
 //        Account a1 = Account.builder()
 //                .id(UUID.randomUUID())
 //                .name("GCASH")
-//                .userId(userId)
+//                .id(id)
 //                .currency(Currency.getInstance("PHP"))
 //                .type(AccountType.E_WALLET)
 //                .createdAt(Instant.now())
@@ -105,23 +105,23 @@
 //        Page<Account> expected = new Page<>(List.of(a1), 0, 10, 1L, 1, true, true);
 //
 //        when(cache.get(any(String.class))).thenReturn(null);
-//        when(delegatedService.getAccountsByPageAndUserId(query, userId)).thenReturn(expected);
+//        when(delegatedService.getAccountsByPageAndUserId(query, id)).thenReturn(expected);
 //
-//        Page<Account> result = cachedAccountService.getAccountsByPageAndUserId(query, userId);
+//        Page<Account> result = cachedAccountService.getAccountsByPageAndUserId(query, id);
 //
 //        assertSame(expected, result);
-//        verify(delegatedService, times(1)).getAccountsByPageAndUserId(query, userId);
+//        verify(delegatedService, times(1)).getAccountsByPageAndUserId(query, id);
 //        verify(cache, times(1)).put(any(String.class), eq(expected));
 //    }
 //
 //    @Test
 //    void getAccountsByPageAndUserId_cacheHit_returnsCachedValue() {
-//        UUID userId = UUID.randomUUID();
+//        UUID id = UUID.randomUUID();
 //        PageQuery query = new PageQuery(0, 10, "name", "ASC");
 //        Account a1 = Account.builder()
 //                .id(UUID.randomUUID())
 //                .name("GCASH")
-//                .userId(userId)
+//                .id(id)
 //                .currency(Currency.getInstance("PHP"))
 //                .type(AccountType.E_WALLET)
 //                .createdAt(Instant.now())
@@ -131,7 +131,7 @@
 //        Cache.ValueWrapper wrapper = mockValueWrapper(cached);
 //        when(cache.get(any(String.class))).thenReturn(wrapper);
 //
-//        Page<Account> result = cachedAccountService.getAccountsByPageAndUserId(query, userId);
+//        Page<Account> result = cachedAccountService.getAccountsByPageAndUserId(query, id);
 //
 //        assertSame(cached, result);
 //        verify(delegatedService, never()).getAccountsByPageAndUserId(any(), any());
@@ -139,18 +139,18 @@
 //
 //    @Test
 //    void createAccount_evictsUserKeys() {
-//        UUID userId = UUID.randomUUID();
+//        UUID id = UUID.randomUUID();
 //        UUID accountId = UUID.randomUUID();
 //        CreateAccountCommand command = CreateAccountCommand.builder()
 //                .name("GCASH")
 //                .currency(Currency.getInstance("PHP"))
 //                .type(AccountType.E_WALLET)
-//                .userId(userId)
+//                .id(id)
 //                .build();
 //        Account created = Account.builder()
 //                .id(accountId)
 //                .name("GCASH")
-//                .userId(userId)
+//                .id(id)
 //                .currency(Currency.getInstance("PHP"))
 //                .type(AccountType.E_WALLET)
 //                .createdAt(Instant.now())
@@ -159,14 +159,14 @@
 //
 //        // Pre-populate cache with keys for this user
 //        when(cache.get(any(String.class))).thenReturn(null);
-//        when(delegatedService.getAccountById(eq(accountId), eq(userId))).thenReturn(created);
-//        when(delegatedService.getAccountsByPageAndUserId(any(), eq(userId))).thenReturn(
+//        when(delegatedService.getAccountById(eq(accountId), eq(id))).thenReturn(created);
+//        when(delegatedService.getAccountsByPageAndUserId(any(), eq(id))).thenReturn(
 //                new Page<>(List.of(created), 0, 10, 1L, 1, true, true));
 //        when(delegatedService.createAccount(command)).thenReturn(created);
 //
 //        // Register keys via reads
-//        cachedAccountService.getAccountById(accountId, userId);
-//        cachedAccountService.getAccountsByPageAndUserId(new PageQuery(0, 10, "name", "ASC"), userId);
+//        cachedAccountService.getAccountById(accountId, id);
+//        cachedAccountService.getAccountsByPageAndUserId(new PageQuery(0, 10, "name", "ASC"), id);
 //
 //        // Now create — should evict both registered keys
 //        cachedAccountService.createAccount(command);
@@ -182,32 +182,32 @@
 //
 //    @Test
 //    void patchAccount_evictsUserKeys() {
-//        UUID userId = UUID.randomUUID();
+//        UUID id = UUID.randomUUID();
 //        UUID accountId = UUID.randomUUID();
 //        PatchAccountCommand command = PatchAccountCommand.builder()
 //                .id(accountId)
 //                .name("GCASH_MAIN")
 //                .currency(Currency.getInstance("PHP"))
 //                .type(AccountType.E_WALLET)
-//                .userId(userId)
+//                .id(id)
 //                .build();
 //        Account patched = Account.builder()
 //                .id(accountId)
 //                .name("GCASH_MAIN")
-//                .userId(userId)
+//                .id(id)
 //                .currency(Currency.getInstance("PHP"))
 //                .type(AccountType.E_WALLET)
 //                .createdAt(Instant.now())
 //                .updatedAt(Instant.now())
 //                .build();
 //
-//        String key = "accounts:" + userId + ":byId:" + accountId;
+//        String key = "accounts:" + id + ":byId:" + accountId;
 //        when(cache.get(any(String.class))).thenReturn(null);
-//        when(delegatedService.getAccountById(eq(accountId), eq(userId))).thenReturn(patched);
+//        when(delegatedService.getAccountById(eq(accountId), eq(id))).thenReturn(patched);
 //        when(delegatedService.patchAccount(command)).thenReturn(patched);
 //
 //        // Register key via read
-//        cachedAccountService.getAccountById(accountId, userId);
+//        cachedAccountService.getAccountById(accountId, id);
 //
 //        // Patch — should evict the key
 //        cachedAccountService.patchAccount(command);
@@ -219,21 +219,21 @@
 //
 //    @Test
 //    void deleteAccountById_evictsUserKeys() {
-//        UUID userId = UUID.randomUUID();
+//        UUID id = UUID.randomUUID();
 //        UUID accountId = UUID.randomUUID();
 //
-//        String key = "accounts:" + userId + ":byId:" + accountId;
+//        String key = "accounts:" + id + ":byId:" + accountId;
 //        when(cache.get(any(String.class))).thenReturn(null);
-//        when(delegatedService.getAccountById(eq(accountId), eq(userId))).thenReturn(
-//                Account.builder().id(accountId).name("GCASH").userId(userId)
+//        when(delegatedService.getAccountById(eq(accountId), eq(id))).thenReturn(
+//                Account.builder().id(accountId).name("GCASH").id(id)
 //                        .currency(Currency.getInstance("PHP")).type(AccountType.E_WALLET)
 //                        .createdAt(Instant.now()).updatedAt(Instant.now()).build());
 //
 //        // Register key via read
-//        cachedAccountService.getAccountById(accountId, userId);
+//        cachedAccountService.getAccountById(accountId, id);
 //
 //        // Delete — should evict the key
-//        cachedAccountService.deleteAccountById(accountId, userId);
+//        cachedAccountService.deleteAccountById(accountId, id);
 //
 //        ArgumentCaptor<String> evictCaptor = ArgumentCaptor.forClass(String.class);
 //        verify(cache, times(1)).evict(evictCaptor.capture());
@@ -242,11 +242,11 @@
 //
 //    @Test
 //    void evictUserKeys_noKeysRegistered_doesNothing() {
-//        UUID userId = UUID.randomUUID();
+//        UUID id = UUID.randomUUID();
 //        // Use lenient stubbing since this test doesn't interact with the cache
 //        lenient().when(cacheManager.getCache("accounts")).thenReturn(cache);
 //
-//        cachedAccountService.deleteAccountById(UUID.randomUUID(), userId);
+//        cachedAccountService.deleteAccountById(UUID.randomUUID(), id);
 //
 //        verify(cache, never()).evict(any());
 //    }
@@ -261,11 +261,11 @@
 //        when(cache.get(any(String.class))).thenReturn(null);
 //
 //        Account accountA = Account.builder()
-//                .id(accountIdA).name("GCASH").userId(userA)
+//                .id(accountIdA).name("GCASH").id(userA)
 //                .currency(Currency.getInstance("PHP")).type(AccountType.E_WALLET)
 //                .createdAt(Instant.now()).updatedAt(Instant.now()).build();
 //        Account accountB = Account.builder()
-//                .id(accountIdB).name("PAYMAY").userId(userB)
+//                .id(accountIdB).name("PAYMAY").id(userB)
 //                .currency(Currency.getInstance("PHP")).type(AccountType.E_WALLET)
 //                .createdAt(Instant.now()).updatedAt(Instant.now()).build();
 //

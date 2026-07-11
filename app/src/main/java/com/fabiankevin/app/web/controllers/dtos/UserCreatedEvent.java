@@ -9,8 +9,8 @@ import java.util.UUID;
 
 @Builder
 public record UserCreatedEvent(
-        @NotNull(message = "userId is required")
-        UUID userId,
+        @NotNull(message = "id is required")
+        UUID id,
         Metadata metadata) {
 
     public UserCreatedEvent {

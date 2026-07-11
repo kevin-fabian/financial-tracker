@@ -127,4 +127,17 @@ public class DefaultCategoryRepository implements CategoryRepository {
                 entityPage.isFirst()
         );
     }
+
+    @Override
+    public List<Category> findAllByNamesIn(List<String> names) {
+        return jpaCategoryRepository.findAllByNameIn(names)
+                .stream()
+                .map(CategoryEntity::toModel)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public long deleteAllByUserId(UUID userId) {
+        return jpaCategoryRepository.deleteAllByUserId(userId);
+    }
 }

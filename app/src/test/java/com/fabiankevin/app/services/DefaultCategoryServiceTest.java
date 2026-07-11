@@ -441,4 +441,31 @@ class DefaultCategoryServiceTest {
         verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
         verify(categoryRepository, never()).save(any());
     }
+
+    @Test
+    void deleteAllByUserId_givenCategories_shouldDeleteAll() {
+        UUID userId = UUID.randomUUID();
+
+        categoryService.deleteAllByUserId(userId);
+
+        verify(categoryRepository, times(1)).deleteAllByUserId(userId);
+    }
+
+    @Test
+    void deleteAllByUserId_givenNoCategories_shouldStillSucceed() {
+        UUID userId = UUID.randomUUID();
+
+        categoryService.deleteAllByUserId(userId);
+
+        verify(categoryRepository, times(1)).deleteAllByUserId(userId);
+    }
+
+    @Test
+    void deleteAllByUserId_isTransactional_shouldRollbackOnException() {
+        UUID userId = UUID.randomUUID();
+        when(categoryRepository.deleteAllByUserId(userId)).thenThrow(new RuntimeException("database error"));
+
+        assertThrows(RuntimeException.class, () -> categoryService.deleteAllByUserId(userId));
+        verify(categoryRepository, times(1)).deleteAllByUserId(userId);
+    }
 }

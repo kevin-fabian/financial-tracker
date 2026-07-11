@@ -1,6 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,7 @@ import static com.fabiankevin.app.models.enums.TransactionType.INCOME;
 public class InMemoryUserCategoryProvisioner implements UserCategoryProvisioner {
     private final CategoryService categoryService;
 
+    @Transactional
     @Override
     public void provision(Set<String> categoryInterests, UUID userId) {
         if (categoryInterests == null || categoryInterests.isEmpty()) {
@@ -27,6 +29,7 @@ public class InMemoryUserCategoryProvisioner implements UserCategoryProvisioner 
             throw new IllegalArgumentException("User ID cannot be null");
         }
 
+        categoryService.deleteAllByUserId(userId);
         categoryInterests.stream()
                 .filter(CATEGORY_INTERESTS_MAPPING::containsKey)
                 .flatMap(interest -> CATEGORY_INTERESTS_MAPPING.get(interest).stream())

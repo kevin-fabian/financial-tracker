@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,9 +17,14 @@ public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUI
     Optional<CategoryEntity> findByIdAndUserId(UUID id, UUID userId);
     boolean existsByNameAndTransactionTypeAndUserId(String name, TransactionType type, UUID userId);
     int deleteByIdAndUserId(UUID id, UUID userId);
+
+    long deleteAllByUserId(UUID userId);
+
     Page<CategoryEntity> findAllByUserId(UUID userId, Pageable pageable);
     Page<CategoryEntity> findAllByUserIdAndTransactionType(UUID userId, TransactionType type, Pageable pageable);
     Optional<CategoryEntity> findFirstByActiveFalseAndNameAndTransactionTypeAndUserId(String name, TransactionType type, UUID userId);
+
+    List<CategoryEntity> findAllByNameIn(List<String> names);
     @Query("""
             SELECT c.id, c.name, c.transactionType, c.userId, c.icon, c.active, c.system,
                 COALESCE(SUM(t.amount), 0.0),
@@ -32,7 +38,7 @@ public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUI
             GROUP BY c
             """)
     Page<CategorySummaryProjection> findAllByUserIdAndTransactionTypeWithSummary(
-            @Param("userId") UUID userId,
+            @Param("id") UUID userId,
             @Param("type") TransactionType type,
             @Param("monthStart") java.time.LocalDate monthStart,
             @Param("monthEnd") java.time.LocalDate monthEnd,

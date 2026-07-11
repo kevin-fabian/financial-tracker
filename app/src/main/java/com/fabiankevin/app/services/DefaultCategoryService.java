@@ -120,4 +120,10 @@ public class DefaultCategoryService implements CategoryService {
 
         return categoryRepository.save(categoryBuilder.build());
     }
+
+    @Transactional
+    @Override
+    public void deleteAllByUserId(UUID userId) {
+        categoryRepository.deleteAllByUserId(userId);
+    }
 }

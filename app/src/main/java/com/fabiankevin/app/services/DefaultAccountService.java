@@ -103,4 +103,10 @@ public class DefaultAccountService implements AccountService {
     public Page<AccountSummary> getAccountSummariesByPageQuery(PageQuery query, UUID userId) {
         return accountRepository.findAllByPageQueryWithSummary(query, userId);
     }
+
+    @Transactional
+    @Override
+    public void deleteAllByUserId(UUID userId) {
+        accountRepository.deleteAllByUserId(userId);
+    }
 }

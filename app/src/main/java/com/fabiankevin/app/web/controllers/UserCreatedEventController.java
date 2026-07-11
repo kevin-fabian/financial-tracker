@@ -33,6 +33,6 @@ public class UserCreatedEventController {
     )
     @PostMapping("/provision")
     public void provisionUser(@Valid @RequestBody UserCreatedEvent event) {
-        userProvisioningService.provisionUser(event.userId(), event.metadata().accountInterests(), event.metadata().categoryInterests());
+        userProvisioningService.provisionUser(event.id(), event.metadata().accountInterests(), event.metadata().categoryInterests());
     }
 }

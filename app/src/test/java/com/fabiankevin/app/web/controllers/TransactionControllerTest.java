@@ -185,7 +185,7 @@ class TransactionControllerTest {
         assertEquals("2026-12-31", captured.to().toString(), "to date should match request param");
         assertNotNull(captured.userIds(), "userIds should not be null");
         assertEquals(1, captured.userIds().size(), "userIds should contain one entry extracted from JWT");
-        assertEquals(jwt.getSubject(), captured.userIds().getFirst().toString(), "userId should be extracted from JWT subject");
+        assertEquals(jwt.getSubject(), captured.userIds().getFirst().toString(), "id should be extracted from JWT subject");
     }
 
     @Test

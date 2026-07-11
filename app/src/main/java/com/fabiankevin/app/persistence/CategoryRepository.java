@@ -6,6 +6,7 @@ import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.queries.PageQuery;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,4 +19,7 @@ public interface CategoryRepository {
     int deleteByIdAndUserId(UUID id, UUID userId);
     Page<Category> findAllByPageQuery(PageQuery query, UUID userId, TransactionType type);
     Page<CategorySummary> findAllByPageQueryWithSummary(PageQuery query, UUID userId, TransactionType type);
+    List<Category> findAllByNamesIn(List<String> names);
+
+    long deleteAllByUserId(UUID userId);
 }

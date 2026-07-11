@@ -2,6 +2,7 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -12,6 +13,7 @@ import java.util.*;
 public class InMemoryUserAccountProvisioner implements UserAccountProvisioner {
     private final AccountService accountService;
 
+    @Transactional
     @Override
     public void provision(Set<String> accountInterests, UUID userId) {
         if (accountInterests == null || accountInterests.isEmpty()) {
@@ -22,6 +24,7 @@ public class InMemoryUserAccountProvisioner implements UserAccountProvisioner {
             throw new IllegalArgumentException("User ID cannot be null");
         }
 
+        accountService.deleteAllByUserId(userId);
         accountInterests.stream()
                 .filter(ACCOUNT_INTERESTS_MAPPING::containsKey)
                 .flatMap(interest -> ACCOUNT_INTERESTS_MAPPING.get(interest).stream())

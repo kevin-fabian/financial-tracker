@@ -393,7 +393,7 @@ class DefaultCategoryRepositoryTest {
             categoryRepository.save(category);
 
             Assertions.assertThat(categoryRepository.existsByNameAndTypeAndUserId(name, type, userId))
-                    .as("should return true for matching name, type, and userId")
+                    .as("should return true for matching name, type, and id")
                     .isTrue();
 
             verify(jpaCategoryRepository, times(1)).existsByNameAndTransactionTypeAndUserId(name, type, userId);
@@ -408,7 +408,7 @@ class DefaultCategoryRepositoryTest {
             categoryRepository.save(category);
 
             Assertions.assertThat(categoryRepository.existsByNameAndTypeAndUserId(name, type, differentUserId))
-                    .as("should return false when userId does not match")
+                    .as("should return false when id does not match")
                     .isFalse();
 
             verify(jpaCategoryRepository, times(1)).existsByNameAndTransactionTypeAndUserId(name, type, differentUserId);
@@ -627,6 +627,99 @@ class DefaultCategoryRepositoryTest {
             Assertions.assertThat(entertainmentSummary.totalAmount()).isZero();
             Assertions.assertThat(entertainmentSummary.totalTransactions()).isZero();
             Assertions.assertThat(entertainmentSummary.percentage()).isZero();
+        }
+    }
+
+    @Nested
+    class FindAllByNamesIn {
+        @Test
+        void givenExistingNames_shouldReturnMatchingCategories() {
+            UUID userId = UUID.randomUUID();
+            CategoryEntity food = CategoryEntity.builder()
+                    .name("TEST_FOOD")
+                    .transactionType(TransactionType.EXPENSE)
+                    .userId(userId)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            CategoryEntity rent = CategoryEntity.builder()
+                    .name("TEST_RENT")
+                    .transactionType(TransactionType.EXPENSE)
+                    .userId(userId)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            CategoryEntity salary = CategoryEntity.builder()
+                    .name("TEST_SALARY")
+                    .transactionType(TransactionType.INCOME)
+                    .userId(userId)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            jpaCategoryRepository.saveAll(List.of(food, rent, salary));
+            jpaCategoryRepository.flush();
+
+            List<Category> result = categoryRepository.findAllByNamesIn(List.of("TEST_FOOD", "TEST_RENT"));
+
+            Assertions.assertThat(result).hasSize(2);
+            Assertions.assertThat(result).extracting(Category::name)
+                    .containsExactlyInAnyOrder("TEST_FOOD", "TEST_RENT");
+            verify(jpaCategoryRepository, times(1)).findAllByNameIn(List.of("TEST_FOOD", "TEST_RENT"));
+        }
+
+        @Test
+        void givenEmptyList_shouldReturnEmptyList() {
+            List<Category> result = categoryRepository.findAllByNamesIn(List.of());
+
+            Assertions.assertThat(result).isEmpty();
+            verify(jpaCategoryRepository, times(1)).findAllByNameIn(List.of());
+        }
+
+        @Test
+        void givenNonExistingNames_shouldReturnEmptyList() {
+            List<Category> result = categoryRepository.findAllByNamesIn(List.of("NONEXISTENT", "ALSO_MISSING"));
+
+            Assertions.assertThat(result).isEmpty();
+            verify(jpaCategoryRepository, times(1)).findAllByNameIn(List.of("NONEXISTENT", "ALSO_MISSING"));
+        }
+    }
+
+    @Nested
+    class DeleteAllByUserId {
+        @Test
+        void givenExistingCategoriesForUser_shouldDeleteAllAndReturnCount() {
+            UUID userId = UUID.randomUUID();
+
+            for (int i = 0; i < 3; i++) {
+                categoryRepository.save(Category.builder()
+                        .name("Category " + i)
+                        .type(TransactionType.EXPENSE)
+                        .userId(userId)
+                        .createdAt(Instant.now())
+                        .updatedAt(Instant.now())
+                        .build());
+            }
+
+            long deleted = categoryRepository.deleteAllByUserId(userId);
+
+            Assertions.assertThat(deleted).as("should return the number of deleted categories").isEqualTo(3);
+            Assertions.assertThat(categoryRepository.findAllByPageQuery(
+                            new PageQuery(0, 10, "name", "ASC"), userId, TransactionType.EXPENSE).content())
+                    .as("all categories for user should be deleted")
+                    .isEmpty();
+
+            verify(jpaCategoryRepository, times(1)).deleteAllByUserId(userId);
+        }
+
+        @Test
+        void givenNonExistingUserId_shouldDeleteNothingAndReturnZero() {
+            UUID nonExistingUserId = UUID.randomUUID();
+
+            long deleted = categoryRepository.deleteAllByUserId(nonExistingUserId);
+
+            Assertions.assertThat(deleted).as("should return 0 when no categories exist for user").isZero();
+
+            verify(jpaCategoryRepository, times(1)).deleteAllByUserId(nonExistingUserId);
         }
     }
 }

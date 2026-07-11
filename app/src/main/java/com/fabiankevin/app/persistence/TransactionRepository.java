@@ -15,7 +15,7 @@ public interface TransactionRepository {
     Transaction save(Transaction transaction);
     Optional<Transaction> findById(UUID id);
     void deleteById(UUID id);
-    // Delete a transaction by id only when it belongs to the specified userId.
+    // Delete a transaction by id only when it belongs to the specified id.
     // Returns the number of rows deleted (0 if none). Implementation should be idempotent (no exception if not found).
     int deleteByIdAndUserId(UUID transactionId, UUID userId);
     List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByCategory(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type);
