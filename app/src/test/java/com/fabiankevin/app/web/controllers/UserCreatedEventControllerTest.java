@@ -95,7 +95,7 @@ class UserCreatedEventControllerTest {
     }
 
     @Test
-    void provisionUser_givenEventWithNullMetadata_thenShouldProvisionWithEmptyInterests() throws Exception {
+    void provisionUser_givenEventWithNullMetadata_thenShouldReturnCreated() throws Exception {
         UUID userId = UUID.randomUUID();
 
         mockMvc.perform(post("/api/users/provision")
@@ -107,7 +107,7 @@ class UserCreatedEventControllerTest {
                                   "metadata": null
                                 }
                                 """.formatted(userId)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isCreated());
 
         verify(userProvisioningService, times(1))
                 .provisionUser(eq(userId), eq(Set.of()), eq(Set.of()));
