@@ -47,7 +47,7 @@ class UserCreatedEventControllerTest {
     }
 
     @Test
-    void provisionUser_givenValidEventWithInterests_thenShouldProvisionAndReturnCreated() throws Exception {
+    void provisionUser_givenNewEventWithInterests_thenShouldProvisionAndReturnCreated() throws Exception {
         UUID userId = UUID.randomUUID();
 
         mockMvc.perform(post("/api/users/provision")
@@ -55,7 +55,7 @@ class UserCreatedEventControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "userId": "%s",
+                                  "id": "%s",
                                   "metadata": {
                                     "accountInterests": [
                                       "gcash",
@@ -84,7 +84,7 @@ class UserCreatedEventControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "userId": "%s",
+                                  "id": "%s",
                                   "metadata": {}
                                 }
                                 """.formatted(userId)))
@@ -103,11 +103,11 @@ class UserCreatedEventControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "userId": "%s",
+                                  "id": "%s",
                                   "metadata": null
                                 }
                                 """.formatted(userId)))
-                .andExpect(status().isCreated());
+                .andExpect(status().isBadRequest());
 
         verify(userProvisioningService, times(1))
                 .provisionUser(eq(userId), eq(Set.of()), eq(Set.of()));
@@ -139,7 +139,7 @@ class UserCreatedEventControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "userId": "%s"
+                                  "id": "%s"
                                 }
                                 """.formatted(userId)))
                 .andExpect(status().isCreated());
@@ -160,7 +160,7 @@ class UserCreatedEventControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "userId": "%s",
+                                  "id": "%s",
                                   "metadata": {}
                                 }
                                 """.formatted(userId)))

@@ -24,6 +24,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -188,7 +189,7 @@ class DefaultAccountRepositoryTest {
             acc3 = accountRepository.save(acc3);
 
             // create categories: EXPENSE for acc1, INCOME for acc2, EXPENSE for acc3
-            java.time.LocalDate today = java.time.LocalDate.now();
+            java.time.LocalDate today = LocalDate.now();
             CategoryEntity expenseCategory1 = jpaCategoryRepository.save(CategoryEntity.builder()
                     .name("Expense 1").transactionType(TransactionType.EXPENSE).userId(userId)
                     .createdAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC))

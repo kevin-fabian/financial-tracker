@@ -7,5 +7,5 @@ VALUES (gen_random_uuid(), 'Freelance / Side Hustle', 'work', NULL, 'INCOME', TR
        (gen_random_uuid(), 'Miscellaneous', 'add_circle_outline', NULL, 'INCOME', TRUE, TRUE, NOW(), NOW()),
 
        (gen_random_uuid(), 'Miscellaneous', 'add_circle_outline', NULL, 'EXPENSE', TRUE, TRUE, NOW(), NOW()),
-       (gen_random_uuid(), 'Transportation', 'directions_car', NULL, 'EXPENSE', TRUE, TRUE, NOW(), NOW())
+       (gen_random_uuid(), 'Transportation', 'directions_car', NULL, 'EXPENSE', TRUE, TRUE, NOW(), NOW()),
        (gen_random_uuid(), 'Food & Dining', 'restaurant', NULL, 'EXPENSE', TRUE, TRUE, NOW(), NOW());
