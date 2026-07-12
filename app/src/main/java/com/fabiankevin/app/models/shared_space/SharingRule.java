@@ -13,8 +13,7 @@ public record SharingRule(
         Set<ResourceType> visibleResourceTypes, // what resource types can see from others
         Set<UUID> visibleParticipants,          // null = all, empty = none
         Double autoApproveUnder,
-        boolean requiresApproval
-) {
+        boolean requiresApproval) {
     public SharingRule {
         visibleResourceTypes = visibleResourceTypes != null ? Set.copyOf(visibleResourceTypes) : Set.of();
         sharedResourceIds = sharedResourceIds != null ? Set.copyOf(sharedResourceIds) : Set.of();
