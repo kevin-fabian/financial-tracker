@@ -91,11 +91,61 @@ class DefaultSharedSpaceRepositoryTest {
         Optional<SharedSpace> found = sharedSpaceRepository.findById(saved.id());
 
         Assertions.assertThat(found).isPresent();
-        Assertions.assertThat(found.get())
-                .as("found shared space should match saved ignoring generated ids")
-                .usingRecursiveComparison()
-                .ignoringFields("id", "participants", "sharedResources")
-                .isEqualTo(saved);
+        SharedSpace restored = found.get();
+        Assertions.assertThat(restored.id()).as("generated id should be present").isNotNull();
+        Assertions.assertThat(restored.spaceName()).isEqualTo("Family 2026 Budget");
+        Assertions.assertThat(restored.ownerUserId()).isEqualTo(sharedSpace.ownerUserId());
+        Assertions.assertThat(restored.sharingMode()).isEqualTo(SharingMode.MUTUAL_SHARING);
+        Assertions.assertThat(restored.active()).isTrue();
+        Assertions.assertThat(restored.createdAt()).isEqualTo(sharedSpace.createdAt());
+        Assertions.assertThat(restored.updatedAt()).isEqualTo(sharedSpace.updatedAt());
+        Assertions.assertThat(restored.expiresAt()).isNull();
+
+        Assertions.assertThat(restored.defaultSharingRule())
+                .as("default sharing rule should persist")
+                .isNotNull();
+        Assertions.assertThat(restored.defaultSharingRule().sharesOwnResources()).isTrue();
+        Assertions.assertThat(restored.defaultSharingRule().visibleResourceTypes())
+                .containsExactlyInAnyOrder(ResourceType.values());
+        Assertions.assertThat(restored.defaultSharingRule().sharedResourceIds()).isEmpty();
+        Assertions.assertThat(restored.defaultSharingRule().autoApproveUnder()).isNull();
+        Assertions.assertThat(restored.defaultSharingRule().requiresApproval()).isFalse();
+
+        Assertions.assertThat(restored.participants())
+                .as("participants should be persisted and retrieved")
+                .hasSize(1);
+        SpaceParticipant restoredParticipant = restored.participants().getFirst();
+        Assertions.assertThat(restoredParticipant.id()).as("participant id should be generated").isNotNull();
+        Assertions.assertThat(restoredParticipant.userId())
+                .isEqualTo(sharedSpace.participants().getFirst().userId());
+        Assertions.assertThat(restoredParticipant.accessLevel()).isEqualTo(AccessLevel.READ_WRITE);
+        Assertions.assertThat(restoredParticipant.invitedByUserId())
+                .isEqualTo(sharedSpace.ownerUserId());
+        Assertions.assertThat(restoredParticipant.status()).isEqualTo(ParticipantStatus.ACTIVE);
+        Assertions.assertThat(restoredParticipant.joinedAt())
+                .isEqualTo(sharedSpace.participants().getFirst().joinedAt());
+        Assertions.assertThat(restoredParticipant.sharingRule())
+                .as("participant sharing rule should persist")
+                .isNotNull();
+        Assertions.assertThat(restoredParticipant.sharingRule().sharesOwnResources()).isTrue();
+        Assertions.assertThat(restoredParticipant.sharingRule().visibleResourceTypes())
+                .containsExactlyInAnyOrder(ResourceType.values());
+        Assertions.assertThat(restoredParticipant.sharingRule().sharedResourceIds()).isEmpty();
+        Assertions.assertThat(restoredParticipant.sharingRule().autoApproveUnder()).isNull();
+        Assertions.assertThat(restoredParticipant.sharingRule().requiresApproval()).isFalse();
+
+        Assertions.assertThat(restored.sharedResources())
+                .as("shared resources should be persisted and retrieved")
+                .hasSize(1);
+        SharedResource restoredResource = restored.sharedResources().getFirst();
+        Assertions.assertThat(restoredResource.id()).as("resource id should be generated").isNotNull();
+        Assertions.assertThat(restoredResource.type()).isEqualTo(ResourceType.TRANSACTION);
+        Assertions.assertThat(restoredResource.resourceName()).isEqualTo("Family Checking");
+        Assertions.assertThat(restoredResource.ownerUserId()).isEqualTo(sharedSpace.ownerUserId());
+        Assertions.assertThat(restoredResource.itemIds()).containsExactly("txn-001", "txn-002");
+        Assertions.assertThat(restoredResource.sharedByOwner()).isTrue();
+        Assertions.assertThat(restoredResource.sharedAt())
+                .isEqualTo(sharedSpace.sharedResources().getFirst().sharedAt());
 
         verify(jpaSharedSpaceRepository, times(1)).save(any());
         verify(jpaSharedSpaceRepository, times(1)).findById(saved.id());

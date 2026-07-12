@@ -69,11 +69,26 @@ class DefaultInvitationRepositoryTest {
         Optional<Invitation> found = invitationRepository.findById(saved.id());
 
         Assertions.assertThat(found).isPresent();
-        Assertions.assertThat(found.get())
-                .as("found invitation should match saved ignoring generated id")
-                .usingRecursiveComparison()
-                .ignoringFields("id")
-                .isEqualTo(saved);
+        Invitation restored = found.get();
+        Assertions.assertThat(restored.id()).as("generated id should be present").isNotNull();
+        Assertions.assertThat(restored.inviterUserId()).isEqualTo(invitation.inviterUserId());
+        Assertions.assertThat(restored.inviteeEmail()).isEqualTo("invitee@example.com");
+        Assertions.assertThat(restored.inviteeUserId()).isNull();
+        Assertions.assertThat(restored.proposedSharingMode()).isEqualTo(SharingMode.MUTUAL_SHARING);
+        Assertions.assertThat(restored.proposedRole()).isEqualTo(AccessLevel.READ_WRITE);
+        Assertions.assertThat(restored.proposedSharingRule())
+                .as("proposed sharing rule should persist")
+                .isNotNull();
+        Assertions.assertThat(restored.proposedSharingRule().sharesOwnResources()).isTrue();
+        Assertions.assertThat(restored.proposedSharingRule().visibleResourceTypes())
+                .containsExactlyInAnyOrder(ResourceType.values());
+        Assertions.assertThat(restored.proposedSharingRule().sharedResourceIds()).isEmpty();
+        Assertions.assertThat(restored.proposedSharingRule().autoApproveUnder()).isNull();
+        Assertions.assertThat(restored.proposedSharingRule().requiresApproval()).isFalse();
+        Assertions.assertThat(restored.status()).isEqualTo(InvitationStatus.PENDING);
+        Assertions.assertThat(restored.createdAt()).isEqualTo(invitation.createdAt());
+        Assertions.assertThat(restored.expiresAt()).isEqualTo(invitation.expiresAt());
+        Assertions.assertThat(restored.resultingSharedSpaceId()).isNull();
 
         verify(jpaInvitationRepository, times(1)).save(any());
         verify(jpaInvitationRepository, times(1)).findById(saved.id());
