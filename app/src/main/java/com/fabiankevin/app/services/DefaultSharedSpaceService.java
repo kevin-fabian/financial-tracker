@@ -49,7 +49,6 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
         }
 
         Invitation invitation = Invitation.builder()
-                .id(UUID.randomUUID())
                 .inviterUserId(command.inviterUserId())
                 .inviteeEmail(command.inviteeEmail())
                 .inviteeUserId(null)
@@ -61,6 +60,8 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
                 .expiresAt(Instant.now().plus(Duration.ofDays(7)))
                 .resultingSharedSpaceId(space.id())
                 .build();
+
+        // TODO notify the recipient
 
         return invitationRepository.save(invitation);
     }
@@ -299,7 +300,6 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
                 .build());
 
         SharedSpace newSpace = SharedSpace.builder()
-                .id(UUID.randomUUID())
                 .spaceName(command.spaceName() != null ? command.spaceName() : "Shared Space")
                 .ownerUserId(command.inviterUserId())
                 .participants(initialParticipants)
