@@ -8,6 +8,7 @@ import com.fabiankevin.app.models.enums.SharingMode;
 import com.fabiankevin.app.models.shared_space.*;
 import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
+import com.fabiankevin.app.services.commands.shared_space.CreateSharedSpaceCommand;
 import com.fabiankevin.app.services.commands.shared_space.SendInvitationCommand;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -191,6 +192,69 @@ class DefaultSharedSpaceServiceTest {
             assertThrows(IllegalArgumentException.class, () -> service.sendInvitation(command));
             verify(spaceRepository, never()).save(any());
             verify(invitationRepository, never()).save(any());
+        }
+    }
+
+    @Nested
+    class CreateShare {
+
+        @Test
+        void givenValidCommand_thenCreatesSpaceWithOwnerAsParticipant() {
+            UUID ownerUserId = UUID.randomUUID();
+            CreateSharedSpaceCommand command = new CreateSharedSpaceCommand(
+                    ownerUserId,
+                    "Trip Budget",
+                    SharingMode.MUTUAL_SHARING
+            );
+
+            ArgumentCaptor<SharedSpace> captor = ArgumentCaptor.forClass(SharedSpace.class);
+            when(spaceRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+
+            SharedSpace result = service.createShare(command);
+
+            assertNotNull(result);
+            assertEquals("Trip Budget", result.spaceName());
+            assertEquals(ownerUserId, result.ownerUserId());
+            assertEquals(SharingMode.MUTUAL_SHARING, result.sharingMode());
+            assertTrue(result.active());
+            assertEquals(1, result.participants().size());
+
+            SpaceParticipant owner = result.participants().getFirst();
+            assertEquals(ownerUserId, owner.userId());
+            assertEquals(AccessLevel.READ_WRITE, owner.accessLevel());
+            assertEquals(ParticipantStatus.ACTIVE, owner.status());
+
+            verify(spaceRepository).save(any(SharedSpace.class));
+        }
+
+        @Test
+        void givenNullSpaceName_thenUsesDefaultName() {
+            UUID ownerUserId = UUID.randomUUID();
+            CreateSharedSpaceCommand command = new CreateSharedSpaceCommand(
+                    ownerUserId,
+                    null,
+                    SharingMode.OWNER_PROVIDES
+            );
+
+            ArgumentCaptor<SharedSpace> captor = ArgumentCaptor.forClass(SharedSpace.class);
+            when(spaceRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+
+            service.createShare(command);
+
+            assertEquals("Shared Space", captor.getValue().spaceName());
+            verify(spaceRepository).save(any(SharedSpace.class));
+        }
+
+        @Test
+        void givenNullOwnerUserId_thenThrows() {
+            CreateSharedSpaceCommand command = new CreateSharedSpaceCommand(
+                    null,
+                    "My Space",
+                    SharingMode.MUTUAL_SHARING
+            );
+
+            assertThrows(IllegalArgumentException.class, () -> service.createShare(command));
+            verify(spaceRepository, never()).save(any());
         }
     }
 }

@@ -12,7 +12,9 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Builder(toBuilder = true)
 @Data
@@ -39,7 +41,7 @@ public class SharedSpaceEntity {
     private SharingMode sharingMode;
 
     @OneToMany(mappedBy = "sharedSpace", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<SharedResourceEntity> sharedResources;
+    private Set<SharedResourceEntity> sharedResources;
 
     @Column(name = "active")
     private boolean active;
@@ -68,17 +70,17 @@ public class SharedSpaceEntity {
 
         List<SpaceParticipantEntity> participantEntities = space.participants() != null
                 ? space.participants().stream()
-                        .map(SpaceParticipantEntity::from)
-                        .peek(p -> p.setSharedSpace(entity))
-                        .toList()
+                .map(SpaceParticipantEntity::from)
+                .peek(p -> p.setSharedSpace(entity))
+                .toList()
                 : List.of();
 
-        List<SharedResourceEntity> resourceEntities = space.sharedResources() != null
+        Set<SharedResourceEntity> resourceEntities = space.sharedResources() != null
                 ? space.sharedResources().stream()
-                        .map(SharedResourceEntity::from)
-                        .peek(r -> r.setSharedSpace(entity))
-                        .toList()
-                : List.of();
+                .map(SharedResourceEntity::from)
+                .peek(r -> r.setSharedSpace(entity))
+                .collect(Collectors.toSet())
+                : Set.of();
 
         entity.setParticipants(participantEntities);
         entity.setSharedResources(resourceEntities);

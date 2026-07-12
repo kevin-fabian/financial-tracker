@@ -4,15 +4,13 @@ import com.fabiankevin.app.models.shared_space.Invitation;
 import com.fabiankevin.app.models.shared_space.SharedResource;
 import com.fabiankevin.app.models.shared_space.SharedSpace;
 import com.fabiankevin.app.models.shared_space.SharingRule;
-import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
-import com.fabiankevin.app.services.commands.shared_space.RejectInvitationCommand;
-import com.fabiankevin.app.services.commands.shared_space.RevokeInvitationCommand;
-import com.fabiankevin.app.services.commands.shared_space.SendInvitationCommand;
+import com.fabiankevin.app.services.commands.shared_space.*;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface SharedSpaceService {
+    SharedSpace createShare(CreateSharedSpaceCommand command);
     Invitation sendInvitation(SendInvitationCommand command);
     SharedSpace acceptInvitation(AcceptInvitationCommand command);
     Invitation rejectInvitation(RejectInvitationCommand command);

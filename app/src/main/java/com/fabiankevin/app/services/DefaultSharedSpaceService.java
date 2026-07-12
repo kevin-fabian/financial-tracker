@@ -7,10 +7,7 @@ import com.fabiankevin.app.models.enums.ParticipantStatus;
 import com.fabiankevin.app.models.shared_space.*;
 import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
-import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
-import com.fabiankevin.app.services.commands.shared_space.RejectInvitationCommand;
-import com.fabiankevin.app.services.commands.shared_space.RevokeInvitationCommand;
-import com.fabiankevin.app.services.commands.shared_space.SendInvitationCommand;
+import com.fabiankevin.app.services.commands.shared_space.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,6 +25,35 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
     private final SharedSpaceRepository spaceRepository;
     private final InvitationRepository invitationRepository;
     private final SharingPermissionResolver permissionResolver;
+
+    @Transactional
+    @Override
+    public SharedSpace createShare(CreateSharedSpaceCommand command) {
+        validateCreateCommand(command);
+
+        List<SpaceParticipant> initialParticipants = new ArrayList<>();
+        initialParticipants.add(SpaceParticipant.builder()
+                .userId(command.ownerUserId())
+                .accessLevel(AccessLevel.READ_WRITE)
+                .invitedByUserId(null)
+                .status(ParticipantStatus.ACTIVE)
+                .joinedAt(Instant.now())
+                .sharingRule(null)
+                .build());
+
+        SharedSpace newSpace = SharedSpace.builder()
+                .spaceName(command.spaceName() != null ? command.spaceName() : "Shared Space")
+                .ownerUserId(command.ownerUserId())
+                .participants(initialParticipants)
+                .sharingMode(command.sharingMode())
+                .sharedResources(new ArrayList<>())
+                .active(true)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        return spaceRepository.save(newSpace);
+    }
 
     @Transactional
     @Override
@@ -284,6 +310,15 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
         }
         if (command.spaceId() == null && command.sharingMode() == null) {
             throw new IllegalArgumentException("Sharing mode required when creating new space");
+        }
+    }
+
+    private void validateCreateCommand(CreateSharedSpaceCommand command) {
+        if (command.ownerUserId() == null) {
+            throw new IllegalArgumentException("Owner user ID cannot be null");
+        }
+        if (command.sharingMode() == null) {
+            throw new IllegalArgumentException("Sharing mode cannot be null");
         }
     }
 
