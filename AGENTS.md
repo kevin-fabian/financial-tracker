@@ -6,7 +6,7 @@ You must always read relevant copilot instructions and SKILL.md available in the
 When implementing features or fixes, follow the established architecture, design patterns, and coding style as outlined in the copilot instructions. This ensures that your contributions align with the overall project structure and maintainability goals.
 
 ## Scope
-- `.github/copilot-instructions.md` is the portable, repo-agnostic guidance for architecture, design, and coding style.
+- `.agents/AGENTS.md` is the portable, repo-agnostic guidance for architecture, design, and coding style.
 - This file is the source of truth for repository-specific structure, package placement, runtime details, test locations, and known implementation exceptions.
 
 ## Snapshot
