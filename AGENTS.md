@@ -1,67 +1,101 @@
 # AGENTS.md
 
-## Agent Working Guidelines.
-Ask questions to clarify requirements, constraints, and preferences before starting work. If you encounter ambiguities or edge cases, seek clarification rather than making assumptions. When in doubt, ask for more information.
-You must always read relevant copilot instructions and SKILL.md available in the repository before starting work. These documents contain important guidelines, patterns, and known exceptions that are critical for maintaining code quality and consistency.
-When implementing features or fixes, follow the established architecture, design patterns, and coding style as outlined in the copilot instructions. This ensures that your contributions align with the overall project structure and maintainability goals.
+Personal financial tracker: multi-currency accounts, transactions, categories, aggregated statistics, and shared-spaces collaboration. Spring Boot 3 + Spring Security OAuth2 resource server, backed by PostgreSQL (local H2 for tests).
 
-## Scope
-- `.agents/AGENTS.md` is the portable, repo-agnostic guidance for architecture, design, and coding style.
-- This file is the source of truth for repository-specific structure, package placement, runtime details, test locations, and known implementation exceptions.
+Entry point: `app/src/main/java/com/fabiankevin/app/App.java`. Single-module build (`app`); multi-module parent is scaffolding for future use.
 
-## Snapshot
-- Root `pom.xml` currently builds only the `app` module.
-- App entry point is `app/src/main/java/com/fabiankevin/app/App.java`.
-- The implemented layering is: controllers -> services -> repositories -> jpa_repositories -> entities.
+---
 
-## Package and module layout
-- Base package: `com.fabiankevin.app`.
-- Web endpoints live in `app/src/main/java/com/fabiankevin/app/web/controllers`.
-- Request and response DTOs live in `app/src/main/java/com/fabiankevin/app/web/controllers/dtos`.
-- Domain models live in `app/src/main/java/com/fabiankevin/app/models`, with enums under `models/enums`.
-- Repository interfaces and implementations live directly under `app/src/main/java/com/fabiankevin/app/persistence`.
-- JPA entities live in `app/src/main/java/com/fabiankevin/app/persistence/entities`.
-- Spring Data JPA repositories live in `app/src/main/java/com/fabiankevin/app/persistence/jpa_repositories`.
-- Services live in `app/src/main/java/com/fabiankevin/app/services`, with supporting types under `services/commands`, `services/queries`, and `services/summaries`.
-- Controller tests live in `app/src/test/java/com/fabiankevin/app/web/controllers`.
-- Repository tests live in `app/src/test/java/com/fabiankevin/app/persistence`.
-- Service and summary tests live in `app/src/test/java/com/fabiankevin/app/services`.
+## Architecture
 
-## How the app is structured
-- Web endpoints live in `app/src/main/java/com/fabiankevin/app/web/controllers`; request/response DTOs are nested under `web/controllers/dtos`, not `web/dtos`.
-- Controllers extract `userId` from `JwtAuthenticationToken.getToken().getSubject()` and pass it into commands; clients never supply `userId` in payloads. See `AccountController` and `TransactionController`.
-- Request DTOs convert themselves to service commands (`CreateTransactionRequest#toCommand` -> `AddTransactionCommand`), so new endpoints should keep translation at the web edge.
-- Domain models are Java records with `@Builder(toBuilder = true)` and constructor invariants; e.g. `Transaction`, `Account`, and `Amount` reject invalid/null state early.
-- Services own orchestration and timestamps (`Instant.now()`), not controllers or repositories; see `DefaultAccountService` and `DefaultTransactionService`.
-- Repositories are thin adapters from domain models to Spring Data JPA entities (`DefaultTransactionRepository` -> `JpaTransactionRepository` -> `TransactionEntity`).
-- `TransactionService` is wired manually in `app/src/main/java/com/fabiankevin/app/config/AppConfig.java` because `DefaultTransactionService` needs a curated `List<SummaryGenerator>`.
-- Summary generation is a strategy map keyed by `SummaryType`; `CategorySummaryGenerator`, `MonthlySummaryGenerator`, `YearlySummaryGenerator`, and `DailySummaryGenerator` are Spring components consumed by `DefaultTransactionService`.
-- Known exception: `TransactionService#getTransactionById(...)` currently returns `TransactionResponse`, which leaks a web DTO into the service boundary. Treat this as technical debt to contain rather than a pattern to copy.
+Layered hexagonal: `controllers -> services -> repositories -> jpa_repositories -> entities`. Domain models (`models/`, Java records) cross layer boundaries; JPA entities never escape `persistence/`.
 
-## Persistence and data flow
-- Entities keep conversion methods both ways (`AccountEntity.from(model)` / `toModel()`); follow that pattern instead of leaking entities into services.
-- Cross-user isolation is enforced in service/repository logic, not by request payloads. Examples: `findById(...).filter(a -> a.userId().equals(userId))` and `deleteByIdAndAccountUserId(...)`.
-- Transaction summaries are implemented as custom JPQL aggregation queries in `JpaTransactionRepository`; grouped labels are strings/numbers projected through `SummaryPointProjection`.
-- Local PostgreSQL schema changes are sourced from Liquibase files under `app/src/main/resources/db`; `db.changelog.master.yml` includes raw SQL rollout/rollback scripts.
-- Tests mostly use H2 + `spring.jpa.hibernate.ddl-auto=update`, so test schema is often driven by entities rather than Liquibase.
+### Key patterns
 
-## Security and API conventions
-- API versioning is enabled globally in `app/src/main/resources/application.yaml`; controllers use `@RequestMapping(..., version = "v1")`, with header support via `X-API-VERSION` and default `v1`.
-- `ResourceServerConfig` maps JWT `scope` into `SCOPE_*` authorities and JWT `roles` into `ROLE_*`; role hierarchy is `ROLE_ADMIN > ROLE_USER`.
-- `/api/accounts/**` and `/api/categories/**` require `ROLE_USER`; everything else falls back to authenticated access. Swagger and actuator health/info/prometheus are public.
-- OpenAPI metadata and OAuth2 client-credentials wiring are centralized in `config/OpenApiConfig.java`.
+**Commands & queries at the web edge** — Request DTOs convert themselves to service commands/queries in the controller (`CreateTransactionRequest#toCommand`, `StatsQuery`, `PageRequest`).
 
-## Build, test, and local run
-- Useful commands verified here:
-    - `./mvnw -pl app -Dtest=TransactionControllerTest,DefaultTransactionRepositoryTest test`
-    - `./mvnw -pl app test`
-- Default runtime profile is `local` (`application.yaml`) which uses file-based H2 in `application-local.yaml`.
-- For PostgreSQL-backed local work, use `application-local-pg.yaml` plus `docker-compose/docker-compose.yaml`; the compose stack starts Postgres and Adminer, and the init scripts create `financial_tracker_user`/`financial_tracker_apps` plus `financial_tracker_schema`.
-- Runtime PG config uses `financial_tracker_apps` (`application-local-pg.yaml`), while Liquibase in `app/pom.xml` uses `financial_tracker_user`; keep that split when changing DB setup.
+**User context from JWT** — Controllers extract `userId` from `JwtAuthenticationToken.getToken().getSubject()`. Clients must never send ownership identifiers in payloads; cross-user isolation is enforced in service/repository logic.
 
-## Testing patterns to copy
-- Controller tests use `@WebMvcTest`, `@MockitoBean`, `MockMvc`, and `jwt()` request post-processors; see `TransactionControllerTest`.
-- Repository tests use `@DataJpaTest` plus a nested `@TestConfiguration` to register adapter beans; see `DefaultAccountRepositoryTest` and `DefaultTransactionRepositoryTest`.
-- Service tests live under `app/src/test/java/com/fabiankevin/app/services`, and summary strategy tests live under `app/src/test/java/com/fabiankevin/app/services/summaries`.
-- Some slice tests run with profile `local`, but `DefaultTransactionRepositoryTest` explicitly uses `@ActiveProfiles("test")`; check each test before assuming the datasource/profile.
+**Summary strategies** — `SummaryType` selects a `SummaryGenerator` implementation (`Daily`, `Monthly`, `Yearly`, `Category`). Curated list is wired manually in `AppConfig` (see `DefaultTransactionService`).
 
+**Caching decorators** — Read-heavy services are wrapped by a `Cached*Service` variant (currently `CachedTransactionService`, `CachedCategoryService`; `CachedAccountService` is intentionally commented out — don't re-enable without a reason). Injected as the default bean for queries.
+
+**Stats aggregation** — `StatsService` builds `StatsSummary` from JPQL projections in `persistence/entities/projections/`. Query params arrive through `StatsQuery`.
+
+**Shared spaces** — Multi-user collaboration via invitations, participants, and sharing rules. Domain models live in `models/shared_space/`; entities in `persistence/entities/` (`SharedSpaceEntity`, `SpaceParticipantEntity`, `SharedResourceEntity`, `InvitationEntity`, `SharingRuleEmbeddable`). Permission resolution is encapsulated in `SharingPermissionResolver`.
+
+**User provisioning** — `UserProvisioningService` coordinates onboarding (`DefaultUserProvisioningService` splits work into `UserAccountProvisioner` and `UserCategoryProvisioner`, with in-memory implementations available).
+
+---
+
+## Controllers
+
+| Controller | Path |
+|-----------|------|
+| `AccountController` | `/api/accounts` |
+| `CategoryController` | `/api/categories` |
+| `TransactionController` | `/api/transactions` |
+| `StatsController` | `/api/stats` |
+| `UserCreatedEventController` | `/api/users` |
+
+Request/response DTOs are nested under `web/controllers/dtos/` (e.g. `CreateTransactionRequest`, `PageResponse`, `StatsQuery`).
+
+---
+
+## Domain models
+
+`models/` holds immutable records with `@Builder(toBuilder = true)` and constructor invariants. Timestamps are `Instant`, identifiers are `UUID`, absence is `Optional` (not `null`).
+
+Key models: `Account`, `Transaction`, `Amount`, `Category`, `User`, `Page`, `AccountSummary`, `CategorySummary`, `SummaryPoint`, `SummarySeries`, `StatsSummary`.
+
+Shared-space models (`models/shared_space/`): `SharedSpace`, `Invitation`, `SpaceParticipant`, `SharedResource`, `SharingRule`, `SharingPermissionResolver`.
+
+Enums (`models/enums/`): `SummaryType`, `TransactionType`, `AccountType`, `AccountStatus`, `Category`, `UserStatus`, `InvitationStatus`, `ParticipantStatus`, `AccessLevel`, `JointSpaceType`, `ResourceType`, `SharingMode`.
+
+---
+
+## Persistence
+
+- Repository interfaces live in `persistence/` alongside their `Default*` implementations. JPA interfaces (`Jpa*Repository`) sit in `jpa_repositories/`; entities in `entities/`.
+- Model/entity conversion is bidirectional on entities: `Entity.from(model)` and `entity.toModel()`. Never leak entities into services.
+- JPQL projections (`AccountSummaryProjection`, `CategorySummaryProjection`, `SummaryPointProjection`) live in `persistence/entities/projections/`.
+- Schema via Liquibase under `src/main/resources/db/`; master changelog includes raw SQL scripts.
+
+---
+
+## Security & API
+
+- API versioning via `spring.mvc.apiversion` with `X-API-VERSION` header; default `v1`.
+- `ResourceServerConfig` maps JWT `scope` → raw authority (e.g. `WRITE`) and JWT `roles` → raw authority (e.g. `USER`, `ADMIN`). No auto-`ROLE_` prefix — token claim values are used verbatim.
+- Role hierarchy: `ADMIN > USER`.
+- Protected endpoints require `USER`: `/api/accounts/**`, `/api/categories/**`, `/api/stats`, `/api/stats*`.
+- User provisioning (`POST /api/users/**`) requires authority `user:provision`.
+- Public: `/actuator/health`, `/actuator/info`, `/actuator/prometheus**`, `/swagger-ui/**`, `/v3/api-docs/**`.
+- OAuth2 client-credentials for downstream REST calls configured in `OpenApiConfig`.
+- Error handling: `BearerAccessDeniedHandler`, `InvalidTokenAuthenticationEntryPoint`.
+
+---
+
+## Build & test
+
+| Command | Purpose |
+|---------|---------|
+| `./mvnw -pl app test` | Full app test suite |
+| `./mvnw -pl app -Dtest=StatsControllerTest,DefaultTransactionRepositoryTest test` | Targeted tests |
+
+- Default profile `local` → file-based H2 (`application-local.yaml`).
+- PostgreSQL: `application-local-pg.yaml` + `docker-compose/docker-compose.yaml`.
+- Runtime uses `financial_tracker_apps`; Liquibase uses `financial_tracker_user`.
+
+### Testing conventions
+
+- Controller: `@WebMvcTest` + `@MockitoBean` + `MockMvc` + `jwt()` post-processor (see `StatsControllerTest`).
+- Repository: `@DataJpaTest` + nested `@TestConfiguration` (see `DefaultTransactionRepositoryTest`). Some slices use `local`; repository tests typically use `@ActiveProfiles("test")` — verify per test.
+- Service/strategy tests live next to tested class under `app/src/test/java/.../services/`.
+- Cache config: `CacheConfig`.
+
+---
+
+## Known exceptions
+
+- `TransactionService#getTransactionById(...)` returns `TransactionResponse` (a web DTO leak across the service boundary). Contain; don't copy.

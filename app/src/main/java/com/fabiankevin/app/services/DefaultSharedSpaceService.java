@@ -305,7 +305,6 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
                 .participants(initialParticipants)
                 .sharingMode(command.sharingMode())
                 .sharedResources(new ArrayList<>())
-                .defaultSharingRule(command.defaultSharingRule())
                 .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())

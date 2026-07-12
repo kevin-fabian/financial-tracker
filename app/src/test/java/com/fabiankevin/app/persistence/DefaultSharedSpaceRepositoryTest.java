@@ -77,7 +77,6 @@ class DefaultSharedSpaceRepositoryTest {
                 .participants(List.of(participant))
                 .sharingMode(SharingMode.MUTUAL_SHARING)
                 .sharedResources(List.of(resource))
-                .defaultSharingRule(SharingRule.MUTUAL_DEFAULT)
                 .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -100,16 +99,6 @@ class DefaultSharedSpaceRepositoryTest {
         Assertions.assertThat(retrievedsharedSpace.createdAt()).isEqualTo(sharedSpace.createdAt());
         Assertions.assertThat(retrievedsharedSpace.updatedAt()).isEqualTo(sharedSpace.updatedAt());
         Assertions.assertThat(retrievedsharedSpace.expiresAt()).isNull();
-
-        Assertions.assertThat(retrievedsharedSpace.defaultSharingRule())
-                .as("default sharing rule should persist")
-                .isNotNull();
-        Assertions.assertThat(retrievedsharedSpace.defaultSharingRule().sharesOwnResources()).isTrue();
-        Assertions.assertThat(retrievedsharedSpace.defaultSharingRule().visibleResourceTypes())
-                .containsExactlyInAnyOrder(ResourceType.values());
-        Assertions.assertThat(retrievedsharedSpace.defaultSharingRule().sharedResourceIds()).isEmpty();
-        Assertions.assertThat(retrievedsharedSpace.defaultSharingRule().autoApproveUnder()).isNull();
-        Assertions.assertThat(retrievedsharedSpace.defaultSharingRule().requiresApproval()).isFalse();
 
         Assertions.assertThat(retrievedsharedSpace.participants())
                 .as("participants should be persisted and retrieved")
@@ -216,10 +205,6 @@ class DefaultSharedSpaceRepositoryTest {
         Assertions.assertThat(found).isPresent();
         Assertions.assertThat(found.get().spaceName()).isEqualTo("Family 2026 Budget");
         Assertions.assertThat(found.get().sharingMode()).isEqualTo(SharingMode.MUTUAL_SHARING);
-        Assertions.assertThat(found.get().defaultSharingRule())
-                .as("default sharing rule should persist")
-                .isNotNull();
-        Assertions.assertThat(found.get().defaultSharingRule().sharesOwnResources()).isTrue();
 
         verify(jpaSharedSpaceRepository, times(1)).findById(saved.id());
     }

@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
@@ -42,19 +41,6 @@ public class SharedSpaceEntity {
     @OneToMany(mappedBy = "sharedSpace", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SharedResourceEntity> sharedResources;
 
-    @Embedded
-    @AttributeOverrides({
-            @AttributeOverride(name = "sharesOwnResources", column = @Column(name = "default_shares_own_resources")),
-            @AttributeOverride(name = "sharedResourceIds", column = @Column(name = "default_shared_resource_ids")),
-            @AttributeOverride(name = "visibleResourceTypes", column = @Column(name = "default_visible_resource_types")),
-            @AttributeOverride(name = "visibleParticipants", column = @Column(name = "default_visible_participants")),
-            @AttributeOverride(name = "maskedFields", column = @Column(name = "default_masked_fields")),
-            @AttributeOverride(name = "maxTransactionAmount", column = @Column(name = "default_max_transaction_amount")),
-            @AttributeOverride(name = "autoApproveUnder", column = @Column(name = "default_auto_approve_under")),
-            @AttributeOverride(name = "requiresApproval", column = @Column(name = "default_requires_approval"))
-    })
-    private SharingRuleEmbeddable defaultSharingRule;
-
     @Column(name = "active")
     private boolean active;
 
@@ -74,7 +60,6 @@ public class SharedSpaceEntity {
                 .spaceName(space.spaceName())
                 .ownerUserId(space.ownerUserId())
                 .sharingMode(space.sharingMode())
-                .defaultSharingRule(SharingRuleEmbeddable.from(space.defaultSharingRule()))
                 .active(space.active())
                 .createdAt(space.createdAt())
                 .updatedAt(space.updatedAt())
@@ -116,7 +101,6 @@ public class SharedSpaceEntity {
                 .participants(participants)
                 .sharingMode(this.sharingMode)
                 .sharedResources(sharedResources)
-                .defaultSharingRule(Optional.ofNullable(this.defaultSharingRule).map(SharingRuleEmbeddable::toModel).orElse(null))
                 .active(this.active)
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)

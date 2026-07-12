@@ -16,7 +16,6 @@ public record SharedSpace(
         List<SpaceParticipant> participants, // Core: Multiple participants with individual roles
         SharingMode sharingMode, // Global sharing mode for the space
         List<SharedResource> sharedResources, // Resources shared into this space
-        SharingRule defaultSharingRule,   // Fallback for participants without custom rule
         boolean active,
         Instant createdAt,
         Instant updatedAt,

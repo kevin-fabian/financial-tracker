@@ -25,7 +25,6 @@ public class SharingPermissionResolver {
 
     public SharingRule resolveRule(SharedSpace space, SpaceParticipant participant) {
         if (participant.sharingRule() != null) return participant.sharingRule();
-        if (space.defaultSharingRule() != null) return space.defaultSharingRule();
         return switch (space.sharingMode()) {
             case MUTUAL_SHARING -> SharingRule.MUTUAL_DEFAULT;
             case OWNER_PROVIDES -> SharingRule.VIEWER_DEFAULT;
