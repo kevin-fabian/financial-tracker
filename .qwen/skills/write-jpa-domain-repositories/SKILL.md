@@ -30,6 +30,7 @@ References:
 - Keep Spring-specific annotations out of domain interfaces.
 - Use `Set` (not `List`) for collection return types when ordering is not required.
 - Test `Default...Repository` behaviors, not Spring Data `Jpa*Repository` interfaces directly.
+- **Do not explicitly set an ID when persisting a new entity.** Let JPA's `@GeneratedValue` strategy (e.g., UUID generator) assign the ID — the domain model's ID should be `null` before `save()` and populated after. Never manually assign a UUID or other generated ID to a new entity.
 
 ---
 
@@ -100,6 +101,7 @@ public class DefaultUserRepository implements UserRepository {
 Guidance:
 - Catch and translate infrastructure exceptions only when there is a clear domain exception contract.
 - Do not leak `UserEntity` outside this adapter.
+- The incoming domain model to `save` must have a **null ID** — never set one. The generated ID is returned via `toModel()` after the JPA `save` call.
 
 ---
 
