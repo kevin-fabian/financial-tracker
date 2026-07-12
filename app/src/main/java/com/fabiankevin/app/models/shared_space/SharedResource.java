@@ -4,9 +4,7 @@ import com.fabiankevin.app.models.enums.ResourceType;
 import lombok.Builder;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 @Builder
 public record SharedResource(
@@ -22,6 +20,6 @@ public record SharedResource(
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(ownerUserId, "ownerUserId");
         Objects.requireNonNull(itemIds, "itemIds");
-        itemIds = List.copyOf(itemIds);
+        itemIds = Optional.ofNullable(itemIds).orElse(new ArrayList<>());
     }
 }
