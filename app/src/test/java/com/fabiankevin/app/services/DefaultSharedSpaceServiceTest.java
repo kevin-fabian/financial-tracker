@@ -8,7 +8,7 @@ import com.fabiankevin.app.models.enums.SharingMode;
 import com.fabiankevin.app.models.shared_space.*;
 import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
-import com.fabiankevin.app.services.commands.SendInvitationCommand;
+import com.fabiankevin.app.services.commands.shared_space.SendInvitationCommand;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

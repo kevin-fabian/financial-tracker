@@ -5,7 +5,7 @@ import lombok.Builder;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
@@ -23,9 +23,9 @@ public record SharedSpace(
         Instant expiresAt // Optional: time-limited
 ) {
     public SharedSpace {
-        Optional.ofNullable(spaceName).orElseThrow(() -> new IllegalArgumentException("Space name is required"));
-        Optional.ofNullable(ownerUserId).orElseThrow(() -> new IllegalArgumentException("Owner user ID is required"));
-        Optional.ofNullable(sharingMode).orElseThrow(() -> new IllegalArgumentException("Sharing mode is required"));
-        Optional.ofNullable(createdAt).orElseThrow(() -> new IllegalArgumentException("Created at is required"));
+        Objects.requireNonNull(ownerUserId, "ownerUserId is required");
+        Objects.requireNonNull(sharingMode, "sharingMode is required");
+        Objects.requireNonNull(spaceName, "spaceName is required");
+        Objects.requireNonNull(createdAt, "createdAt is required");
     }
 }
