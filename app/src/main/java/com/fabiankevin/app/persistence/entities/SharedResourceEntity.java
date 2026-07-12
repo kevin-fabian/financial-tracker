@@ -3,15 +3,14 @@ package com.fabiankevin.app.persistence.entities;
 import com.fabiankevin.app.models.enums.ResourceType;
 import com.fabiankevin.app.models.shared_space.SharedResource;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+@ToString(exclude = "sharedSpace")
+@EqualsAndHashCode(exclude = "sharedSpace")
 @Builder(toBuilder = true)
 @Data
 @AllArgsConstructor

@@ -11,10 +11,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Builder(toBuilder = true)
 @Data
@@ -33,15 +33,15 @@ public class SharedSpaceEntity {
     @Column(name = "owner_user_id")
     private UUID ownerUserId;
 
-    @OneToMany(mappedBy = "sharedSpace", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<SpaceParticipantEntity> participants;
+    @OneToMany(mappedBy = "sharedSpace", cascade = CascadeType.ALL, orphanRemoval = true, fetch =  FetchType.EAGER)
+    private Set<SpaceParticipantEntity> participants = new HashSet<>();
 
     @Enumerated(EnumType.STRING)
     @Column(name = "sharing_mode")
     private SharingMode sharingMode;
 
-    @OneToMany(mappedBy = "sharedSpace", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<SharedResourceEntity> sharedResources;
+    @OneToMany(mappedBy = "sharedSpace", cascade = CascadeType.ALL, orphanRemoval = true, fetch =  FetchType.EAGER)
+    private Set<SharedResourceEntity> sharedResources = new HashSet<>();
 
     @Column(name = "active")
     private boolean active;
@@ -63,28 +63,34 @@ public class SharedSpaceEntity {
                 .ownerUserId(space.ownerUserId())
                 .sharingMode(space.sharingMode())
                 .active(space.active())
+                .participants(new HashSet<>())
+                .sharedResources(new HashSet<>())
                 .createdAt(space.createdAt())
                 .updatedAt(space.updatedAt())
                 .expiresAt(space.expiresAt())
                 .build();
 
-        List<SpaceParticipantEntity> participantEntities = space.participants() != null
-                ? space.participants().stream()
-                .map(SpaceParticipantEntity::from)
-                .peek(p -> p.setSharedSpace(entity))
-                .toList()
-                : List.of();
+        for (SpaceParticipant participant : space.participants()) {
+            entity.addParticipant(SpaceParticipantEntity.from(participant));
+        }
 
-        Set<SharedResourceEntity> resourceEntities = space.sharedResources() != null
-                ? space.sharedResources().stream()
-                .map(SharedResourceEntity::from)
-                .peek(r -> r.setSharedSpace(entity))
-                .collect(Collectors.toSet())
-                : Set.of();
+        for (SharedResource sharedResource : space.sharedResources()) {
+            entity.addResource(SharedResourceEntity.from(sharedResource));
+        }
 
-        entity.setParticipants(participantEntities);
-        entity.setSharedResources(resourceEntities);
         return entity;
+    }
+
+    public void addParticipant(SpaceParticipantEntity participant) {
+        if (participant == null) return;
+        participant.setSharedSpace(this);
+        this.participants.add(participant);
+    }
+
+    public void addResource(SharedResourceEntity resource) {
+        if (resource == null) return;
+        resource.setSharedSpace(this);
+        this.sharedResources.add(resource);
     }
 
     public SharedSpace toModel() {

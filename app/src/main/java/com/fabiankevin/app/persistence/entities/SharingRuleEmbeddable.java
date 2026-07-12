@@ -4,10 +4,7 @@ import com.fabiankevin.app.models.enums.ResourceType;
 import com.fabiankevin.app.models.shared_space.SharingRule;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.Arrays;
 import java.util.LinkedHashSet;
@@ -15,6 +12,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@EqualsAndHashCode()
 @Embeddable
 @Data
 @Builder

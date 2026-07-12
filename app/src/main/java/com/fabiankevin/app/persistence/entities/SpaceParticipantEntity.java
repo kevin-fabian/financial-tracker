@@ -4,15 +4,14 @@ import com.fabiankevin.app.models.enums.AccessLevel;
 import com.fabiankevin.app.models.enums.ParticipantStatus;
 import com.fabiankevin.app.models.shared_space.SpaceParticipant;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
+@ToString(exclude = "sharedSpace")
+@EqualsAndHashCode(exclude = "sharedSpace")
 @Builder(toBuilder = true)
 @Data
 @AllArgsConstructor
@@ -54,7 +53,7 @@ public class SpaceParticipantEntity {
     })
     private SharingRuleEmbeddable sharingRule;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "shared_space_id")
     private SharedSpaceEntity sharedSpace;
 
