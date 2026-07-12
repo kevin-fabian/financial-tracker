@@ -1,6 +1,6 @@
 package com.fabiankevin.app.models.shared_space;
 
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.shared_space.ResourceType;
 import lombok.Builder;
 
 import java.time.Instant;
@@ -10,16 +10,11 @@ import java.util.*;
 public record SharedResource(
         UUID id,
         ResourceType type,
-        String resourceName,
-        UUID ownerUserId,               // Who shared the resource
-        List<String> itemIds,           // e.g., transaction IDs, budget IDs
-        boolean sharedByOwner,
+        List<String> items,           // e.g., transaction IDs, budget IDs
         Instant sharedAt
 ) {
     public SharedResource {
         Objects.requireNonNull(type, "type");
-        Objects.requireNonNull(ownerUserId, "ownerUserId");
-        Objects.requireNonNull(itemIds, "itemIds");
-        itemIds = Optional.ofNullable(itemIds).orElse(new ArrayList<>());
+        items = Optional.ofNullable(items).orElse(new ArrayList<>());
     }
 }

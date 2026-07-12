@@ -1,7 +1,7 @@
 package com.fabiankevin.app.persistence.entities;
 
-import com.fabiankevin.app.models.enums.AccessLevel;
-import com.fabiankevin.app.models.enums.ParticipantStatus;
+import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
+import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
 import com.fabiankevin.app.models.shared_space.SpaceParticipant;
 import jakarta.persistence.*;
 import lombok.*;
@@ -63,7 +63,6 @@ public class SpaceParticipantEntity {
                 .id(participant.id())
                 .userId(participant.userId())
                 .accessLevel(participant.accessLevel())
-                .invitedByUserId(participant.invitedByUserId())
                 .status(participant.status())
                 .joinedAt(participant.joinedAt())
                 .sharingRule(SharingRuleEmbeddable.from(participant.sharingRule()))
@@ -75,7 +74,6 @@ public class SpaceParticipantEntity {
                 .id(this.id)
                 .userId(this.userId)
                 .accessLevel(this.accessLevel)
-                .invitedByUserId(this.invitedByUserId)
                 .status(this.status)
                 .joinedAt(this.joinedAt)
                 .sharingRule(Optional.ofNullable(this.sharingRule).map(SharingRuleEmbeddable::toModel).orElse(null))

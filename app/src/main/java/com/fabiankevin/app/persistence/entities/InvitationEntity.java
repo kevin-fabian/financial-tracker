@@ -1,8 +1,8 @@
 package com.fabiankevin.app.persistence.entities;
 
-import com.fabiankevin.app.models.enums.AccessLevel;
-import com.fabiankevin.app.models.enums.InvitationStatus;
-import com.fabiankevin.app.models.enums.SharingMode;
+import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
+import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
+import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.shared_space.Invitation;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -11,7 +11,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
-import java.util.Optional;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
@@ -42,19 +41,6 @@ public class InvitationEntity {
     @Column(name = "proposed_role")
     private AccessLevel proposedRole;
 
-    @Embedded
-    @AttributeOverrides({
-            @AttributeOverride(name = "sharesOwnResources", column = @Column(name = "proposed_shares_own_resources")),
-            @AttributeOverride(name = "sharedResourceIds", column = @Column(name = "proposed_shared_resource_ids")),
-            @AttributeOverride(name = "visibleResourceTypes", column = @Column(name = "proposed_visible_resource_types")),
-            @AttributeOverride(name = "visibleParticipants", column = @Column(name = "proposed_visible_participants")),
-            @AttributeOverride(name = "maskedFields", column = @Column(name = "proposed_masked_fields")),
-            @AttributeOverride(name = "maxTransactionAmount", column = @Column(name = "proposed_max_transaction_amount")),
-            @AttributeOverride(name = "autoApproveUnder", column = @Column(name = "proposed_auto_approve_under")),
-            @AttributeOverride(name = "requiresApproval", column = @Column(name = "proposed_requires_approval"))
-    })
-    private SharingRuleEmbeddable proposedSharingRule;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private InvitationStatus status;
@@ -77,11 +63,10 @@ public class InvitationEntity {
                 .inviteeUserId(invitation.inviteeUserId())
                 .proposedSharingMode(invitation.proposedSharingMode())
                 .proposedRole(invitation.proposedRole())
-                .proposedSharingRule(SharingRuleEmbeddable.from(invitation.proposedSharingRule()))
                 .status(invitation.status())
                 .createdAt(invitation.createdAt())
                 .expiresAt(invitation.expiresAt())
-                .resultingSharedSpaceId(invitation.resultingSharedSpaceId())
+                .resultingSharedSpaceId(invitation.sharedSpaceId())
                 .build();
     }
 
@@ -93,11 +78,10 @@ public class InvitationEntity {
                 .inviteeUserId(this.inviteeUserId)
                 .proposedSharingMode(this.proposedSharingMode)
                 .proposedRole(this.proposedRole)
-                .proposedSharingRule(Optional.ofNullable(this.proposedSharingRule).map(SharingRuleEmbeddable::toModel).orElse(null))
                 .status(this.status)
                 .createdAt(this.createdAt)
                 .expiresAt(this.expiresAt)
-                .resultingSharedSpaceId(this.resultingSharedSpaceId)
+                .sharedSpaceId(this.resultingSharedSpaceId)
                 .build();
     }
 

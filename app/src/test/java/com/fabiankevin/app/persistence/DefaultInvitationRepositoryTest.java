@@ -1,11 +1,9 @@
 package com.fabiankevin.app.persistence;
 
-import com.fabiankevin.app.models.enums.AccessLevel;
-import com.fabiankevin.app.models.enums.InvitationStatus;
-import com.fabiankevin.app.models.enums.ResourceType;
-import com.fabiankevin.app.models.enums.SharingMode;
+import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
+import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
+import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.shared_space.Invitation;
-import com.fabiankevin.app.models.shared_space.SharingRule;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaInvitationRepository;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,7 +17,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -54,11 +51,10 @@ class DefaultInvitationRepositoryTest {
                 .inviteeUserId(null)
                 .proposedSharingMode(SharingMode.MUTUAL_SHARING)
                 .proposedRole(AccessLevel.READ_WRITE)
-                .proposedSharingRule(SharingRule.MUTUAL_DEFAULT)
                 .status(InvitationStatus.PENDING)
                 .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(86400))
-                .resultingSharedSpaceId(null)
+                .sharedSpaceId(null)
                 .build();
     }
 
@@ -76,54 +72,13 @@ class DefaultInvitationRepositoryTest {
         Assertions.assertThat(restored.inviteeUserId()).isNull();
         Assertions.assertThat(restored.proposedSharingMode()).isEqualTo(SharingMode.MUTUAL_SHARING);
         Assertions.assertThat(restored.proposedRole()).isEqualTo(AccessLevel.READ_WRITE);
-        Assertions.assertThat(restored.proposedSharingRule())
-                .as("proposed sharing rule should persist")
-                .isNotNull();
-        Assertions.assertThat(restored.proposedSharingRule().sharesOwnResources()).isTrue();
-        Assertions.assertThat(restored.proposedSharingRule().visibleResourceTypes())
-                .containsExactlyInAnyOrder(ResourceType.values());
-        Assertions.assertThat(restored.proposedSharingRule().sharedResourceIds()).isEmpty();
-        Assertions.assertThat(restored.proposedSharingRule().autoApproveUnder()).isNull();
-        Assertions.assertThat(restored.proposedSharingRule().requiresApproval()).isFalse();
         Assertions.assertThat(restored.status()).isEqualTo(InvitationStatus.PENDING);
         Assertions.assertThat(restored.createdAt()).isEqualTo(invitation.createdAt());
         Assertions.assertThat(restored.expiresAt()).isEqualTo(invitation.expiresAt());
-        Assertions.assertThat(restored.resultingSharedSpaceId()).isNull();
+        Assertions.assertThat(restored.sharedSpaceId()).isNull();
 
         verify(jpaInvitationRepository, times(1)).save(any());
         verify(jpaInvitationRepository, times(1)).findById(saved.id());
-    }
-
-    @Test
-    void save_givenInvitationWithCustomRule_shouldPersistRuleFields() {
-        SharingRule customRule = SharingRule.builder()
-                .sharesOwnResources(false)
-                .visibleResourceTypes(Set.of(ResourceType.BUDGET))
-                .requiresApproval(true)
-                .autoApproveUnder(50.0)
-                .build();
-
-        Invitation withCustomRule = Invitation.builder()
-                .inviterUserId(UUID.randomUUID())
-                .inviteeEmail("custom@example.com")
-                .proposedSharingMode(SharingMode.CUSTOM_SHARING)
-                .proposedRole(AccessLevel.VIEW_ONLY)
-                .proposedSharingRule(customRule)
-                .status(InvitationStatus.PENDING)
-                .createdAt(Instant.now())
-                .expiresAt(Instant.now().plusSeconds(86400))
-                .build();
-
-        Invitation saved = invitationRepository.save(withCustomRule);
-
-        Optional<Invitation> found = invitationRepository.findById(saved.id());
-
-        Assertions.assertThat(found).isPresent();
-        SharingRule restoredRule = found.get().proposedSharingRule();
-        Assertions.assertThat(restoredRule.sharesOwnResources()).isFalse();
-        Assertions.assertThat(restoredRule.visibleResourceTypes()).containsExactly(ResourceType.BUDGET);
-        Assertions.assertThat(restoredRule.requiresApproval()).isTrue();
-        Assertions.assertThat(restoredRule.autoApproveUnder()).isEqualTo(50.0);
     }
 
     @Test
@@ -137,11 +92,10 @@ class DefaultInvitationRepositoryTest {
                 .inviteeUserId(inviteeUserId)
                 .proposedSharingMode(SharingMode.MUTUAL_SHARING)
                 .proposedRole(AccessLevel.READ_WRITE)
-                .proposedSharingRule(SharingRule.MUTUAL_DEFAULT)
                 .status(InvitationStatus.ACCEPTED)
                 .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(86400))
-                .resultingSharedSpaceId(resultingSpaceId)
+                .sharedSpaceId(resultingSpaceId)
                 .build();
 
         Invitation saved = invitationRepository.save(accepted);
@@ -151,7 +105,7 @@ class DefaultInvitationRepositoryTest {
         Assertions.assertThat(found).isPresent();
         Assertions.assertThat(found.get().status()).isEqualTo(InvitationStatus.ACCEPTED);
         Assertions.assertThat(found.get().inviteeUserId()).isEqualTo(inviteeUserId);
-        Assertions.assertThat(found.get().resultingSharedSpaceId()).isEqualTo(resultingSpaceId);
+        Assertions.assertThat(found.get().sharedSpaceId()).isEqualTo(resultingSpaceId);
     }
 
     @Test
@@ -165,10 +119,6 @@ class DefaultInvitationRepositoryTest {
         Assertions.assertThat(found.get().status()).isEqualTo(InvitationStatus.PENDING);
         Assertions.assertThat(found.get().proposedSharingMode()).isEqualTo(SharingMode.MUTUAL_SHARING);
         Assertions.assertThat(found.get().proposedRole()).isEqualTo(AccessLevel.READ_WRITE);
-        Assertions.assertThat(found.get().proposedSharingRule())
-                .as("proposed sharing rule should persist")
-                .isNotNull();
-        Assertions.assertThat(found.get().proposedSharingRule().sharesOwnResources()).isTrue();
 
         verify(jpaInvitationRepository, times(1)).findById(saved.id());
     }

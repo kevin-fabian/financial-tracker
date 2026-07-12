@@ -1,11 +1,13 @@
 package com.fabiankevin.app.models.shared_space;
 
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.shared_space.ResourceType;
+import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
+@Component
 public class SharingPermissionResolver {
-    public boolean canViewResource(SharedSpace space, UUID viewerId, UUID resourceOwnerId, ResourceType type) {
+    public boolean canViewResource(SharedSpace space, UUID viewerId, ResourceType type) {
         if (viewerId.equals(space.ownerUserId())) return true;
 
         SpaceParticipant viewer = space.participants().stream()
@@ -16,10 +18,10 @@ public class SharingPermissionResolver {
         SharingRule rule = resolveRule(space, viewer);
 
         if (!rule.visibleResourceTypes().contains(type)) return false;
-
-        if (rule.visibleParticipants() != null && !rule.visibleParticipants().contains(resourceOwnerId)) {
-            return false;
-        }
+//
+//        if (rule.visibleParticipants() != null && !rule.visibleParticipants().contains(resourceOwnerId)) {
+//            return false;
+//        }
         return true;
     }
 
@@ -27,8 +29,6 @@ public class SharingPermissionResolver {
         if (participant.sharingRule() != null) return participant.sharingRule();
         return switch (space.sharingMode()) {
             case MUTUAL_SHARING -> SharingRule.MUTUAL_DEFAULT;
-            case OWNER_PROVIDES -> SharingRule.VIEWER_DEFAULT;
-            case CUSTOM_SHARING -> throw new IllegalStateException("Custom rule required for participant");
         };
     }
 }

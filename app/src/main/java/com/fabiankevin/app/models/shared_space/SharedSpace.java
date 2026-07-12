@@ -1,6 +1,6 @@
 package com.fabiankevin.app.models.shared_space;
 
-import com.fabiankevin.app.models.enums.SharingMode;
+import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import lombok.Builder;
 
 import java.time.Instant;
@@ -16,8 +16,7 @@ public record SharedSpace(
         List<SharedResource> sharedResources, // Resources shared into this space
         boolean active,
         Instant createdAt,
-        Instant updatedAt,
-        Instant expiresAt // Optional: time-limited
+        Instant updatedAt
 ) {
     public SharedSpace {
         Objects.requireNonNull(ownerUserId, "ownerUserId is required");

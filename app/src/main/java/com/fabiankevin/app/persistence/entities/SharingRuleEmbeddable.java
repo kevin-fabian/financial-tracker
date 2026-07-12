@@ -1,6 +1,6 @@
 package com.fabiankevin.app.persistence.entities;
 
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.shared_space.ResourceType;
 import com.fabiankevin.app.models.shared_space.SharingRule;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

@@ -1,15 +1,15 @@
 package com.fabiankevin.app.models.shared_space;
 
-import com.fabiankevin.app.models.enums.AccessLevel;
-import com.fabiankevin.app.models.enums.InvitationStatus;
-import com.fabiankevin.app.models.enums.SharingMode;
+import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
+import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
+import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import lombok.Builder;
 
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
-import static com.fabiankevin.app.models.enums.InvitationStatus.PENDING;
+import static com.fabiankevin.app.models.enums.shared_space.InvitationStatus.PENDING;
 
 @Builder
 public record Invitation(
@@ -19,11 +19,10 @@ public record Invitation(
         UUID inviteeUserId,       // null if invitee not yet registered
         SharingMode proposedSharingMode,
         AccessLevel proposedRole,
-        SharingRule proposedSharingRule,
         InvitationStatus status,
         Instant createdAt,
         Instant expiresAt,
-        UUID resultingSharedSpaceId
+        UUID sharedSpaceId
 ) {
     public Invitation {
         Objects.requireNonNull(inviterUserId, "inviterUserId");

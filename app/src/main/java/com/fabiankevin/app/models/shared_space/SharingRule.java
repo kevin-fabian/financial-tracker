@@ -1,6 +1,6 @@
 package com.fabiankevin.app.models.shared_space;
 
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.shared_space.ResourceType;
 import lombok.Builder;
 
 import java.util.Set;

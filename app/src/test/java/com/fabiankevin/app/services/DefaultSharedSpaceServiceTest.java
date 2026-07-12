@@ -1,10 +1,10 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.exceptions.shared_space.NotSpaceOwnerException;
-import com.fabiankevin.app.models.enums.AccessLevel;
-import com.fabiankevin.app.models.enums.InvitationStatus;
-import com.fabiankevin.app.models.enums.ParticipantStatus;
-import com.fabiankevin.app.models.enums.SharingMode;
+import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
+import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
+import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
+import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.shared_space.*;
 import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
@@ -51,6 +51,7 @@ class DefaultSharedSpaceServiceTest {
             SendInvitationCommand command = new SendInvitationCommand(
                     inviterUserId,
                     "friend@example.com",
+                    UUID.randomUUID(),
                     null,
                     "Trip Budget",
                     SharingMode.MUTUAL_SHARING,
@@ -100,6 +101,7 @@ class DefaultSharedSpaceServiceTest {
             SendInvitationCommand command = new SendInvitationCommand(
                     inviterUserId,
                     "sibling@example.com",
+                    UUID.randomUUID(),
                     spaceId,
                     null,
                     null,
@@ -113,7 +115,7 @@ class DefaultSharedSpaceServiceTest {
 
             Invitation result = service.sendInvitation(command);
 
-            assertEquals(spaceId, result.resultingSharedSpaceId());
+            assertEquals(spaceId, result.sharedSpaceId());
             assertEquals(SharingMode.MUTUAL_SHARING, result.proposedSharingMode());
             verify(spaceRepository, never()).save(any(SharedSpace.class));
             verify(invitationRepository).save(any(Invitation.class));
@@ -139,6 +141,7 @@ class DefaultSharedSpaceServiceTest {
             SendInvitationCommand command = new SendInvitationCommand(
                     inviterUserId,
                     "stranger@example.com",
+                    UUID.randomUUID(),
                     spaceId,
                     null,
                     null,
@@ -159,6 +162,7 @@ class DefaultSharedSpaceServiceTest {
             SendInvitationCommand command = new SendInvitationCommand(
                     inviterUserId,
                     "friend@example.com",
+                    UUID.randomUUID(),
                     null,
                     null,
                     SharingMode.MUTUAL_SHARING,
@@ -181,6 +185,7 @@ class DefaultSharedSpaceServiceTest {
             SendInvitationCommand command = new SendInvitationCommand(
                     null,
                     "someone@example.com",
+                    UUID.randomUUID(),
                     null,
                     "New Space",
                     SharingMode.MUTUAL_SHARING,
@@ -204,7 +209,8 @@ class DefaultSharedSpaceServiceTest {
             CreateSharedSpaceCommand command = new CreateSharedSpaceCommand(
                     ownerUserId,
                     "Trip Budget",
-                    SharingMode.MUTUAL_SHARING
+                    SharingMode.MUTUAL_SHARING,
+                    List.of()
             );
 
             ArgumentCaptor<SharedSpace> captor = ArgumentCaptor.forClass(SharedSpace.class);
@@ -233,7 +239,8 @@ class DefaultSharedSpaceServiceTest {
             CreateSharedSpaceCommand command = new CreateSharedSpaceCommand(
                     ownerUserId,
                     null,
-                    SharingMode.OWNER_PROVIDES
+                    SharingMode.MUTUAL_SHARING,
+                    List.of()
             );
 
             ArgumentCaptor<SharedSpace> captor = ArgumentCaptor.forClass(SharedSpace.class);
@@ -250,7 +257,8 @@ class DefaultSharedSpaceServiceTest {
             CreateSharedSpaceCommand command = new CreateSharedSpaceCommand(
                     null,
                     "My Space",
-                    SharingMode.MUTUAL_SHARING
+                    SharingMode.MUTUAL_SHARING,
+                    null
             );
 
             assertThrows(IllegalArgumentException.class, () -> service.createShare(command));

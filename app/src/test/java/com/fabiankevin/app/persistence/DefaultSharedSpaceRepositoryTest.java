@@ -1,9 +1,9 @@
 package com.fabiankevin.app.persistence;
 
-import com.fabiankevin.app.models.enums.AccessLevel;
-import com.fabiankevin.app.models.enums.ParticipantStatus;
-import com.fabiankevin.app.models.enums.ResourceType;
-import com.fabiankevin.app.models.enums.SharingMode;
+import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
+import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
+import com.fabiankevin.app.models.enums.shared_space.ResourceType;
+import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.shared_space.SharedResource;
 import com.fabiankevin.app.models.shared_space.SharedSpace;
 import com.fabiankevin.app.models.shared_space.SharingRule;
@@ -55,17 +55,13 @@ class DefaultSharedSpaceRepositoryTest {
 
         SharedResource resource = SharedResource.builder()
                 .type(ResourceType.TRANSACTION)
-                .resourceName("Family Checking")
-                .ownerUserId(ownerUserId)
-                .itemIds(List.of("txn-001", "txn-002"))
-                .sharedByOwner(true)
+                .items(List.of("txn-001", "txn-002"))
                 .sharedAt(Instant.now())
                 .build();
 
         SpaceParticipant participant = SpaceParticipant.builder()
                 .userId(participantUserId)
                 .accessLevel(AccessLevel.READ_WRITE)
-                .invitedByUserId(ownerUserId)
                 .status(ParticipantStatus.ACTIVE)
                 .joinedAt(Instant.now())
                 .sharingRule(SharingRule.MUTUAL_DEFAULT)
@@ -98,7 +94,6 @@ class DefaultSharedSpaceRepositoryTest {
         Assertions.assertThat(retrievedsharedSpace.active()).isTrue();
         Assertions.assertThat(retrievedsharedSpace.createdAt()).isEqualTo(sharedSpace.createdAt());
         Assertions.assertThat(retrievedsharedSpace.updatedAt()).isEqualTo(sharedSpace.updatedAt());
-        Assertions.assertThat(retrievedsharedSpace.expiresAt()).isNull();
 
         Assertions.assertThat(retrievedsharedSpace.participants())
                 .as("participants should be persisted and retrieved")
@@ -108,8 +103,6 @@ class DefaultSharedSpaceRepositoryTest {
         Assertions.assertThat(retrievedParticipant.userId())
                 .isEqualTo(sharedSpace.participants().getFirst().userId());
         Assertions.assertThat(retrievedParticipant.accessLevel()).isEqualTo(AccessLevel.READ_WRITE);
-        Assertions.assertThat(retrievedParticipant.invitedByUserId())
-                .isEqualTo(sharedSpace.ownerUserId());
         Assertions.assertThat(retrievedParticipant.status()).isEqualTo(ParticipantStatus.ACTIVE);
         Assertions.assertThat(retrievedParticipant.joinedAt())
                 .isEqualTo(sharedSpace.participants().getFirst().joinedAt());
@@ -129,10 +122,7 @@ class DefaultSharedSpaceRepositoryTest {
         SharedResource retrievedSharedResource = retrievedsharedSpace.sharedResources().getFirst();
         Assertions.assertThat(retrievedSharedResource.id()).as("resource id should be generated").isNotNull();
         Assertions.assertThat(retrievedSharedResource.type()).isEqualTo(ResourceType.TRANSACTION);
-        Assertions.assertThat(retrievedSharedResource.resourceName()).isEqualTo("Family Checking");
-        Assertions.assertThat(retrievedSharedResource.ownerUserId()).isEqualTo(sharedSpace.ownerUserId());
-        Assertions.assertThat(retrievedSharedResource.itemIds()).containsExactly("txn-001", "txn-002");
-        Assertions.assertThat(retrievedSharedResource.sharedByOwner()).isTrue();
+        Assertions.assertThat(retrievedSharedResource.items()).containsExactly("txn-001", "txn-002");
         Assertions.assertThat(retrievedSharedResource.sharedAt())
                 .isEqualTo(sharedSpace.sharedResources().getFirst().sharedAt());
 
@@ -169,7 +159,7 @@ class DefaultSharedSpaceRepositoryTest {
         Assertions.assertThat(found.get().sharedResources())
                 .as("shared resources should be persisted and retrieved")
                 .hasSize(1);
-        Assertions.assertThat(found.get().sharedResources().getFirst().itemIds())
+        Assertions.assertThat(found.get().sharedResources().getFirst().items())
                 .as("resource item ids should persist")
                 .containsExactly("txn-001", "txn-002");
         Assertions.assertThat(found.get().sharedResources().getFirst().type())
@@ -181,7 +171,7 @@ class DefaultSharedSpaceRepositoryTest {
         SharedSpace minimal = SharedSpace.builder()
                 .spaceName("Empty Space")
                 .ownerUserId(UUID.randomUUID())
-                .sharingMode(SharingMode.OWNER_PROVIDES)
+                .sharingMode(SharingMode.MUTUAL_SHARING)
                 .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())

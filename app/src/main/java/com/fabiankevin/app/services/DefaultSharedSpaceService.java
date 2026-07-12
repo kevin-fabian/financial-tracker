@@ -1,9 +1,9 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.exceptions.shared_space.*;
-import com.fabiankevin.app.models.enums.AccessLevel;
-import com.fabiankevin.app.models.enums.InvitationStatus;
-import com.fabiankevin.app.models.enums.ParticipantStatus;
+import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
+import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
+import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
 import com.fabiankevin.app.models.shared_space.*;
 import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
@@ -35,18 +35,26 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
         initialParticipants.add(SpaceParticipant.builder()
                 .userId(command.ownerUserId())
                 .accessLevel(AccessLevel.READ_WRITE)
-                .invitedByUserId(null)
                 .status(ParticipantStatus.ACTIVE)
                 .joinedAt(Instant.now())
                 .sharingRule(null)
                 .build());
+
+        List<SharedResource> sharedResources = new ArrayList<>();
+        for (AddSharedResourceCommand resource : command.resources()) {
+            sharedResources.add(SharedResource.builder()
+                    .type(resource.type())
+                    .items(resource.itemIds())
+                    .sharedAt(Instant.now())
+                    .build());
+        }
 
         SharedSpace newSpace = SharedSpace.builder()
                 .spaceName(command.spaceName() != null ? command.spaceName() : "Shared Space")
                 .ownerUserId(command.ownerUserId())
                 .participants(initialParticipants)
                 .sharingMode(command.sharingMode())
-                .sharedResources(new ArrayList<>())
+                .sharedResources(sharedResources)
                 .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -77,14 +85,13 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
         Invitation invitation = Invitation.builder()
                 .inviterUserId(command.inviterUserId())
                 .inviteeEmail(command.inviteeEmail())
-                .inviteeUserId(null)
+                .inviteeUserId(command.inviteeUserId())
                 .proposedSharingMode(space.sharingMode())
                 .proposedRole(command.proposedRole())
-                .proposedSharingRule(command.proposedSharingRule())
                 .status(InvitationStatus.PENDING)
                 .createdAt(Instant.now())
                 .expiresAt(Instant.now().plus(Duration.ofDays(7)))
-                .resultingSharedSpaceId(space.id())
+                .sharedSpaceId(space.id())
                 .build();
 
         // TODO notify the recipient
@@ -105,23 +112,20 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
                 .inviteeUserId(command.acceptingUserId())
                 .proposedSharingMode(invitation.proposedSharingMode())
                 .proposedRole(invitation.proposedRole())
-                .proposedSharingRule(invitation.proposedSharingRule())
                 .status(InvitationStatus.ACCEPTED)
                 .createdAt(invitation.createdAt())
                 .expiresAt(invitation.expiresAt())
-                .resultingSharedSpaceId(invitation.resultingSharedSpaceId())
+                .sharedSpaceId(invitation.sharedSpaceId())
                 .build();
         invitationRepository.save(invitation);
 
-        SharedSpace space = findSpaceOrThrow(invitation.resultingSharedSpaceId());
+        SharedSpace space = findSpaceOrThrow(invitation.sharedSpaceId());
 
         SpaceParticipant participant = SpaceParticipant.builder()
                 .userId(command.acceptingUserId())
                 .accessLevel(invitation.proposedRole())
-                .invitedByUserId(invitation.inviterUserId())
                 .status(ParticipantStatus.ACTIVE)
                 .joinedAt(Instant.now())
-                .sharingRule(invitation.proposedSharingRule())
                 .build();
 
         List<SpaceParticipant> updatedParticipants = new ArrayList<>(space.participants());
@@ -155,11 +159,10 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
                 .inviteeUserId(invitation.inviteeUserId())
                 .proposedSharingMode(invitation.proposedSharingMode())
                 .proposedRole(invitation.proposedRole())
-                .proposedSharingRule(invitation.proposedSharingRule())
                 .status(InvitationStatus.REJECTED)
                 .createdAt(invitation.createdAt())
                 .expiresAt(invitation.expiresAt())
-                .resultingSharedSpaceId(invitation.resultingSharedSpaceId())
+                .sharedSpaceId(invitation.sharedSpaceId())
                 .build();
 
         return invitationRepository.save(updatedInvitation);
@@ -185,11 +188,10 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
                 .inviteeUserId(invitation.inviteeUserId())
                 .proposedSharingMode(invitation.proposedSharingMode())
                 .proposedRole(invitation.proposedRole())
-                .proposedSharingRule(invitation.proposedSharingRule())
                 .status(InvitationStatus.REVOKED)
                 .createdAt(invitation.createdAt())
                 .expiresAt(invitation.expiresAt())
-                .resultingSharedSpaceId(invitation.resultingSharedSpaceId())
+                .sharedSpaceId(invitation.sharedSpaceId())
                 .build();
 
         return invitationRepository.save(updatedInvitation);
@@ -245,29 +247,35 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
     @Override
     public List<SharedResource> getVisibleResources(UUID spaceId, UUID viewerId) {
         SharedSpace space = findSpaceOrThrow(spaceId);
-        SpaceParticipant viewer = findParticipantOrThrow(space, viewerId);
+//        SpaceParticipant viewer = findParticipantOrThrow(space, viewerId);
 
-        SharingRule rule = permissionResolver.resolveRule(space, viewer);
+//        SharingRule rule = permissionResolver.resolveRule(space, viewer);
 
         return space.sharedResources().stream()
-                .filter(resource -> permissionResolver.canViewResource(space, viewerId, resource.ownerUserId(), resource.type()))
+                .filter(resource -> permissionResolver.canViewResource(space, viewerId, resource.type()))
                 .collect(Collectors.toList());
     }
 
     @Transactional
     @Override
-    public SharedResource addResource(UUID spaceId, SharedResource resource) {
+    public SharedResource addResource(UUID spaceId, AddSharedResourceCommand command) {
         SharedSpace space = findSpaceOrThrow(spaceId);
-        SpaceParticipant contributor = findParticipantOrThrow(space, resource.ownerUserId());
+        SpaceParticipant contributor = findParticipantOrThrow(space, command.ownerUserId());
 
         SharingRule rule = permissionResolver.resolveRule(space, contributor);
         if (!rule.sharesOwnResources()) {
             throw new ForbiddenException("User is not allowed to share resources");
         }
 
-        if (!rule.visibleResourceTypes().contains(resource.type())) {
+        if (!rule.visibleResourceTypes().contains(command.type())) {
             throw new IllegalArgumentException("Resource type not allowed by sharing rules");
         }
+
+        SharedResource resource = SharedResource.builder()
+                .type(command.type())
+                .items(command.itemIds())
+                .sharedAt(Instant.now())
+                .build();
 
         List<SharedResource> updatedResources = new ArrayList<>(space.sharedResources());
         updatedResources.add(resource);
@@ -328,7 +336,6 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
         initialParticipants.add(SpaceParticipant.builder()
                 .userId(command.inviterUserId())
                 .accessLevel(AccessLevel.READ_WRITE)
-                .invitedByUserId(null)
                 .status(ParticipantStatus.ACTIVE)
                 .joinedAt(Instant.now())
                 .sharingRule(null)

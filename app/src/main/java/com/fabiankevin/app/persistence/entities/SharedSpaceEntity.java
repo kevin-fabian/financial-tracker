@@ -1,6 +1,6 @@
 package com.fabiankevin.app.persistence.entities;
 
-import com.fabiankevin.app.models.enums.SharingMode;
+import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.shared_space.SharedResource;
 import com.fabiankevin.app.models.shared_space.SharedSpace;
 import com.fabiankevin.app.models.shared_space.SpaceParticipant;
@@ -67,7 +67,6 @@ public class SharedSpaceEntity {
                 .sharedResources(new HashSet<>())
                 .createdAt(space.createdAt())
                 .updatedAt(space.updatedAt())
-                .expiresAt(space.expiresAt())
                 .build();
 
         for (SpaceParticipant participant : space.participants()) {
@@ -112,7 +111,6 @@ public class SharedSpaceEntity {
                 .active(this.active)
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)
-                .expiresAt(this.expiresAt)
                 .build();
     }
 

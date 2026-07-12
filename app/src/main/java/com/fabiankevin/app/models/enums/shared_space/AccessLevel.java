@@ -1,4 +1,4 @@
-package com.fabiankevin.app.models.enums;
+package com.fabiankevin.app.models.enums.shared_space;
 
 import java.util.Set;
 

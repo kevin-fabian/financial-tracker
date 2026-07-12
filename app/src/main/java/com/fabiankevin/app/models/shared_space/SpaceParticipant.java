@@ -1,7 +1,7 @@
 package com.fabiankevin.app.models.shared_space;
 
-import com.fabiankevin.app.models.enums.AccessLevel;
-import com.fabiankevin.app.models.enums.ParticipantStatus;
+import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
+import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
 import lombok.Builder;
 
 import java.time.Instant;
@@ -13,7 +13,6 @@ public record SpaceParticipant(
         UUID id,
         UUID userId,
         AccessLevel accessLevel,
-        UUID invitedByUserId,
         ParticipantStatus status,
         Instant joinedAt,
         SharingRule sharingRule // null = use space's defaultSharingRule or mode-based default

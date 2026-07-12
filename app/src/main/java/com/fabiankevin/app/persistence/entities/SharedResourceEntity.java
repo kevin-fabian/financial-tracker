@@ -1,9 +1,11 @@
 package com.fabiankevin.app.persistence.entities;
 
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.shared_space.ResourceType;
 import com.fabiankevin.app.models.shared_space.SharedResource;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.List;
@@ -26,15 +28,11 @@ public class SharedResourceEntity {
     @Column(name = "resource_type")
     private ResourceType type;
 
-    @Column(name = "resource_name")
-    private String resourceName;
-
     @Column(name = "owner_user_id")
     private UUID ownerUserId;
 
-    @ElementCollection
-    @CollectionTable(name = "shared_resource_item_ids", joinColumns = @JoinColumn(name = "shared_resource_id"))
-    @Column(name = "item_id")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "item_id", columnDefinition = "json")
     private List<String> itemIds;
 
     @Column(name = "shared_by_owner")
@@ -52,10 +50,7 @@ public class SharedResourceEntity {
         return SharedResourceEntity.builder()
                 .id(resource.id())
                 .type(resource.type())
-                .resourceName(resource.resourceName())
-                .ownerUserId(resource.ownerUserId())
-                .itemIds(resource.itemIds())
-                .sharedByOwner(resource.sharedByOwner())
+                .itemIds(resource.items())
                 .sharedAt(resource.sharedAt())
                 .build();
     }
@@ -64,10 +59,7 @@ public class SharedResourceEntity {
         return SharedResource.builder()
                 .id(this.id)
                 .type(this.type)
-                .resourceName(this.resourceName)
-                .ownerUserId(this.ownerUserId)
-                .itemIds(this.itemIds)
-                .sharedByOwner(this.sharedByOwner)
+                .items(this.itemIds)
                 .sharedAt(this.sharedAt)
                 .build();
     }
