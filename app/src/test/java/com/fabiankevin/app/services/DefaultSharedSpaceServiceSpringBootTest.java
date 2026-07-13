@@ -20,12 +20,15 @@
 //import com.fabiankevin.app.web.controllers.dtos.StatsQuery;
 //import org.junit.jupiter.api.DisplayName;
 //import org.junit.jupiter.api.Test;
+//import org.mockito.Mock;
 //import org.springframework.beans.factory.annotation.Autowired;
 //import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 //import org.springframework.boot.security.oauth2.client.autoconfigure.OAuth2ClientAutoConfiguration;
 //import org.springframework.boot.test.context.SpringBootTest;
+//import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 //import org.springframework.test.context.ActiveProfiles;
 //import org.springframework.test.context.bean.override.mockito.MockitoBean;
+//import org.springframework.web.client.RestClient;
 //
 //import java.time.Instant;
 //import java.time.LocalDate;
@@ -37,9 +40,6 @@
 //
 //@ActiveProfiles("test")
 //@SpringBootTest
-//@EnableAutoConfiguration(exclude = {
-//        OAuth2ClientAutoConfiguration.class,
-//})
 //public class DefaultSharedSpaceServiceSpringBootTest {
 //    @Autowired
 //    private SharedSpaceService sharedSpaceService;
@@ -53,6 +53,10 @@
 //    private CategoryRepository categoryRepository;
 //    @MockitoBean
 //    private UserClient userClient;
+//    @MockitoBean
+//    private RestClient restClient;
+//    @MockitoBean
+//    private ClientRegistrationRepository clientRegistrationRepository;
 //
 //    @DisplayName("""
 //            Mutual sharing mode: transactions should be combined after space acceptance
