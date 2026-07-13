@@ -68,14 +68,13 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
     public Invitation sendInvitation(SendInvitationCommand command) {
         validateSendCommand(command);
 
-        SharedSpace space;
-        if (command.spaceId() != null) {
-            space = findSpaceOrThrow(command.spaceId());
-            if (!space.ownerUserId().equals(command.inviterUserId())) {
-                throw new NotSpaceOwnerException();
-            }
-        } else {
-            space = createNewSpace(command);
+        if (command.spaceId() == null) {
+            throw new SharedSpaceNotExistException();
+        }
+
+        SharedSpace space = findSpaceOrThrow(command.spaceId());
+        if (!space.ownerUserId().equals(command.inviterUserId())) {
+            throw new NotSpaceOwnerException();
         }
 
         if (isUserParticipant(space, command.inviteeEmail())) {
@@ -326,9 +325,6 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
         if (command.proposedRole() == null) {
             throw new IllegalArgumentException("Proposed role cannot be null");
         }
-        if (command.spaceId() == null && command.sharingMode() == null) {
-            throw new IllegalArgumentException("Sharing mode required when creating new space");
-        }
     }
 
     private void validateCreateCommand(CreateSharedSpaceCommand command) {
@@ -338,31 +334,6 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
         if (command.sharingMode() == null) {
             throw new IllegalArgumentException("Sharing mode cannot be null");
         }
-    }
-
-    private SharedSpace createNewSpace(SendInvitationCommand command) {
-        List<SpaceParticipant> initialParticipants = new ArrayList<>();
-
-        initialParticipants.add(SpaceParticipant.builder()
-                .userId(command.inviterUserId())
-                .accessLevel(AccessLevel.READ_WRITE)
-                .status(ParticipantStatus.ACTIVE)
-                .joinedAt(Instant.now())
-                .sharingRule(null)
-                .build());
-
-        SharedSpace newSpace = SharedSpace.builder()
-                .spaceName(command.spaceName() != null ? command.spaceName() : "Shared Space")
-                .ownerUserId(command.inviterUserId())
-                .participants(initialParticipants)
-                .sharingMode(command.sharingMode())
-                .sharedResources(new ArrayList<>())
-                .active(true)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-
-        return spaceRepository.save(newSpace);
     }
 
     private boolean isUserParticipant(SharedSpace space, String email) {

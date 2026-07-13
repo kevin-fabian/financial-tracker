@@ -1,8 +1,8 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.exceptions.shared_space.NotSpaceOwnerException;
+import com.fabiankevin.app.exceptions.shared_space.SharedSpaceNotExistException;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
-import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
 import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.shared_space.Invitation;
@@ -50,7 +50,7 @@ class DefaultSharedSpaceServiceTest {
     class SendInvitation {
 
         @Test
-        void givenNewSpaceRequest_thenCreatesSpaceAndSendsInvitation() {
+        void givenNullSpaceId_thenThrowsSharedSpaceNotExistException() {
             UUID inviterUserId = UUID.randomUUID();
             SendInvitationCommand command = new SendInvitationCommand(
                     inviterUserId,
@@ -62,19 +62,9 @@ class DefaultSharedSpaceServiceTest {
                     AccessLevel.READ_WRITE
             );
 
-            when(spaceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-            when(invitationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-            Invitation result = service.sendInvitation(command);
-
-            assertNotNull(result);
-            assertEquals(InvitationStatus.PENDING, result.status());
-            assertEquals(inviterUserId, result.inviterUserId());
-            assertEquals("friend@example.com", result.inviteeEmail());
-            assertEquals(AccessLevel.READ_WRITE, result.proposedRole());
-
-            verify(spaceRepository).save(any(SharedSpace.class));
-            verify(invitationRepository).save(any(Invitation.class));
+            assertThrows(SharedSpaceNotExistException.class, () -> service.sendInvitation(command));
+            verify(spaceRepository, never()).save(any(SharedSpace.class));
+            verify(invitationRepository, never()).save(any(Invitation.class));
         }
 
         @Test
@@ -155,7 +145,7 @@ class DefaultSharedSpaceServiceTest {
         }
 
         @Test
-        void givenNewSpaceWithNullName_thenUsesDefaultName() {
+        void givenNullSpaceIdWithNullName_thenThrowsSharedSpaceNotExistException() {
             UUID inviterUserId = UUID.randomUUID();
             SendInvitationCommand command = new SendInvitationCommand(
                     inviterUserId,
@@ -167,13 +157,9 @@ class DefaultSharedSpaceServiceTest {
                     AccessLevel.READ_WRITE
             );
 
-            ArgumentCaptor<SharedSpace> captor = ArgumentCaptor.forClass(SharedSpace.class);
-            when(spaceRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
-            when(invitationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-            service.sendInvitation(command);
-
-            assertEquals("Shared Space", captor.getValue().spaceName());
+            assertThrows(SharedSpaceNotExistException.class, () -> service.sendInvitation(command));
+            verify(spaceRepository, never()).save(any(SharedSpace.class));
+            verify(invitationRepository, never()).save(any(Invitation.class));
         }
 
         @Test
