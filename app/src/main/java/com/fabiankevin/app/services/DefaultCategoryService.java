@@ -32,6 +32,12 @@ public class DefaultCategoryService implements CategoryService {
     @Transactional
     @Override
     public Category createCategory(CreateCategoryCommand command) {
+        return categoryRepository.findInactiveByNameAndTypeAndUserId(command.name(), command.type(), command.userId())
+                .map(inactiveCategory -> reactivateCategory(inactiveCategory, command))
+                .orElseGet(() -> createNewCategory(command));
+    }
+
+    private Category createNewCategory(CreateCategoryCommand command) {
         if (categoryRepository.existsByNameAndTypeAndUserId(command.name(), command.type(), command.userId())) {
             throw new CategoryAlreadyExistException("Category with the same name and type already exists for the user");
         }
@@ -41,6 +47,8 @@ public class DefaultCategoryService implements CategoryService {
                 .type(command.type())
                 .icon(command.icon())
                 .userId(command.userId())
+                .active(true)
+                .system(false)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -48,10 +56,28 @@ public class DefaultCategoryService implements CategoryService {
         return categoryRepository.save(newCategory);
     }
 
+    private Category reactivateCategory(Category inactiveCategory, CreateCategoryCommand command) {
+        return categoryRepository.save(inactiveCategory.toBuilder()
+                .active(true)
+                .icon(command.icon())
+                .updatedAt(Instant.now())
+                .build());
+    }
+
     @Transactional
     @Override
     public void deleteCategoryById(UUID id, UUID userId) {
         categoryRepository.deleteByIdAndUserId(id, userId);
+    }
+
+    @Transactional
+    @Override
+    public void disableCategory(UUID id, UUID userId) {
+        categoryRepository.findByIdAndUserId(id, userId)
+                .ifPresentOrElse(
+                        category -> categoryRepository.save(category.toBuilder().active(false).build()),
+                        () -> { throw new CategoryNotFoundException(); }
+                );
     }
 
     @Override

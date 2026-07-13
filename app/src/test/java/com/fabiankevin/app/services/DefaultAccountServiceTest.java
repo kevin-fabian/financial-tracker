@@ -9,6 +9,7 @@ import com.fabiankevin.app.services.commands.PatchAccountCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -20,8 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static com.fabiankevin.app.models.enums.AccountType.E_WALLET;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -206,6 +206,98 @@ class DefaultAccountServiceTest {
         assertThrows(AccountNotFoundException.class, () -> accountService.patchAccount(command));
         verify(accountRepository, times(1)).findById(id);
         verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void disableAccount_givenExistingAndMatchingUser_thenShouldDisableAccount() {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        Account existing = Account.builder()
+                .id(id)
+                .name("GCASH")
+                .userId(userId)
+                .currency(Currency.getInstance("PHP"))
+                .type(E_WALLET)
+                .active(true)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
+        when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        accountService.disableAccount(id, userId);
+
+        verify(accountRepository, times(1)).findById(id);
+        verify(accountRepository, times(1)).save(any());
+        ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
+        verify(accountRepository).save(captor.capture());
+        assertFalse(captor.getValue().active(), "account should be disabled");
+    }
+
+    @Test
+    void disableAccount_givenNonExisting_thenShouldThrow() {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        when(accountRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(AccountNotFoundException.class, () -> accountService.disableAccount(id, userId));
+        verify(accountRepository, times(1)).findById(id);
+        verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void disableAccount_givenDifferentUser_thenShouldThrow() {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+
+        Account existing = Account.builder()
+                .id(id)
+                .name("GCASH")
+                .userId(otherUserId)
+                .currency(Currency.getInstance("PHP"))
+                .type(E_WALLET)
+                .active(true)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
+
+        assertThrows(AccountNotFoundException.class, () -> accountService.disableAccount(id, userId));
+        verify(accountRepository, times(1)).findById(id);
+        verify(accountRepository, never()).save(any());
+    }
+
+    @Test
+    void disableAccount_givenAlreadyDisabled_thenShouldStillSucceedIdempotent() {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+
+        Account existing = Account.builder()
+                .id(id)
+                .name("GCASH")
+                .userId(userId)
+                .currency(Currency.getInstance("PHP"))
+                .type(E_WALLET)
+                .active(false)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
+        when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        accountService.disableAccount(id, userId);
+
+        verify(accountRepository, times(1)).findById(id);
+        verify(accountRepository, times(1)).save(any());
+        ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
+        verify(accountRepository).save(captor.capture());
+        assertFalse(captor.getValue().active(), "account should remain disabled");
     }
 
     @Test

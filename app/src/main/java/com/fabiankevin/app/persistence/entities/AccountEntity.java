@@ -33,6 +33,12 @@ public class AccountEntity {
     @Column(nullable = false)
     private Instant updatedAt;
 
+    @Column(nullable = false)
+    private boolean active = true;
+
+    @Column(name = "`system`", nullable = false)
+    private boolean system = false;
+
     public static AccountEntity from(Account account) {
         if (account == null) return null;
         return AccountEntity.builder()
@@ -41,6 +47,8 @@ public class AccountEntity {
                 .userId(account.userId())
                 .currency(Optional.ofNullable(account.currency()).map(Currency::getCurrencyCode).orElse(null))
                 .type(account.type() != null ? account.type().name() : null)
+                .active(account.active())
+                .system(account.system())
                 .createdAt(account.createdAt())
                 .updatedAt(account.updatedAt())
                 .build();
@@ -53,6 +61,8 @@ public class AccountEntity {
                 .userId(this.userId)
                 .currency(Optional.ofNullable(this.currency).map(Currency::getInstance).orElse(null))
                 .type(Optional.ofNullable(this.type).map(AccountType::valueOf).orElse(null))
+                .active(this.active)
+                .system(this.system)
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)
                 .build();

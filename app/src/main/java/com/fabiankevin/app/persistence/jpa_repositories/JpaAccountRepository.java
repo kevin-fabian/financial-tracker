@@ -21,7 +21,7 @@ public interface JpaAccountRepository extends JpaRepository<AccountEntity, UUID>
     long deleteAllByUserId(UUID userId);
 
     @Query("""
-            SELECT acc.id, acc.name, acc.userId, acc.currency, acc.type,
+            SELECT acc.id, acc.name, acc.userId, acc.currency, acc.type, acc.active, acc.system,
                 COALESCE(SUM(CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amount ELSE -t.amount END), 0.0) AS totalBalance,
                 CAST(COALESCE(COUNT(t.id), 0) AS int)
             FROM AccountEntity acc

@@ -32,16 +32,3 @@ databaseChangeLog:
           dbms: postgresql
           path: rollbacks/U1.0.2_grants.sql
           relativeToChangelogFile: true
-
-  - changeSet:
-      author: kevin.fabian
-      id: 1.0.3
-      sqlFile:
-        dbms: 'postgresql'
-        path: rollouts/V1.0.3_drop_active_and_system_columns.sql
-        relativeToChangelogFile: true
-      rollback:
-        sqlFile:
-          dbms: postgresql
-          path: rollbacks/U1.0.3_drop_active_and_system_columns.sql
-          relativeToChangelogFile: true

@@ -60,6 +60,7 @@ class DefaultAccountRepositoryTest {
                 .userId(UUID.randomUUID())
                 .currency(Currency.getInstance("PHP"))
                 .type(AccountType.E_WALLET)
+                .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -161,6 +162,7 @@ class DefaultAccountRepositoryTest {
                     .userId(userId)
                     .currency(java.util.Currency.getInstance("PHP"))
                     .type(BANK_ACCOUNT)
+                    .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -169,6 +171,7 @@ class DefaultAccountRepositoryTest {
                     .userId(userId)
                     .currency(java.util.Currency.getInstance("PHP"))
                     .type(BANK_ACCOUNT)
+                    .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -177,6 +180,7 @@ class DefaultAccountRepositoryTest {
                     .userId(userId)
                     .currency(java.util.Currency.getInstance("PHP"))
                     .type(BANK_ACCOUNT)
+                    .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -255,6 +259,7 @@ class DefaultAccountRepositoryTest {
                     .userId(userId)
                     .currency(java.util.Currency.getInstance("USD"))
                     .type(AccountType.CASH)
+                    .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();

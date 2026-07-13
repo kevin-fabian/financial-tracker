@@ -13,6 +13,8 @@ public record CategorySummary(
         TransactionType type,
         UUID userId,
         String icon,
+        boolean active,
+        boolean system,
         double totalAmount,
         double percentage,
         int totalTransactions

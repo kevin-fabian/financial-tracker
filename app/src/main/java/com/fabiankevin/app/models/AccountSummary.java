@@ -15,6 +15,8 @@ public record AccountSummary(
         List<UUID> userIds,
         Currency currency,
         AccountType type,
+        boolean active,
+        boolean system,
         double totalBalance,
         int totalTransactions) {
     public AccountSummary {

@@ -160,4 +160,20 @@ public class AccountController {
         accountService.deleteAccountById(id, userId);
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(
+            summary = "Disable an account",
+            description = "Disables an account by specified ID. This operation is idempotent.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - Resource disabled successfully"),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @PatchMapping("/{accountId}/disable")
+    public ResponseEntity<Void> disableAccount(@PathVariable UUID accountId, JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        accountService.disableAccount(accountId, userId);
+        return ResponseEntity.ok().build();
+    }
 }

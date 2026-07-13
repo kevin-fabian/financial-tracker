@@ -12,6 +12,8 @@ public record CategorySummaryProjection(
         TransactionType type,
         UUID userId,
         String icon,
+        boolean active,
+        boolean system,
         double amount,
         int totalTransactions
 ) {

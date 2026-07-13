@@ -570,6 +570,32 @@ class CategoryControllerTest {
     }
 
     @Test
+    void disableCategory_givenValidCategoryId_shouldDelegateCategoryIdAndUserIdAndReturnNoContent() throws Exception {
+        UUID categoryId = UUID.randomUUID();
+        UUID userId = UUID.fromString(jwt.getSubject());
+
+        mockMvc.perform(post("/api/categories/" + categoryId + "/disable")
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isNoContent());
+
+        verify(categoryService, times(1)).disableCategory(categoryId, userId);
+    }
+
+    @Test
+    void disableCategory_givenInvalidCategoryId_shouldThrowCategoryNotFoundException() throws Exception {
+        UUID categoryId = UUID.randomUUID();
+
+        doThrow(new com.fabiankevin.app.exceptions.CategoryNotFoundException())
+                .when(categoryService).disableCategory(any(), any());
+
+        mockMvc.perform(post("/api/categories/" + categoryId + "/disable")
+                        .with(jwt().jwt(jwt)))
+                .andExpect(status().isNotFound());
+
+        verify(categoryService, times(1)).disableCategory(eq(categoryId), any());
+    }
+
+    @Test
     void getCategorySummariesByPageQuery_givenValidParams_thenShouldReturnPagedSummaryResponse() throws Exception {
         UUID userId = UUID.fromString(jwt.getSubject());
         PageQuery query = new PageQuery(0, 2, "name", "ASC");
