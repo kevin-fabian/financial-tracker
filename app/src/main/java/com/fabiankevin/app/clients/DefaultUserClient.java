@@ -1,7 +1,10 @@
 package com.fabiankevin.app.clients;
 
 import com.fabiankevin.app.clients.dtos.UserClientResponse;
+import com.fabiankevin.app.exceptions.users.UserNotFoundException;
 import com.fabiankevin.app.models.User;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 import static org.springframework.security.oauth2.client.web.ClientAttributes.clientRegistrationId;
@@ -22,13 +25,20 @@ public class DefaultUserClient implements UserClient {
 
     @Override
     public User getUserByEmail(String email) {
-        UserClientResponse response = restClient.get()
-                .uri(uriBuilder -> uriBuilder.path("/users")
-                        .queryParam("email", email)
-                        .build())
-                .retrieve()
-                .body(UserClientResponse.class);
+        try {
+            UserClientResponse response = restClient.get()
+                    .uri(uriBuilder -> uriBuilder.path("/users")
+                            .queryParam("email", email)
+                            .build())
+                    .retrieve()
+                    .body(UserClientResponse.class);
 
-        return response.toModel();
+            return response.toModel();
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode().equals(HttpStatusCode.valueOf(404))) {
+                throw new UserNotFoundException(email);
+            }
+            throw e;
+        }
     }
 }

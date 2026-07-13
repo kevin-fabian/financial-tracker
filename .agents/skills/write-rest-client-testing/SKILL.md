@@ -45,6 +45,48 @@ The first provides the production `RestClient` support; the second provides `@Re
 - No comments inside test methods.
 - Keep blank-line separation between Arrange, Act, and Assert blocks.
 
+## When the Client Uses `RestClient` Directly (Manual Bean Wiring)
+
+`@RestClientTest(ClientClass.class)` relies on Spring Boot's auto-configuration to construct the client. This fails when the client is **instantiated programmatically** — e.g. `new DefaultUserClient(restClient, baseUrl, clientId)` with `.mutate()` and custom default-request attributes (`clientRegistrationId`, `principal`, etc.). In that case, the auto-configured bean is never created, and the test context won't inject the client.
+
+**Use a `@TestConfiguration` to wire the beans manually:**
+
+```java
+@RestClientTest
+class DefaultUserClientTest {
+    @Autowired
+    private UserClient userClient;
+
+    @Autowired
+    private MockRestServiceServer mockServer;
+
+    private static final String BASE_URL = "http://localhost:1212/api";
+
+    @TestConfiguration
+    static class TestBeanConfiguration {
+        @Bean
+        public RestClient restClient(RestClient.Builder restClientBuilder) {
+            return restClientBuilder.build();
+        }
+
+        @Bean
+        public UserClient userClient(RestClient restClient) {
+            return new DefaultUserClient(restClient,
+                    BASE_URL,
+                    "zeny-service");
+        }
+    }
+}
+```
+
+**Rules for this pattern:**
+
+- Use bare `@RestClientTest` (no class argument) — the auto-configuration slice stays active but no client is auto-injected.
+- Inject `RestClient.Builder` into a `@Bean` factory and call `.build()` to produce a `RestClient`. This builder is auto-configured by `@RestClientTest` and is already backed by `MockRestServiceServer`, so every request it sends will be intercepted.
+- Re-construct the client constructor call **exactly as production does** — same base URL, client IDs, and any OAuth2 default-request attributes. Any mismatch lets a request hit a real endpoint or skip the mock.
+- `MockRestServiceServer` is still `@Autowired`; call `expect(...)` and `verify()` exactly as in the auto-wired variant.
+- Do this whenever the production client takes a raw `RestClient` (or `RestClient.Builder`) instead of being auto-configured via properties.
+
 ## Test Scenarios to Cover
 
 | Scenario | Mock Response | Expected Exception / Result |

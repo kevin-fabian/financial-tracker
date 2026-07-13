@@ -1,6 +1,7 @@
 package com.fabiankevin.app.clients;
 
 import com.fabiankevin.app.clients.dtos.UserClientResponse;
+import com.fabiankevin.app.exceptions.users.UserNotFoundException;
 import com.fabiankevin.app.models.User;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -96,8 +97,22 @@ class DefaultUserClientTest {
         this.mockServer.verify();
     }
 
+    @Test
+    void getUserByEmail_userNotFound_apiReturns404_throwsUserNotFoundException() {
+        String expectedEmail = "john@example.com";
+
+        this.mockServer.expect(requestTo(BASE_URL + "/users?email=" + expectedEmail))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withStatus(HttpStatus.NOT_FOUND));
+
+        assertThatThrownBy(() -> userClient.getUserByEmail(expectedEmail))
+                .isInstanceOf(UserNotFoundException.class);
+
+        this.mockServer.verify();
+    }
+
     @ParameterizedTest
-    @ValueSource(ints = {400, 401, 403, 404})
+    @ValueSource(ints = {400, 401, 403})
     void getUserByEmail_clientError_apiReturns4xx_propagatesHttpClientErrorException(int httpStatus) {
         String expectedEmail = "john@example.com";
 
