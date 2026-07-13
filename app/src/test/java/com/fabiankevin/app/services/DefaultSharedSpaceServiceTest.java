@@ -17,6 +17,7 @@ import com.fabiankevin.app.persistence.SharedSpaceRepository;
 import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
 import com.fabiankevin.app.services.commands.shared_space.CreateSharedSpaceCommand;
 import com.fabiankevin.app.services.commands.shared_space.SendInvitationCommand;
+import com.github.fabiankevin.lemon.web.exceptions.DomainException;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,18 +55,14 @@ class DefaultSharedSpaceServiceTest {
         void givenNullSpaceId_thenThrows() {
             UUID inviterUserId = UUID.randomUUID();
             UUID inviteeUserId = UUID.randomUUID();
-            SendInvitationCommand command = new SendInvitationCommand(
+            assertThrows(NullPointerException.class, () -> new SendInvitationCommand(
                     inviterUserId,
                     inviteeUserId,
                     null,
                     "Trip Budget",
                     SharingMode.MUTUAL_SHARING,
                     AccessLevel.READ_WRITE
-            );
-
-            assertThrows(IllegalArgumentException.class, () -> service.sendInvitation(command));
-            verify(spaceRepository, never()).save(any(SharedSpace.class));
-            verify(invitationRepository, never()).save(any(Invitation.class));
+            ));
         }
 
         @Test
@@ -252,34 +249,28 @@ class DefaultSharedSpaceServiceTest {
         @Test
         void givenNullInviterUserId_thenThrows() {
             UUID inviteeUserId = UUID.randomUUID();
-            SendInvitationCommand command = new SendInvitationCommand(
+            UUID spaceId = UUID.randomUUID();
+            assertThrows(NullPointerException.class, () -> new SendInvitationCommand(
                     null,
                     inviteeUserId,
-                    null,
+                    spaceId,
                     "New Space",
                     SharingMode.MUTUAL_SHARING,
                     AccessLevel.READ_WRITE
-            );
-
-            assertThrows(IllegalArgumentException.class, () -> service.sendInvitation(command));
-            verify(spaceRepository, never()).save(any());
-            verify(invitationRepository, never()).save(any());
+            ));
         }
 
         @Test
         void givenNullInviteeUserId_thenThrows() {
             UUID inviterUserId = UUID.randomUUID();
-            SendInvitationCommand command = new SendInvitationCommand(
+            assertThrows(NullPointerException.class, () -> new SendInvitationCommand(
                     inviterUserId,
                     null,
                     UUID.randomUUID(),
                     null,
                     SharingMode.MUTUAL_SHARING,
                     AccessLevel.READ_WRITE
-            );
-
-            assertThrows(IllegalArgumentException.class, () -> service.sendInvitation(command));
-            verify(invitationRepository, never()).save(any());
+            ));
         }
     }
 
@@ -374,7 +365,7 @@ class DefaultSharedSpaceServiceTest {
                     null
             );
 
-            assertThrows(IllegalArgumentException.class, () -> service.createShare(command));
+            assertThrows(DomainException.class, () -> service.createShare(command));
             verify(spaceRepository, never()).save(any());
         }
 

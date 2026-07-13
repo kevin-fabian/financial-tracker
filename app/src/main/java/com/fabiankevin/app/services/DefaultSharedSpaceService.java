@@ -8,6 +8,7 @@ import com.fabiankevin.app.models.shared_space.*;
 import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
 import com.fabiankevin.app.services.commands.shared_space.*;
+import com.github.fabiankevin.lemon.web.exceptions.DomainException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -69,8 +70,6 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
     @Transactional
     @Override
     public Invitation sendInvitation(SendInvitationCommand command) {
-        validateSendCommand(command);
-
         SharedSpace space = findSpaceOrThrow(command.spaceId());
         if (!space.ownerUserId().equals(command.inviterUserId())) {
             throw new NotSpaceOwnerException();
@@ -156,7 +155,7 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
         }
 
         if (invitation.status() != InvitationStatus.PENDING) {
-            throw new IllegalStateException("Only pending invitations can be rejected");
+            throw new InvitationAlreadyHandledException();
         }
 
         Invitation updatedInvitation = Invitation.builder()
@@ -184,7 +183,7 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
         }
 
         if (invitation.status() != InvitationStatus.PENDING) {
-            throw new IllegalStateException("Only pending invitations can be revoked");
+            throw new InvitationAlreadyHandledException();
         }
 
         Invitation updatedInvitation = Invitation.builder()
@@ -278,7 +277,7 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
         }
 
         if (!rule.visibleResourceTypes().contains(command.type())) {
-            throw new IllegalArgumentException("Resource type not allowed by sharing rules");
+            throw new ForbiddenException("Resource type is not permitted by the sharing rules");
         }
 
         SharedResource resource = SharedResource.builder()
@@ -318,22 +317,7 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
         return space.participants().stream()
                 .filter(p -> p.userId().equals(userId))
                 .findFirst()
-                .orElseThrow(SharedSpaceNotFoundException::new);
-    }
-
-    private void validateSendCommand(SendInvitationCommand command) {
-        if (command.inviterUserId() == null) {
-            throw new IllegalArgumentException("Inviter ID cannot be null");
-        }
-        if (command.inviteeUserId() == null) {
-            throw new IllegalArgumentException("Invitee user ID cannot be null");
-        }
-        if (command.proposedRole() == null) {
-            throw new IllegalArgumentException("Proposed role cannot be null");
-        }
-        if (command.spaceId() == null) {
-            throw new IllegalArgumentException("Space ID cannot be null");
-        }
+                .orElseThrow(() -> new ParticipantNotFoundException(userId));
     }
 
     private void validateCreateCommand(CreateSharedSpaceCommand command) {
@@ -341,7 +325,7 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
             throw new IllegalArgumentException("Owner user ID cannot be null");
         }
         if (command.sharingMode() == null) {
-            throw new IllegalArgumentException("Sharing mode cannot be null");
+            throw new DomainException("Sharing mode cannot be null");
         }
     }
 
@@ -352,11 +336,11 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
 
     private void validateInvitationActive(Invitation invitation) {
         if (invitation.isNotPending()) {
-            throw new IllegalStateException("Invitation is not pending");
+            throw new InvitationAlreadyHandledException();
         }
 
         if (invitation.isExpired()) {
-            throw new IllegalStateException("Invitation has expired");
+            throw new InvitationExpiredException();
         }
     }
 }
