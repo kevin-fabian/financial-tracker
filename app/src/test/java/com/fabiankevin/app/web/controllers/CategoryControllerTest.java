@@ -30,8 +30,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(CategoryController.class)
 @Import({GlobalExceptionHandler.class})
+@WebMvcTest(CategoryController.class)
 class CategoryControllerTest {
 
     @Autowired

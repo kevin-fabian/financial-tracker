@@ -32,7 +32,11 @@ public class ResourceServerConfig {
                         .ignoringRequestMatchers("/api/users")
                 )
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/accounts", "/api/accounts/**", "/api/categories", "/api/categories/**", "/api/stats", "/api/stats*").hasAnyAuthority(USER_ROLE)
+                        .requestMatchers(
+                                "/api/accounts", "/api/accounts/**",
+                                "/api/categories", "/api/categories/**",
+                                "/api/stats", "/api/stats*",
+                                "/api/shared-spaces", "/api/shared-space/**").hasAnyAuthority(USER_ROLE)
                         .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus**").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/**").hasAnyAuthority("user:provision")
