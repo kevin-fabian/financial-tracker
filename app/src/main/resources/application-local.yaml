@@ -19,6 +19,17 @@ spring:
             - test-client
             - zeny-app-password
             - identity-service
+      client:
+        registration:
+          zeny-client:
+            provider: identity
+            client-id: zeny-service
+            client-secret: 123456
+            authorization-grant-type: client_credentials
+            scope: user:read
+        provider:
+          identity:
+            issuer-uri: http://localhost:9000
 
 logging:
   level:
