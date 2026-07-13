@@ -7,7 +7,7 @@ import java.util.Objects;
 
 public record Amount(double value, Currency currency) {
     public Amount {
-        Objects.requireNonNull(currency, "Currecurrencyncy is required");
+        Objects.requireNonNull(currency, "Currency is required");
         if (value < 0) {
             throw new InvalidAmountException("Amount cannot be negative");
         }
@@ -19,5 +19,9 @@ public record Amount(double value, Currency currency) {
 
     public static Amount of(double value, String currency) {
         return new Amount(value, Currency.getInstance(currency));
+    }
+
+    public static Amount of(double value) {
+        return new Amount(value, Currency.getInstance("PHP"));
     }
 }

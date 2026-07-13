@@ -6,6 +6,7 @@ import lombok.With;
 
 import java.time.Instant;
 import java.util.Currency;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,7 +23,7 @@ public record Account(
         Instant createdAt,
         Instant updatedAt) {
     public Account {
-        Optional.ofNullable(userId).orElseThrow(() -> new IllegalArgumentException("User ID is required"));
+        Objects.requireNonNull(userId, "User ID is required");
         Optional.ofNullable(currency).orElseThrow(() -> new IllegalArgumentException("Currency is required"));
     }
 }

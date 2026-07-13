@@ -310,7 +310,7 @@ class DefaultTransactionRepositoryTest {
     class GetSummaryByDateRangeAndUserIdGroupedByDayWithTypeNull {
 
         @Test
-        void ivenEmptyStreamable_shouldReturnEmptyList() {
+        void givenEmptyStreamable_shouldReturnEmptyList() {
             int year = 2025;
             UUID otherUserId = UUID.randomUUID();
 
