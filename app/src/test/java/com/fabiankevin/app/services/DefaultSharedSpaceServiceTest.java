@@ -2,7 +2,6 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.shared_space.NotSpaceOwnerException;
-import com.fabiankevin.app.exceptions.shared_space.SharedSpaceNotExistException;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
@@ -66,7 +65,7 @@ class DefaultSharedSpaceServiceTest {
                     AccessLevel.READ_WRITE
             );
 
-            assertThrows(SharedSpaceNotExistException.class, () -> service.sendInvitation(command));
+            assertThrows(IllegalArgumentException.class, () -> service.sendInvitation(command));
             verify(spaceRepository, never()).save(any(SharedSpace.class));
             verify(invitationRepository, never()).save(any(Invitation.class));
         }
@@ -162,7 +161,7 @@ class DefaultSharedSpaceServiceTest {
                     AccessLevel.READ_WRITE
             );
 
-            assertThrows(SharedSpaceNotExistException.class, () -> service.sendInvitation(command));
+            assertThrows(IllegalArgumentException.class, () -> service.sendInvitation(command));
             verify(spaceRepository, never()).save(any(SharedSpace.class));
             verify(invitationRepository, never()).save(any(Invitation.class));
         }
