@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -90,7 +91,7 @@ public class SharedSpaceController {
     )
     @PostMapping("/{spaceId}/invitations")
     public ResponseEntity<InvitationResponse> sendInvitation(
-        @PathVariable UUID spaceId,
+        @PathVariable @NotNull @Schema(description = "ID of the shared space where the invitation is sent") UUID spaceId,
         @Valid @RequestBody SendInvitationRequest request,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
@@ -115,7 +116,7 @@ public class SharedSpaceController {
     )
     @PostMapping("/{spaceId}/invitations/{invitationId}/accept")
     public SharedSpaceResponse acceptInvitation(
-        @PathVariable UUID invitationId,
+        @PathVariable @NotNull @Schema(description = "ID of the invitation to accept") UUID invitationId,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         SharedSpace space = sharedSpaceService.acceptInvitation(
@@ -136,7 +137,7 @@ public class SharedSpaceController {
     )
     @PostMapping("/{spaceId}/invitations/{invitationId}/reject")
     public InvitationResponse rejectInvitation(
-        @PathVariable UUID invitationId,
+        @PathVariable @NotNull @Schema(description = "ID of the invitation to reject") UUID invitationId,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         log.debug("User {} rejecting invitation {}", userId, invitationId);
@@ -158,7 +159,7 @@ public class SharedSpaceController {
     )
     @PostMapping("/{spaceId}/invitations/{invitationId}/revoke")
     public InvitationResponse revokeInvitation(
-        @PathVariable UUID invitationId,
+        @PathVariable @NotNull @Schema(description = "ID of the invitation to revoke") UUID invitationId,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         Invitation invitation = sharedSpaceService.revokeInvitation(
@@ -178,8 +179,8 @@ public class SharedSpaceController {
     )
     @DeleteMapping("/{spaceId}/participants/{participantId}")
     public ResponseEntity<Void> removeParticipant(
-        @PathVariable UUID spaceId,
-        @PathVariable UUID participantId,
+        @PathVariable @NotNull @Schema(description = "ID of the shared space") UUID spaceId,
+        @PathVariable @NotNull @Schema(description = "ID of the participant to remove") UUID participantId,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         sharedSpaceService.removeParticipant(spaceId, participantId, userId);
