@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Currency;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -106,7 +107,7 @@ class CachedTransactionServiceTest {
                 .type(SummaryType.DAILY)
                 .from(LocalDate.of(2026, 7, 1))
                 .to(LocalDate.of(2026, 7, 7))
-                .userIds(List.of(userId))
+                .userIds(Set.of(userId))
                 .transactionType(TransactionType.EXPENSE)
                 .build();
         SummarySeries expected = new SummarySeries(SummaryType.DAILY, List.of(
@@ -131,7 +132,7 @@ class CachedTransactionServiceTest {
                 .type(SummaryType.DAILY)
                 .from(LocalDate.of(2026, 7, 1))
                 .to(LocalDate.of(2026, 7, 7))
-                .userIds(List.of(userId))
+                .userIds(Set.of(userId))
                 .transactionType(TransactionType.EXPENSE)
                 .build();
         SummarySeries cached = new SummarySeries(SummaryType.DAILY, List.of(

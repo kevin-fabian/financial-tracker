@@ -46,55 +46,55 @@ public class DefaultTransactionRepository implements TransactionRepository {
     }
 
     @Override
-    public List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByCategory(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type) {
+    public List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByCategory(LocalDate from, LocalDate to, Set<UUID> userIds, TransactionType type) {
         return jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, userIds, type)
                 .map(SummaryPointProjection::toModel)
                 .toList();
     }
 
     @Override
-    public List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByMonth(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type) {
+    public List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByMonth(LocalDate from, LocalDate to, Set<UUID> userIds, TransactionType type) {
         return jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, userIds, type)
                 .map(SummaryPointProjection::toModel)
                 .toList();
     }
 
     @Override
-    public List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByYear(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type) {
+    public List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByYear(LocalDate from, LocalDate to, Set<UUID> userIds, TransactionType type) {
         return jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, userIds, type)
                 .map(SummaryPointProjection::toModel)
                 .toList();
     }
 
     @Override
-    public List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByDay(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type) {
+    public List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByDay(LocalDate from, LocalDate to, Set<UUID> userIds, TransactionType type) {
         return jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, userIds, type)
                 .map(SummaryPointProjection::toModel)
                 .toList();
     }
 
     @Override
-    public List<SummaryPoint> sumByTypeAndUserId(UUID userId, LocalDate from, LocalDate to, UUID accountId, UUID categoryId) {
-        return jpaTransactionRepository.sumByTypeAndDateRange(userId, from, to, accountId, categoryId)
+    public List<SummaryPoint> sumByTypeAndUserId(Set<UUID> userIds, LocalDate from, LocalDate to, UUID accountId, UUID categoryId) {
+        return jpaTransactionRepository.sumByTypeAndDateRange(userIds, from, to, accountId, categoryId)
                 .map(SummaryPointProjection::toModel)
                 .toList();
     }
 
     @Override
-    public List<SummaryPoint> sumByTypeAndUserId(UUID userId, LocalDate from, LocalDate to, UUID categoryId) {
-        return jpaTransactionRepository.sumByTypeAndDateRangeByCategory(userId, from, to, categoryId)
+    public List<SummaryPoint> sumByTypeAndUserId(Set<UUID> userIds, LocalDate from, LocalDate to, UUID categoryId) {
+        return jpaTransactionRepository.sumByTypeAndDateRangeByCategory(userIds, from, to, categoryId)
                 .map(SummaryPointProjection::toModel)
                 .toList();
     }
 
     @Override
-    public double sumBalance(UUID userId, LocalDate from, LocalDate to) {
-        return jpaTransactionRepository.sumBalance(userId, from, to);
+    public double sumBalance(Set<UUID> userIds, LocalDate from, LocalDate to) {
+        return jpaTransactionRepository.sumBalance(userIds, from, to);
     }
 
     @Override
-    public double sumBalance(UUID userId) {
-        return jpaTransactionRepository.sumBalance(userId);
+    public double sumBalance(Set<UUID> userIds) {
+        return jpaTransactionRepository.sumBalance(userIds);
     }
 
     @Override

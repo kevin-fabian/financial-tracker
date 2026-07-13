@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.mockito.Mockito.*;
@@ -45,7 +46,7 @@ class MonthlySummaryGeneratorTest {
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
 
-        when(transactionRepository.getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId), expense))
+        when(transactionRepository.getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, Set.of(userId), expense))
                 .thenReturn(List.of(p1, p2));
 
         SummaryQuery query = SummaryQuery.builder()
@@ -53,7 +54,7 @@ class MonthlySummaryGeneratorTest {
                 .transactionType(expense)
                 .from(from)
                 .to(to)
-                .userIds(List.of(userId))
+                .userIds(Set.of(userId))
                 .build();
 
         var result = generator.generate(query);
@@ -63,7 +64,7 @@ class MonthlySummaryGeneratorTest {
         Assertions.assertThat(result).extracting(SummaryPoint::total)
                 .containsExactlyInAnyOrder(250.0, 8000.0);
 
-        verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId), expense);
+        verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, Set.of(userId), expense);
     }
 
     @Test
@@ -75,20 +76,20 @@ class MonthlySummaryGeneratorTest {
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
 
-        when(transactionRepository.getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId), expense))
+        when(transactionRepository.getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, Set.of(userId), expense))
                 .thenReturn(List.of());
 
         SummaryQuery query = SummaryQuery.builder()
                 .type(SummaryType.MONTHLY)
                 .from(from)
                 .to(to)
-                .userIds(List.of(userId))
+                .userIds(Set.of(userId))
                 .transactionType(expense)
                 .build();
 
         var result = generator.generate(query);
 
         Assertions.assertThat(result).as("result should be empty when repository returns no projections").isEmpty();
-        verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId), expense);
+        verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, Set.of(userId), expense);
     }
 }

@@ -161,10 +161,6 @@ public class DefaultTransactionService implements TransactionService {
 
         }
 
-        if (type == null) {
-            return transactionRepository.getTransactionsByPageAndUserId(query, userIds);
-        }
-
         return transactionRepository.getTransactionsByPageAndUserIdAndType(query, userIds, type);
     }
 }

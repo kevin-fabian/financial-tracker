@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Slf4j
@@ -66,7 +66,7 @@ public class TransactionController {
     @GetMapping("/summary")
     public SummarySeriesResponse getSummary(@ModelAttribute SummaryRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        return SummarySeriesResponse.from(transactionService.getSummary(request.toCommand(List.of(userId))));
+        return SummarySeriesResponse.from(transactionService.getSummary(request.toCommand(Set.of(userId))));
     }
 
     @Operation(

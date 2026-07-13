@@ -19,14 +19,14 @@ public interface TransactionRepository {
     // Delete a transaction by id only when it belongs to the specified id.
     // Returns the number of rows deleted (0 if none). Implementation should be idempotent (no exception if not found).
     int deleteByIdAndUserId(UUID transactionId, UUID userId);
-    List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByCategory(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type);
-    List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByMonth(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type);
-    List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByYear(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type);
-    List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByDay(LocalDate from, LocalDate to, List<UUID> userIds, TransactionType type);
-    List<SummaryPoint> sumByTypeAndUserId(UUID userId, LocalDate from, LocalDate to, UUID accountId, UUID categoryId);
-    List<SummaryPoint> sumByTypeAndUserId(UUID userId, LocalDate from, LocalDate to, UUID categoryId);
-    double sumBalance(UUID userId, LocalDate from, LocalDate to);
-    double sumBalance(UUID userId);
+    List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByCategory(LocalDate from, LocalDate to, Set<UUID> userIds, TransactionType type);
+    List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByMonth(LocalDate from, LocalDate to, Set<UUID> userIds, TransactionType type);
+    List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByYear(LocalDate from, LocalDate to, Set<UUID> userIds, TransactionType type);
+    List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByDay(LocalDate from, LocalDate to, Set<UUID> userIds, TransactionType type);
+    List<SummaryPoint> sumByTypeAndUserId(Set<UUID> userIds, LocalDate from, LocalDate to, UUID accountId, UUID categoryId);
+    List<SummaryPoint> sumByTypeAndUserId(Set<UUID> userIds, LocalDate from, LocalDate to, UUID categoryId);
+    double sumBalance(Set<UUID> userIds, LocalDate from, LocalDate to);
+    double sumBalance(Set<UUID> userIds);
     Page<Transaction> getTransactionsByPageAndUserId(PageQuery query, Set<UUID> userIds);
     Page<Transaction> getTransactionsByPageAndUserIdAndType(PageQuery query, Set<UUID> userIds, TransactionType type);
 }

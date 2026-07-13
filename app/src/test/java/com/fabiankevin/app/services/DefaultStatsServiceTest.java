@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -54,9 +55,9 @@ class DefaultStatsServiceTest {
         double totalBalance = 15000.0;
         double priorBalance = 12000.0;
 
-        when(transactionRepository.sumByTypeAndUserId(eq(userId), eq(fromDate), eq(toDate), eq(categoryId)))
+        when(transactionRepository.sumByTypeAndUserId(eq(Set.of(userId)), eq(fromDate), eq(toDate), eq(categoryId)))
                 .thenReturn(summaryPoints(currentIncome, currentExpenses));
-        when(transactionRepository.sumBalance(eq(userId)))
+        when(transactionRepository.sumBalance(eq(Set.of(userId))))
                 .thenReturn(totalBalance);
         when(transactionRepository.sumBalance(any(), any(), any()))
                 .thenReturn(priorBalance);
@@ -71,7 +72,7 @@ class DefaultStatsServiceTest {
 
         verify(transactionRepository, times(1)).sumByTypeAndUserId(any(), any(), any(), any());
         verify(transactionRepository, times(1)).sumBalance(any(), any(), any());
-        verify(transactionRepository, times(1)).sumBalance(eq(userId));
+        verify(transactionRepository, times(1)).sumBalance(eq(Set.of(userId)));
     }
 
     @Test
@@ -85,9 +86,9 @@ class DefaultStatsServiceTest {
         double currentExpenses = 1500.0;
         double totalBalance = 10000.0;
 
-        when(transactionRepository.sumByTypeAndUserId(eq(userId), any(), any(), any()))
+        when(transactionRepository.sumByTypeAndUserId(eq(Set.of(userId)), any(), any(), any()))
                 .thenReturn(summaryPoints(currentIncome, currentExpenses));
-        when(transactionRepository.sumBalance(eq(userId)))
+        when(transactionRepository.sumBalance(eq(Set.of(userId))))
                 .thenReturn(totalBalance);
         when(transactionRepository.sumBalance(any(), any(), any()))
                 .thenReturn(0.0);
@@ -102,6 +103,6 @@ class DefaultStatsServiceTest {
 
         verify(transactionRepository, times(1)).sumByTypeAndUserId(any(), any(), any(), any());
         verify(transactionRepository, times(1)).sumBalance(any(), any(), any());
-        verify(transactionRepository, times(1)).sumBalance(eq(userId));
+        verify(transactionRepository, times(1)).sumBalance(eq(Set.of(userId)));
     }
 }

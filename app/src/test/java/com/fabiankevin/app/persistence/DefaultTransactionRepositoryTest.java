@@ -135,14 +135,14 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId), TransactionType.EXPENSE);
+        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, Set.of(userId), TransactionType.EXPENSE);
         Assertions.assertThat(result).hasSize(2);
         Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("FOOD", "RENT");
         Assertions.assertThat(result).extracting(SummaryPoint::total)
                 .as("totals should match")
                 .containsExactlyInAnyOrder(250.0, 8000.0);
 
-        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(userId), TransactionType.EXPENSE);
+        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, Set.of(userId), TransactionType.EXPENSE);
     }
 
     @Test
@@ -153,14 +153,14 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
 
-        when(jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(otherUserId), TransactionType.EXPENSE))
+        when(jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, Set.of(otherUserId), TransactionType.EXPENSE))
                 .thenReturn(Streamable.empty());
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(otherUserId), TransactionType.EXPENSE);
+        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, Set.of(otherUserId), TransactionType.EXPENSE);
 
         Assertions.assertThat(result).isEmpty();
 
-        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, List.of(otherUserId), TransactionType.EXPENSE);
+        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, Set.of(otherUserId), TransactionType.EXPENSE);
     }
 
     @Test
@@ -198,14 +198,14 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId), TransactionType.EXPENSE);
+        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, Set.of(userId), TransactionType.EXPENSE);
 
         Assertions.assertThat(result).hasSize(2);
         Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("3", "5");
         Assertions.assertThat(result).extracting(SummaryPoint::total)
                 .containsExactlyInAnyOrder(250.0, 8000.0);
 
-        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, List.of(userId), TransactionType.EXPENSE);
+        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByMonth(from, to, Set.of(userId), TransactionType.EXPENSE);
     }
 
     @Test
@@ -233,7 +233,7 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(2025, 1, 1);
         LocalDate to = LocalDate.of(2026, 12, 31);
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(userId), TransactionType.EXPENSE);
+        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, Set.of(userId), TransactionType.EXPENSE);
 
         Assertions.assertThat(result).hasSize(2);
         Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("2025", "2026");
@@ -241,7 +241,7 @@ class DefaultTransactionRepositoryTest {
                 .as("totals should match")
                 .containsExactlyInAnyOrder(10000.0, 15000.0);
 
-        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(userId), TransactionType.EXPENSE);
+        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByYear(from, to, Set.of(userId), TransactionType.EXPENSE);
     }
 
     @Test
@@ -252,14 +252,14 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
 
-        when(jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(otherUserId), TransactionType.EXPENSE))
+        when(jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, Set.of(otherUserId), TransactionType.EXPENSE))
                 .thenReturn(Streamable.empty());
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(otherUserId), TransactionType.EXPENSE);
+        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, Set.of(otherUserId), TransactionType.EXPENSE);
 
         Assertions.assertThat(result).isEmpty();
 
-        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(otherUserId), TransactionType.EXPENSE);
+        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByYear(from, to, Set.of(otherUserId), TransactionType.EXPENSE);
     }
 
     @Test
@@ -296,14 +296,14 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(year, 3, 1);
         LocalDate to = LocalDate.of(year, 3, 31);
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), TransactionType.EXPENSE);
+        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, Set.of(userId), TransactionType.EXPENSE);
 
         Assertions.assertThat(result).hasSize(2);
         Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("1", "15");
         Assertions.assertThat(result).extracting(SummaryPoint::total)
                 .containsExactlyInAnyOrder(250.0, 8000.0);
 
-        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), TransactionType.EXPENSE);
+        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, Set.of(userId), TransactionType.EXPENSE);
     }
 
     @Nested
@@ -317,14 +317,14 @@ class DefaultTransactionRepositoryTest {
             LocalDate from = LocalDate.of(year, 3, 1);
             LocalDate to = LocalDate.of(year, 3, 31);
 
-            when(jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(otherUserId), TransactionType.EXPENSE))
+            when(jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, Set.of(otherUserId), TransactionType.EXPENSE))
                     .thenReturn(Streamable.empty());
 
-            List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(otherUserId), TransactionType.EXPENSE);
+            List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, Set.of(otherUserId), TransactionType.EXPENSE);
 
             Assertions.assertThat(result).isEmpty();
 
-            verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(otherUserId), TransactionType.EXPENSE);
+            verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, Set.of(otherUserId), TransactionType.EXPENSE);
         }
 
         @Test
@@ -355,13 +355,13 @@ class DefaultTransactionRepositoryTest {
             LocalDate from = LocalDate.of(2026, 3, 1);
             LocalDate to = LocalDate.of(2026, 3, 31);
 
-            List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), null);
+            List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, Set.of(userId), null);
 
             Assertions.assertThat(result).hasSize(1);
             Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactly("1");
             Assertions.assertThat(result).extracting(SummaryPoint::total).containsExactly(4500.0);
 
-            verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), null);
+            verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, Set.of(userId), null);
         }
 
         @Test
@@ -409,13 +409,13 @@ class DefaultTransactionRepositoryTest {
             LocalDate from = LocalDate.of(2026, 3, 1);
             LocalDate to = LocalDate.of(2026, 3, 31);
 
-            List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), null);
+            List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, Set.of(userId), null);
 
             Assertions.assertThat(result).hasSize(2);
             Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("1", "2");
             Assertions.assertThat(result).extracting(SummaryPoint::total).containsExactlyInAnyOrder(4500.0, 1000.0);
 
-            verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), null);
+            verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, Set.of(userId), null);
         }
 
         @Test
@@ -446,13 +446,13 @@ class DefaultTransactionRepositoryTest {
             LocalDate from = LocalDate.of(2026, 3, 1);
             LocalDate to = LocalDate.of(2026, 3, 31);
 
-            List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), null);
+            List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, Set.of(userId), null);
 
             Assertions.assertThat(result).hasSize(2);
             Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("1", "15");
             Assertions.assertThat(result).extracting(SummaryPoint::total).containsExactlyInAnyOrder(-250.0, -8000.0);
 
-            verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), null);
+            verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, Set.of(userId), null);
         }
     }
 
@@ -658,7 +658,7 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(2026, 3, 1);
         LocalDate to = LocalDate.of(2026, 3, 31);
 
-        var result = transactionRepository.sumByTypeAndUserId(userId, from, to, cash.getId(), food.getId());
+        var result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, cash.getId(), food.getId());
 
         double expenseTotal = result.stream()
                 .filter(p -> p.label().equals("EXPENSE"))
@@ -672,7 +672,7 @@ class DefaultTransactionRepositoryTest {
         Assertions.assertThat(expenseTotal).isEqualTo(600.0);
         Assertions.assertThat(incomeTotal).isEqualTo(0.0);
 
-        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(userId), eq(from), eq(to), eq(cash.getId()), eq(food.getId()));
+        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(Set.of(userId)), eq(from), eq(to), eq(cash.getId()), eq(food.getId()));
     }
 
     @Test
@@ -690,7 +690,7 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(2026, 3, 1);
         LocalDate to = LocalDate.of(2026, 3, 31);
 
-        var result = transactionRepository.sumByTypeAndUserId(userId, from, to, null, null);
+        var result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, null, null);
 
         double expenseTotal = result.stream()
                 .filter(p -> p.label().equals("EXPENSE"))
@@ -704,7 +704,7 @@ class DefaultTransactionRepositoryTest {
         Assertions.assertThat(expenseTotal).isEqualTo(5300.0);
         Assertions.assertThat(incomeTotal).isEqualTo(0.0);
 
-        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(userId), eq(from), eq(to), eq(null), eq(null));
+        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(Set.of(userId)), eq(from), eq(to), eq(null), eq(null));
     }
 
     @Test
@@ -716,9 +716,9 @@ class DefaultTransactionRepositoryTest {
         LocalDate to = LocalDate.of(2026, 3, 31);
 
         doReturn(Streamable.empty()).when(jpaTransactionRepository)
-                .sumByTypeAndDateRange(eq(userId), eq(from), eq(to), eq(cash.getId()), eq(food.getId()));
+                .sumByTypeAndDateRange(eq(Set.of(userId)), eq(from), eq(to), eq(cash.getId()), eq(food.getId()));
 
-        var result = transactionRepository.sumByTypeAndUserId(userId, from, to, cash.getId(), food.getId());
+        var result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, cash.getId(), food.getId());
 
         double incomeTotal = result.stream()
                 .filter(p -> p.label().equals("INCOME"))
@@ -732,7 +732,7 @@ class DefaultTransactionRepositoryTest {
         Assertions.assertThat(incomeTotal).isEqualTo(0.0);
         Assertions.assertThat(expenseTotal).isEqualTo(0.0);
 
-        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(userId), eq(from), eq(to), eq(cash.getId()), eq(food.getId()));
+        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(Set.of(userId)), eq(from), eq(to), eq(cash.getId()), eq(food.getId()));
     }
 
     @Test
@@ -750,7 +750,7 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(2026, 3, 1);
         LocalDate to = LocalDate.of(2026, 3, 31);
 
-        var result = transactionRepository.sumByTypeAndUserId(userId, from, to, cash.getId(), null);
+        var result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, cash.getId(), null);
 
         double incomeTotal = result.stream()
                 .filter(p -> p.label().equals("INCOME"))
@@ -764,7 +764,7 @@ class DefaultTransactionRepositoryTest {
         Assertions.assertThat(incomeTotal).isEqualTo(5000.0);
         Assertions.assertThat(expenseTotal).isEqualTo(800.0);
 
-        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(userId), eq(from), eq(to), eq(cash.getId()), eq(null));
+        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(Set.of(userId)), eq(from), eq(to), eq(cash.getId()), eq(null));
     }
 
     @Test
@@ -779,11 +779,11 @@ class DefaultTransactionRepositoryTest {
                 AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(300, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 15)).description("food2").build()
         ).forEach(transactionService::addTransaction);
 
-        double result = transactionRepository.sumBalance(userId);
+        double result = transactionRepository.sumBalance(Set.of(userId));
 
         Assertions.assertThat(result).isEqualTo(4200.0);
 
-        verify(jpaTransactionRepository, times(1)).sumBalance(eq(userId));
+        verify(jpaTransactionRepository, times(1)).sumBalance(eq(Set.of(userId)));
     }
 
     @Test
@@ -800,22 +800,22 @@ class DefaultTransactionRepositoryTest {
                 AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(savings.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 10)).description("food from savings").build()
         ).forEach(transactionService::addTransaction);
 
-        double result = transactionRepository.sumBalance(userId);
+        double result = transactionRepository.sumBalance(Set.of(userId));
 
         Assertions.assertThat(result).isEqualTo(7300.0);
 
-        verify(jpaTransactionRepository, times(1)).sumBalance(eq(userId));
+        verify(jpaTransactionRepository, times(1)).sumBalance(eq(Set.of(userId)));
     }
 
     @Test
     void sumBalance_givenNoMatchingTransactions_shouldReturnZero() {
-        doReturn(0.0).when(jpaTransactionRepository).sumBalance(userId);
+        doReturn(0.0).when(jpaTransactionRepository).sumBalance(Set.of(userId));
 
-        double result = transactionRepository.sumBalance(userId);
+        double result = transactionRepository.sumBalance(Set.of(userId));
 
         Assertions.assertThat(result).isEqualTo(0.0);
 
-        verify(jpaTransactionRepository, times(1)).sumBalance(eq(userId));
+        verify(jpaTransactionRepository, times(1)).sumBalance(eq(Set.of(userId)));
     }
 
     @Test
@@ -852,13 +852,13 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(2026, 6, 1);
         LocalDate to = LocalDate.of(2026, 6, 30);
 
-        List<SummaryPoint> result = transactionRepository.sumByTypeAndUserId(userId, from, to, food.getId());
+        List<SummaryPoint> result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, food.getId());
 
         Assertions.assertThat(result).hasSize(1);
         Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactly("EXPENSE");
         Assertions.assertThat(result).extracting(SummaryPoint::total).containsExactly(250.0);
 
-        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRangeByCategory(eq(userId), eq(from), eq(to), eq(food.getId()));
+        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRangeByCategory(eq(Set.of(userId)), eq(from), eq(to), eq(food.getId()));
     }
 
     @Test
@@ -879,14 +879,14 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(2026, 6, 1);
         LocalDate to = LocalDate.of(2026, 6, 30);
 
-        when(jpaTransactionRepository.sumByTypeAndDateRangeByCategory(eq(userId), eq(from), eq(to), eq(other.getId())))
+        when(jpaTransactionRepository.sumByTypeAndDateRangeByCategory(eq(Set.of(userId)), eq(from), eq(to), eq(other.getId())))
                 .thenReturn(Streamable.empty());
 
-        List<SummaryPoint> result = transactionRepository.sumByTypeAndUserId(userId, from, to, other.getId());
+        List<SummaryPoint> result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, other.getId());
 
         Assertions.assertThat(result).isEmpty();
 
-        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRangeByCategory(eq(userId), eq(from), eq(to), eq(other.getId()));
+        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRangeByCategory(eq(Set.of(userId)), eq(from), eq(to), eq(other.getId()));
     }
 
     @Test
@@ -922,13 +922,13 @@ class DefaultTransactionRepositoryTest {
         LocalDate from = LocalDate.of(2026, 4, 1);
         LocalDate to = LocalDate.of(2026, 6, 30);
 
-        List<SummaryPoint> result = transactionRepository.sumByTypeAndUserId(userId, from, to, food.getId());
+        List<SummaryPoint> result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, food.getId());
 
         Assertions.assertThat(result).hasSize(1);
         Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactly("EXPENSE");
         Assertions.assertThat(result).extracting(SummaryPoint::total).containsExactly(600.0);
 
-        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRangeByCategory(eq(userId), eq(from), eq(to), eq(food.getId()));
+        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRangeByCategory(eq(Set.of(userId)), eq(from), eq(to), eq(food.getId()));
     }
 
     private CategoryEntity createCategory(String categoryName) {

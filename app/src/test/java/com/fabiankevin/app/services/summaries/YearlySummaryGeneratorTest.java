@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,9 +42,9 @@ class YearlySummaryGeneratorTest  {
         UUID userId = UUID.randomUUID();
 
         List<SummaryPoint> expected = List.of(new SummaryPoint("2025", 100.0), new SummaryPoint("2026", 200.0));
-        when(repo.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, List.of(userId), transactionType)).thenReturn(expected);
+        when(repo.getSummaryByDateRangeAndUserIdGroupedByYear(from, to, Set.of(userId), transactionType)).thenReturn(expected);
 
-        SummaryQuery query = new SummaryQuery(SummaryType.YEARLY, from, to, List.of(userId), transactionType);
+        SummaryQuery query = new SummaryQuery(SummaryType.YEARLY, from, to, Set.of(userId), transactionType);
 
         List<SummaryPoint> result = generator.generate(query);
 

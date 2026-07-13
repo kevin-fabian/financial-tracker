@@ -5,7 +5,7 @@ import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.queries.SummaryQuery;
 
 import java.time.LocalDate;
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public record SummaryRequest(SummaryType type,
@@ -13,7 +13,7 @@ public record SummaryRequest(SummaryType type,
                              LocalDate to,
                              TransactionType transactionType) {
 
-    public SummaryQuery toCommand(List<UUID> userIds) {
+    public SummaryQuery toCommand(Set<UUID> userIds) {
         return new SummaryQuery(type, from, to, userIds, transactionType);
     }
 }

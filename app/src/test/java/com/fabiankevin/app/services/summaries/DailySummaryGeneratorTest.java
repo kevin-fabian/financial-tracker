@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.mockito.Mockito.*;
@@ -43,7 +44,7 @@ class DailySummaryGeneratorTest {
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
 
-        when(transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), transactionType))
+        when(transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, Set.of(userId), transactionType))
                 .thenReturn(List.of(p1, p2));
 
         SummaryQuery query = SummaryQuery.builder()
@@ -51,7 +52,7 @@ class DailySummaryGeneratorTest {
                 .type(SummaryType.DAILY)
                 .from(from)
                 .to(to)
-                .userIds(List.of(userId))
+                .userIds(Set.of(userId))
                 .build();
 
         var result = generator.generate(query);
@@ -62,7 +63,7 @@ class DailySummaryGeneratorTest {
                 .as("totals should match")
                 .containsExactlyInAnyOrder(250.0, 8000.0);
 
-        verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), transactionType);
+        verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, Set.of(userId), transactionType);
     }
 
     @Test
@@ -74,7 +75,7 @@ class DailySummaryGeneratorTest {
         LocalDate from = LocalDate.of(year, 1, 1);
         LocalDate to = LocalDate.of(year, 12, 31);
 
-        when(transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), transactionType))
+        when(transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(from, to, Set.of(userId), transactionType))
                 .thenReturn(List.of());
 
         SummaryQuery query = SummaryQuery.builder()
@@ -82,13 +83,13 @@ class DailySummaryGeneratorTest {
                 .type(SummaryType.DAILY)
                 .from(from)
                 .to(to)
-                .userIds(List.of(userId))
+                .userIds(Set.of(userId))
                 .build();
 
         var result = generator.generate(query);
 
         Assertions.assertThat(result).as("result should be empty when repository returns no projections").isEmpty();
-        verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, List.of(userId), transactionType);
+        verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(from, to, Set.of(userId), transactionType);
     }
 
     @Test
@@ -98,7 +99,7 @@ class DailySummaryGeneratorTest {
         LocalDate today = LocalDate.now();
         SummaryPoint p1 = new SummaryPoint(today.toString(), 500.0);
 
-        when(transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(today, today, List.of(userId), transactionType))
+        when(transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDay(today, today, Set.of(userId), transactionType))
                 .thenReturn(List.of(p1));
 
         SummaryQuery query = SummaryQuery.builder()
@@ -106,7 +107,7 @@ class DailySummaryGeneratorTest {
                 .type(SummaryType.DAILY)
                 .from(null)
                 .to(null)
-                .userIds(List.of(userId))
+                .userIds(Set.of(userId))
                 .build();
 
         var result = generator.generate(query);
@@ -114,7 +115,7 @@ class DailySummaryGeneratorTest {
         Assertions.assertThat(result).hasSize(1);
         Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactly(today.toString());
         Assertions.assertThat(result).extracting(SummaryPoint::total).containsExactly(500.0);
-        verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(today, today, List.of(userId), transactionType);
+        verify(transactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByDay(today, today, Set.of(userId), transactionType);
     }
 }
 

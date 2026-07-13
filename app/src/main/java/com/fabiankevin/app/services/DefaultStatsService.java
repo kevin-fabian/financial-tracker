@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Slf4j
@@ -32,13 +33,13 @@ public class DefaultStatsService implements StatsService {
         LocalDate toDate = Optional.ofNullable(query.toDate()).orElse(now);
 
         // Query current period totals (single grouped query)
-        List<SummaryPoint> currentPeriod = transactionRepository.sumByTypeAndUserId(userId, fromDate, toDate, query.categoryId());
+        List<SummaryPoint> currentPeriod = transactionRepository.sumByTypeAndUserId(Set.of(userId), fromDate, toDate, query.categoryId());
         double currentIncome = sumByType(currentPeriod, TransactionType.INCOME);
         double currentExpenses = sumByType(currentPeriod, TransactionType.EXPENSE);
 
         // Calculate cumulative balance (all-time, across all accounts)
-        double totalBalance = transactionRepository.sumBalance(userId);
-        double totalBalanceLastMonthWithSameDate = transactionRepository.sumBalance(userId,
+        double totalBalance = transactionRepository.sumBalance(Set.of(userId));
+        double totalBalanceLastMonthWithSameDate = transactionRepository.sumBalance(Set.of(userId),
                 now.minusMonths(1).withDayOfMonth(1),
                 now.minusMonths(1)
         );

@@ -11,7 +11,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.util.Streamable;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -27,7 +26,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
     Streamable<SummaryPointProjection> getSummaryByDateRangeAndUserIdGroupedByCategory(
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
-            @Param("userIds") List<UUID> userIds,
+            @Param("userIds") Set<UUID> userIds,
             @Param("type") TransactionType type);
 
     @Query("""
@@ -41,7 +40,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
     Streamable<SummaryPointProjection> getSummaryByDateRangeAndUserIdGroupedByMonth(
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
-            @Param("userIds") List<UUID> userIds,
+            @Param("userIds") Set<UUID> userIds,
             @Param("type") TransactionType type);
 
     @Query("""
@@ -55,7 +54,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
     Streamable<SummaryPointProjection> getSummaryByDateRangeAndUserIdGroupedByYear(
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
-            @Param("userIds") List<UUID> userIds,
+            @Param("userIds") Set<UUID> userIds,
             @Param("type") TransactionType type);
 
     @Query("""
@@ -76,7 +75,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
     Streamable<SummaryPointProjection> getSummaryByDateRangeAndUserIdGroupedByDay(
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
-            @Param("userIds") List<UUID> userIds,
+            @Param("userIds") Set<UUID> userIds,
             @Param("type") TransactionType type);
 
     @Query("""
@@ -94,14 +93,14 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
     @Query("""
             SELECT STR(t.category.transactionType) as label, COALESCE(SUM(t.amount), 0.0) as total
             FROM TransactionEntity t
-            WHERE t.account.userId = :userId
+            WHERE t.account.userId IN :userIds
               AND t.transactionDate BETWEEN :from AND :to
               AND (:accountId IS NULL OR t.account.id = :accountId)
               AND (:categoryId IS NULL OR t.category.id = :categoryId)
             GROUP BY t.category.transactionType
             """)
     Streamable<SummaryPointProjection> sumByTypeAndDateRange(
-            @Param("userId") UUID userId,
+            @Param("userIds") Set<UUID> userIds,
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             @Param("accountId") UUID accountId,
@@ -110,13 +109,13 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
     @Query("""
             SELECT STR(t.category.transactionType) as label, COALESCE(SUM(t.amount), 0.0) as total
             FROM TransactionEntity t
-            WHERE t.account.userId = :userId
+            WHERE t.account.userId IN :userIds
               AND t.transactionDate BETWEEN :from AND :to
               AND (:categoryId IS NULL OR t.category.id = :categoryId)
             GROUP BY t.category.transactionType
             """)
     Streamable<SummaryPointProjection> sumByTypeAndDateRangeByCategory(
-            @Param("userId") UUID userId,
+            @Param("userIds") Set<UUID> userIds,
             @Param("from") LocalDate from,
             @Param("to") LocalDate to,
             @Param("categoryId") UUID categoryId);
@@ -124,18 +123,18 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
     @Query("""
             SELECT COALESCE(SUM(CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amount ELSE -t.amount END), 0.0)
             FROM TransactionEntity t
-            WHERE t.account.userId = :userId
+            WHERE t.account.userId IN :userIds
               AND t.transactionDate BETWEEN :from AND :to
             """)
     double sumBalance(
-            @Param("userId") UUID userId,
+            @Param("userIds") Set<UUID> userIds,
             @Param("from") LocalDate from,
             @Param("to") LocalDate to);
 
     @Query("""
             SELECT COALESCE(SUM(CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amount ELSE -t.amount END), 0.0)
             FROM TransactionEntity t
-            WHERE t.account.userId = :userId
+            WHERE t.account.userId IN :userIds
             """)
-    double sumBalance(@Param("userId") UUID userId);
+    double sumBalance(@Param("userIds") Set<UUID> userIds);
 }
