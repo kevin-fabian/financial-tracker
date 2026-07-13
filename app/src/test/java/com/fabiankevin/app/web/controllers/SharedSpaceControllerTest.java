@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
@@ -38,6 +39,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@ActiveProfiles("test")
 @Import({GlobalExceptionHandler.class})
 @WebMvcTest(SharedSpaceController.class)
 class SharedSpaceControllerTest {
@@ -169,7 +171,7 @@ class SharedSpaceControllerTest {
     @Test
     void getSharedSpaces_givenNoJwt_thenReturnsForbidden() throws Exception {
         mockMvc.perform(get("/api/shared-spaces"))
-            .andExpect(status().isForbidden());
+            .andExpect(status().isUnauthorized());
 
         verifyNoInteractions(sharedSpaceService);
     }

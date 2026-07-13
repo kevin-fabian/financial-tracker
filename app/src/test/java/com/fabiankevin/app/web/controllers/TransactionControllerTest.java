@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
@@ -39,6 +40,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@ActiveProfiles("test")
 @Import({GlobalExceptionHandler.class})
 @WebMvcTest(TransactionController.class)
 class TransactionControllerTest {
@@ -190,7 +192,7 @@ class TransactionControllerTest {
 
     @Test
     void getSummary_givenNoJwt_thenShouldReturnUnauthorized() throws Exception {
-        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/transactions/summary")
+        mockMvc.perform(get("/api/transactions/summary")
                         .param("type", "CATEGORY")
                         .param("from", "2026-01-01")
                         .param("to", "2026-12-31"))
