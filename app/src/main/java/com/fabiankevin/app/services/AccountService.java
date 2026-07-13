@@ -14,7 +14,6 @@ public interface AccountService {
     Account createAccount(CreateAccountCommand command);
     Account patchAccount(PatchAccountCommand command);
     void deleteAccountById(UUID id, UUID userId);
-    void disableAccount(UUID id, UUID userId);
     Page<Account> getAccountsByPageAndUserId(PageQuery query, UUID userId);
     Page<AccountSummary> getAccountSummariesByPageQuery(PageQuery query, UUID userId);
     void deleteAllByUserId(UUID userId);

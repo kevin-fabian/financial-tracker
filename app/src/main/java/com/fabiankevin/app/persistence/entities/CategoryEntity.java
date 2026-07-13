@@ -38,12 +38,6 @@ public class CategoryEntity {
     @Column(nullable = false)
     private Instant updatedAt;
 
-    @Column(nullable = false)
-    private boolean active = true;
-
-    @Column(name = "`system`", nullable = false)
-    private boolean system = false;
-
     public static CategoryEntity from(Category category) {
         if (category == null) return null;
         return CategoryEntity.builder()
@@ -52,8 +46,6 @@ public class CategoryEntity {
                 .transactionType(category.type())
                 .icon(category.icon())
                 .userId(category.userId())
-                .active(category.active())
-                .system(category.system())
                 .createdAt(category.createdAt())
                 .updatedAt(category.updatedAt())
                 .build();
@@ -66,8 +58,6 @@ public class CategoryEntity {
                 .type(this.transactionType)
                 .icon(this.icon)
                 .userId(this.userId)
-                .active(this.active)
-                .system(this.system)
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)
                 .build();

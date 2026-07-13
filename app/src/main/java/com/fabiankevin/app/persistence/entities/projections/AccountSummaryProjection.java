@@ -11,8 +11,6 @@ public record AccountSummaryProjection(
         UUID userId,
         String currency,
         String type,
-        boolean active,
-        boolean system,
         double totalBalance,
         int totalTransactions) {
 }

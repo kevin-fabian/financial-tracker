@@ -122,8 +122,6 @@ public class DefaultSharedSpaceServiceSpringBootTest {
                     .name("Food & Drinks")
                     .userId(userId)
                     .icon("food")
-                    .active(true)
-                    .system(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build());
@@ -144,8 +142,6 @@ public class DefaultSharedSpaceServiceSpringBootTest {
                     .type(AccountType.CASH)
                     .userId(userId)
                     .currency(Currency.getInstance("PHP"))
-                    .active(true)
-                    .system(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build());

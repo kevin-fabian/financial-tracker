@@ -83,17 +83,6 @@ public class DefaultAccountService implements AccountService {
         accountRepository.deleteById(id);
     }
 
-    @Transactional
-    @Override
-    public void disableAccount(UUID id, UUID userId) {
-        accountRepository.findById(id)
-                .filter(a -> a.userId().equals(userId))
-                .ifPresentOrElse(
-                        account -> accountRepository.save(account.toBuilder().active(false).build()),
-                        () -> { throw new AccountNotFoundException(); }
-                );
-    }
-
     @Override
     public Page<Account> getAccountsByPageAndUserId(PageQuery query, UUID userId) {
         return accountRepository.getAccountsByPageAndUserId(query, userId);

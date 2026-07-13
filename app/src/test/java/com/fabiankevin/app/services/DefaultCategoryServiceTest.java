@@ -41,8 +41,6 @@ class DefaultCategoryServiceTest {
                 .userId(userId)
                 .build();
 
-        when(categoryRepository.findInactiveByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId))
-                .thenReturn(Optional.empty());
         when(categoryRepository.existsByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId))
                 .thenReturn(false);
         when(categoryRepository.save(any())).thenAnswer(invocation -> {
@@ -54,10 +52,8 @@ class DefaultCategoryServiceTest {
 
         assertEquals("FOOD", created.name(), "name should match command");
         assertEquals(TransactionType.EXPENSE, created.type(), "type should match command");
-        assertEquals(userId, created.userId(), "userIds should be set from command");
-        assertTrue(created.active(), "category should be active");
+        assertEquals(userId, created.userId(), "userId should be set from command");
         assertNull(created.icon(), "icon should be null when not provided");
-        verify(categoryRepository, times(1)).findInactiveByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId);
         verify(categoryRepository, times(1)).save(any());
     }
 
@@ -73,8 +69,6 @@ class DefaultCategoryServiceTest {
                 .icon(icon)
                 .build();
 
-        when(categoryRepository.findInactiveByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId))
-                .thenReturn(Optional.empty());
         when(categoryRepository.existsByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId))
                 .thenReturn(false);
         when(categoryRepository.save(any())).thenAnswer(invocation -> {
@@ -91,22 +85,8 @@ class DefaultCategoryServiceTest {
     }
 
     @Test
-    void createCategory_givenInactiveCategory_shouldReactivateAndReturn() {
+    void createCategory_givenExistingActiveCategory_thenShouldThrow() {
         UUID userId = UUID.randomUUID();
-        UUID categoryId = UUID.randomUUID();
-        String existingIcon = "restaurant";
-
-        Category inactiveCategory = Category.builder()
-                .id(categoryId)
-                .name("FOOD")
-                .type(TransactionType.EXPENSE)
-                .userId(userId)
-                .icon(existingIcon)
-                .active(false)
-                .system(false)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
 
         CreateCategoryCommand command = CreateCategoryCommand.builder()
                 .name("FOOD")
@@ -114,65 +94,12 @@ class DefaultCategoryServiceTest {
                 .userId(userId)
                 .build();
 
-        when(categoryRepository.findInactiveByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId))
-                .thenReturn(Optional.of(inactiveCategory));
-        when(categoryRepository.save(any())).thenAnswer(invocation -> {
-            Category c = invocation.getArgument(0);
-            return c.toBuilder().id(categoryId).build();
-        });
+        when(categoryRepository.existsByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId))
+                .thenReturn(true);
 
-        Category created = categoryService.createCategory(command);
-
-        assertEquals(categoryId, created.id(), "should return existing category id");
-        assertEquals("FOOD", created.name());
-        assertEquals(TransactionType.EXPENSE, created.type());
-        assertTrue(created.active(), "category should be reactivated");
-        assertNull(created.icon(), "should preserve existing icon when command has no icon");
-        verify(categoryRepository, times(1)).findInactiveByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId);
-        verify(categoryRepository, times(1)).save(any());
-        verify(categoryRepository, never()).existsByNameAndTypeAndUserId(any(), any(), any());
-    }
-
-    @Test
-    void createCategory_givenInactiveCategoryWithNewIcon_shouldReactivateAndReplaceIcon() {
-        UUID userId = UUID.randomUUID();
-        UUID categoryId = UUID.randomUUID();
-        String oldIcon = "restaurant";
-        String newIcon = "home";
-
-        Category inactiveCategory = Category.builder()
-                .id(categoryId)
-                .name("RENT")
-                .type(TransactionType.EXPENSE)
-                .userId(userId)
-                .icon(oldIcon)
-                .active(false)
-                .system(false)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-
-        CreateCategoryCommand command = CreateCategoryCommand.builder()
-                .name("RENT")
-                .type(TransactionType.EXPENSE)
-                .userId(userId)
-                .icon(newIcon)
-                .build();
-
-        when(categoryRepository.findInactiveByNameAndTypeAndUserId("RENT", TransactionType.EXPENSE, userId))
-                .thenReturn(Optional.of(inactiveCategory));
-        when(categoryRepository.save(any())).thenAnswer(invocation -> {
-            Category c = invocation.getArgument(0);
-            return c.toBuilder().id(categoryId).build();
-        });
-
-        Category created = categoryService.createCategory(command);
-
-        assertEquals(categoryId, created.id(), "should return existing category id");
-        assertTrue(created.active(), "category should be reactivated");
-        assertEquals(newIcon, created.icon(), "icon should be replaced with new icon");
-        verify(categoryRepository, times(1)).findInactiveByNameAndTypeAndUserId("RENT", TransactionType.EXPENSE, userId);
-        verify(categoryRepository, never()).existsByNameAndTypeAndUserId(any(), any(), any());
+        assertThrows(com.fabiankevin.app.exceptions.CategoryAlreadyExistException.class,
+                () -> categoryService.createCategory(command));
+        verify(categoryRepository, never()).save(any());
     }
 
     @Test
@@ -192,7 +119,7 @@ class DefaultCategoryServiceTest {
 
         assertEquals("FOOD", found.name(), "name should match saved category");
         assertEquals(TransactionType.EXPENSE, found.type(), "type should match saved category");
-        assertEquals(userId, found.userId(), "userIds should be preserved");
+        assertEquals(userId, found.userId(), "userId should be preserved");
         verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
     }
 

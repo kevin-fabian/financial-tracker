@@ -78,8 +78,6 @@ public class DefaultAccountRepository implements AccountRepository {
                         .userIds(List.of(projection.userId()))
                         .currency(Currency.getInstance(projection.currency()))
                         .type(AccountType.valueOf(projection.type()))
-                        .active(projection.active())
-                        .system(projection.system())
                         .totalBalance(projection.totalBalance())
                         .totalTransactions(projection.totalTransactions())
                         .build())

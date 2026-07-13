@@ -18,8 +18,6 @@ public record Account(
         UUID userId,
         Currency currency,
         AccountType type,
-        boolean active,
-        boolean system,
         Instant createdAt,
         Instant updatedAt) {
     public Account {
