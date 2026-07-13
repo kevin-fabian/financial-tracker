@@ -1,8 +1,6 @@
 package com.fabiankevin.app.services;
 
-import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.shared_space.*;
-import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
 import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
@@ -27,7 +25,6 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
     private final SharedSpaceRepository spaceRepository;
     private final InvitationRepository invitationRepository;
     private final SharingPermissionResolver permissionResolver;
-    private final UserClient userClient;
 
     @Transactional
     @Override
@@ -45,6 +42,9 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
 
         List<SharedResource> sharedResources = new ArrayList<>();
         for (AddSharedResourceCommand resource : command.resources()) {
+            if (!resource.ownerUserId().equals(command.ownerUserId())) {
+                throw new ForbiddenException("Resource owner must be a participant in the space");
+            }
             sharedResources.add(SharedResource.builder()
                     .type(resource.type())
                     .items(resource.itemIds())
@@ -76,27 +76,27 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
             throw new NotSpaceOwnerException();
         }
 
-        User recipient = userClient.getUserByEmail(command.inviteeEmail());
-
-        if (isUserParticipant(space, recipient)) {
+        if (isUserParticipant(space, command.inviteeUserId())) {
             throw new ParticipantAlreadyExistsException();
         }
 
-        Invitation invitation = Invitation.builder()
-                .inviterUserId(command.inviterUserId())
-                .inviteeEmail(command.inviteeEmail())
-                .inviteeUserId(recipient.id())
-                .proposedSharingMode(space.sharingMode())
-                .proposedRole(command.proposedRole())
-                .status(InvitationStatus.PENDING)
-                .createdAt(Instant.now())
-                .expiresAt(Instant.now().plus(Duration.ofDays(7)))
-                .sharedSpaceId(space.id())
-                .build();
+        return invitationRepository.findPendingByInviterAndInvitee(command.inviterUserId(), command.inviteeUserId())
+                .orElseGet(() -> {
+                    Invitation invitation = Invitation.builder()
+                            .inviterUserId(command.inviterUserId())
+                            .inviteeUserId(command.inviteeUserId())
+                            .proposedSharingMode(space.sharingMode())
+                            .proposedRole(command.proposedRole())
+                            .status(InvitationStatus.PENDING)
+                            .createdAt(Instant.now())
+                            .expiresAt(Instant.now().plus(Duration.ofDays(7)))
+                            .sharedSpaceId(space.id())
+                            .build();
 
-        // TODO notify the recipient
+                    // TODO notify the recipient
 
-        return invitationRepository.save(invitation);
+                    return invitationRepository.save(invitation);
+                });
     }
 
     @Transactional
@@ -105,11 +105,18 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
         Invitation invitation = findInvitationOrThrow(command.invitationId());
         validateInvitationActive(invitation);
 
-        invitation = Invitation.builder()
+        if (invitation.inviterUserId().equals(command.acceptingUserId())) {
+            throw new InviterCannotAcceptOwnInvitationException();
+        }
+
+        if (!invitation.inviteeUserId().equals(command.acceptingUserId())) {
+            throw new ForbiddenException("Only the invited user can accept");
+        }
+
+        Invitation updatedInvitation = Invitation.builder()
                 .id(invitation.id())
                 .inviterUserId(invitation.inviterUserId())
-                .inviteeEmail(invitation.inviteeEmail())
-                .inviteeUserId(command.acceptingUserId())
+                .inviteeUserId(invitation.inviteeUserId())
                 .proposedSharingMode(invitation.proposedSharingMode())
                 .proposedRole(invitation.proposedRole())
                 .status(InvitationStatus.ACCEPTED)
@@ -117,12 +124,12 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
                 .expiresAt(invitation.expiresAt())
                 .sharedSpaceId(invitation.sharedSpaceId())
                 .build();
-        invitationRepository.save(invitation);
+        invitationRepository.save(updatedInvitation);
 
         SharedSpace space = findSpaceOrThrow(invitation.sharedSpaceId());
 
         SpaceParticipant participant = SpaceParticipant.builder()
-                .userId(command.acceptingUserId())
+                .userId(invitation.inviteeUserId())
                 .accessLevel(invitation.proposedRole())
                 .status(ParticipantStatus.ACTIVE)
                 .joinedAt(Instant.now())
@@ -144,7 +151,7 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
     public Invitation rejectInvitation(RejectInvitationCommand command) {
         Invitation invitation = findInvitationOrThrow(command.invitationId());
 
-        if (!invitation.inviteeEmail().equals(command.userEmail())) {
+        if (!invitation.inviteeUserId().equals(command.inviteeUserId())) {
             throw new ForbiddenException("Only the invited user can reject");
         }
 
@@ -155,7 +162,6 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
         Invitation updatedInvitation = Invitation.builder()
                 .id(invitation.id())
                 .inviterUserId(invitation.inviterUserId())
-                .inviteeEmail(invitation.inviteeEmail())
                 .inviteeUserId(invitation.inviteeUserId())
                 .proposedSharingMode(invitation.proposedSharingMode())
                 .proposedRole(invitation.proposedRole())
@@ -184,7 +190,6 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
         Invitation updatedInvitation = Invitation.builder()
                 .id(invitation.id())
                 .inviterUserId(invitation.inviterUserId())
-                .inviteeEmail(invitation.inviteeEmail())
                 .inviteeUserId(invitation.inviteeUserId())
                 .proposedSharingMode(invitation.proposedSharingMode())
                 .proposedRole(invitation.proposedRole())
@@ -320,8 +325,8 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
         if (command.inviterUserId() == null) {
             throw new IllegalArgumentException("Inviter ID cannot be null");
         }
-        if (command.inviteeEmail() == null || command.inviteeEmail().isBlank()) {
-            throw new IllegalArgumentException("Invitee email cannot be null or blank");
+        if (command.inviteeUserId() == null) {
+            throw new IllegalArgumentException("Invitee user ID cannot be null");
         }
         if (command.proposedRole() == null) {
             throw new IllegalArgumentException("Proposed role cannot be null");
@@ -340,9 +345,9 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
         }
     }
 
-    private boolean isUserParticipant(SharedSpace space, User user) {
+    private boolean isUserParticipant(SharedSpace space, UUID userId) {
         return space.participants().stream()
-                .anyMatch(spaceParticipant -> spaceParticipant.userId().equals(user.id()));
+                .anyMatch(spaceParticipant -> spaceParticipant.userId().equals(userId));
     }
 
     private void validateInvitationActive(Invitation invitation) {

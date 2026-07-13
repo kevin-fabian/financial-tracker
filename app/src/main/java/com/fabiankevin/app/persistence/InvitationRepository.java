@@ -9,4 +9,6 @@ public interface InvitationRepository {
     Invitation save(Invitation invitation);
 
     Optional<Invitation> findById(UUID id);
+
+    Optional<Invitation> findPendingByInviterAndInvitee(UUID inviterUserId, UUID inviteeUserId);
 }

@@ -27,9 +27,6 @@ public class InvitationEntity {
     @Column(name = "inviter_user_id")
     private UUID inviterUserId;
 
-    @Column(name = "invitee_email")
-    private String inviteeEmail;
-
     @Column(name = "invitee_user_id")
     private UUID inviteeUserId;
 
@@ -59,7 +56,6 @@ public class InvitationEntity {
         return InvitationEntity.builder()
                 .id(invitation.id())
                 .inviterUserId(invitation.inviterUserId())
-                .inviteeEmail(invitation.inviteeEmail())
                 .inviteeUserId(invitation.inviteeUserId())
                 .proposedSharingMode(invitation.proposedSharingMode())
                 .proposedRole(invitation.proposedRole())
@@ -74,7 +70,6 @@ public class InvitationEntity {
         return Invitation.builder()
                 .id(this.id)
                 .inviterUserId(this.inviterUserId)
-                .inviteeEmail(this.inviteeEmail)
                 .inviteeUserId(this.inviteeUserId)
                 .proposedSharingMode(this.proposedSharingMode)
                 .proposedRole(this.proposedRole)

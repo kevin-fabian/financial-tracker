@@ -16,15 +16,6 @@ public record InvitationResponse(
     @Schema(description = "Invitation identifier", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
     UUID id,
 
-    @Schema(description = "Inviter user identifier", example = "a1b2c3d4-...")
-    UUID inviterUserId,
-
-    @Schema(description = "Email of the invited user", example = "jane@example.com")
-    String inviteeEmail,
-
-    @Schema(description = "Accepted invitee user identifier", example = "b2c3d4e5-...")
-    UUID inviteeUserId,
-
     @Schema(description = "Proposed sharing mode", example = "MUTUAL_SHARING")
     SharingMode proposedSharingMode,
 
@@ -46,9 +37,6 @@ public record InvitationResponse(
     public static InvitationResponse from(Invitation invitation) {
         return InvitationResponse.builder()
             .id(invitation.id())
-            .inviterUserId(invitation.inviterUserId())
-            .inviteeEmail(invitation.inviteeEmail())
-            .inviteeUserId(invitation.inviteeUserId())
             .proposedSharingMode(invitation.proposedSharingMode())
             .proposedRole(invitation.proposedRole())
             .status(invitation.status())

@@ -4,8 +4,12 @@ import com.fabiankevin.app.models.shared_space.Invitation;
 import com.fabiankevin.app.models.shared_space.SharedSpace;
 import com.fabiankevin.app.services.SharedSpaceService;
 import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
+import com.fabiankevin.app.services.commands.shared_space.RejectInvitationCommand;
 import com.fabiankevin.app.services.commands.shared_space.RevokeInvitationCommand;
-import com.fabiankevin.app.web.controllers.dtos.*;
+import com.fabiankevin.app.web.controllers.dtos.CreateSharedSpaceRequest;
+import com.fabiankevin.app.web.controllers.dtos.InvitationResponse;
+import com.fabiankevin.app.web.controllers.dtos.SendInvitationRequest;
+import com.fabiankevin.app.web.controllers.dtos.SharedSpaceResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -133,11 +137,11 @@ public class SharedSpaceController {
     @PostMapping("/{spaceId}/invitations/{invitationId}/reject")
     public InvitationResponse rejectInvitation(
         @PathVariable UUID invitationId,
-        @Valid @RequestBody RejectInvitationRequest request,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         log.debug("User {} rejecting invitation {}", userId, invitationId);
-        Invitation invitation = sharedSpaceService.rejectInvitation(request.toCommand(invitationId));
+        Invitation invitation = sharedSpaceService.rejectInvitation(
+            new RejectInvitationCommand(invitationId, userId));
         return InvitationResponse.from(invitation);
     }
 

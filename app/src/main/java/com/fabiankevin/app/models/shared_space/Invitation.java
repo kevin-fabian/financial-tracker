@@ -15,8 +15,7 @@ import static com.fabiankevin.app.models.enums.shared_space.InvitationStatus.PEN
 public record Invitation(
         UUID id,
         UUID inviterUserId,
-        String inviteeEmail,
-        UUID inviteeUserId,       // null if invitee not yet registered
+        UUID inviteeUserId,
         SharingMode proposedSharingMode,
         AccessLevel proposedRole,
         InvitationStatus status,
@@ -26,6 +25,7 @@ public record Invitation(
 ) {
     public Invitation {
         Objects.requireNonNull(inviterUserId, "inviterUserId");
+        Objects.requireNonNull(inviteeUserId, "inviteeUserId");
         Objects.requireNonNull(status, "status");
     }
 

@@ -1,5 +1,6 @@
 package com.fabiankevin.app.persistence;
 
+import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
 import com.fabiankevin.app.models.shared_space.Invitation;
 import com.fabiankevin.app.persistence.entities.InvitationEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaInvitationRepository;
@@ -23,5 +24,11 @@ public class DefaultInvitationRepository implements InvitationRepository {
     @Override
     public Optional<Invitation> findById(UUID id) {
         return jpaInvitationRepository.findById(id).map(InvitationEntity::toModel);
+    }
+
+    @Override
+    public Optional<Invitation> findPendingByInviterAndInvitee(UUID inviterUserId, UUID inviteeUserId) {
+        return jpaInvitationRepository.findByInviterUserIdAndInviteeUserIdAndStatus(inviterUserId, inviteeUserId, InvitationStatus.PENDING)
+                .map(InvitationEntity::toModel);
     }
 }

@@ -47,8 +47,7 @@ class DefaultInvitationRepositoryTest {
     void setUp() {
         invitation = Invitation.builder()
                 .inviterUserId(UUID.randomUUID())
-                .inviteeEmail("invitee@example.com")
-                .inviteeUserId(null)
+                .inviteeUserId(UUID.randomUUID())
                 .proposedSharingMode(SharingMode.MUTUAL_SHARING)
                 .proposedRole(AccessLevel.READ_WRITE)
                 .status(InvitationStatus.PENDING)
@@ -68,8 +67,7 @@ class DefaultInvitationRepositoryTest {
         Invitation restored = found.get();
         Assertions.assertThat(restored.id()).as("generated id should be present").isNotNull();
         Assertions.assertThat(restored.inviterUserId()).isEqualTo(invitation.inviterUserId());
-        Assertions.assertThat(restored.inviteeEmail()).isEqualTo("invitee@example.com");
-        Assertions.assertThat(restored.inviteeUserId()).isNull();
+        Assertions.assertThat(restored.inviteeUserId()).isEqualTo(invitation.inviteeUserId());
         Assertions.assertThat(restored.proposedSharingMode()).isEqualTo(SharingMode.MUTUAL_SHARING);
         Assertions.assertThat(restored.proposedRole()).isEqualTo(AccessLevel.READ_WRITE);
         Assertions.assertThat(restored.status()).isEqualTo(InvitationStatus.PENDING);
@@ -88,7 +86,6 @@ class DefaultInvitationRepositoryTest {
 
         Invitation accepted = Invitation.builder()
                 .inviterUserId(UUID.randomUUID())
-                .inviteeEmail("accepted@example.com")
                 .inviteeUserId(inviteeUserId)
                 .proposedSharingMode(SharingMode.MUTUAL_SHARING)
                 .proposedRole(AccessLevel.READ_WRITE)
@@ -115,7 +112,7 @@ class DefaultInvitationRepositoryTest {
         Optional<Invitation> found = invitationRepository.findById(saved.id());
 
         Assertions.assertThat(found).isPresent();
-        Assertions.assertThat(found.get().inviteeEmail()).isEqualTo("invitee@example.com");
+        Assertions.assertThat(found.get().inviteeUserId()).isEqualTo(invitation.inviteeUserId());
         Assertions.assertThat(found.get().status()).isEqualTo(InvitationStatus.PENDING);
         Assertions.assertThat(found.get().proposedSharingMode()).isEqualTo(SharingMode.MUTUAL_SHARING);
         Assertions.assertThat(found.get().proposedRole()).isEqualTo(AccessLevel.READ_WRITE);

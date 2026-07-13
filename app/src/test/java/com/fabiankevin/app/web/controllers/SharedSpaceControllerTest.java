@@ -11,7 +11,6 @@ import com.fabiankevin.app.models.shared_space.SharedSpace;
 import com.fabiankevin.app.services.SharedSpaceService;
 import com.fabiankevin.app.services.commands.shared_space.*;
 import com.fabiankevin.app.web.controllers.dtos.CreateSharedSpaceRequest;
-import com.fabiankevin.app.web.controllers.dtos.RejectInvitationRequest;
 import com.fabiankevin.app.web.controllers.dtos.SendInvitationRequest;
 import com.github.fabiankevin.lemon.web.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,12 +82,11 @@ class SharedSpaceControllerTest {
             .build();
     }
 
-    private Invitation invitationWithId(UUID id, UUID spaceId, UUID inviterId, String inviteeEmail, InvitationStatus status) {
+    private Invitation invitationWithId(UUID id, UUID spaceId, UUID inviterId, UUID inviteeUserId, InvitationStatus status) {
         return Invitation.builder()
             .id(id)
             .inviterUserId(inviterId)
-            .inviteeEmail(inviteeEmail)
-            .inviteeUserId(null)
+            .inviteeUserId(inviteeUserId)
             .proposedSharingMode(SharingMode.MUTUAL_SHARING)
             .proposedRole(READ_WRITE)
             .status(status)
@@ -192,21 +190,21 @@ class SharedSpaceControllerTest {
     void sendInvitation_givenOwner_thenReturnsCreated() throws Exception {
         UUID spaceId = UUID.randomUUID();
         UUID invitationId = UUID.randomUUID();
+        UUID inviteeUserId = UUID.randomUUID();
         SendInvitationRequest request = SendInvitationRequest.builder()
-            .inviteeEmail("jane@example.com")
+            .inviteeUserId(inviteeUserId)
             .proposedRole(READ_WRITE)
             .build();
 
         when(sharedSpaceService.sendInvitation(any())).thenReturn(
-            invitationWithId(invitationId, spaceId, userId, "jane@example.com", PENDING));
+            invitationWithId(invitationId, spaceId, userId, inviteeUserId, PENDING));
 
         mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations")
                 .with(jwt().jwt(jwt))
                 .contentType("application/json")
                 .content(jsonMapper.writeValueAsString(request)))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.id").value(invitationId.toString()))
-            .andExpect(jsonPath("$.inviteeEmail").value("jane@example.com"));
+            .andExpect(jsonPath("$.id").value(invitationId.toString()));
 
         verify(sharedSpaceService).sendInvitation(any(SendInvitationCommand.class));
     }
@@ -215,7 +213,7 @@ class SharedSpaceControllerTest {
     void sendInvitation_givenMissingJwt_thenReturnsForbidden() throws Exception {
         UUID spaceId = UUID.randomUUID();
         SendInvitationRequest request = SendInvitationRequest.builder()
-            .inviteeEmail("jane@example.com")
+            .inviteeUserId(UUID.randomUUID())
             .proposedRole(READ_WRITE)
             .build();
 
@@ -231,7 +229,7 @@ class SharedSpaceControllerTest {
     void sendInvitation_givenNotOwner_thenReturnsForbidden() throws Exception {
         UUID spaceId = UUID.randomUUID();
         SendInvitationRequest request = SendInvitationRequest.builder()
-            .inviteeEmail("jane@example.com")
+            .inviteeUserId(UUID.randomUUID())
             .proposedRole(READ_WRITE)
             .build();
 
@@ -291,17 +289,12 @@ class SharedSpaceControllerTest {
     void rejectInvitation_givenInvitee_thenReturnsRejectedInvitation() throws Exception {
         UUID spaceId = UUID.randomUUID();
         UUID invitationId = UUID.randomUUID();
-        RejectInvitationRequest request = RejectInvitationRequest.builder()
-            .userEmail("jane@example.com")
-            .build();
 
-        Invitation rejected = invitationWithId(invitationId, spaceId, userId, "jane@example.com", InvitationStatus.REJECTED);
+        Invitation rejected = invitationWithId(invitationId, spaceId, UUID.randomUUID(), userId, InvitationStatus.REJECTED);
         when(sharedSpaceService.rejectInvitation(any())).thenReturn(rejected);
 
         mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations/" + invitationId + "/reject")
-                .with(jwt().jwt(jwt))
-                .contentType("application/json")
-                .content(jsonMapper.writeValueAsString(request)))
+                .with(jwt().jwt(jwt)))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(invitationId.toString()))
             .andExpect(jsonPath("$.status").value("REJECTED"));
@@ -313,32 +306,22 @@ class SharedSpaceControllerTest {
     void rejectInvitation_givenMissingJwt_thenReturnsForbidden() throws Exception {
         UUID spaceId = UUID.randomUUID();
         UUID invitationId = UUID.randomUUID();
-        RejectInvitationRequest request = RejectInvitationRequest.builder()
-            .userEmail("jane@example.com")
-            .build();
 
-        mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations/" + invitationId + "/reject")
-                .contentType("application/json")
-                .content(jsonMapper.writeValueAsString(request)))
+        mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations/" + invitationId + "/reject"))
             .andExpect(status().isForbidden());
 
         verifyNoInteractions(sharedSpaceService);
     }
 
     @Test
-    void rejectInvitation_givenForbiddenEmail_thenReturnsForbidden() throws Exception {
+    void rejectInvitation_givenNotInvitee_thenReturnsForbidden() throws Exception {
         UUID spaceId = UUID.randomUUID();
         UUID invitationId = UUID.randomUUID();
-        RejectInvitationRequest request = RejectInvitationRequest.builder()
-            .userEmail("intruder@example.com")
-            .build();
 
         when(sharedSpaceService.rejectInvitation(any())).thenThrow(new ForbiddenException("Only the invited user can reject"));
 
         mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations/" + invitationId + "/reject")
-                .with(jwt().jwt(jwt))
-                .contentType("application/json")
-                .content(jsonMapper.writeValueAsString(request)))
+                .with(jwt().jwt(jwt)))
             .andExpect(status().isForbidden());
     }
 
@@ -349,7 +332,7 @@ class SharedSpaceControllerTest {
         UUID spaceId = UUID.randomUUID();
         UUID invitationId = UUID.randomUUID();
 
-        Invitation revoked = invitationWithId(invitationId, spaceId, userId, "jane@example.com", InvitationStatus.REVOKED);
+        Invitation revoked = invitationWithId(invitationId, spaceId, UUID.randomUUID(), UUID.randomUUID(), InvitationStatus.REVOKED);
         when(sharedSpaceService.revokeInvitation(any())).thenReturn(revoked);
 
         mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations/" + invitationId + "/revoke")

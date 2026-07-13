@@ -4,6 +4,6 @@ import java.util.UUID;
 
 public record RejectInvitationCommand(
         UUID invitationId,
-        String userEmail
+        UUID inviteeUserId
 ) {
 }
