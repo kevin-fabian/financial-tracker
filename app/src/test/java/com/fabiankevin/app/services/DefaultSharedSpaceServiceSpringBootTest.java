@@ -8,7 +8,6 @@ import com.fabiankevin.app.models.enums.shared_space.ResourceType;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.shared_space.Invitation;
 import com.fabiankevin.app.models.shared_space.SharedSpace;
-import com.fabiankevin.app.models.shared_space.SharingRule;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
@@ -85,7 +84,6 @@ public class DefaultSharedSpaceServiceSpringBootTest {
                 .inviteeEmail("partner@test.com")
                 .inviteeUserId(partnerUserid)
                 .proposedRole(AccessLevel.READ_WRITE)
-                .proposedSharingRule(SharingRule.MUTUAL_DEFAULT)
                 .build());
 
         // Step 3: Accept the invite
@@ -140,7 +138,6 @@ public class DefaultSharedSpaceServiceSpringBootTest {
                 .inviteeEmail("partner@test.com")
                 .inviteeUserId(partnerUserid)
                 .proposedRole(AccessLevel.READ_WRITE)
-                .proposedSharingRule(SharingRule.MUTUAL_DEFAULT)
                 .build());
 
         // Step 3: Accept the invite

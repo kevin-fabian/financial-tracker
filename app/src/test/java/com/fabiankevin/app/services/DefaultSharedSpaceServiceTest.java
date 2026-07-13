@@ -5,7 +5,10 @@ import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
 import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
-import com.fabiankevin.app.models.shared_space.*;
+import com.fabiankevin.app.models.shared_space.Invitation;
+import com.fabiankevin.app.models.shared_space.SharedSpace;
+import com.fabiankevin.app.models.shared_space.SharingPermissionResolver;
+import com.fabiankevin.app.models.shared_space.SpaceParticipant;
 import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
 import com.fabiankevin.app.services.commands.shared_space.CreateSharedSpaceCommand;
@@ -56,9 +59,7 @@ class DefaultSharedSpaceServiceTest {
                     null,
                     "Trip Budget",
                     SharingMode.MUTUAL_SHARING,
-                    AccessLevel.READ_WRITE,
-                    SharingRule.MUTUAL_DEFAULT,
-                    SharingRule.MUTUAL_DEFAULT
+                    AccessLevel.READ_WRITE
             );
 
             when(spaceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -106,9 +107,7 @@ class DefaultSharedSpaceServiceTest {
                     spaceId,
                     null,
                     null,
-                    AccessLevel.VIEW_ONLY,
-                    SharingRule.VIEWER_DEFAULT,
-                    null
+                    AccessLevel.VIEW_ONLY
             );
 
             when(spaceRepository.findById(spaceId)).thenReturn(java.util.Optional.of(existingSpace));
@@ -146,9 +145,7 @@ class DefaultSharedSpaceServiceTest {
                     spaceId,
                     null,
                     null,
-                    AccessLevel.VIEW_ONLY,
-                    SharingRule.VIEWER_DEFAULT,
-                    null
+                    AccessLevel.VIEW_ONLY
             );
 
             when(spaceRepository.findById(spaceId)).thenReturn(java.util.Optional.of(existingSpace));
@@ -167,9 +164,7 @@ class DefaultSharedSpaceServiceTest {
                     null,
                     null,
                     SharingMode.MUTUAL_SHARING,
-                    AccessLevel.READ_WRITE,
-                    SharingRule.MUTUAL_DEFAULT,
-                    SharingRule.MUTUAL_DEFAULT
+                    AccessLevel.READ_WRITE
             );
 
             ArgumentCaptor<SharedSpace> captor = ArgumentCaptor.forClass(SharedSpace.class);
@@ -190,9 +185,7 @@ class DefaultSharedSpaceServiceTest {
                     null,
                     "New Space",
                     SharingMode.MUTUAL_SHARING,
-                    AccessLevel.READ_WRITE,
-                    SharingRule.MUTUAL_DEFAULT,
-                    SharingRule.MUTUAL_DEFAULT
+                    AccessLevel.READ_WRITE
             );
 
             assertThrows(IllegalArgumentException.class, () -> service.sendInvitation(command));
