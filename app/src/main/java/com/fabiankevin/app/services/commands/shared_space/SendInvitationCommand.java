@@ -10,7 +10,6 @@ import java.util.UUID;
 public record SendInvitationCommand(
         UUID inviterUserId,
         String inviteeEmail,
-        UUID inviteeUserId,
         UUID spaceId,
         String spaceName,
         SharingMode sharingMode,

@@ -1,6 +1,8 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.shared_space.*;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
 import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
@@ -25,6 +27,7 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
     private final SharedSpaceRepository spaceRepository;
     private final InvitationRepository invitationRepository;
     private final SharingPermissionResolver permissionResolver;
+    private final UserClient userClient;
 
     @Transactional
     @Override
@@ -77,6 +80,8 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
             throw new NotSpaceOwnerException();
         }
 
+        User invitee = userClient.getUserByEmail(command.inviteeEmail());
+
         if (isUserParticipant(space, command.inviteeEmail())) {
             throw new ParticipantAlreadyExistsException();
         }
@@ -84,7 +89,7 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
         Invitation invitation = Invitation.builder()
                 .inviterUserId(command.inviterUserId())
                 .inviteeEmail(command.inviteeEmail())
-                .inviteeUserId(command.inviteeUserId())
+                .inviteeUserId(invitee.id())
                 .proposedSharingMode(space.sharingMode())
                 .proposedRole(command.proposedRole())
                 .status(InvitationStatus.PENDING)

@@ -18,9 +18,6 @@ public record SendInvitationRequest(
     @Schema(description = "Email of the invited user", example = "jane@example.com")
     String inviteeEmail,
 
-    @Schema(description = "Optional identifier of the invited user when already registered")
-    UUID inviteeUserId,
-
     @NotNull(message = "Proposed role is required")
     @Schema(description = "Access level proposed for the invitee", example = "READ_WRITE")
     AccessLevel proposedRole
@@ -29,7 +26,6 @@ public record SendInvitationRequest(
         return SendInvitationCommand.builder()
             .inviterUserId(inviterUserId)
             .inviteeEmail(inviteeEmail)
-            .inviteeUserId(inviteeUserId)
             .spaceId(spaceId)
             .proposedRole(proposedRole)
             .build();

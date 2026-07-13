@@ -1,7 +1,9 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.shared_space.NotSpaceOwnerException;
 import com.fabiankevin.app.exceptions.shared_space.SharedSpaceNotExistException;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
@@ -43,6 +45,9 @@ class DefaultSharedSpaceServiceTest {
     @Mock
     private SharingPermissionResolver permissionResolver;
 
+    @Mock
+    private UserClient userClient;
+
     @InjectMocks
     private DefaultSharedSpaceService service;
 
@@ -55,7 +60,6 @@ class DefaultSharedSpaceServiceTest {
             SendInvitationCommand command = new SendInvitationCommand(
                     inviterUserId,
                     "friend@example.com",
-                    UUID.randomUUID(),
                     null,
                     "Trip Budget",
                     SharingMode.MUTUAL_SHARING,
@@ -70,6 +74,7 @@ class DefaultSharedSpaceServiceTest {
         @Test
         void givenExistingSpaceWhereUserIsOwner_thenSendsInvitationToSpace() {
             UUID inviterUserId = UUID.randomUUID();
+            UUID inviteeUserId = UUID.randomUUID();
             UUID spaceId = UUID.randomUUID();
             SharedSpace existingSpace = SharedSpace.builder()
                     .id(spaceId)
@@ -90,10 +95,12 @@ class DefaultSharedSpaceServiceTest {
                     .updatedAt(Instant.now())
                     .build();
 
+            when(userClient.getUserByEmail("sibling@example.com")).thenReturn(
+                    User.builder().id(inviteeUserId).build());
+
             SendInvitationCommand command = new SendInvitationCommand(
                     inviterUserId,
                     "sibling@example.com",
-                    UUID.randomUUID(),
                     spaceId,
                     null,
                     null,
@@ -131,7 +138,6 @@ class DefaultSharedSpaceServiceTest {
             SendInvitationCommand command = new SendInvitationCommand(
                     inviterUserId,
                     "stranger@example.com",
-                    UUID.randomUUID(),
                     spaceId,
                     null,
                     null,
@@ -150,7 +156,6 @@ class DefaultSharedSpaceServiceTest {
             SendInvitationCommand command = new SendInvitationCommand(
                     inviterUserId,
                     "friend@example.com",
-                    UUID.randomUUID(),
                     null,
                     null,
                     SharingMode.MUTUAL_SHARING,
@@ -167,7 +172,6 @@ class DefaultSharedSpaceServiceTest {
             SendInvitationCommand command = new SendInvitationCommand(
                     null,
                     "someone@example.com",
-                    UUID.randomUUID(),
                     null,
                     "New Space",
                     SharingMode.MUTUAL_SHARING,
