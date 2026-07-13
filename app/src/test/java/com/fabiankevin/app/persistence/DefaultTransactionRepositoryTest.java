@@ -12,6 +12,7 @@ import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaSharedSpaceRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import com.fabiankevin.app.services.DefaultTransactionService;
+import com.fabiankevin.app.services.SharedSpaceService;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
@@ -87,7 +88,7 @@ class DefaultTransactionRepositoryTest {
                     categoryRepository,
                     transactionRepository,
                     List.of(),
-                    sharedSpaceRepository);
+                    mock(SharedSpaceService.class));
         }
     }
 

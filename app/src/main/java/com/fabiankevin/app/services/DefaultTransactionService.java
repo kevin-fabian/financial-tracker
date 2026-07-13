@@ -6,13 +6,8 @@ import com.fabiankevin.app.exceptions.TransactionNotFoundException;
 import com.fabiankevin.app.models.*;
 import com.fabiankevin.app.models.enums.SummaryType;
 import com.fabiankevin.app.models.enums.TransactionType;
-import com.fabiankevin.app.models.enums.shared_space.ResourceType;
-import com.fabiankevin.app.models.shared_space.SharedResource;
-import com.fabiankevin.app.models.shared_space.SharedSpace;
-import com.fabiankevin.app.models.shared_space.SpaceParticipant;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
-import com.fabiankevin.app.persistence.SharedSpaceRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.PatchTransactionCommand;
@@ -36,14 +31,14 @@ public class DefaultTransactionService implements TransactionService {
     private final CategoryRepository categoryRepository;
     private final TransactionRepository transactionRepository;
     private final Map<SummaryType, SummaryGenerator> generators;
-    private final SharedSpaceRepository sharedSpaceRepository;
+    private final SharedSpaceService sharedSpaceService;
 
     public DefaultTransactionService(
             AccountRepository accountRepository,
             CategoryRepository categoryRepository,
             TransactionRepository transactionRepository,
             List<SummaryGenerator> generators,
-            SharedSpaceRepository sharedSpaceRepository) {
+            SharedSpaceService sharedSpaceService) {
         this.accountRepository = accountRepository;
         this.categoryRepository = categoryRepository;
         this.transactionRepository = transactionRepository;
@@ -52,7 +47,7 @@ public class DefaultTransactionService implements TransactionService {
                         SummaryGenerator::supports,
                         Function.identity()
                 ));
-        this.sharedSpaceRepository = sharedSpaceRepository;
+        this.sharedSpaceService = sharedSpaceService;
     }
 
     @Transactional
@@ -147,20 +142,8 @@ public class DefaultTransactionService implements TransactionService {
 
     @Override
     public Page<Transaction> getTransactionsByPageQuery(PageQuery query, UUID userId, TransactionType type) {
-        List<SharedSpace> sharedSpaces = sharedSpaceRepository.retrieveByUserId(userId);
-        Set<UUID> userIds = new HashSet<>();
+        Set<UUID> userIds = new HashSet<>(sharedSpaceService.getParticipantUserIds(userId));
         userIds.add(userId);
-        if (!sharedSpaces.isEmpty()) {
-            SharedSpace sharedSpace = sharedSpaces.getFirst();
-            boolean isTransactionShared = sharedSpace.sharedResources().stream().map(SharedResource::type)
-                    .anyMatch(ResourceType.TRANSACTION::equals);
-            if (isTransactionShared) {
-                userIds.addAll(sharedSpace.participants().stream()
-                        .map(SpaceParticipant::userId).toList());
-            }
-
-        }
-
         return transactionRepository.getTransactionsByPageAndUserIdAndType(query, userIds, type);
     }
 }

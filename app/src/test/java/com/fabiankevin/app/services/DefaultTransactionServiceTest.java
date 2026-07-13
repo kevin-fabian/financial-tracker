@@ -6,7 +6,6 @@ import com.fabiankevin.app.models.enums.SummaryType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
-import com.fabiankevin.app.persistence.SharedSpaceRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.PatchTransactionCommand;
@@ -39,7 +38,7 @@ class DefaultTransactionServiceTest {
     @Mock
     private List<SummaryGenerator> summaryGenerators;
     @Mock
-    private SharedSpaceRepository sharedSpaceRepository;
+    private SharedSpaceService sharedSpaceService;
     @InjectMocks
     private DefaultTransactionService transactionService;
 
@@ -209,7 +208,7 @@ class DefaultTransactionServiceTest {
 
         transactionService = new DefaultTransactionService(
                 accountRepository, categoryRepository, transactionRepository, List.of(mockGenerator),
-                sharedSpaceRepository
+                sharedSpaceService
         );
 
         SummarySeries result = transactionService.getSummary(query);
@@ -231,7 +230,7 @@ class DefaultTransactionServiceTest {
 
         transactionService = new DefaultTransactionService(
                 accountRepository, categoryRepository, transactionRepository, List.of(),
-                sharedSpaceRepository
+                sharedSpaceService
         );
 
         assertThrows(IllegalArgumentException.class, () -> transactionService.getSummary(query));
@@ -245,7 +244,7 @@ class DefaultTransactionServiceTest {
 
         transactionService = new DefaultTransactionService(
                 accountRepository, categoryRepository, transactionRepository, List.of(),
-                sharedSpaceRepository
+                sharedSpaceService
         );
 
         assertThrows(IllegalArgumentException.class, () -> transactionService.getSummary(query));

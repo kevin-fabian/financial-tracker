@@ -2,11 +2,6 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.models.StatsSummary;
 import com.fabiankevin.app.models.SummaryPoint;
-import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
-import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
-import com.fabiankevin.app.models.enums.shared_space.SharingMode;
-import com.fabiankevin.app.models.shared_space.SharedSpace;
-import com.fabiankevin.app.models.shared_space.SpaceParticipant;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.web.controllers.dtos.StatsQuery;
 import org.junit.jupiter.api.Nested;
@@ -16,7 +11,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
@@ -44,30 +38,6 @@ class DefaultStatsServiceTest {
         );
     }
 
-    private SpaceParticipant participant(UUID userId) {
-        return SpaceParticipant.builder()
-                .id(UUID.randomUUID())
-                .userId(userId)
-                .accessLevel(AccessLevel.READ_WRITE)
-                .status(ParticipantStatus.ACTIVE)
-                .joinedAt(Instant.now())
-                .build();
-    }
-
-    private SharedSpace spaceWithParticipants(UUID ownerUserId, SpaceParticipant... participants) {
-        return SharedSpace.builder()
-                .id(UUID.randomUUID())
-                .spaceName("Family Budget")
-                .ownerUserId(ownerUserId)
-                .participants(List.of(participants))
-                .sharingMode(SharingMode.MUTUAL_SHARING)
-                .sharedResources(List.of())
-                .active(true)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-    }
-
     @Test
     void getStatsSummary_givenValidQueryWithDates_thenShouldReturnStatsSummary() {
         UUID userId = UUID.randomUUID();
@@ -88,7 +58,7 @@ class DefaultStatsServiceTest {
         double totalBalance = 15000.0;
         double priorBalance = 12000.0;
 
-        when(sharedSpaceService.retrieveByUserId(userId)).thenReturn(List.of());
+        when(sharedSpaceService.getParticipantUserIds(userId)).thenReturn(List.of());
         when(transactionRepository.sumByTypeAndUserId(eq(Set.of(userId)), eq(fromDate), eq(toDate), eq(categoryId)))
                 .thenReturn(summaryPoints(currentIncome, currentExpenses));
         when(transactionRepository.sumBalance(eq(Set.of(userId))))
@@ -104,7 +74,7 @@ class DefaultStatsServiceTest {
         assertEquals(currentExpenses, summary.totalExpenses(), 0.001, "Total expenses should match");
         assertEquals(25.0, summary.growthPercentage(), 0.01, "Growth percentage should reflect month-over-month balance change");
 
-        verify(sharedSpaceService, times(1)).retrieveByUserId(userId);
+        verify(sharedSpaceService, times(1)).getParticipantUserIds(userId);
         verify(transactionRepository, times(1)).sumByTypeAndUserId(any(), any(), any(), any());
         verify(transactionRepository, times(1)).sumBalance(any(), any(), any());
         verify(transactionRepository, times(1)).sumBalance(eq(Set.of(userId)));
@@ -121,7 +91,7 @@ class DefaultStatsServiceTest {
         double currentExpenses = 1500.0;
         double totalBalance = 10000.0;
 
-        when(sharedSpaceService.retrieveByUserId(userId)).thenReturn(List.of());
+        when(sharedSpaceService.getParticipantUserIds(userId)).thenReturn(List.of());
         when(transactionRepository.sumByTypeAndUserId(eq(Set.of(userId)), any(), any(), any()))
                 .thenReturn(summaryPoints(currentIncome, currentExpenses));
         when(transactionRepository.sumBalance(eq(Set.of(userId))))
@@ -137,7 +107,7 @@ class DefaultStatsServiceTest {
         assertEquals(currentExpenses, summary.totalExpenses(), 0.001, "Total expenses should match");
         assertEquals(100.0, summary.growthPercentage(), 0.001, "Growth percentage should be 100.0% when prior balance is zero");
 
-        verify(sharedSpaceService, times(1)).retrieveByUserId(userId);
+        verify(sharedSpaceService, times(1)).getParticipantUserIds(userId);
         verify(transactionRepository, times(1)).sumByTypeAndUserId(any(), any(), any(), any());
         verify(transactionRepository, times(1)).sumBalance(any(), any(), any());
         verify(transactionRepository, times(1)).sumBalance(eq(Set.of(userId)));
@@ -150,10 +120,8 @@ class DefaultStatsServiceTest {
         void givenUserBelongsToSharedSpace_thenShouldAggregateAcrossAllParticipants() {
             UUID userId = UUID.randomUUID();
             UUID partnerId = UUID.randomUUID();
-            SpaceParticipant owner = participant(userId);
-            SpaceParticipant partner = participant(partnerId);
-            SharedSpace space = spaceWithParticipants(userId, owner, partner);
-            Set<UUID> expectedUserIds = Set.of(userId, partnerId);
+            List<UUID> participantIds = List.of(userId, partnerId);
+            Set<UUID> expectedUserIds = Set.copyOf(participantIds);
 
             StatsQuery query = StatsQuery.builder()
                     .fromDate(LocalDate.of(2026, 2, 1))
@@ -165,7 +133,7 @@ class DefaultStatsServiceTest {
             double totalBalance = 25000.0;
             double priorBalance = 20000.0;
 
-            when(sharedSpaceService.retrieveByUserId(userId)).thenReturn(List.of(space));
+            when(sharedSpaceService.getParticipantUserIds(userId)).thenReturn(participantIds);
             when(transactionRepository.sumByTypeAndUserId(eq(expectedUserIds), any(), any(), any()))
                     .thenReturn(summaryPoints(currentIncome, currentExpenses));
             when(transactionRepository.sumBalance(eq(expectedUserIds)))
@@ -181,7 +149,7 @@ class DefaultStatsServiceTest {
             assertEquals(currentExpenses, summary.totalExpenses(), 0.001);
             assertEquals(25.0, summary.growthPercentage(), 0.01);
 
-            verify(sharedSpaceService).retrieveByUserId(userId);
+            verify(sharedSpaceService).getParticipantUserIds(userId);
             verify(transactionRepository).sumByTypeAndUserId(eq(expectedUserIds), any(), any(), any());
             verify(transactionRepository).sumBalance(eq(expectedUserIds));
             verify(transactionRepository).sumBalance(eq(expectedUserIds), any(), any());
@@ -192,12 +160,12 @@ class DefaultStatsServiceTest {
             UUID ownerId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
             UUID otherMemberId = UUID.randomUUID();
-            SharedSpace space = spaceWithParticipants(ownerId, participant(ownerId), participant(userId), participant(otherMemberId));
-            Set<UUID> expectedUserIds = Set.of(ownerId, userId, otherMemberId);
+            List<UUID> participantIds = List.of(ownerId, userId, otherMemberId);
+            Set<UUID> expectedUserIds = Set.copyOf(participantIds);
 
             StatsQuery query = StatsQuery.builder().build();
 
-            when(sharedSpaceService.retrieveByUserId(userId)).thenReturn(List.of(space));
+            when(sharedSpaceService.getParticipantUserIds(userId)).thenReturn(participantIds);
             when(transactionRepository.sumByTypeAndUserId(eq(expectedUserIds), any(), any(), any()))
                     .thenReturn(summaryPoints(6000.0, 2000.0));
             when(transactionRepository.sumBalance(eq(expectedUserIds)))
@@ -210,6 +178,7 @@ class DefaultStatsServiceTest {
             assertNotNull(summary);
             assertEquals(0.0, summary.growthPercentage(), 0.001, "Growth should be 0 when prior and current balances are equal");
 
+            verify(sharedSpaceService).getParticipantUserIds(userId);
             verify(transactionRepository).sumByTypeAndUserId(eq(expectedUserIds), any(), any(), any());
             verify(transactionRepository).sumBalance(eq(expectedUserIds));
         }
@@ -219,13 +188,12 @@ class DefaultStatsServiceTest {
             UUID userId = UUID.randomUUID();
             UUID partnerId = UUID.randomUUID();
             UUID roommateId = UUID.randomUUID();
-            SharedSpace space1 = spaceWithParticipants(userId, participant(userId), participant(partnerId));
-            SharedSpace space2 = spaceWithParticipants(roommateId, participant(roommateId), participant(userId));
-            Set<UUID> expectedUserIds = Set.of(userId, partnerId, roommateId);
+            List<UUID> participantIds = List.of(userId, partnerId, roommateId);
+            Set<UUID> expectedUserIds = Set.copyOf(participantIds);
 
             StatsQuery query = StatsQuery.builder().build();
 
-            when(sharedSpaceService.retrieveByUserId(userId)).thenReturn(List.of(space1, space2));
+            when(sharedSpaceService.getParticipantUserIds(userId)).thenReturn(participantIds);
             when(transactionRepository.sumByTypeAndUserId(eq(expectedUserIds), any(), any(), any()))
                     .thenReturn(summaryPoints(10000.0, 7000.0));
             when(transactionRepository.sumBalance(eq(expectedUserIds)))
@@ -238,6 +206,7 @@ class DefaultStatsServiceTest {
             assertNotNull(summary);
             assertEquals(10000.0, summary.totalIncome(), 0.001);
 
+            verify(sharedSpaceService).getParticipantUserIds(userId);
             verify(transactionRepository).sumByTypeAndUserId(eq(expectedUserIds), any(), any(), any());
             verify(transactionRepository).sumBalance(eq(expectedUserIds));
             verify(transactionRepository).sumBalance(eq(expectedUserIds), any(), any());

@@ -3,7 +3,6 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.models.StatsSummary;
 import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.enums.TransactionType;
-import com.fabiankevin.app.models.shared_space.SharedSpace;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.web.controllers.dtos.StatsQuery;
 import lombok.RequiredArgsConstructor;
@@ -58,12 +57,8 @@ public class DefaultStatsService implements StatsService {
     }
 
     private Set<UUID> resolveUserIds(UUID userId) {
-        Set<UUID> userIds = new HashSet<>();
+        Set<UUID> userIds = new HashSet<>(sharedSpaceService.getParticipantUserIds(userId));
         userIds.add(userId);
-        List<SharedSpace> spaces = sharedSpaceService.retrieveByUserId(userId);
-        for (SharedSpace space : spaces) {
-            space.participants().forEach(p -> userIds.add(p.userId()));
-        }
         return userIds;
     }
 }
