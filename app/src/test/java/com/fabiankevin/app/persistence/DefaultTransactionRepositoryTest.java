@@ -9,6 +9,7 @@ import com.fabiankevin.app.persistence.entities.AccountEntity;
 import com.fabiankevin.app.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaSharedSpaceRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import com.fabiankevin.app.services.DefaultTransactionService;
 import com.fabiankevin.app.services.TransactionService;
@@ -32,6 +33,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Currency;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.mockito.Mockito.*;
@@ -70,15 +72,22 @@ class DefaultTransactionRepositoryTest {
         }
 
         @Bean
+        public SharedSpaceRepository sharedSpaceRepository(JpaSharedSpaceRepository jpaSharedSpaceRepository) {
+            return new DefaultSharedSpaceRepository(jpaSharedSpaceRepository);
+        }
+
+        @Bean
         public TransactionService transactionService(
                 AccountRepository accountRepository,
                 CategoryRepository categoryRepository,
-                TransactionRepository transactionRepository) {
+                TransactionRepository transactionRepository,
+                SharedSpaceRepository sharedSpaceRepository) {
             return new DefaultTransactionService(
                     accountRepository,
                     categoryRepository,
                     transactionRepository,
-                    List.of());
+                    List.of(),
+                    sharedSpaceRepository);
         }
     }
 
@@ -509,7 +518,7 @@ class DefaultTransactionRepositoryTest {
 
         com.fabiankevin.app.services.queries.PageQuery query = new com.fabiankevin.app.services.queries.PageQuery(0, 2, "transactionDate", "ASC");
 
-        com.fabiankevin.app.models.Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserId(query, userId);
+        com.fabiankevin.app.models.Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserId(query, Set.of(userId));
 
         Assertions.assertThat(page).isNotNull();
         Assertions.assertThat(page.content()).hasSize(2);
@@ -533,7 +542,7 @@ class DefaultTransactionRepositoryTest {
 
         PageQuery query = new PageQuery(0, 10, "transactionDate", "ASC");
 
-        Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, userId, TransactionType.EXPENSE);
+        Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, Set.of(userId), TransactionType.EXPENSE);
 
         Assertions.assertThat(page).isNotNull();
         Assertions.assertThat(page.content()).hasSize(2);
@@ -541,7 +550,7 @@ class DefaultTransactionRepositoryTest {
         Assertions.assertThat(page.content()).allMatch(t -> t.type() == TransactionType.EXPENSE);
         Assertions.assertThat(page.content()).extracting(Transaction::description).containsExactly("expense1", "expense2");
 
-        verify(jpaTransactionRepository, times(1)).findAllByAccountUserIdAndType(eq(userId), eq(TransactionType.EXPENSE), any(Pageable.class));
+        verify(jpaTransactionRepository, times(1)).findAllByUserIdsAndType(eq(Set.of(userId)), eq(TransactionType.EXPENSE), any(Pageable.class));
     }
 
     @Test
@@ -558,7 +567,7 @@ class DefaultTransactionRepositoryTest {
 
         com.fabiankevin.app.services.queries.PageQuery query = new com.fabiankevin.app.services.queries.PageQuery(0, 10, "transactionDate", "ASC");
 
-        com.fabiankevin.app.models.Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, userId, TransactionType.INCOME);
+        com.fabiankevin.app.models.Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, Set.of(userId), TransactionType.INCOME);
 
         Assertions.assertThat(page).isNotNull();
         Assertions.assertThat(page.content()).hasSize(2);
@@ -566,7 +575,7 @@ class DefaultTransactionRepositoryTest {
         Assertions.assertThat(page.content()).allMatch(t -> t.type() == TransactionType.INCOME);
         Assertions.assertThat(page.content()).extracting(Transaction::description).containsExactly("income1", "income2");
 
-        verify(jpaTransactionRepository, times(1)).findAllByAccountUserIdAndType(eq(userId), eq(TransactionType.INCOME), any(Pageable.class));
+        verify(jpaTransactionRepository, times(1)).findAllByUserIdsAndType(eq(Set.of(userId)), eq(TransactionType.INCOME), any(Pageable.class));
     }
 
     @Test
@@ -583,14 +592,14 @@ class DefaultTransactionRepositoryTest {
 
         com.fabiankevin.app.services.queries.PageQuery query = new com.fabiankevin.app.services.queries.PageQuery(0, 10, "transactionDate", "ASC");
 
-        com.fabiankevin.app.models.Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, userId, null);
+        com.fabiankevin.app.models.Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, Set.of(userId), null);
 
         Assertions.assertThat(page).isNotNull();
         Assertions.assertThat(page.content()).hasSize(3);
         Assertions.assertThat(page.totalElements()).isEqualTo(3);
         Assertions.assertThat(page.content()).extracting(Transaction::description).containsExactly("expense1", "income1", "expense2");
 
-        verify(jpaTransactionRepository, times(1)).findAllByAccountUserIdAndType(eq(userId), eq(null), any(Pageable.class));
+        verify(jpaTransactionRepository, times(1)).findAllByUserIdsAndType(eq(Set.of(userId)), eq(null), any(Pageable.class));
     }
 
     @Test
@@ -605,14 +614,14 @@ class DefaultTransactionRepositoryTest {
 
         PageQuery query = new PageQuery(0, 10, "transactionDate", "ASC");
 
-        Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, userId, TransactionType.INCOME);
+        Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, Set.of(userId), TransactionType.INCOME);
 
         Assertions.assertThat(page).isNotNull();
         Assertions.assertThat(page.content()).isEmpty();
         Assertions.assertThat(page.totalElements()).isEqualTo(0);
         Assertions.assertThat(page.totalPages()).isEqualTo(0);
 
-        verify(jpaTransactionRepository, times(1)).findAllByAccountUserIdAndType(eq(userId), eq(TransactionType.INCOME), any(Pageable.class));
+        verify(jpaTransactionRepository, times(1)).findAllByUserIdsAndType(eq(Set.of(userId)), eq(TransactionType.INCOME), any(Pageable.class));
     }
 
     @Test
@@ -626,13 +635,13 @@ class DefaultTransactionRepositoryTest {
         UUID differentUserId = UUID.randomUUID();
         PageQuery query = new PageQuery(0, 10, "transactionDate", "ASC");
 
-        com.fabiankevin.app.models.Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, differentUserId, TransactionType.EXPENSE);
+        com.fabiankevin.app.models.Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, Set.of(differentUserId), TransactionType.EXPENSE);
 
         Assertions.assertThat(page).isNotNull();
         Assertions.assertThat(page.content()).isEmpty();
         Assertions.assertThat(page.totalElements()).isEqualTo(0);
 
-        verify(jpaTransactionRepository, times(1)).findAllByAccountUserIdAndType(eq(differentUserId), eq(TransactionType.EXPENSE), any(Pageable.class));
+        verify(jpaTransactionRepository, times(1)).findAllByUserIdsAndType(eq(Set.of(differentUserId)), eq(TransactionType.EXPENSE), any(Pageable.class));
     }
 
     @Test

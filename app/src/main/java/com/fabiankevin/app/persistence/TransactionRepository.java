@@ -9,6 +9,7 @@ import com.fabiankevin.app.services.queries.PageQuery;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface TransactionRepository {
@@ -26,6 +27,6 @@ public interface TransactionRepository {
     List<SummaryPoint> sumByTypeAndUserId(UUID userId, LocalDate from, LocalDate to, UUID categoryId);
     double sumBalance(UUID userId, LocalDate from, LocalDate to);
     double sumBalance(UUID userId);
-    Page<Transaction> getTransactionsByPageAndUserId(PageQuery query, UUID userId);
-    Page<Transaction> getTransactionsByPageAndUserIdAndType(PageQuery query, UUID userId, TransactionType type);
+    Page<Transaction> getTransactionsByPageAndUserId(PageQuery query, Set<UUID> userIds);
+    Page<Transaction> getTransactionsByPageAndUserIdAndType(PageQuery query, Set<UUID> userIds, TransactionType type);
 }

@@ -6,6 +6,7 @@ import com.fabiankevin.app.persistence.jpa_repositories.JpaSharedSpaceRepository
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,5 +24,12 @@ public class DefaultSharedSpaceRepository implements SharedSpaceRepository {
     @Override
     public Optional<SharedSpace> findById(UUID id) {
         return jpaSharedSpaceRepository.findById(id).map(SharedSpaceEntity::toModel);
+    }
+
+    @Override
+    public List<SharedSpace> retrieveByUserId(UUID userId) {
+        return jpaSharedSpaceRepository.findByUserId(userId).stream()
+                .map(SharedSpaceEntity::toModel)
+                .toList();
     }
 }

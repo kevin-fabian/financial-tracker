@@ -15,6 +15,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -97,14 +98,14 @@ public class DefaultTransactionRepository implements TransactionRepository {
     }
 
     @Override
-    public com.fabiankevin.app.models.Page<Transaction> getTransactionsByPageAndUserId(PageQuery query, UUID userId) {
+    public com.fabiankevin.app.models.Page<Transaction> getTransactionsByPageAndUserId(PageQuery query, Set<UUID> userIds) {
         var pageable = PageRequest.of(
                 query.page(),
                 query.size(),
                 Sort.by(Sort.Direction.fromString(query.direction()), query.sort())
         );
 
-        var page = jpaTransactionRepository.findAllByAccountUserId(userId, pageable)
+        var page = jpaTransactionRepository.findAllByUserIdsAndType(userIds, null, pageable)
                 .map(TransactionEntity::toModel);
 
         return new com.fabiankevin.app.models.Page<>(
@@ -119,14 +120,14 @@ public class DefaultTransactionRepository implements TransactionRepository {
     }
 
     @Override
-    public com.fabiankevin.app.models.Page<Transaction> getTransactionsByPageAndUserIdAndType(PageQuery query, UUID userId, TransactionType type) {
+    public com.fabiankevin.app.models.Page<Transaction> getTransactionsByPageAndUserIdAndType(PageQuery query, Set<UUID> userIds, TransactionType type) {
         var pageable = PageRequest.of(
                 query.page(),
                 query.size(),
                 Sort.by(Sort.Direction.fromString(query.direction()), query.sort())
         );
 
-        var page = jpaTransactionRepository.findAllByAccountUserIdAndType(userId, type, pageable)
+        var page = jpaTransactionRepository.findAllByUserIdsAndType(userIds, type, pageable)
                 .map(TransactionEntity::toModel);
 
         return new com.fabiankevin.app.models.Page<>(

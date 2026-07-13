@@ -12,6 +12,7 @@ import org.springframework.data.util.Streamable;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public interface JpaTransactionRepository extends JpaRepository<TransactionEntity, UUID> {
@@ -78,15 +79,13 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("userIds") List<UUID> userIds,
             @Param("type") TransactionType type);
 
-    Page<TransactionEntity> findAllByAccountUserId(UUID userId, Pageable pageable);
-
     @Query("""
             SELECT t FROM TransactionEntity t
-            WHERE t.account.userId = :userId
+            WHERE t.account.userId IN :userIds
               AND (:type IS NULL OR t.category.transactionType = :type)
             """)
-    Page<TransactionEntity> findAllByAccountUserIdAndType(
-            @Param("userId") UUID userId,
+    Page<TransactionEntity> findAllByUserIdsAndType(
+            @Param("userIds") Set<UUID> userIds,
             @Param("type") TransactionType type,
             Pageable pageable);
 

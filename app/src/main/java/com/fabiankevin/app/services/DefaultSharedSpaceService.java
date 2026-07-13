@@ -245,6 +245,11 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
     }
 
     @Override
+    public List<SharedSpace> retrieveByUserId(UUID userId) {
+        return spaceRepository.retrieveByUserId(userId);
+    }
+
+    @Override
     public List<SharedResource> getVisibleResources(UUID spaceId, UUID viewerId) {
         SharedSpace space = findSpaceOrThrow(spaceId);
 //        SpaceParticipant viewer = findParticipantOrThrow(space, viewerId);

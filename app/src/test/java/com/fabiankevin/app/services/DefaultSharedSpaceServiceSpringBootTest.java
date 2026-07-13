@@ -4,7 +4,6 @@ import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.ResourceType;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.shared_space.Invitation;
-import com.fabiankevin.app.models.shared_space.SharedResource;
 import com.fabiankevin.app.models.shared_space.SharedSpace;
 import com.fabiankevin.app.models.shared_space.SharingRule;
 import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
@@ -37,11 +36,9 @@ public class DefaultSharedSpaceServiceSpringBootTest {
                 .sharingMode(SharingMode.MUTUAL_SHARING)
                 .resources(List.of(AddSharedResourceCommand.builder()
                                 .type(ResourceType.TRANSACTION)
-                                .itemIds(List.of("INCOME", "EXPENSES"))
                                 .build(),
                         AddSharedResourceCommand.builder()
                                 .type(ResourceType.BUDGET)
-                                .itemIds(List.of(UUID.randomUUID().toString()))
                                 .build()))
                 .build());
         UUID spaceId = initialSharedSpace.id();
@@ -62,16 +59,6 @@ public class DefaultSharedSpaceServiceSpringBootTest {
                 .acceptingUserId(partnerUserid)
                 .build());
 
-        sharedSpaceService.addResource(spaceId, AddSharedResourceCommand.builder()
-                .type(ResourceType.TRANSACTION)
-                .itemIds(List.of("INCOME", "EXPENSES"))
-                .ownerUserId(partnerUserid)
-                .sharedByOwner(true)
-                .build());
-
-//        sharedSpaceService.
-        List<SharedResource> visibleResources = sharedSpaceService.getVisibleResources(sharedSpaceWithParticipants.id(), ownerUserId);
-
-        System.out.println();
     }
+
 }

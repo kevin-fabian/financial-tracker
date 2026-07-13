@@ -6,6 +6,7 @@ import com.fabiankevin.app.models.enums.SummaryType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
+import com.fabiankevin.app.persistence.SharedSpaceRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.PatchTransactionCommand;
@@ -20,10 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.Currency;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -40,6 +38,8 @@ class DefaultTransactionServiceTest {
     private TransactionRepository transactionRepository;
     @Mock
     private List<SummaryGenerator> summaryGenerators;
+    @Mock
+    private SharedSpaceRepository sharedSpaceRepository;
     @InjectMocks
     private DefaultTransactionService transactionService;
 
@@ -208,7 +208,8 @@ class DefaultTransactionServiceTest {
         when(mockGenerator.generate(query)).thenReturn(expectedPoints);
 
         transactionService = new DefaultTransactionService(
-                accountRepository, categoryRepository, transactionRepository, List.of(mockGenerator)
+                accountRepository, categoryRepository, transactionRepository, List.of(mockGenerator),
+                sharedSpaceRepository
         );
 
         SummarySeries result = transactionService.getSummary(query);
@@ -229,7 +230,8 @@ class DefaultTransactionServiceTest {
                 .build();
 
         transactionService = new DefaultTransactionService(
-                accountRepository, categoryRepository, transactionRepository, List.of()
+                accountRepository, categoryRepository, transactionRepository, List.of(),
+                sharedSpaceRepository
         );
 
         assertThrows(IllegalArgumentException.class, () -> transactionService.getSummary(query));
@@ -242,7 +244,8 @@ class DefaultTransactionServiceTest {
                 .build();
 
         transactionService = new DefaultTransactionService(
-                accountRepository, categoryRepository, transactionRepository, List.of()
+                accountRepository, categoryRepository, transactionRepository, List.of(),
+                sharedSpaceRepository
         );
 
         assertThrows(IllegalArgumentException.class, () -> transactionService.getSummary(query));
@@ -264,12 +267,12 @@ class DefaultTransactionServiceTest {
                 .first(true)
                 .build();
 
-        when(transactionRepository.getTransactionsByPageAndUserIdAndType(query, userId, type)).thenReturn(expectedPage);
+        when(transactionRepository.getTransactionsByPageAndUserIdAndType(query, Set.of(userId), type)).thenReturn(expectedPage);
 
         Page<Transaction> result = transactionService.getTransactionsByPageQuery(query, userId, type);
 
         assertEquals(expectedPage, result);
-        verify(transactionRepository, times(1)).getTransactionsByPageAndUserIdAndType(query, userId, type);
+        verify(transactionRepository, times(1)).getTransactionsByPageAndUserIdAndType(query, Set.of(userId), type);
         verify(transactionRepository, never()).getTransactionsByPageAndUserId(any(), any());
     }
 
@@ -288,12 +291,12 @@ class DefaultTransactionServiceTest {
                 .first(true)
                 .build();
 
-        when(transactionRepository.getTransactionsByPageAndUserId(query, userId)).thenReturn(expectedPage);
+        when(transactionRepository.getTransactionsByPageAndUserId(query, Set.of(userId))).thenReturn(expectedPage);
 
         Page<Transaction> result = transactionService.getTransactionsByPageQuery(query, userId, null);
 
         assertEquals(expectedPage, result);
-        verify(transactionRepository, times(1)).getTransactionsByPageAndUserId(query, userId);
+        verify(transactionRepository, times(1)).getTransactionsByPageAndUserId(query, Set.of(userId));
         verify(transactionRepository, never()).getTransactionsByPageAndUserIdAndType(any(), any(), any());
     }
 
@@ -326,12 +329,12 @@ class DefaultTransactionServiceTest {
                 .first(true)
                 .build();
 
-        when(transactionRepository.getTransactionsByPageAndUserIdAndType(query, userId, type)).thenReturn(expectedPage);
+        when(transactionRepository.getTransactionsByPageAndUserIdAndType(query, Set.of(userId), type)).thenReturn(expectedPage);
 
         Page<Transaction> result = transactionService.getTransactionsByPageQuery(query, userId, type);
 
         assertEquals(1, result.content().size());
         assertEquals(transactionId, result.content().get(0).id());
-        verify(transactionRepository, times(1)).getTransactionsByPageAndUserIdAndType(query, userId, type);
+        verify(transactionRepository, times(1)).getTransactionsByPageAndUserIdAndType(query, Set.of(userId), type);
     }
 }
