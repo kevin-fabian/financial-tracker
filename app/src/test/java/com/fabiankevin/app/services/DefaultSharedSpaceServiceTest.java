@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -263,6 +264,52 @@ class DefaultSharedSpaceServiceTest {
 
             assertThrows(IllegalArgumentException.class, () -> service.createShare(command));
             verify(spaceRepository, never()).save(any());
+        }
+    }
+
+    @Nested
+    class GetParticipantUserIds {
+
+        @Test
+        void givenUserBelongsToSpacesWithParticipants_thenReturnsDistinctParticipantUserIds() {
+            UUID userId = UUID.randomUUID();
+            UUID participant1 = UUID.randomUUID();
+            UUID participant2 = UUID.randomUUID();
+            List<UUID> expected = List.of(userId, participant1, participant2);
+
+            when(spaceRepository.findParticipantUserIdsByUserId(userId)).thenReturn(expected);
+
+            List<UUID> result = service.getParticipantUserIds(userId);
+
+            assertEquals(3, result.size());
+            assertTrue(result.containsAll(expected));
+            verify(spaceRepository).findParticipantUserIdsByUserId(userId);
+        }
+
+        @Test
+        void givenUserHasNoSpaces_thenReturnsEmptyList() {
+            UUID userId = UUID.randomUUID();
+
+            when(spaceRepository.findParticipantUserIdsByUserId(userId)).thenReturn(List.of());
+
+            List<UUID> result = service.getParticipantUserIds(userId);
+
+            assertTrue(result.isEmpty());
+            verify(spaceRepository).findParticipantUserIdsByUserId(userId);
+        }
+
+        @Test
+        void givenUserSharesSpaceWithDuplicateParticipants_thenReturnsDistinctIds() {
+            UUID userId = UUID.randomUUID();
+            UUID otherParticipant = UUID.randomUUID();
+
+            when(spaceRepository.findParticipantUserIdsByUserId(userId)).thenReturn(List.of(userId, otherParticipant));
+
+            List<UUID> result = service.getParticipantUserIds(userId);
+
+            assertEquals(2, result.size());
+            assertEquals(Set.of(userId, otherParticipant), Set.copyOf(result));
+            verify(spaceRepository).findParticipantUserIdsByUserId(userId);
         }
     }
 }

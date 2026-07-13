@@ -32,4 +32,9 @@ public class DefaultSharedSpaceRepository implements SharedSpaceRepository {
                 .map(SharedSpaceEntity::toModel)
                 .toList();
     }
+
+    @Override
+    public List<UUID> findParticipantUserIdsByUserId(UUID userId) {
+        return jpaSharedSpaceRepository.findParticipantUserIdsByUserId(userId);
+    }
 }

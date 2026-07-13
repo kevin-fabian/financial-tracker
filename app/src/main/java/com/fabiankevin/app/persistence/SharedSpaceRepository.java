@@ -12,4 +12,6 @@ public interface SharedSpaceRepository {
     Optional<SharedSpace> findById(UUID id);
 
     List<SharedSpace> retrieveByUserId(UUID userId);
+
+    List<UUID> findParticipantUserIdsByUserId(UUID userId);
 }

@@ -11,4 +11,7 @@ import java.util.UUID;
 public interface JpaSharedSpaceRepository extends JpaRepository<SharedSpaceEntity, UUID> {
     @Query("SELECT DISTINCT s FROM SharedSpaceEntity s LEFT JOIN s.participants p WHERE s.ownerUserId = :userId OR p.userId = :userId")
     List<SharedSpaceEntity> findByUserId(@Param("userId") UUID userId);
+
+    @Query("SELECT DISTINCT p.userId FROM SharedSpaceEntity s LEFT JOIN s.participants p WHERE s.ownerUserId = :userId OR p.userId = :userId")
+    List<UUID> findParticipantUserIdsByUserId(@Param("userId") UUID userId);
 }

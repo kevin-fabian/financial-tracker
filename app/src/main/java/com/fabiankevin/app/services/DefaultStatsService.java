@@ -3,21 +3,20 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.models.StatsSummary;
 import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.enums.TransactionType;
+import com.fabiankevin.app.models.shared_space.SharedSpace;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.web.controllers.dtos.StatsQuery;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 @RequiredArgsConstructor
 public class DefaultStatsService implements StatsService {
     private final TransactionRepository transactionRepository;
+    private final SharedSpaceService sharedSpaceService;
 
     private static double sumByType(List<SummaryPoint> points, TransactionType type) {
         return points.stream()
@@ -32,14 +31,16 @@ public class DefaultStatsService implements StatsService {
         LocalDate fromDate = Optional.ofNullable(query.fromDate()).orElse(now.withDayOfMonth(1));
         LocalDate toDate = Optional.ofNullable(query.toDate()).orElse(now);
 
+        Set<UUID> userIds = resolveUserIds(userId);
+
         // Query current period totals (single grouped query)
-        List<SummaryPoint> currentPeriod = transactionRepository.sumByTypeAndUserId(Set.of(userId), fromDate, toDate, query.categoryId());
+        List<SummaryPoint> currentPeriod = transactionRepository.sumByTypeAndUserId(userIds, fromDate, toDate, query.categoryId());
         double currentIncome = sumByType(currentPeriod, TransactionType.INCOME);
         double currentExpenses = sumByType(currentPeriod, TransactionType.EXPENSE);
 
         // Calculate cumulative balance (all-time, across all accounts)
-        double totalBalance = transactionRepository.sumBalance(Set.of(userId));
-        double totalBalanceLastMonthWithSameDate = transactionRepository.sumBalance(Set.of(userId),
+        double totalBalance = transactionRepository.sumBalance(userIds);
+        double totalBalanceLastMonthWithSameDate = transactionRepository.sumBalance(userIds,
                 now.minusMonths(1).withDayOfMonth(1),
                 now.minusMonths(1)
         );
@@ -54,5 +55,15 @@ public class DefaultStatsService implements StatsService {
                 .totalIncome(currentIncome)
                 .growthPercentage(growthPercentage)
                 .build();
+    }
+
+    private Set<UUID> resolveUserIds(UUID userId) {
+        Set<UUID> userIds = new HashSet<>();
+        userIds.add(userId);
+        List<SharedSpace> spaces = sharedSpaceService.retrieveByUserId(userId);
+        for (SharedSpace space : spaces) {
+            space.participants().forEach(p -> userIds.add(p.userId()));
+        }
+        return userIds;
     }
 }

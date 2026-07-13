@@ -32,8 +32,9 @@ public class AppConfig {
     }
 
     @Bean
-    public StatsService statsService(TransactionRepository transactionRepository) {
-        return new DefaultStatsService(transactionRepository);
+    public StatsService statsService(TransactionRepository transactionRepository,
+                                     SharedSpaceService sharedSpaceService) {
+        return new DefaultStatsService(transactionRepository, sharedSpaceService);
     }
 
     @Bean

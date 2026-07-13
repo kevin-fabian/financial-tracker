@@ -22,4 +22,6 @@ public interface SharedSpaceService {
     List<SharedSpace> retrieveByUserId(UUID userId);
     List<SharedResource> getVisibleResources(UUID spaceId, UUID viewerId);
     SharedResource addResource(UUID spaceId, AddSharedResourceCommand command);
+
+    List<UUID> getParticipantUserIds(UUID userId);
 }

@@ -294,6 +294,11 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
         return resource;
     }
 
+    @Override
+    public List<UUID> getParticipantUserIds(UUID userId) {
+        return spaceRepository.findParticipantUserIdsByUserId(userId);
+    }
+
     private SharedSpace findSpaceOrThrow(UUID spaceId) {
         return spaceRepository.findById(spaceId)
                 .orElseThrow(SharedSpaceNotFoundException::new);
