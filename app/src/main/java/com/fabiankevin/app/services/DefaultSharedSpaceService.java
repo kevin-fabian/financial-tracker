@@ -71,25 +71,21 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
     public Invitation sendInvitation(SendInvitationCommand command) {
         validateSendCommand(command);
 
-        if (command.spaceId() == null) {
-            throw new SharedSpaceNotExistException();
-        }
-
         SharedSpace space = findSpaceOrThrow(command.spaceId());
         if (!space.ownerUserId().equals(command.inviterUserId())) {
             throw new NotSpaceOwnerException();
         }
 
-        User invitee = userClient.getUserByEmail(command.inviteeEmail());
+        User recipient = userClient.getUserByEmail(command.inviteeEmail());
 
-        if (isUserParticipant(space, command.inviteeEmail())) {
+        if (isUserParticipant(space, recipient)) {
             throw new ParticipantAlreadyExistsException();
         }
 
         Invitation invitation = Invitation.builder()
                 .inviterUserId(command.inviterUserId())
                 .inviteeEmail(command.inviteeEmail())
-                .inviteeUserId(invitee.id())
+                .inviteeUserId(recipient.id())
                 .proposedSharingMode(space.sharingMode())
                 .proposedRole(command.proposedRole())
                 .status(InvitationStatus.PENDING)
@@ -330,6 +326,9 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
         if (command.proposedRole() == null) {
             throw new IllegalArgumentException("Proposed role cannot be null");
         }
+        if (command.spaceId() == null) {
+            throw new IllegalArgumentException("Space ID cannot be null");
+        }
     }
 
     private void validateCreateCommand(CreateSharedSpaceCommand command) {
@@ -341,10 +340,9 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
         }
     }
 
-    private boolean isUserParticipant(SharedSpace space, String email) {
-        // Placeholder: in a real implementation, look up user by email first,
-        // then check if that user ID is a participant.
-        return false;
+    private boolean isUserParticipant(SharedSpace space, User user) {
+        return space.participants().stream()
+                .anyMatch(spaceParticipant -> spaceParticipant.userId().equals(user.id()));
     }
 
     private void validateInvitationActive(Invitation invitation) {

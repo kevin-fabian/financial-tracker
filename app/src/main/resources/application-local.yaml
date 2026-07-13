@@ -21,7 +21,7 @@ spring:
             - identity-service
       client:
         registration:
-          zeny-client:
+          zeny-service:
             provider: identity
             client-id: zeny-service
             client-secret: 123456
