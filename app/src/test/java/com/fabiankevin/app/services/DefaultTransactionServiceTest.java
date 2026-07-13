@@ -291,13 +291,12 @@ class DefaultTransactionServiceTest {
                 .first(true)
                 .build();
 
-        when(transactionRepository.getTransactionsByPageAndUserId(query, Set.of(userId))).thenReturn(expectedPage);
+        when(transactionRepository.getTransactionsByPageAndUserIdAndType(query, Set.of(userId), null)).thenReturn(expectedPage);
 
         Page<Transaction> result = transactionService.getTransactionsByPageQuery(query, userId, null);
 
         assertEquals(expectedPage, result);
-        verify(transactionRepository, times(1)).getTransactionsByPageAndUserId(query, Set.of(userId));
-        verify(transactionRepository, never()).getTransactionsByPageAndUserIdAndType(any(), any(), any());
+        verify(transactionRepository, times(1)).getTransactionsByPageAndUserIdAndType(query, Set.of(userId), null);
     }
 
     @Test
