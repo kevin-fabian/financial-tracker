@@ -9,7 +9,6 @@ import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.shared_space.Invitation;
 import com.fabiankevin.app.models.shared_space.SharedSpace;
-import com.fabiankevin.app.models.shared_space.SharingPermissionResolver;
 import com.fabiankevin.app.models.shared_space.SpaceParticipant;
 import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
@@ -39,9 +38,6 @@ class DefaultSharedSpaceServiceTest {
 
     @Mock
     private InvitationRepository invitationRepository;
-
-    @Mock
-    private SharingPermissionResolver permissionResolver;
 
     @InjectMocks
     private DefaultSharedSpaceService service;
