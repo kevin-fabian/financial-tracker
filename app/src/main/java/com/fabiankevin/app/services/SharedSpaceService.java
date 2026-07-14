@@ -20,6 +20,7 @@ public interface SharedSpaceService {
     void removeParticipant(UUID spaceId, UUID participantId, UUID requesterId);
 
     List<SharedSpace> retrieveByUserId(UUID userId);
+    List<Invitation> getInvitationsByUserId(UUID userId);
     List<SharedResource> getVisibleResources(UUID spaceId, UUID viewerId);
     SharedResource addResource(UUID spaceId, AddSharedResourceCommand command);
 

@@ -184,6 +184,43 @@ class SharedSpaceControllerTest {
             .andExpect(jsonPath("$.length()").value(0));
     }
 
+    // ---- getInvitations ----
+
+    @Test
+    void getInvitations_givenUserWithInvitations_thenReturnsList() throws Exception {
+        UUID inviterId = UUID.randomUUID();
+        UUID spaceId = UUID.randomUUID();
+        Invitation sent = invitationWithId(UUID.randomUUID(), spaceId, userId, UUID.randomUUID(), PENDING);
+        Invitation received = invitationWithId(UUID.randomUUID(), spaceId, inviterId, userId, PENDING);
+
+        when(sharedSpaceService.getInvitationsByUserId(userId)).thenReturn(List.of(sent, received));
+
+        mockMvc.perform(get("/api/shared-spaces/invitations")
+            .with(jwt().jwt(jwt)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(2));
+
+        verify(sharedSpaceService).getInvitationsByUserId(userId);
+    }
+
+    @Test
+    void getInvitations_givenMissingJwt_thenReturnsUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/shared-spaces/invitations"))
+            .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(sharedSpaceService);
+    }
+
+    @Test
+    void getInvitations_givenUserWithNoInvitations_thenReturnsEmptyList() throws Exception {
+        when(sharedSpaceService.getInvitationsByUserId(userId)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/shared-spaces/invitations")
+            .with(jwt().jwt(jwt)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(0));
+    }
+
     // ---- sendInvitation ----
 
     @Test

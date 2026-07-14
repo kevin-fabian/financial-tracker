@@ -388,6 +388,60 @@ class DefaultSharedSpaceServiceTest {
     }
 
     @Nested
+    class GetInvitationsByUserId {
+
+        @Test
+        void givenUserIsInviterOrInvitee_thenReturnsMatchingInvitations() {
+            UUID userId = UUID.randomUUID();
+            UUID inviterId = UUID.randomUUID();
+            UUID spaceId = UUID.randomUUID();
+            Invitation sent = Invitation.builder()
+                .id(UUID.randomUUID())
+                .inviterUserId(userId)
+                .inviteeUserId(UUID.randomUUID())
+                .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                .proposedRole(AccessLevel.READ_WRITE)
+                .status(InvitationStatus.PENDING)
+                .createdAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(604800))
+                .sharedSpaceId(spaceId)
+                .build();
+            Invitation received = Invitation.builder()
+                .id(UUID.randomUUID())
+                .inviterUserId(inviterId)
+                .inviteeUserId(userId)
+                .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                .proposedRole(AccessLevel.VIEW_ONLY)
+                .status(InvitationStatus.PENDING)
+                .createdAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(604800))
+                .sharedSpaceId(spaceId)
+                .build();
+
+            when(invitationRepository.findByInviterUserIdOrInviteeUserId(userId))
+                .thenReturn(List.of(sent, received));
+
+            List<Invitation> result = service.getInvitationsByUserId(userId);
+
+            assertEquals(2, result.size());
+            assertTrue(result.containsAll(List.of(sent, received)));
+            verify(invitationRepository).findByInviterUserIdOrInviteeUserId(userId);
+        }
+
+        @Test
+        void givenUserHasNoInvitations_thenReturnsEmptyList() {
+            UUID userId = UUID.randomUUID();
+
+            when(invitationRepository.findByInviterUserIdOrInviteeUserId(userId)).thenReturn(List.of());
+
+            List<Invitation> result = service.getInvitationsByUserId(userId);
+
+            assertTrue(result.isEmpty());
+            verify(invitationRepository).findByInviterUserIdOrInviteeUserId(userId);
+        }
+    }
+
+    @Nested
     class GetParticipantUserIds {
 
         @Test

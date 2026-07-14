@@ -77,6 +77,23 @@ public class SharedSpaceController {
     }
 
     @Operation(
+        summary = "List invitations for the authenticated user",
+        description = "Retrieves all invitations where the authenticated user is either the inviter or the invitee.",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "OK - Invitations retrieved successfully",
+                content = @Content(array = @ArraySchema(schema = @Schema(implementation = InvitationResponse.class)))),
+            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+        }
+    )
+    @GetMapping("/invitations")
+    public List<InvitationResponse> getInvitations(JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        return sharedSpaceService.getInvitationsByUserId(userId).stream()
+            .map(InvitationResponse::from)
+            .toList();
+    }
+
+    @Operation(
         summary = "Send an invitation",
         description = "Sends an invitation to join the specified shared space. Only the space owner can invite.",
         responses = {
