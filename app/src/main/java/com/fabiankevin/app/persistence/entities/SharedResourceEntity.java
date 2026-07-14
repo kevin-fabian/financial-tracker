@@ -28,15 +28,9 @@ public class SharedResourceEntity {
     @Column(name = "resource_type")
     private ResourceType type;
 
-    @Column(name = "owner_user_id")
-    private UUID ownerUserId;
-
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "item_id", columnDefinition = "json")
     private List<String> itemIds;
-
-    @Column(name = "shared_by_owner")
-    private boolean sharedByOwner;
 
     @Column(name = "shared_at")
     private Instant sharedAt;
