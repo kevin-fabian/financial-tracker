@@ -1,10 +1,13 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.events.EventPublisher;
+import com.fabiankevin.app.exceptions.AccountNotFoundException;
+import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.exceptions.TransactionNotFoundException;
 import com.fabiankevin.app.models.*;
 import com.fabiankevin.app.models.enums.SummaryType;
 import com.fabiankevin.app.models.enums.TransactionType;
+import com.fabiankevin.app.models.shared_space.SharedSpace;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
@@ -15,6 +18,7 @@ import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.services.queries.SummaryQuery;
 import com.fabiankevin.app.services.summaries.SummaryGenerator;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -27,6 +31,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -58,45 +63,217 @@ class DefaultTransactionServiceTest {
         );
     }
 
-    @Test
-    void addTransaction_givenValidCommand_thenShouldSucceed() {
-        UUID userId = UUID.randomUUID();
-        AddTransactionCommand command = AddTransactionCommand.builder()
-                .userId(userId)
-                .amount(Amount.of(100, Currency.getInstance("PHP")))
-                .accountId(UUID.randomUUID())
-                .description("Food and drinks")
-                .categoryId(UUID.randomUUID())
-                .transactionDate(LocalDate.now())
-                .build();
-        when(accountRepository.findById(command.accountId())).thenReturn(Optional.ofNullable(Account.builder()
-                .id(command.accountId())
-                .name("GCASH")
-                .currency(Currency.getInstance("PHP"))
-                .userId(userId)
-                .build()));
-        when(categoryRepository.findById(command.categoryId())).thenReturn(Optional.of(Category.builder()
-                .id(command.categoryId())
-                .name("FOOD")
-                .type(TransactionType.EXPENSE)
-                .userId(userId)
-                .build()));
-        when(transactionRepository.save(any())).then(invocationOnMock -> {
-            Transaction transaction = invocationOnMock.getArgument(0);
+   @Nested
+   class AddTransaction {
+       @Test
+       void givenValidCommand_thenShouldSucceed() {
+           UUID userId = UUID.randomUUID();
+           AddTransactionCommand command = AddTransactionCommand.builder()
+                   .userId(userId)
+                   .amount(Amount.of(100, Currency.getInstance("PHP")))
+                   .accountId(UUID.randomUUID())
+                   .description("Food and drinks")
+                   .categoryId(UUID.randomUUID())
+                   .transactionDate(LocalDate.now())
+                   .build();
+           when(accountRepository.findById(command.accountId())).thenReturn(Optional.ofNullable(Account.builder()
+                   .id(command.accountId())
+                   .name("GCASH")
+                   .currency(Currency.getInstance("PHP"))
+                   .userId(userId)
+                   .build()));
+           when(categoryRepository.findById(command.categoryId())).thenReturn(Optional.of(Category.builder()
+                   .id(command.categoryId())
+                   .name("FOOD")
+                   .type(TransactionType.EXPENSE)
+                   .userId(userId)
+                   .build()));
+           when(transactionRepository.save(any())).then(invocationOnMock -> {
+               Transaction transaction = invocationOnMock.getArgument(0);
 
-            return transaction.toBuilder()
-                    .id(UUID.randomUUID())
-                    .build();
-        });
+               return transaction.toBuilder()
+                       .id(UUID.randomUUID())
+                       .build();
+           });
 
-        Transaction transaction = transactionService.addTransaction(command);
+           Transaction transaction = transactionService.addTransaction(command);
 
-        assertEquals("Food and drinks", transaction.description(), "description should match");
+           assertEquals("Food and drinks", transaction.description(), "description should match");
 
-        verify(accountRepository, times(1)).findById(command.accountId());
-        verify(categoryRepository, times(1)).findById(command.categoryId());
-        verify(transactionRepository, times(1)).save(any());
-    }
+           verify(accountRepository, times(1)).findById(command.accountId());
+           verify(categoryRepository, times(1)).findById(command.categoryId());
+           verify(transactionRepository, times(1)).save(any());
+       }
+
+       @Test
+       void givenAccountNotFound_thenShouldThrow() {
+           UUID userId = UUID.randomUUID();
+           AddTransactionCommand command = AddTransactionCommand.builder()
+                   .userId(userId)
+                   .amount(Amount.of(100, Currency.getInstance("PHP")))
+                   .accountId(UUID.randomUUID())
+                   .description("Food and drinks")
+                   .categoryId(UUID.randomUUID())
+                   .transactionDate(LocalDate.now())
+                   .build();
+           when(accountRepository.findById(command.accountId())).thenReturn(Optional.empty());
+
+           assertThrows(AccountNotFoundException.class, () -> transactionService.addTransaction(command));
+           verify(accountRepository, times(1)).findById(command.accountId());
+           verify(categoryRepository, never()).findById(any());
+           verify(transactionRepository, never()).save(any());
+       }
+
+       @Test
+       void givenAccountBelongsToAnotherUser_thenShouldThrow() {
+           UUID userId = UUID.randomUUID();
+           UUID otherUserId = UUID.randomUUID();
+           AddTransactionCommand command = AddTransactionCommand.builder()
+                   .userId(userId)
+                   .amount(Amount.of(100, Currency.getInstance("PHP")))
+                   .accountId(UUID.randomUUID())
+                   .description("Food and drinks")
+                   .categoryId(UUID.randomUUID())
+                   .transactionDate(LocalDate.now())
+                   .build();
+           when(accountRepository.findById(command.accountId())).thenReturn(Optional.of(Account.builder()
+                   .id(command.accountId())
+                   .name("GCASH")
+                   .currency(Currency.getInstance("PHP"))
+                   .userId(otherUserId)
+                   .build()));
+
+           assertThrows(AccountNotFoundException.class, () -> transactionService.addTransaction(command));
+           verify(accountRepository, times(1)).findById(command.accountId());
+           verify(categoryRepository, never()).findById(any());
+           verify(transactionRepository, never()).save(any());
+       }
+
+       @Test
+       void givenCategoryNotFound_thenShouldThrow() {
+           UUID userId = UUID.randomUUID();
+           AddTransactionCommand command = AddTransactionCommand.builder()
+                   .userId(userId)
+                   .amount(Amount.of(100, Currency.getInstance("PHP")))
+                   .accountId(UUID.randomUUID())
+                   .description("Food and drinks")
+                   .categoryId(UUID.randomUUID())
+                   .transactionDate(LocalDate.now())
+                   .build();
+           when(accountRepository.findById(command.accountId())).thenReturn(Optional.of(Account.builder()
+                   .id(command.accountId())
+                   .name("GCASH")
+                   .currency(Currency.getInstance("PHP"))
+                   .userId(userId)
+                   .build()));
+           when(categoryRepository.findById(command.categoryId())).thenReturn(Optional.empty());
+
+           assertThrows(CategoryNotFoundException.class, () -> transactionService.addTransaction(command));
+           verify(accountRepository, times(1)).findById(command.accountId());
+           verify(categoryRepository, times(1)).findById(command.categoryId());
+           verify(transactionRepository, never()).save(any());
+       }
+
+       @Test
+       void givenCategoryBelongsToAnotherUser_thenShouldThrow() {
+           UUID userId = UUID.randomUUID();
+           UUID otherUserId = UUID.randomUUID();
+           AddTransactionCommand command = AddTransactionCommand.builder()
+                   .userId(userId)
+                   .amount(Amount.of(100, Currency.getInstance("PHP")))
+                   .accountId(UUID.randomUUID())
+                   .description("Food and drinks")
+                   .categoryId(UUID.randomUUID())
+                   .transactionDate(LocalDate.now())
+                   .build();
+           when(accountRepository.findById(command.accountId())).thenReturn(Optional.of(Account.builder()
+                   .id(command.accountId())
+                   .name("GCASH")
+                   .currency(Currency.getInstance("PHP"))
+                   .userId(userId)
+                   .build()));
+           when(categoryRepository.findById(command.categoryId())).thenReturn(Optional.of(Category.builder()
+                   .id(command.categoryId())
+                   .name("FOOD")
+                   .type(TransactionType.EXPENSE)
+                   .userId(otherUserId)
+                   .build()));
+
+           assertThrows(CategoryNotFoundException.class, () -> transactionService.addTransaction(command));
+           verify(accountRepository, times(1)).findById(command.accountId());
+           verify(categoryRepository, times(1)).findById(command.categoryId());
+           verify(transactionRepository, never()).save(any());
+       }
+
+       @Test
+       void givenUserHasSharedSpace_thenShouldPublishEvent() {
+           UUID userId = UUID.randomUUID();
+           UUID sharedSpaceId = UUID.randomUUID();
+           AddTransactionCommand command = AddTransactionCommand.builder()
+                   .userId(userId)
+                   .amount(Amount.of(100, Currency.getInstance("PHP")))
+                   .accountId(UUID.randomUUID())
+                   .description("Food and drinks")
+                   .categoryId(UUID.randomUUID())
+                   .transactionDate(LocalDate.now())
+                   .build();
+           when(accountRepository.findById(command.accountId())).thenReturn(Optional.of(Account.builder()
+                   .id(command.accountId())
+                   .name("GCASH")
+                   .currency(Currency.getInstance("PHP"))
+                   .userId(userId)
+                   .build()));
+           when(categoryRepository.findById(command.categoryId())).thenReturn(Optional.of(Category.builder()
+                   .id(command.categoryId())
+                   .name("FOOD")
+                   .type(TransactionType.EXPENSE)
+                   .userId(userId)
+                   .build()));
+           when(transactionRepository.save(any())).then(invocation -> invocation.getArgument(0));
+           SharedSpace sharedSpace = mock(SharedSpace.class);
+           when(sharedSpace.id()).thenReturn(sharedSpaceId);
+           when(sharedSpaceRepository.findByUserId(userId)).thenReturn(Optional.of(sharedSpace));
+
+           Transaction transaction = transactionService.addTransaction(command);
+
+           assertEquals("Food and drinks", transaction.description());
+           verify(sharedSpaceRepository, times(1)).findByUserId(userId);
+           verify(eventPublisher, times(1)).publish(eq(sharedSpaceId), any());
+       }
+
+       @Test
+       void givenUserHasNoSharedSpace_thenShouldNotPublishEvent() {
+           UUID userId = UUID.randomUUID();
+           AddTransactionCommand command = AddTransactionCommand.builder()
+                   .userId(userId)
+                   .amount(Amount.of(100, Currency.getInstance("PHP")))
+                   .accountId(UUID.randomUUID())
+                   .description("Food and drinks")
+                   .categoryId(UUID.randomUUID())
+                   .transactionDate(LocalDate.now())
+                   .build();
+           when(accountRepository.findById(command.accountId())).thenReturn(Optional.of(Account.builder()
+                   .id(command.accountId())
+                   .name("GCASH")
+                   .currency(Currency.getInstance("PHP"))
+                   .userId(userId)
+                   .build()));
+           when(categoryRepository.findById(command.categoryId())).thenReturn(Optional.of(Category.builder()
+                   .id(command.categoryId())
+                   .name("FOOD")
+                   .type(TransactionType.EXPENSE)
+                   .userId(userId)
+                   .build()));
+           when(transactionRepository.save(any())).then(invocation -> invocation.getArgument(0));
+           when(sharedSpaceRepository.findByUserId(userId)).thenReturn(Optional.empty());
+
+           Transaction transaction = transactionService.addTransaction(command);
+
+           assertEquals("Food and drinks", transaction.description());
+           verify(sharedSpaceRepository, times(1)).findByUserId(userId);
+           verify(eventPublisher, never()).publish(any(), any());
+       }
+   }
 
     @Test
     void patchTransaction_givenValidCommand_thenShouldUpdate() {
