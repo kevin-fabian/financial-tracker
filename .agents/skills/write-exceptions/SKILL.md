@@ -28,6 +28,7 @@ All exceptions in this project extend a base from `com.github.fabiankevin.lemon.
 - Resource not found → extend `NotFoundException`
 - State conflict the client needs to handle → extend `BusinessRuleException`
 - Generic client error with a clear status → extend `ApiException`
+- Pure domain invariant never surfaced to clients → use Java built-in (`IllegalArgumentException`, `IllegalStateException`)
 
 ---
 
@@ -164,21 +165,21 @@ public final class ForbiddenException extends ApiException {
 }
 ```
 
-### Pattern D — DomainException (pure domain, no HTTP)
+### Pattern D — Domain invariants (use Java built-ins)
 
-Use `DomainException` for invariants the client should never see as typed errors — these remain internal domain signals.
+For pure domain invariants that should never be surfaced to clients as typed errors, prefer Java built-in exceptions over custom classes. This keeps the codebase simple and avoids over-engineering internal signals.
+
+- Invalid argument → `IllegalArgumentException`
+- Invalid object state → `IllegalStateException`
 
 ```java
-package com.fabiankevin.app.exceptions;
-
-import com.github.fabiankevin.lemon.web.exceptions.DomainException;
-
-public final class InvalidAmountException extends DomainException {
-    public InvalidAmountException(String message) {
-        super(message);
-    }
+// In a domain service or model constructor:
+if (amount.isNegative()) {
+    throw new IllegalArgumentException("Amount must not be negative.");
 }
 ```
+
+Only create a custom exception class when the web layer needs to map it to a specific HTTP response. For internal domain guards, built-in exceptions are sufficient and idiomatic.
 
 ---
 
@@ -211,7 +212,7 @@ Use this only when the response carries no per-invocation data. If the client ne
 - `BusinessRuleException.code` is `UPPER_SNAKE_CASE`, stable across deployments, and documented in the API error catalog.
 - `BusinessRuleException.title` is a short human-readable category surfaced to API consumers.
 - Use `NotFoundException` (lemon) rather than building your own 404-carrying class.
-- `DomainException` has no `code`/`title` — it is not user-facing.
+- For internal domain invariants, use Java built-ins (`IllegalArgumentException`, `IllegalStateException`) instead of custom exception classes.
 
 ---
 
@@ -219,10 +220,10 @@ Use this only when the response carries no per-invocation data. If the client ne
 
 - Exception name is `final` and describes the broken state (noun + past participle)
 - No HTTP status codes, `BadRequest`, `Conflict`, etc. in the class name
-- Chooses the right base class: `NotFoundException` / `ApiException` / `BusinessRuleException` / `DomainException`
+- Chooses the right base class: `NotFoundException` / `ApiException` / `BusinessRuleException`
+- For pure domain invariants, uses Java built-in (`IllegalArgumentException`, `IllegalStateException`) instead of custom classes
 - Package mirrors the domain sub-context
 - Message in `super(...)` is human-readable for logs
 - Dynamic fields are exposed via getters for the response body
 - `BusinessRuleException` only when a machine-readable `code` + `title` is needed
-- `DomainException` used only for non-user-facing, pure domain invariants
 - No MVC / HTTP types referenced from within the domain exception

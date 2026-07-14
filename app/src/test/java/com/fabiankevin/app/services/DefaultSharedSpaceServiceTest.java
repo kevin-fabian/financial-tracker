@@ -17,7 +17,6 @@ import com.fabiankevin.app.persistence.SharedSpaceRepository;
 import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
 import com.fabiankevin.app.services.commands.shared_space.CreateSharedSpaceCommand;
 import com.fabiankevin.app.services.commands.shared_space.SendInvitationCommand;
-import com.github.fabiankevin.lemon.web.exceptions.DomainException;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -358,14 +357,12 @@ class DefaultSharedSpaceServiceTest {
 
         @Test
         void givenNullOwnerUserId_thenThrows() {
-            CreateSharedSpaceCommand command = new CreateSharedSpaceCommand(
+            assertThrows(NullPointerException.class, () -> new CreateSharedSpaceCommand(
                     null,
                     "My Space",
                     SharingMode.MUTUAL_SHARING,
                     null
-            );
-
-            assertThrows(DomainException.class, () -> service.createShare(command));
+            ));
             verify(spaceRepository, never()).save(any());
         }
 

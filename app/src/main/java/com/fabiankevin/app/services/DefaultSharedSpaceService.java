@@ -8,7 +8,6 @@ import com.fabiankevin.app.models.shared_space.*;
 import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
 import com.fabiankevin.app.services.commands.shared_space.*;
-import com.github.fabiankevin.lemon.web.exceptions.DomainException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,8 +29,6 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
     @Transactional
     @Override
     public SharedSpace createShare(CreateSharedSpaceCommand command) {
-        validateCreateCommand(command);
-
         List<SpaceParticipant> initialParticipants = new ArrayList<>();
         initialParticipants.add(SpaceParticipant.builder()
                 .userId(command.ownerUserId())
@@ -318,15 +315,6 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
                 .filter(p -> p.userId().equals(userId))
                 .findFirst()
                 .orElseThrow(() -> new ParticipantNotFoundException(userId));
-    }
-
-    private void validateCreateCommand(CreateSharedSpaceCommand command) {
-        if (command.ownerUserId() == null) {
-            throw new IllegalArgumentException("Owner user ID cannot be null");
-        }
-        if (command.sharingMode() == null) {
-            throw new DomainException("Sharing mode cannot be null");
-        }
     }
 
     private boolean isUserParticipant(SharedSpace space, UUID userId) {
