@@ -4,7 +4,10 @@ import com.fabiankevin.app.exceptions.shared_space.*;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
 import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
-import com.fabiankevin.app.models.shared_space.*;
+import com.fabiankevin.app.models.shared_space.Invitation;
+import com.fabiankevin.app.models.shared_space.SharedResource;
+import com.fabiankevin.app.models.shared_space.SharedSpace;
+import com.fabiankevin.app.models.shared_space.SpaceParticipant;
 import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
 import com.fabiankevin.app.services.commands.shared_space.*;
@@ -24,7 +27,6 @@ import java.util.stream.Collectors;
 public class DefaultSharedSpaceService implements SharedSpaceService {
     private final SharedSpaceRepository spaceRepository;
     private final InvitationRepository invitationRepository;
-    private final SharingPermissionResolver permissionResolver;
 
     @Transactional
     @Override
@@ -40,9 +42,6 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
 
         List<SharedResource> sharedResources = new ArrayList<>();
         for (AddSharedResourceCommand resource : command.resources()) {
-            if (!resource.ownerUserId().equals(command.ownerUserId())) {
-                throw new ForbiddenException("Resource owner must be a participant in the space");
-            }
             sharedResources.add(SharedResource.builder()
                     .type(resource.type())
                     .items(resource.itemIds())
@@ -212,16 +211,6 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
     @Override
     public SharedResource addResource(UUID spaceId, AddSharedResourceCommand command) {
         SharedSpace space = findSpaceOrThrow(spaceId);
-        SpaceParticipant contributor = findParticipantOrThrow(space, command.ownerUserId());
-
-        SharingRule rule = permissionResolver.resolveRule(space, contributor);
-        if (!rule.sharesOwnResources()) {
-            throw new ForbiddenException("User is not allowed to share resources");
-        }
-
-        if (!rule.visibleResourceTypes().contains(command.type())) {
-            throw new ForbiddenException("Resource type is not permitted by the sharing rules");
-        }
 
         SharedResource resource = SharedResource.builder()
                 .type(command.type())

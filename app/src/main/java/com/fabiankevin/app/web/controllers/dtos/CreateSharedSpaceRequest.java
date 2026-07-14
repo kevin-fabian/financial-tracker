@@ -27,9 +27,7 @@ public record CreateSharedSpaceRequest(
         List<AddSharedResourceCommand> commands = resources == null ? List.of() : resources.stream()
             .map(r -> AddSharedResourceCommand.builder()
                 .type(r.type())
-                .ownerUserId(ownerUserId)
                 .itemIds(r.itemIds())
-                .sharedByOwner(true)
                 .build())
             .toList();
 

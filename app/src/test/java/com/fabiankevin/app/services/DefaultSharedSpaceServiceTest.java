@@ -1,6 +1,5 @@
 package com.fabiankevin.app.services;
 
-import com.fabiankevin.app.exceptions.shared_space.ForbiddenException;
 import com.fabiankevin.app.exceptions.shared_space.InviterCannotAcceptOwnInvitationException;
 import com.fabiankevin.app.exceptions.shared_space.NotSpaceOwnerException;
 import com.fabiankevin.app.exceptions.shared_space.ParticipantAlreadyExistsException;
@@ -363,26 +362,6 @@ class DefaultSharedSpaceServiceTest {
                     SharingMode.MUTUAL_SHARING,
                     null
             ));
-            verify(spaceRepository, never()).save(any());
-        }
-
-        @Test
-        void givenResourceOwnedBySomeoneOtherThanOwner_thenThrows() {
-            UUID ownerUserId = UUID.randomUUID();
-            UUID otherUserId = UUID.randomUUID();
-            CreateSharedSpaceCommand command = new CreateSharedSpaceCommand(
-                    ownerUserId,
-                    "Trip Budget",
-                    SharingMode.MUTUAL_SHARING,
-                    List.of(new com.fabiankevin.app.services.commands.shared_space.AddSharedResourceCommand(
-                            com.fabiankevin.app.models.enums.shared_space.ResourceType.TRANSACTION,
-                            otherUserId,
-                            List.of("item-1"),
-                            false
-                    ))
-            );
-
-            assertThrows(ForbiddenException.class, () -> service.createShare(command));
             verify(spaceRepository, never()).save(any());
         }
     }
