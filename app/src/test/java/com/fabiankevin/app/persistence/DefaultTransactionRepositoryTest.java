@@ -1,5 +1,6 @@
 package com.fabiankevin.app.persistence;
 
+import com.fabiankevin.app.events.CompositeTransactionEventPublisher;
 import com.fabiankevin.app.models.Amount;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.SummaryPoint;
@@ -12,7 +13,6 @@ import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaSharedSpaceRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import com.fabiankevin.app.services.DefaultTransactionService;
-import com.fabiankevin.app.services.SharedSpaceService;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
@@ -88,7 +88,8 @@ class DefaultTransactionRepositoryTest {
                     categoryRepository,
                     transactionRepository,
                     List.of(),
-                    mock(SharedSpaceService.class));
+                    sharedSpaceRepository,
+                    new CompositeTransactionEventPublisher(List.of()));
         }
     }
 

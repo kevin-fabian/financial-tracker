@@ -20,4 +20,8 @@ public record SpaceParticipant(
         Objects.requireNonNull(accessLevel, "accessLevel");
         Objects.requireNonNull(status, "status");
     }
+
+    public boolean isOwner(UUID ownerId) {
+        return userId == ownerId;
+    }
 }

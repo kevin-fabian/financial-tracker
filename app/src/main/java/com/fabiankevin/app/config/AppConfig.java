@@ -1,7 +1,11 @@
 package com.fabiankevin.app.config;
 
+import com.fabiankevin.app.events.CompositeTransactionEventPublisher;
+import com.fabiankevin.app.events.StatsEventPublisher;
+import com.fabiankevin.app.events.TransactionEventPublisher;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
+import com.fabiankevin.app.persistence.SharedSpaceRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.*;
 import com.fabiankevin.app.services.summaries.SummaryGenerator;
@@ -37,12 +41,28 @@ public class AppConfig {
     }
 
     @Bean
+    public CompositeTransactionEventPublisher compositeEventPublisher(
+            StatsEventPublisher statsEventPublisher,
+            TransactionEventPublisher transactionEventPublisher) {
+        return new CompositeTransactionEventPublisher(
+                List.of(statsEventPublisher,
+                        transactionEventPublisher));
+    }
+
+    @Bean
     public DefaultTransactionService defaultTransactionService(
             AccountRepository accountRepository,
             CategoryRepository categoryRepository,
             TransactionRepository transactionRepository,
             List<SummaryGenerator> generators,
-            SharedSpaceService sharedSpaceService) {
-        return new DefaultTransactionService(accountRepository, categoryRepository, transactionRepository, generators, sharedSpaceService);
+            SharedSpaceRepository sharedSpaceRepository,
+            CompositeTransactionEventPublisher compositeTransactionEventPublisher) {
+        return new DefaultTransactionService(
+                accountRepository,
+                categoryRepository,
+                transactionRepository,
+                generators,
+                sharedSpaceRepository,
+                compositeTransactionEventPublisher);
     }
 }

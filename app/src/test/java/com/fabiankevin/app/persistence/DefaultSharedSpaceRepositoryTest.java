@@ -190,4 +190,38 @@ class DefaultSharedSpaceRepositoryTest {
 
         Assertions.assertThat(found).as("non existing id returns empty optional").isEmpty();
     }
+
+    @Test
+    void findByUserId_givenUserIsOwner_shouldReturnSharedSpace() {
+        SharedSpace saved = sharedSpaceRepository.save(sharedSpace);
+
+        Optional<SharedSpace> found = sharedSpaceRepository.findByUserId(saved.ownerUserId());
+
+        Assertions.assertThat(found).isPresent();
+        Assertions.assertThat(found.get().id()).isEqualTo(saved.id());
+
+        verify(jpaSharedSpaceRepository, times(1)).findByUserId(saved.ownerUserId());
+    }
+
+    @Test
+    void findByUserId_givenUserIsParticipant_shouldReturnSharedSpace() {
+        SharedSpace saved = sharedSpaceRepository.save(sharedSpace);
+        UUID participantUserId = saved.participants().getFirst().userId();
+
+        Optional<SharedSpace> found = sharedSpaceRepository.findByUserId(participantUserId);
+
+        Assertions.assertThat(found).isPresent();
+        Assertions.assertThat(found.get().id()).isEqualTo(saved.id());
+
+        verify(jpaSharedSpaceRepository, times(1)).findByUserId(participantUserId);
+    }
+
+    @Test
+    void findByUserId_givenUserIsNotOwnerOrParticipant_shouldReturnEmpty() {
+        Optional<SharedSpace> found = sharedSpaceRepository.findByUserId(UUID.randomUUID());
+
+        Assertions.assertThat(found).isEmpty();
+
+        verify(jpaSharedSpaceRepository, times(1)).findByUserId(any());
+    }
 }

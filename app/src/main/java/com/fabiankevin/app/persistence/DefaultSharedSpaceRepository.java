@@ -27,6 +27,13 @@ public class DefaultSharedSpaceRepository implements SharedSpaceRepository {
     }
 
     @Override
+    public Optional<SharedSpace> findByUserId(UUID userId) {
+        return jpaSharedSpaceRepository.findByUserId(userId).stream()
+                .findFirst()
+                .map(SharedSpaceEntity::toModel);
+    }
+
+    @Override
     public List<SharedSpace> retrieveByUserId(UUID userId) {
         return jpaSharedSpaceRepository.findByUserId(userId).stream()
                 .map(SharedSpaceEntity::toModel)

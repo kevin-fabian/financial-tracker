@@ -1,20 +1,22 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.events.EventPublisher;
 import com.fabiankevin.app.exceptions.TransactionNotFoundException;
 import com.fabiankevin.app.models.*;
 import com.fabiankevin.app.models.enums.SummaryType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
+import com.fabiankevin.app.persistence.SharedSpaceRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.PatchTransactionCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.services.queries.SummaryQuery;
 import com.fabiankevin.app.services.summaries.SummaryGenerator;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -35,12 +37,26 @@ class DefaultTransactionServiceTest {
     private CategoryRepository categoryRepository;
     @Mock
     private TransactionRepository transactionRepository;
+    private final SummaryGenerator categorySummaryGenerator = mock(SummaryGenerator.class);
     @Mock
-    private List<SummaryGenerator> summaryGenerators;
+    private SharedSpaceRepository sharedSpaceRepository;
     @Mock
-    private SharedSpaceService sharedSpaceService;
-    @InjectMocks
+    private EventPublisher<Transaction> eventPublisher;
     private DefaultTransactionService transactionService;
+
+    @BeforeEach
+    void setup() {
+        when(categorySummaryGenerator.supports()).thenReturn(SummaryType.CATEGORY);
+        List<SummaryGenerator> summaryGenerators = List.of(categorySummaryGenerator);
+        transactionService = new DefaultTransactionService(
+                accountRepository,
+                categoryRepository,
+                transactionRepository,
+                summaryGenerators,
+                sharedSpaceRepository,
+                eventPublisher
+        );
+    }
 
     @Test
     void addTransaction_givenValidCommand_thenShouldSucceed() {
@@ -202,14 +218,7 @@ class DefaultTransactionServiceTest {
                 new SummaryPoint("FOOD", 500.0),
                 new SummaryPoint("TRANSPORT", 200.0)
         );
-        SummaryGenerator mockGenerator = mock(SummaryGenerator.class);
-        when(mockGenerator.supports()).thenReturn(SummaryType.CATEGORY);
-        when(mockGenerator.generate(query)).thenReturn(expectedPoints);
-
-        transactionService = new DefaultTransactionService(
-                accountRepository, categoryRepository, transactionRepository, List.of(mockGenerator),
-                sharedSpaceService
-        );
+        when(categorySummaryGenerator.generate(query)).thenReturn(expectedPoints);
 
         SummarySeries result = transactionService.getSummary(query);
 
@@ -217,21 +226,16 @@ class DefaultTransactionServiceTest {
         assertEquals(2, result.points().size());
         assertEquals("FOOD", result.points().get(0).label());
         assertEquals(500.0, result.points().get(0).total());
-        verify(mockGenerator, times(1)).generate(query);
+        verify(categorySummaryGenerator, times(1)).generate(query);
     }
 
     @Test
-    void getSummary_givenInvalidType_thenShouldThrow() {
+    void getSummary_givenNoGeneratorSummeryType_thenShouldThrow() {
         SummaryQuery query = SummaryQuery.builder()
-                .type(SummaryType.CATEGORY)
+                .type(SummaryType.YEARLY)
                 .from(LocalDate.now().minusMonths(1))
                 .to(LocalDate.now())
                 .build();
-
-        transactionService = new DefaultTransactionService(
-                accountRepository, categoryRepository, transactionRepository, List.of(),
-                sharedSpaceService
-        );
 
         assertThrows(IllegalArgumentException.class, () -> transactionService.getSummary(query));
     }
@@ -241,11 +245,6 @@ class DefaultTransactionServiceTest {
         SummaryQuery query = SummaryQuery.builder()
                 .type(SummaryType.MONTHLY)
                 .build();
-
-        transactionService = new DefaultTransactionService(
-                accountRepository, categoryRepository, transactionRepository, List.of(),
-                sharedSpaceService
-        );
 
         assertThrows(IllegalArgumentException.class, () -> transactionService.getSummary(query));
     }
