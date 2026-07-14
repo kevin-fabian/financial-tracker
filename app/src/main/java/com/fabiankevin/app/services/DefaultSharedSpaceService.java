@@ -172,53 +172,6 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
 
     @Transactional
     @Override
-    public Invitation revokeInvitation(RevokeInvitationCommand command) {
-        Invitation invitation = findInvitationOrThrow(command.invitationId());
-
-        if (!invitation.inviterUserId().equals(command.revokerUserId())) {
-            throw new ForbiddenException("Only the inviter can revoke");
-        }
-
-        if (invitation.status() != InvitationStatus.PENDING) {
-            throw new InvitationAlreadyHandledException();
-        }
-
-        Invitation updatedInvitation = Invitation.builder()
-                .id(invitation.id())
-                .inviterUserId(invitation.inviterUserId())
-                .inviteeUserId(invitation.inviteeUserId())
-                .proposedSharingMode(invitation.proposedSharingMode())
-                .proposedRole(invitation.proposedRole())
-                .status(InvitationStatus.REVOKED)
-                .createdAt(invitation.createdAt())
-                .expiresAt(invitation.expiresAt())
-                .sharedSpaceId(invitation.sharedSpaceId())
-                .build();
-
-        return invitationRepository.save(updatedInvitation);
-    }
-
-    @Transactional
-    @Override
-    public SharedSpace updateParticipantRule(UUID spaceId, UUID participantId, SharingRule rule) {
-        SharedSpace space = findSpaceOrThrow(spaceId);
-
-        List<SpaceParticipant> updatedParticipants = space.participants().stream()
-                .map(p -> p.userId().equals(participantId)
-                        ? p.toBuilder().sharingRule(rule).build()
-                        : p)
-                .collect(Collectors.toList());
-
-        SharedSpace updatedSpace = space.toBuilder()
-                .participants(updatedParticipants)
-                .updatedAt(Instant.now())
-                .build();
-
-        return spaceRepository.save(updatedSpace);
-    }
-
-    @Transactional
-    @Override
     public void removeParticipant(UUID spaceId, UUID participantId, UUID requesterId) {
         SharedSpace space = findSpaceOrThrow(spaceId);
 
@@ -253,18 +206,6 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
     @Override
     public List<Invitation> getInvitationsByUserId(UUID userId) {
         return invitationRepository.findByInviterUserIdOrInviteeUserId(userId);
-    }
-
-    @Override
-    public List<SharedResource> getVisibleResources(UUID spaceId, UUID viewerId) {
-        SharedSpace space = findSpaceOrThrow(spaceId);
-//        SpaceParticipant viewer = findParticipantOrThrow(space, viewerId);
-
-//        SharingRule rule = permissionResolver.resolveRule(space, viewer);
-
-        return space.sharedResources().stream()
-                .filter(resource -> permissionResolver.canViewResource(space, viewerId, resource.type()))
-                .collect(Collectors.toList());
     }
 
     @Transactional

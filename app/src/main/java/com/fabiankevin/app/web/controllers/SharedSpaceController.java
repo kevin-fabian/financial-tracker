@@ -5,7 +5,6 @@ import com.fabiankevin.app.models.shared_space.SharedSpace;
 import com.fabiankevin.app.services.SharedSpaceService;
 import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
 import com.fabiankevin.app.services.commands.shared_space.RejectInvitationCommand;
-import com.fabiankevin.app.services.commands.shared_space.RevokeInvitationCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateSharedSpaceRequest;
 import com.fabiankevin.app.web.controllers.dtos.InvitationResponse;
 import com.fabiankevin.app.web.controllers.dtos.SendInvitationRequest;
@@ -160,27 +159,6 @@ public class SharedSpaceController {
         log.debug("User {} rejecting invitation {}", userId, invitationId);
         Invitation invitation = sharedSpaceService.rejectInvitation(
             new RejectInvitationCommand(invitationId, userId));
-        return InvitationResponse.from(invitation);
-    }
-
-    @Operation(
-        summary = "Revoke an invitation",
-        description = "Revokes a pending invitation. Only the inviter can revoke it.",
-        responses = {
-            @ApiResponse(responseCode = "200", description = "OK - Invitation revoked",
-                content = @Content(schema = @Schema(implementation = InvitationResponse.class))),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Only the inviter can revoke"),
-            @ApiResponse(responseCode = "400", description = "Bad Request - Invalid invitation state"),
-            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
-        }
-    )
-    @PostMapping("/{spaceId}/invitations/{invitationId}/revoke")
-    public InvitationResponse revokeInvitation(
-        @PathVariable @NotNull @Schema(description = "ID of the invitation to revoke") UUID invitationId,
-        JwtAuthenticationToken jwtAuthenticationToken) {
-        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        Invitation invitation = sharedSpaceService.revokeInvitation(
-            new RevokeInvitationCommand(invitationId, userId));
         return InvitationResponse.from(invitation);
     }
 

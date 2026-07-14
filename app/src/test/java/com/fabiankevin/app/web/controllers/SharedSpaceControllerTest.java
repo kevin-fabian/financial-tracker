@@ -9,7 +9,10 @@ import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.shared_space.Invitation;
 import com.fabiankevin.app.models.shared_space.SharedSpace;
 import com.fabiankevin.app.services.SharedSpaceService;
-import com.fabiankevin.app.services.commands.shared_space.*;
+import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
+import com.fabiankevin.app.services.commands.shared_space.CreateSharedSpaceCommand;
+import com.fabiankevin.app.services.commands.shared_space.RejectInvitationCommand;
+import com.fabiankevin.app.services.commands.shared_space.SendInvitationCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateSharedSpaceRequest;
 import com.fabiankevin.app.web.controllers.dtos.SendInvitationRequest;
 import com.github.fabiankevin.lemon.web.GlobalExceptionHandler;
@@ -361,50 +364,6 @@ class SharedSpaceControllerTest {
                 .with(jwt().jwt(jwt)))
             .andExpect(status().isForbidden());
     }
-
-    // ---- revokeInvitation ----
-
-    @Test
-    void revokeInvitation_givenInviter_thenReturnsRevokedInvitation() throws Exception {
-        UUID spaceId = UUID.randomUUID();
-        UUID invitationId = UUID.randomUUID();
-
-        Invitation revoked = invitationWithId(invitationId, spaceId, UUID.randomUUID(), UUID.randomUUID(), InvitationStatus.REVOKED);
-        when(sharedSpaceService.revokeInvitation(any())).thenReturn(revoked);
-
-        mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations/" + invitationId + "/revoke")
-                .with(jwt().jwt(jwt)))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.id").value(invitationId.toString()))
-            .andExpect(jsonPath("$.status").value("REVOKED"));
-
-        verify(sharedSpaceService).revokeInvitation(any(RevokeInvitationCommand.class));
-    }
-
-    @Test
-    void revokeInvitation_givenMissingJwt_thenReturnsForbidden() throws Exception {
-        UUID spaceId = UUID.randomUUID();
-        UUID invitationId = UUID.randomUUID();
-
-        mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations/" + invitationId + "/revoke"))
-            .andExpect(status().isForbidden());
-
-        verifyNoInteractions(sharedSpaceService);
-    }
-
-    @Test
-    void revokeInvitation_givenNotInviter_thenReturnsForbidden() throws Exception {
-        UUID spaceId = UUID.randomUUID();
-        UUID invitationId = UUID.randomUUID();
-
-        when(sharedSpaceService.revokeInvitation(any())).thenThrow(new ForbiddenException("Only the inviter can revoke"));
-
-        mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations/" + invitationId + "/revoke")
-                .with(jwt().jwt(jwt)))
-            .andExpect(status().isForbidden());
-    }
-
-    // ---- removeParticipant ----
 
     @Test
     void removeParticipant_givenOwner_thenReturnsNoContent() throws Exception {
