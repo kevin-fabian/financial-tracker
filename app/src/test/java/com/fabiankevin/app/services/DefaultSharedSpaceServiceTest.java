@@ -12,6 +12,7 @@ import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
 import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
 import com.fabiankevin.app.services.commands.shared_space.CreateSharedSpaceCommand;
+import com.fabiankevin.app.services.commands.shared_space.RejectInvitationCommand;
 import com.fabiankevin.app.services.commands.shared_space.SendInvitationCommand;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -614,6 +615,249 @@ class DefaultSharedSpaceServiceTest {
             assertEquals(2, result.size());
             assertEquals(Set.of(userId, otherParticipant), Set.copyOf(result));
             verify(spaceRepository).findParticipantUserIdsByUserId(userId);
+        }
+    }
+
+    @Nested
+    class RejectInvitation {
+
+        @Test
+        void givenInviteeRejectsPendingInvitation_thenReturnsRejectedInvitation() {
+            UUID inviterUserId = UUID.randomUUID();
+            UUID inviteeUserId = UUID.randomUUID();
+            UUID spaceId = UUID.randomUUID();
+            UUID invitationId = UUID.randomUUID();
+            Invitation invitation = Invitation.builder()
+                    .id(invitationId)
+                    .inviterUserId(inviterUserId)
+                    .inviteeUserId(inviteeUserId)
+                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedRole(AccessLevel.VIEW_ONLY)
+                    .status(InvitationStatus.PENDING)
+                    .createdAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(604800))
+                    .sharedSpaceId(spaceId)
+                    .build();
+
+            when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
+            when(invitationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+            RejectInvitationCommand command = new RejectInvitationCommand(invitationId, inviteeUserId);
+
+            Invitation result = service.rejectInvitation(command);
+
+            ArgumentCaptor<Invitation> captor = ArgumentCaptor.forClass(Invitation.class);
+            verify(invitationRepository).save(captor.capture());
+            assertEquals(InvitationStatus.REJECTED, captor.getValue().status());
+            assertEquals(InvitationStatus.REJECTED, result.status());
+            assertEquals(inviteeUserId, result.inviteeUserId());
+            assertEquals(inviterUserId, result.inviterUserId());
+            assertEquals(spaceId, result.sharedSpaceId());
+            verify(spaceRepository, never()).save(any());
+        }
+
+        @Test
+        void givenNonInviteeAttemptsToReject_thenThrows() {
+            UUID inviteeUserId = UUID.randomUUID();
+            UUID otherUserId = UUID.randomUUID();
+            UUID invitationId = UUID.randomUUID();
+            Invitation invitation = Invitation.builder()
+                    .id(invitationId)
+                    .inviterUserId(UUID.randomUUID())
+                    .inviteeUserId(inviteeUserId)
+                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedRole(AccessLevel.VIEW_ONLY)
+                    .status(InvitationStatus.PENDING)
+                    .createdAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(604800))
+                    .sharedSpaceId(UUID.randomUUID())
+                    .build();
+
+            when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
+
+            RejectInvitationCommand command = new RejectInvitationCommand(invitationId, otherUserId);
+
+            assertThrows(ForbiddenException.class, () -> service.rejectInvitation(command));
+            verify(invitationRepository, never()).save(any());
+        }
+
+        @Test
+        void givenInvitationAlreadyHandled_thenThrows() {
+            UUID inviteeUserId = UUID.randomUUID();
+            UUID invitationId = UUID.randomUUID();
+            Invitation invitation = Invitation.builder()
+                    .id(invitationId)
+                    .inviterUserId(UUID.randomUUID())
+                    .inviteeUserId(inviteeUserId)
+                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedRole(AccessLevel.VIEW_ONLY)
+                    .status(InvitationStatus.ACCEPTED)
+                    .createdAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(604800))
+                    .sharedSpaceId(UUID.randomUUID())
+                    .build();
+
+            when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
+
+            RejectInvitationCommand command = new RejectInvitationCommand(invitationId, inviteeUserId);
+
+            assertThrows(InvitationAlreadyHandledException.class, () -> service.rejectInvitation(command));
+            verify(invitationRepository, never()).save(any());
+        }
+    }
+
+    @Nested
+    class RemoveParticipant {
+
+        @Test
+        void givenOwnerRemovesParticipant_thenParticipantIsRemoved() {
+            UUID ownerUserId = UUID.randomUUID();
+            UUID participantUserId = UUID.randomUUID();
+            UUID spaceId = UUID.randomUUID();
+            SharedSpace space = SharedSpace.builder()
+                    .id(spaceId)
+                    .spaceName("Family Budget")
+                    .ownerUserId(ownerUserId)
+                    .participants(new ArrayList<>(List.of(
+                            SpaceParticipant.builder()
+                                    .userId(ownerUserId)
+                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .status(ParticipantStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build(),
+                            SpaceParticipant.builder()
+                                    .userId(participantUserId)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
+                                    .status(ParticipantStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build()
+                    )))
+                    .sharingMode(SharingMode.MUTUAL_SHARING)
+                    .sharedResources(new ArrayList<>())
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
+            when(spaceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+            service.removeParticipant(spaceId, participantUserId, ownerUserId);
+
+            ArgumentCaptor<SharedSpace> captor = ArgumentCaptor.forClass(SharedSpace.class);
+            verify(spaceRepository).save(captor.capture());
+            SharedSpace saved = captor.getValue();
+            assertEquals(1, saved.participants().size());
+            assertEquals(ownerUserId, saved.participants().getFirst().userId());
+            assertTrue(saved.participants().stream().noneMatch(p -> p.userId().equals(participantUserId)));
+        }
+
+        @Test
+        void givenParticipantRemovesThemselves_thenParticipantIsRemoved() {
+            UUID ownerUserId = UUID.randomUUID();
+            UUID participantUserId = UUID.randomUUID();
+            UUID spaceId = UUID.randomUUID();
+            SharedSpace space = SharedSpace.builder()
+                    .id(spaceId)
+                    .spaceName("Family Budget")
+                    .ownerUserId(ownerUserId)
+                    .participants(new ArrayList<>(List.of(
+                            SpaceParticipant.builder()
+                                    .userId(ownerUserId)
+                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .status(ParticipantStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build(),
+                            SpaceParticipant.builder()
+                                    .userId(participantUserId)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
+                                    .status(ParticipantStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build()
+                    )))
+                    .sharingMode(SharingMode.MUTUAL_SHARING)
+                    .sharedResources(new ArrayList<>())
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
+            when(spaceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+            service.removeParticipant(spaceId, participantUserId, participantUserId);
+
+            ArgumentCaptor<SharedSpace> captor = ArgumentCaptor.forClass(SharedSpace.class);
+            verify(spaceRepository).save(captor.capture());
+            SharedSpace saved = captor.getValue();
+            assertEquals(1, saved.participants().size());
+            assertEquals(ownerUserId, saved.participants().getFirst().userId());
+        }
+
+        @Test
+        void givenNonOwnerNonSelfAttemptsToRemoveParticipant_thenThrows() {
+            UUID ownerUserId = UUID.randomUUID();
+            UUID participantUserId = UUID.randomUUID();
+            UUID otherUserId = UUID.randomUUID();
+            UUID spaceId = UUID.randomUUID();
+            SharedSpace space = SharedSpace.builder()
+                    .id(spaceId)
+                    .spaceName("Family Budget")
+                    .ownerUserId(ownerUserId)
+                    .participants(new ArrayList<>(List.of(
+                            SpaceParticipant.builder()
+                                    .userId(ownerUserId)
+                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .status(ParticipantStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build(),
+                            SpaceParticipant.builder()
+                                    .userId(participantUserId)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
+                                    .status(ParticipantStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build()
+                    )))
+                    .sharingMode(SharingMode.MUTUAL_SHARING)
+                    .sharedResources(new ArrayList<>())
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
+
+            assertThrows(ForbiddenException.class, () -> service.removeParticipant(spaceId, participantUserId, otherUserId));
+            verify(spaceRepository, never()).save(any());
+        }
+
+        @Test
+        void givenAttemptToRemoveOwner_thenThrows() {
+            UUID ownerUserId = UUID.randomUUID();
+            UUID spaceId = UUID.randomUUID();
+            SharedSpace space = SharedSpace.builder()
+                    .id(spaceId)
+                    .spaceName("Family Budget")
+                    .ownerUserId(ownerUserId)
+                    .participants(new ArrayList<>(List.of(
+                            SpaceParticipant.builder()
+                                    .userId(ownerUserId)
+                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .status(ParticipantStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build()
+                    )))
+                    .sharingMode(SharingMode.MUTUAL_SHARING)
+                    .sharedResources(new ArrayList<>())
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
+
+            assertThrows(CannotRemoveOwnerException.class, () -> service.removeParticipant(spaceId, ownerUserId, ownerUserId));
+            verify(spaceRepository, never()).save(any());
         }
     }
 }
