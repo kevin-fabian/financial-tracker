@@ -1,8 +1,6 @@
 package com.fabiankevin.app.services;
 
-import com.fabiankevin.app.exceptions.shared_space.InviterCannotAcceptOwnInvitationException;
-import com.fabiankevin.app.exceptions.shared_space.NotSpaceOwnerException;
-import com.fabiankevin.app.exceptions.shared_space.ParticipantAlreadyExistsException;
+import com.fabiankevin.app.exceptions.shared_space.*;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
 import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
@@ -272,6 +270,135 @@ class DefaultSharedSpaceServiceTest {
     class AcceptInvitation {
 
         @Test
+        void givenValidPendingInvitation_thenAcceptsAndAddsInviteeAsParticipant() {
+            UUID inviterUserId = UUID.randomUUID();
+            UUID inviteeUserId = UUID.randomUUID();
+            UUID spaceId = UUID.randomUUID();
+            UUID invitationId = UUID.randomUUID();
+            Invitation invitation = Invitation.builder()
+                    .id(invitationId)
+                    .inviterUserId(inviterUserId)
+                    .inviteeUserId(inviteeUserId)
+                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedRole(AccessLevel.VIEW_ONLY)
+                    .status(InvitationStatus.PENDING)
+                    .createdAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(604800))
+                    .sharedSpaceId(spaceId)
+                    .build();
+            SharedSpace space = SharedSpace.builder()
+                    .id(spaceId)
+                    .spaceName("Family Budget")
+                    .ownerUserId(inviterUserId)
+                    .participants(new ArrayList<>(List.of(
+                            SpaceParticipant.builder()
+                                    .userId(inviterUserId)
+                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .status(ParticipantStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build()
+                    )))
+                    .sharingMode(SharingMode.MUTUAL_SHARING)
+                    .sharedResources(new ArrayList<>())
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
+            when(invitationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
+            when(spaceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+            AcceptInvitationCommand command = new AcceptInvitationCommand(invitationId, inviteeUserId);
+
+            SharedSpace result = service.acceptInvitation(command);
+
+            ArgumentCaptor<Invitation> invitationCaptor = ArgumentCaptor.forClass(Invitation.class);
+            verify(invitationRepository).save(invitationCaptor.capture());
+            assertEquals(InvitationStatus.ACCEPTED, invitationCaptor.getValue().status());
+            assertEquals(inviteeUserId, invitationCaptor.getValue().inviteeUserId());
+            assertNotNull(result);
+            assertEquals(2, result.participants().size());
+            SpaceParticipant addedParticipant = result.participants().stream()
+                    .filter(p -> p.userId().equals(inviteeUserId))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("Invitee should be added as participant"));
+            assertEquals(AccessLevel.VIEW_ONLY, addedParticipant.accessLevel());
+            assertEquals(ParticipantStatus.ACTIVE, addedParticipant.status());
+            assertNotNull(addedParticipant.joinedAt());
+            verify(spaceRepository).save(any(SharedSpace.class));
+        }
+
+        @Test
+        void givenInvitationDoesNotExist_thenThrows() {
+            UUID invitationId = UUID.randomUUID();
+            UUID acceptingUserId = UUID.randomUUID();
+
+            when(invitationRepository.findById(invitationId)).thenReturn(Optional.empty());
+
+            AcceptInvitationCommand command = new AcceptInvitationCommand(invitationId, acceptingUserId);
+
+            assertThrows(InvitationNotFoundException.class, () -> service.acceptInvitation(command));
+            verify(invitationRepository, never()).save(any());
+            verify(spaceRepository, never()).save(any());
+        }
+
+        @Test
+        void givenInvitationAlreadyHandled_thenThrows() {
+            UUID inviterUserId = UUID.randomUUID();
+            UUID inviteeUserId = UUID.randomUUID();
+            UUID invitationId = UUID.randomUUID();
+            UUID spaceId = UUID.randomUUID();
+            Invitation invitation = Invitation.builder()
+                    .id(invitationId)
+                    .inviterUserId(inviterUserId)
+                    .inviteeUserId(inviteeUserId)
+                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedRole(AccessLevel.VIEW_ONLY)
+                    .status(InvitationStatus.ACCEPTED)
+                    .createdAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(604800))
+                    .sharedSpaceId(spaceId)
+                    .build();
+
+            when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
+
+            AcceptInvitationCommand command = new AcceptInvitationCommand(invitationId, inviteeUserId);
+
+            assertThrows(InvitationAlreadyHandledException.class, () -> service.acceptInvitation(command));
+            verify(invitationRepository, never()).save(any());
+            verify(spaceRepository, never()).save(any());
+        }
+
+        @Test
+        void givenExpiredInvitation_thenThrows() {
+            UUID inviterUserId = UUID.randomUUID();
+            UUID inviteeUserId = UUID.randomUUID();
+            UUID invitationId = UUID.randomUUID();
+            UUID spaceId = UUID.randomUUID();
+            Invitation invitation = Invitation.builder()
+                    .id(invitationId)
+                    .inviterUserId(inviterUserId)
+                    .inviteeUserId(inviteeUserId)
+                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedRole(AccessLevel.VIEW_ONLY)
+                    .status(InvitationStatus.PENDING)
+                    .createdAt(Instant.now().minusSeconds(172800))
+                    .expiresAt(Instant.now().minusSeconds(60))
+                    .sharedSpaceId(spaceId)
+                    .build();
+
+            when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
+
+            AcceptInvitationCommand command = new AcceptInvitationCommand(invitationId, inviteeUserId);
+
+            assertThrows(InvitationExpiredException.class, () -> service.acceptInvitation(command));
+            verify(invitationRepository, never()).save(any());
+            verify(spaceRepository, never()).save(any());
+        }
+
+        @Test
         void givenInviterAttemptsToAcceptOwnInvitation_thenThrows() {
             UUID inviterUserId = UUID.randomUUID();
             UUID invitationId = UUID.randomUUID();
@@ -293,6 +420,34 @@ class DefaultSharedSpaceServiceTest {
             AcceptInvitationCommand command = new AcceptInvitationCommand(invitationId, inviterUserId);
 
             assertThrows(InviterCannotAcceptOwnInvitationException.class, () -> service.acceptInvitation(command));
+            verify(invitationRepository, never()).save(any());
+            verify(spaceRepository, never()).save(any());
+        }
+
+        @Test
+        void givenNonInviteeAttemptsToAccept_thenThrows() {
+            UUID inviterUserId = UUID.randomUUID();
+            UUID inviteeUserId = UUID.randomUUID();
+            UUID otherUserId = UUID.randomUUID();
+            UUID invitationId = UUID.randomUUID();
+            UUID spaceId = UUID.randomUUID();
+            Invitation invitation = Invitation.builder()
+                    .id(invitationId)
+                    .inviterUserId(inviterUserId)
+                    .inviteeUserId(inviteeUserId)
+                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedRole(AccessLevel.VIEW_ONLY)
+                    .status(InvitationStatus.PENDING)
+                    .createdAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(604800))
+                    .sharedSpaceId(spaceId)
+                    .build();
+
+            when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
+
+            AcceptInvitationCommand command = new AcceptInvitationCommand(invitationId, otherUserId);
+
+            assertThrows(ForbiddenException.class, () -> service.acceptInvitation(command));
             verify(invitationRepository, never()).save(any());
             verify(spaceRepository, never()).save(any());
         }
