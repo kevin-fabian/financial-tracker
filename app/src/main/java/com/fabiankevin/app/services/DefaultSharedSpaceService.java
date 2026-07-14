@@ -37,7 +37,6 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
                 .accessLevel(AccessLevel.READ_WRITE)
                 .status(ParticipantStatus.ACTIVE)
                 .joinedAt(Instant.now())
-                .sharingRule(null)
                 .build());
 
         List<SharedResource> sharedResources = new ArrayList<>();

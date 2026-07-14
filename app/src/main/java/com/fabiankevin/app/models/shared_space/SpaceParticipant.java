@@ -14,9 +14,7 @@ public record SpaceParticipant(
         UUID userId,
         AccessLevel accessLevel,
         ParticipantStatus status,
-        Instant joinedAt,
-        SharingRule sharingRule // null = use space's defaultSharingRule or mode-based default
-) {
+        Instant joinedAt) {
     public SpaceParticipant {
         Objects.requireNonNull(userId, "userId");
         Objects.requireNonNull(accessLevel, "accessLevel");

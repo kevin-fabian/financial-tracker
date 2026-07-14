@@ -6,7 +6,6 @@ import com.fabiankevin.app.models.enums.shared_space.ResourceType;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.shared_space.SharedResource;
 import com.fabiankevin.app.models.shared_space.SharedSpace;
-import com.fabiankevin.app.models.shared_space.SharingRule;
 import com.fabiankevin.app.models.shared_space.SpaceParticipant;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaSharedSpaceRepository;
 import org.assertj.core.api.Assertions;
@@ -64,7 +63,6 @@ class DefaultSharedSpaceRepositoryTest {
                 .accessLevel(AccessLevel.READ_WRITE)
                 .status(ParticipantStatus.ACTIVE)
                 .joinedAt(Instant.now())
-                .sharingRule(SharingRule.MUTUAL_DEFAULT)
                 .build();
 
         sharedSpace = SharedSpace.builder()
@@ -106,16 +104,6 @@ class DefaultSharedSpaceRepositoryTest {
         Assertions.assertThat(retrievedParticipant.status()).isEqualTo(ParticipantStatus.ACTIVE);
         Assertions.assertThat(retrievedParticipant.joinedAt())
                 .isEqualTo(sharedSpace.participants().getFirst().joinedAt());
-        Assertions.assertThat(retrievedParticipant.sharingRule())
-                .as("participant sharing rule should persist")
-                .isNotNull();
-        Assertions.assertThat(retrievedParticipant.sharingRule().sharesOwnResources()).isTrue();
-        Assertions.assertThat(retrievedParticipant.sharingRule().visibleResourceTypes())
-                .containsExactlyInAnyOrder(ResourceType.values());
-        Assertions.assertThat(retrievedParticipant.sharingRule().sharedResourceIds()).isEmpty();
-        Assertions.assertThat(retrievedParticipant.sharingRule().autoApproveUnder()).isNull();
-        Assertions.assertThat(retrievedParticipant.sharingRule().requiresApproval()).isFalse();
-
         Assertions.assertThat(retrievedsharedSpace.sharedResources())
                 .as("shared resources should be persisted and retrieved")
                 .hasSize(1);
@@ -144,9 +132,6 @@ class DefaultSharedSpaceRepositoryTest {
                 .isEqualTo(sharedSpace.participants().getFirst().userId());
         Assertions.assertThat(found.get().participants().getFirst().accessLevel())
                 .isEqualTo(AccessLevel.READ_WRITE);
-        Assertions.assertThat(found.get().participants().getFirst().sharingRule())
-                .as("participant sharing rule should persist")
-                .isNotNull();
     }
 
     @Test

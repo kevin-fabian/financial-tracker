@@ -7,7 +7,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
-import java.util.Optional;
 import java.util.UUID;
 
 @ToString(exclude = "sharedSpace")
@@ -30,28 +29,12 @@ public class SpaceParticipantEntity {
     @Column(name = "access_level")
     private AccessLevel accessLevel;
 
-    @Column(name = "invited_by_user_id")
-    private UUID invitedByUserId;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     private ParticipantStatus status;
 
     @Column(name = "joined_at")
     private Instant joinedAt;
-
-    @Embedded
-    @AttributeOverrides({
-            @AttributeOverride(name = "sharesOwnResources", column = @Column(name = "shares_own_resources")),
-            @AttributeOverride(name = "sharedResourceIds", column = @Column(name = "shared_resource_ids")),
-            @AttributeOverride(name = "visibleResourceTypes", column = @Column(name = "visible_resource_types")),
-            @AttributeOverride(name = "visibleParticipants", column = @Column(name = "visible_participants")),
-            @AttributeOverride(name = "maskedFields", column = @Column(name = "masked_fields")),
-            @AttributeOverride(name = "maxTransactionAmount", column = @Column(name = "max_transaction_amount")),
-            @AttributeOverride(name = "autoApproveUnder", column = @Column(name = "auto_approve_under")),
-            @AttributeOverride(name = "requiresApproval", column = @Column(name = "requires_approval"))
-    })
-    private SharingRuleEmbeddable sharingRule;
 
     @ManyToOne
     @JoinColumn(name = "shared_space_id")
@@ -65,7 +48,6 @@ public class SpaceParticipantEntity {
                 .accessLevel(participant.accessLevel())
                 .status(participant.status())
                 .joinedAt(participant.joinedAt())
-                .sharingRule(SharingRuleEmbeddable.from(participant.sharingRule()))
                 .build();
     }
 
@@ -76,7 +58,6 @@ public class SpaceParticipantEntity {
                 .accessLevel(this.accessLevel)
                 .status(this.status)
                 .joinedAt(this.joinedAt)
-                .sharingRule(Optional.ofNullable(this.sharingRule).map(SharingRuleEmbeddable::toModel).orElse(null))
                 .build();
     }
 }
