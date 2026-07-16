@@ -2,13 +2,14 @@ package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.models.shared_space.Invitation;
 import com.fabiankevin.app.models.shared_space.SharedSpace;
+import com.fabiankevin.app.services.InvitationService;
 import com.fabiankevin.app.services.SharedSpaceService;
 import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
 import com.fabiankevin.app.services.commands.shared_space.RejectInvitationCommand;
-import com.fabiankevin.app.web.controllers.dtos.CreateSharedSpaceRequest;
-import com.fabiankevin.app.web.controllers.dtos.InvitationResponse;
 import com.fabiankevin.app.web.controllers.dtos.SendInvitationRequest;
-import com.fabiankevin.app.web.controllers.dtos.SharedSpaceResponse;
+import com.fabiankevin.app.web.controllers.dtos.shared_space.CreateSharedSpaceRequest;
+import com.fabiankevin.app.web.controllers.dtos.shared_space.InvitationResponse;
+import com.fabiankevin.app.web.controllers.dtos.shared_space.SharedSpaceResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -33,6 +34,7 @@ import java.util.UUID;
 @RequestMapping(value = "/api/shared-spaces", version = "v1")
 public class SharedSpaceController {
     private final SharedSpaceService sharedSpaceService;
+    private final InvitationService invitationService;
 
     @Operation(
         summary = "Create a shared space",
@@ -87,7 +89,7 @@ public class SharedSpaceController {
     @GetMapping("/invitations")
     public List<InvitationResponse> getInvitations(JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        return sharedSpaceService.getInvitationsByUserId(userId).stream()
+        return invitationService.getInvitationsByUserId(userId).stream()
             .map(InvitationResponse::from)
             .toList();
     }
@@ -111,7 +113,7 @@ public class SharedSpaceController {
         @Valid @RequestBody SendInvitationRequest request,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        Invitation invitation = sharedSpaceService.sendInvitation(request.toCommand(userId, spaceId));
+        Invitation invitation = invitationService.sendInvitation(request.toCommand(userId, spaceId));
         InvitationResponse response = InvitationResponse.from(invitation);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
             .path("/{invitationId}")
@@ -135,7 +137,7 @@ public class SharedSpaceController {
         @PathVariable @NotNull @Schema(description = "ID of the invitation to accept") UUID invitationId,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        SharedSpace space = sharedSpaceService.acceptInvitation(
+        SharedSpace space = invitationService.acceptInvitation(
             new AcceptInvitationCommand(invitationId, userId));
         return SharedSpaceResponse.from(space);
     }
@@ -157,7 +159,7 @@ public class SharedSpaceController {
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         log.debug("User {} rejecting invitation {}", userId, invitationId);
-        Invitation invitation = sharedSpaceService.rejectInvitation(
+        Invitation invitation = invitationService.rejectInvitation(
             new RejectInvitationCommand(invitationId, userId));
         return InvitationResponse.from(invitation);
     }

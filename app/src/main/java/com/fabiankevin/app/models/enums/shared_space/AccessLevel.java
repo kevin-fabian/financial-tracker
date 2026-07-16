@@ -1,19 +1,17 @@
 package com.fabiankevin.app.models.enums.shared_space;
 
-import java.util.Set;
+import lombok.Getter;
 
+@Getter
 public enum AccessLevel {
-    VIEW_ONLY,
-    READ_WRITE; // Combines read + write (modify)
-    
-    // If you need hierarchical permissions, use a proper structure
-    private final Set<AccessLevel> includedPermissions;
-    
-    AccessLevel(AccessLevel... included) {
-        this.includedPermissions = Set.of(included);
-    }
-    
-    public boolean includes(AccessLevel other) {
-        return this == other || includedPermissions.contains(other);
+    VIEW_ONLY("View Only", ""),
+    READ_WRITE("Read & Write", "");
+
+    private final String name;
+    private final String description;
+
+    AccessLevel(String name, String description) {
+        this.name = name;
+        this.description = description;
     }
 }

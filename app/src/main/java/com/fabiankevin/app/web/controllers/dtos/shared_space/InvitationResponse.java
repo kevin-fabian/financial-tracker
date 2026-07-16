@@ -1,4 +1,4 @@
-package com.fabiankevin.app.web.controllers.dtos;
+package com.fabiankevin.app.web.controllers.dtos.shared_space;
 
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
@@ -29,11 +29,7 @@ public record InvitationResponse(
     Instant createdAt,
 
     @Schema(description = "Timestamp when the invitation expires")
-    Instant expiresAt,
-
-    @Schema(description = "Target shared space identifier", example = "c3d4e5f6-...")
-    UUID sharedSpaceId
-) {
+    Instant expiresAt) {
     public static InvitationResponse from(Invitation invitation) {
         return InvitationResponse.builder()
             .id(invitation.id())
@@ -42,7 +38,6 @@ public record InvitationResponse(
             .status(invitation.status())
             .createdAt(invitation.createdAt())
             .expiresAt(invitation.expiresAt())
-            .sharedSpaceId(invitation.sharedSpaceId())
             .build();
     }
 }

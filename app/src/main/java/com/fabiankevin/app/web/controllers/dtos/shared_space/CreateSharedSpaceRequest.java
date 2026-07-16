@@ -1,4 +1,4 @@
-package com.fabiankevin.app.web.controllers.dtos;
+package com.fabiankevin.app.web.controllers.dtos.shared_space;
 
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.services.commands.shared_space.CreateSharedSpaceCommand;

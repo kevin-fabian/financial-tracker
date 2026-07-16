@@ -1,4 +1,4 @@
-package com.fabiankevin.app.web.controllers.dtos;
+package com.fabiankevin.app.web.controllers.dtos.shared_space;
 
 import com.fabiankevin.app.models.shared_space.SpaceParticipant;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -16,6 +16,10 @@ public record ParticipantResponse(
     @Schema(description = "User identifier of the participant", example = "a1b2c3d4-...")
     UUID userId,
 
+    String name,
+
+    String initial,
+
     @Schema(description = "Access level of the participant", example = "READ_WRITE")
     String accessLevel,
 
@@ -23,7 +27,12 @@ public record ParticipantResponse(
     String status,
 
     @Schema(description = "Timestamp when the participant joined")
-    Instant joinedAt
+    Instant joinedAt,
+
+    int transactionCount,
+    double averageAmount,
+    int goalCount,
+    int checklistCount
 ) {
     public static ParticipantResponse from(SpaceParticipant participant) {
         return ParticipantResponse.builder()

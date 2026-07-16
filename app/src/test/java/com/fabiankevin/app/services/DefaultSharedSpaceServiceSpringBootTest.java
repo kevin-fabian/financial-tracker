@@ -41,6 +41,8 @@ public class DefaultSharedSpaceServiceSpringBootTest {
     @Autowired
     private SharedSpaceService sharedSpaceService;
     @Autowired
+    private InvitationService invitationService;
+    @Autowired
     private TransactionService transactionService;
     @Autowired
     private StatsService statsService;
@@ -86,7 +88,7 @@ public class DefaultSharedSpaceServiceSpringBootTest {
         UUID spaceId = initialSharedSpace.id();
 
         // Step 2: Invite a partner in a space
-        Invitation invitation = sharedSpaceService.sendInvitation(SendInvitationCommand.builder()
+        Invitation invitation = invitationService.sendInvitation(SendInvitationCommand.builder()
                 .spaceId(spaceId)
                 .inviterUserId(ownerUserId)
                 .inviteeUserId(partnerUserid)
@@ -94,7 +96,7 @@ public class DefaultSharedSpaceServiceSpringBootTest {
                 .build());
 
         // Step 3: Accept the invite
-        sharedSpaceService.acceptInvitation(AcceptInvitationCommand.builder()
+        invitationService.acceptInvitation(AcceptInvitationCommand.builder()
                 .invitationId(invitation.id())
                 .acceptingUserId(partnerUserid)
                 .build());
@@ -133,7 +135,7 @@ public class DefaultSharedSpaceServiceSpringBootTest {
         UUID spaceId = initialSharedSpace.id();
 
         // Step 2: Invite a partner in a space
-        Invitation invitation = sharedSpaceService.sendInvitation(SendInvitationCommand.builder()
+        Invitation invitation = invitationService.sendInvitation(SendInvitationCommand.builder()
                 .spaceId(spaceId)
                 .inviterUserId(ownerUserId)
                 .inviteeUserId(partnerUserid)
@@ -141,7 +143,7 @@ public class DefaultSharedSpaceServiceSpringBootTest {
                 .build());
 
         // Step 3: Accept the invite
-        sharedSpaceService.acceptInvitation(AcceptInvitationCommand.builder()
+        invitationService.acceptInvitation(AcceptInvitationCommand.builder()
                 .invitationId(invitation.id())
                 .acceptingUserId(partnerUserid)
                 .build());
