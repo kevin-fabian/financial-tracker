@@ -5,7 +5,6 @@ import com.fabiankevin.app.models.*;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
-import com.fabiankevin.app.models.enums.shared_space.ResourceType;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.shared_space.Invitation;
 import com.fabiankevin.app.models.shared_space.SharedSpace;
@@ -13,7 +12,6 @@ import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
-import com.fabiankevin.app.services.commands.shared_space.AddSharedResourceCommand;
 import com.fabiankevin.app.services.commands.shared_space.CreateSharedSpaceCommand;
 import com.fabiankevin.app.services.commands.shared_space.SendInvitationCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
@@ -84,12 +82,6 @@ public class DefaultSharedSpaceServiceSpringBootTest {
                 .spaceName("Partner Space")
                 .ownerUserId(ownerUserId)
                 .sharingMode(SharingMode.MUTUAL_SHARING)
-                .resources(List.of(AddSharedResourceCommand.builder()
-                                .type(ResourceType.TRANSACTION)
-                                .build(),
-                        AddSharedResourceCommand.builder()
-                                .type(ResourceType.BUDGET)
-                                .build()))
                 .build());
         UUID spaceId = initialSharedSpace.id();
 
@@ -137,12 +129,6 @@ public class DefaultSharedSpaceServiceSpringBootTest {
                 .spaceName("Partner Space")
                 .ownerUserId(ownerUserId)
                 .sharingMode(SharingMode.MUTUAL_SHARING)
-                .resources(List.of(AddSharedResourceCommand.builder()
-                                .type(ResourceType.TRANSACTION)
-                                .build(),
-                        AddSharedResourceCommand.builder()
-                                .type(ResourceType.BUDGET)
-                                .build()))
                 .build());
         UUID spaceId = initialSharedSpace.id();
 

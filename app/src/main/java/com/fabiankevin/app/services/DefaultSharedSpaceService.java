@@ -4,6 +4,7 @@ import com.fabiankevin.app.exceptions.shared_space.*;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
 import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
+import com.fabiankevin.app.models.enums.shared_space.ResourceType;
 import com.fabiankevin.app.models.shared_space.Invitation;
 import com.fabiankevin.app.models.shared_space.SharedResource;
 import com.fabiankevin.app.models.shared_space.SharedSpace;
@@ -40,13 +41,21 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
                 .build());
 
         List<SharedResource> sharedResources = new ArrayList<>();
-        for (AddSharedResourceCommand resource : command.resources()) {
-            sharedResources.add(SharedResource.builder()
-                    .type(resource.type())
-                    .items(resource.itemIds())
-                    .sharedAt(Instant.now())
-                    .build());
-        }
+        sharedResources.add(SharedResource.builder()
+                .type(ResourceType.TRANSACTION)
+                .sharedAt(Instant.now())
+                .items(List.of())
+                .build());
+        sharedResources.add(SharedResource.builder()
+                .type(ResourceType.BUDGET)
+                .sharedAt(Instant.now())
+                .items(List.of())
+                .build());
+        sharedResources.add(SharedResource.builder()
+                .type(ResourceType.BUDGET)
+                .sharedAt(Instant.now())
+                .items(List.of())
+                .build());
 
         SharedSpace newSpace = SharedSpace.builder()
                 .spaceName(command.spaceName() != null ? command.spaceName() : "Shared Space")

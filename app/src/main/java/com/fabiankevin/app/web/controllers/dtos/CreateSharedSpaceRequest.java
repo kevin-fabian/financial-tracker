@@ -1,13 +1,11 @@
 package com.fabiankevin.app.web.controllers.dtos;
 
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
-import com.fabiankevin.app.services.commands.shared_space.AddSharedResourceCommand;
 import com.fabiankevin.app.services.commands.shared_space.CreateSharedSpaceCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 
-import java.util.List;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
@@ -18,24 +16,13 @@ public record CreateSharedSpaceRequest(
 
     @NotNull(message = "Sharing mode is required")
     @Schema(description = "Global sharing mode for the space", example = "MUTUAL_SHARING")
-    SharingMode sharingMode,
-
-    @Schema(description = "Resources to share into the space at creation time")
-    List<CreateSharedResourceRequest> resources
+    SharingMode sharingMode
 ) {
     public CreateSharedSpaceCommand toCommand(UUID ownerUserId) {
-        List<AddSharedResourceCommand> commands = resources == null ? List.of() : resources.stream()
-            .map(r -> AddSharedResourceCommand.builder()
-                .type(r.type())
-                .itemIds(r.itemIds())
-                .build())
-            .toList();
-
         return CreateSharedSpaceCommand.builder()
             .ownerUserId(ownerUserId)
             .spaceName(spaceName)
             .sharingMode(sharingMode)
-            .resources(commands)
             .build();
     }
 }

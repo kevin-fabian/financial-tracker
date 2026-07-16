@@ -1,10 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.exceptions.shared_space.*;
-import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
-import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
-import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
-import com.fabiankevin.app.models.enums.shared_space.SharingMode;
+import com.fabiankevin.app.models.enums.shared_space.*;
 import com.fabiankevin.app.models.shared_space.Invitation;
 import com.fabiankevin.app.models.shared_space.SharedSpace;
 import com.fabiankevin.app.models.shared_space.SpaceParticipant;
@@ -463,8 +460,7 @@ class DefaultSharedSpaceServiceTest {
             CreateSharedSpaceCommand command = new CreateSharedSpaceCommand(
                     ownerUserId,
                     "Trip Budget",
-                    SharingMode.MUTUAL_SHARING,
-                    List.of()
+                    SharingMode.MUTUAL_SHARING
             );
 
             ArgumentCaptor<SharedSpace> captor = ArgumentCaptor.forClass(SharedSpace.class);
@@ -484,6 +480,11 @@ class DefaultSharedSpaceServiceTest {
             assertEquals(AccessLevel.READ_WRITE, owner.accessLevel());
             assertEquals(ParticipantStatus.ACTIVE, owner.status());
 
+            assertEquals(3, result.sharedResources().size());
+            assertEquals(ResourceType.TRANSACTION, result.sharedResources().get(0).type());
+            assertEquals(ResourceType.BUDGET, result.sharedResources().get(1).type());
+            assertEquals(ResourceType.BUDGET, result.sharedResources().get(2).type());
+
             verify(spaceRepository).save(any(SharedSpace.class));
         }
 
@@ -493,8 +494,7 @@ class DefaultSharedSpaceServiceTest {
             CreateSharedSpaceCommand command = new CreateSharedSpaceCommand(
                     ownerUserId,
                     null,
-                    SharingMode.MUTUAL_SHARING,
-                    List.of()
+                    SharingMode.MUTUAL_SHARING
             );
 
             ArgumentCaptor<SharedSpace> captor = ArgumentCaptor.forClass(SharedSpace.class);
@@ -511,8 +511,7 @@ class DefaultSharedSpaceServiceTest {
             assertThrows(NullPointerException.class, () -> new CreateSharedSpaceCommand(
                     null,
                     "My Space",
-                    SharingMode.MUTUAL_SHARING,
-                    null
+                    SharingMode.MUTUAL_SHARING
             ));
             verify(spaceRepository, never()).save(any());
         }
