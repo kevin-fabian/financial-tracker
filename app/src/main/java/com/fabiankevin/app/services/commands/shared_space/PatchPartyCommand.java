@@ -10,6 +10,6 @@ public record PatchPartyCommand(
         UUID id,
         String partyName,
         SharingMode sharingMode,
-        UUID userId
+        UUID playerId
 ) {
 }

@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class DefaultPartyService implements PartyService {
-    private final PartyRepository spaceRepository;
+    private final PartyRepository partyRepository;
     private final UserClient userClient;
 
     @Transactional
@@ -67,7 +67,7 @@ public class DefaultPartyService implements PartyService {
                 .updatedAt(Instant.now())
                 .build();
 
-        Party saved = spaceRepository.save(newParty);
+        Party saved = partyRepository.save(newParty);
         return toSummaryWithUsers(saved);
     }
 
@@ -96,19 +96,19 @@ public class DefaultPartyService implements PartyService {
                 .updatedAt(Instant.now())
                 .build();
 
-        spaceRepository.save(updatedParty);
+        partyRepository.save(updatedParty);
     }
 
     @Override
     public List<PartySummary> retrieveByUserId(UUID userId) {
-        return spaceRepository.retrieveByUserId(userId).stream()
+        return partyRepository.retrieveByPlayerId(userId).stream()
                 .map(this::toSummaryWithUsers)
                 .toList();
     }
 
     @Override
     public List<UUID> getPartyMembersUserId(UUID userId) {
-        return spaceRepository.findParticipantUserIdsByUserId(userId);
+        return partyRepository.findPartyMembersPlayerIdsByPlayerId(userId);
     }
 
     @Transactional
@@ -120,7 +120,7 @@ public class DefaultPartyService implements PartyService {
             throw new NotSpaceOwnerException();
         }
 
-        spaceRepository.deleteById(partyId);
+        partyRepository.deleteById(partyId);
     }
 
     @Transactional
@@ -128,7 +128,7 @@ public class DefaultPartyService implements PartyService {
     public Party patchParty(PatchPartyCommand command) {
         Party existing = findPartyOrThrow(command.id());
 
-        if (!existing.partyLeaderId().equals(command.userId())) {
+        if (!existing.partyLeaderId().equals(command.playerId())) {
             throw new NotSpaceOwnerException();
         }
 
@@ -141,11 +141,11 @@ public class DefaultPartyService implements PartyService {
         Optional.ofNullable(command.sharingMode())
                 .ifPresent(builder::sharingMode);
 
-        return spaceRepository.save(builder.build());
+        return partyRepository.save(builder.build());
     }
 
     private Party findPartyOrThrow(UUID partyId) {
-        return spaceRepository.findById(partyId)
+        return partyRepository.findById(partyId)
                 .orElseThrow(SharedSpaceNotFoundException::new);
     }
 
@@ -171,11 +171,11 @@ public class DefaultPartyService implements PartyService {
                     String initial = deriveInitial(user);
                     boolean leader = party.partyLeaderId().equals(partyMember.playerId());
                     return PartyMemberSummary.builder()
-                            .id(partyMember.playerId())
+                            .id(partyMember.id())
                             .name(name)
                             .initial(initial)
                             .partyLeader(leader)
-                            .partyMember(true)
+                            .partyMember(!leader)
                             .accessLevel(partyMember.accessLevel())
                             .status(partyMember.status())
                             .joinedAt(partyMember.joinedAt())

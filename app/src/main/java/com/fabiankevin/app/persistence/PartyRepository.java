@@ -11,13 +11,13 @@ public interface PartyRepository {
 
     Optional<Party> findById(UUID id);
 
-    Optional<Party> findByUserId(UUID userId);
+    Optional<Party> findByPlayerId(UUID userId);
 
-    List<Party> retrieveByUserId(UUID userId);
+    List<Party> retrieveByPlayerId(UUID userId);
 
     List<Party> findAllById(Iterable<UUID> ids);
 
-    List<UUID> findParticipantUserIdsByUserId(UUID userId);
+    List<UUID> findPartyMembersPlayerIdsByPlayerId(UUID userId);
 
     void deleteById(UUID id);
 }

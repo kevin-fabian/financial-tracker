@@ -1,7 +1,7 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.shared_space.CannotRemoveOwnerException;
-import com.fabiankevin.app.exceptions.shared_space.ForbiddenException;
 import com.fabiankevin.app.exceptions.shared_space.NotSpaceOwnerException;
 import com.fabiankevin.app.exceptions.shared_space.SharedSpaceNotFoundException;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
@@ -24,7 +24,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,149 +37,136 @@ import static org.mockito.Mockito.*;
 class DefaultPartyServiceTest {
 
     @Mock
-    private PartyRepository spaceRepository;
+    private PartyRepository partyRepository;
 
     @Mock
-    private com.fabiankevin.app.clients.UserClient userClient;
+    private UserClient userClient;
 
     @InjectMocks
     private DefaultPartyService service;
 
     @Nested
-    class CreateShare {
+    class OrganizeParty {
 
         @Test
-        void givenValidCommand_thenCreatesSpaceWithOwnerAsParticipant() {
-            UUID ownerUserId = UUID.randomUUID();
+        void givenValidCommand_thenCreatesPartyWithOwnerAsPartyMember() {
+            UUID partyLeaderId = UUID.randomUUID();
             OrganizePartyCommand command = new OrganizePartyCommand(
-                    ownerUserId,
+                    partyLeaderId,
                     "Trip Budget",
                     SharingMode.EVEN_SHARE
             );
 
             ArgumentCaptor<Party> captor = ArgumentCaptor.forClass(Party.class);
-            when(spaceRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(partyRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(any())).thenReturn(List.of());
 
             PartySummary result = service.organize(command);
 
             assertNotNull(result);
             assertEquals("Trip Budget", result.name());
-            assertEquals(ownerUserId, result.partyLeaderId());
+            assertEquals(partyLeaderId, result.partyLeaderId());
             assertEquals(SharingMode.EVEN_SHARE, result.sharingMode());
             assertTrue(result.active());
             assertEquals(1, result.partyMembers().size());
 
-            PartyMemberSummary owner = result.partyMembers().getFirst();
-            assertEquals(ownerUserId, owner.id());
-            assertEquals(AccessLevel.READ_WRITE, owner.accessLevel());
-            assertEquals(PartyMemberStatus.ACTIVE, owner.status());
+            PartyMemberSummary leader = result.partyMembers().getFirst();
+            assertTrue(leader.partyLeader(), "initial party member should be a leader");
+            assertFalse(leader.partyMember(), "initial party member should not be a member");
+            assertEquals(AccessLevel.READ_WRITE, leader.accessLevel());
+            assertEquals(PartyMemberStatus.ACTIVE, leader.status());
 
             assertEquals(3, result.sharedItems().size());
             assertEquals(ResourceType.TRANSACTION, result.sharedItems().get(0).type());
             assertEquals(ResourceType.BUDGET, result.sharedItems().get(1).type());
             assertEquals(ResourceType.BUDGET, result.sharedItems().get(2).type());
 
-            verify(spaceRepository).save(any(Party.class));
+            verify(partyRepository).save(any(Party.class));
         }
 
         @Test
-        void givenNullSpaceName_thenUsesDefaultName() {
-            UUID ownerUserId = UUID.randomUUID();
+        void givenNullPartyName_thenUsesDefaultName() {
+            UUID partyLeaderId = UUID.randomUUID();
             OrganizePartyCommand command = new OrganizePartyCommand(
-                    ownerUserId,
+                    partyLeaderId,
                     null,
                     SharingMode.EVEN_SHARE
             );
 
             ArgumentCaptor<Party> captor = ArgumentCaptor.forClass(Party.class);
-            when(spaceRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(partyRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(any())).thenReturn(List.of());
 
             service.organize(command);
 
             assertEquals("New Party", captor.getValue().name());
-            verify(spaceRepository).save(any(Party.class));
+            verify(partyRepository).save(any(Party.class));
         }
 
         @Test
-        void givenNullOwnerUserId_thenThrows() {
+        void givenNullPartyLeaderId_thenThrows() {
             assertThrows(NullPointerException.class, () -> new OrganizePartyCommand(
                     null,
-                    "My Space",
+                    "My Party",
                     SharingMode.EVEN_SHARE
             ));
-            verify(spaceRepository, never()).save(any());
+            verify(partyRepository, never()).save(any());
         }
     }
 
     @Nested
-    class GetParticipantUserIds {
+    class GetPartyMembersUserId {
 
         @Test
-        void givenUserBelongsToSpacesWithParticipants_thenReturnsDistinctParticipantUserIds() {
+        void givenUserId_thenDelegatesToRepositoryAndReturnsResult() {
             UUID userId = UUID.randomUUID();
-            UUID participant1 = UUID.randomUUID();
-            UUID participant2 = UUID.randomUUID();
-            List<UUID> expected = List.of(userId, participant1, participant2);
+            UUID memberId1 = UUID.randomUUID();
+            UUID memberId2 = UUID.randomUUID();
+            List<UUID> expected = List.of(memberId1, memberId2);
 
-            when(spaceRepository.findParticipantUserIdsByUserId(userId)).thenReturn(expected);
+            when(partyRepository.findPartyMembersPlayerIdsByPlayerId(userId)).thenReturn(expected);
 
             List<UUID> result = service.getPartyMembersUserId(userId);
 
-            assertEquals(3, result.size());
-            assertTrue(result.containsAll(expected));
-            verify(spaceRepository).findParticipantUserIdsByUserId(userId);
+            assertEquals(expected, result, "result should be returned as-is from repository");
+            verify(partyRepository).findPartyMembersPlayerIdsByPlayerId(userId);
         }
 
         @Test
-        void givenUserHasNoSpaces_thenReturnsEmptyList() {
+        void givenRepositoryReturnsEmptyList_thenReturnsEmptyList() {
             UUID userId = UUID.randomUUID();
 
-            when(spaceRepository.findParticipantUserIdsByUserId(userId)).thenReturn(List.of());
+            when(partyRepository.findPartyMembersPlayerIdsByPlayerId(userId)).thenReturn(List.of());
 
             List<UUID> result = service.getPartyMembersUserId(userId);
 
-            assertTrue(result.isEmpty());
-            verify(spaceRepository).findParticipantUserIdsByUserId(userId);
-        }
-
-        @Test
-        void givenUserSharesSpaceWithDuplicateParticipants_thenReturnsDistinctIds() {
-            UUID userId = UUID.randomUUID();
-            UUID otherParticipant = UUID.randomUUID();
-
-            when(spaceRepository.findParticipantUserIdsByUserId(userId)).thenReturn(List.of(userId, otherParticipant));
-
-            List<UUID> result = service.getPartyMembersUserId(userId);
-
-            assertEquals(2, result.size());
-            assertEquals(Set.of(userId, otherParticipant), Set.copyOf(result));
-            verify(spaceRepository).findParticipantUserIdsByUserId(userId);
+            assertNotNull(result);
+            assertTrue(result.isEmpty(), "result should be an empty list");
+            verify(partyRepository).findPartyMembersPlayerIdsByPlayerId(userId);
         }
     }
 
     @Nested
-    class RemoveParticipant {
+    class KickPartyMember {
 
         @Test
-        void givenOwnerRemovesParticipant_thenParticipantIsRemoved() {
-            UUID ownerUserId = UUID.randomUUID();
-            UUID participantUserId = UUID.randomUUID();
-            UUID spaceId = UUID.randomUUID();
-            Party space = Party.builder()
-                    .id(spaceId)
+        void givenPartyLeaderKicksPartyMember_thenPartyMemberIsKicked() {
+            UUID partyLeaderId = UUID.randomUUID();
+            UUID participantId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
+            Party party = Party.builder()
+                    .id(partyId)
                     .name("Family Budget")
-                    .partyLeaderId(ownerUserId)
+                    .partyLeaderId(partyLeaderId)
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
-                                    .playerId(ownerUserId)
+                                    .playerId(partyLeaderId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
                             PartyMember.builder()
-                                    .playerId(participantUserId)
+                                    .playerId(participantId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
@@ -189,37 +179,37 @@ class DefaultPartyServiceTest {
                     .updatedAt(Instant.now())
                     .build();
 
-            when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
-            when(spaceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(partyRepository.findById(partyId)).thenReturn(Optional.of(party));
+            when(partyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-            service.kickPartyMember(spaceId, participantUserId, ownerUserId);
+            service.kickPartyMember(partyId, participantId, partyLeaderId);
 
             ArgumentCaptor<Party> captor = ArgumentCaptor.forClass(Party.class);
-            verify(spaceRepository).save(captor.capture());
+            verify(partyRepository).save(captor.capture());
             Party saved = captor.getValue();
             assertEquals(1, saved.partyMembers().size());
-            assertEquals(ownerUserId, saved.partyMembers().getFirst().playerId());
-            assertTrue(saved.partyMembers().stream().noneMatch(p -> p.playerId().equals(participantUserId)));
+            assertEquals(partyLeaderId, saved.partyMembers().getFirst().playerId());
+            assertTrue(saved.partyMembers().stream().noneMatch(p -> p.playerId().equals(participantId)));
         }
 
         @Test
-        void givenParticipantRemovesThemselves_thenParticipantIsRemoved() {
-            UUID ownerUserId = UUID.randomUUID();
-            UUID participantUserId = UUID.randomUUID();
-            UUID spaceId = UUID.randomUUID();
-            Party space = Party.builder()
-                    .id(spaceId)
+        void givenPartyMemberKickThemselves_thenPartyMemberIsRemoved() {
+            UUID partyLeaderId = UUID.randomUUID();
+            UUID participantId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
+            Party party = Party.builder()
+                    .id(partyId)
                     .name("Family Budget")
-                    .partyLeaderId(ownerUserId)
+                    .partyLeaderId(partyLeaderId)
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
-                                    .playerId(ownerUserId)
+                                    .playerId(partyLeaderId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
                             PartyMember.builder()
-                                    .playerId(participantUserId)
+                                    .playerId(participantId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
@@ -232,66 +222,29 @@ class DefaultPartyServiceTest {
                     .updatedAt(Instant.now())
                     .build();
 
-            when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
-            when(spaceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(partyRepository.findById(partyId)).thenReturn(Optional.of(party));
+            when(partyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-            service.kickPartyMember(spaceId, participantUserId, participantUserId);
+            service.kickPartyMember(partyId, participantId, participantId);
 
             ArgumentCaptor<Party> captor = ArgumentCaptor.forClass(Party.class);
-            verify(spaceRepository).save(captor.capture());
+            verify(partyRepository).save(captor.capture());
             Party saved = captor.getValue();
             assertEquals(1, saved.partyMembers().size());
-            assertEquals(ownerUserId, saved.partyMembers().getFirst().playerId());
+            assertEquals(partyLeaderId, saved.partyMembers().getFirst().playerId());
         }
 
         @Test
-        void givenNonOwnerNonSelfAttemptsToRemoveParticipant_thenThrows() {
-            UUID ownerUserId = UUID.randomUUID();
-            UUID participantUserId = UUID.randomUUID();
-            UUID otherUserId = UUID.randomUUID();
-            UUID spaceId = UUID.randomUUID();
-            Party space = Party.builder()
-                    .id(spaceId)
+        void givenPartyLeaderKickThemselves_thenThrows() {
+            UUID partyLeaderId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
+            Party party = Party.builder()
+                    .id(partyId)
                     .name("Family Budget")
-                    .partyLeaderId(ownerUserId)
+                    .partyLeaderId(partyLeaderId)
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
-                                    .playerId(ownerUserId)
-                                    .accessLevel(AccessLevel.READ_WRITE)
-                                    .status(PartyMemberStatus.ACTIVE)
-                                    .joinedAt(Instant.now())
-                                    .build(),
-                            PartyMember.builder()
-                                    .playerId(participantUserId)
-                                    .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
-                                    .joinedAt(Instant.now())
-                                    .build()
-                    )))
-                    .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedItems(new ArrayList<>())
-                    .active(true)
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
-                    .build();
-
-            when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
-
-            assertThrows(ForbiddenException.class, () -> service.kickPartyMember(spaceId, participantUserId, otherUserId));
-            verify(spaceRepository, never()).save(any());
-        }
-
-        @Test
-        void givenAttemptToRemoveOwner_thenThrows() {
-            UUID ownerUserId = UUID.randomUUID();
-            UUID spaceId = UUID.randomUUID();
-            Party space = Party.builder()
-                    .id(spaceId)
-                    .name("Family Budget")
-                    .partyLeaderId(ownerUserId)
-                    .partyMembers(new ArrayList<>(List.of(
-                            PartyMember.builder()
-                                    .playerId(ownerUserId)
+                                    .playerId(partyLeaderId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
@@ -304,27 +257,27 @@ class DefaultPartyServiceTest {
                     .updatedAt(Instant.now())
                     .build();
 
-            when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
+            when(partyRepository.findById(partyId)).thenReturn(Optional.of(party));
 
-            assertThrows(CannotRemoveOwnerException.class, () -> service.kickPartyMember(spaceId, ownerUserId, ownerUserId));
-            verify(spaceRepository, never()).save(any());
+            assertThrows(CannotRemoveOwnerException.class, () -> service.kickPartyMember(partyId, partyLeaderId, partyLeaderId));
+            verify(partyRepository, never()).save(any());
         }
     }
 
     @Nested
-    class DeleteParty {
+    class DisbandParty {
 
         @Test
-        void givenOwnerDeletesSpace_thenDeleteByIdIsCalled() {
-            UUID ownerUserId = UUID.randomUUID();
-            UUID spaceId = UUID.randomUUID();
-            Party space = Party.builder()
-                    .id(spaceId)
+        void givenPartyLeaderDisbandsParty_thenDeleteByIdIsCalled() {
+            UUID partyLeaderId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
+            Party party = Party.builder()
+                    .id(partyId)
                     .name("Family Budget")
-                    .partyLeaderId(ownerUserId)
+                    .partyLeaderId(partyLeaderId)
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
-                                    .playerId(ownerUserId)
+                                    .playerId(partyLeaderId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
@@ -337,36 +290,36 @@ class DefaultPartyServiceTest {
                     .updatedAt(Instant.now())
                     .build();
 
-            when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
+            when(partyRepository.findById(partyId)).thenReturn(Optional.of(party));
 
-            service.disbandParty(spaceId, ownerUserId);
+            service.disbandParty(partyId, partyLeaderId);
 
-            verify(spaceRepository).deleteById(spaceId);
+            verify(partyRepository).deleteById(partyId);
         }
 
         @Test
-        void givenSpaceNotFound_thenThrows() {
-            UUID spaceId = UUID.randomUUID();
+        void givenPartyNotFound_thenThrows() {
+            UUID partyId = UUID.randomUUID();
             UUID requesterId = UUID.randomUUID();
 
-            when(spaceRepository.findById(spaceId)).thenReturn(Optional.empty());
+            when(partyRepository.findById(partyId)).thenReturn(Optional.empty());
 
-            assertThrows(SharedSpaceNotFoundException.class, () -> service.disbandParty(spaceId, requesterId));
-            verify(spaceRepository, never()).deleteById(any());
+            assertThrows(SharedSpaceNotFoundException.class, () -> service.disbandParty(partyId, requesterId));
+            verify(partyRepository, never()).deleteById(any());
         }
 
         @Test
-        void givenNonOwnerAttemptsToDelete_thenThrows() {
-            UUID ownerUserId = UUID.randomUUID();
-            UUID otherUserId = UUID.randomUUID();
-            UUID spaceId = UUID.randomUUID();
-            Party space = Party.builder()
-                    .id(spaceId)
+        void givenNotLeaderOrPartyMember_thenThrows() {
+            UUID partyLeaderId = UUID.randomUUID();
+            UUID otherPlayerId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
+            Party party = Party.builder()
+                    .id(partyId)
                     .name("Family Budget")
-                    .partyLeaderId(ownerUserId)
+                    .partyLeaderId(partyLeaderId)
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
-                                    .playerId(ownerUserId)
+                                    .playerId(partyLeaderId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
@@ -379,10 +332,10 @@ class DefaultPartyServiceTest {
                     .updatedAt(Instant.now())
                     .build();
 
-            when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
+            when(partyRepository.findById(partyId)).thenReturn(Optional.of(party));
 
-            assertThrows(NotSpaceOwnerException.class, () -> service.disbandParty(spaceId, otherUserId));
-            verify(spaceRepository, never()).deleteById(any());
+            assertThrows(NotSpaceOwnerException.class, () -> service.disbandParty(partyId, otherPlayerId));
+            verify(partyRepository, never()).deleteById(any());
         }
     }
 
@@ -391,15 +344,15 @@ class DefaultPartyServiceTest {
 
         @Test
         void givenOwnerUpdatesName_thenNameIsUpdated() {
-            UUID ownerUserId = UUID.randomUUID();
-            UUID spaceId = UUID.randomUUID();
-            Party space = Party.builder()
-                    .id(spaceId)
+            UUID partyLeaderId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
+            Party party = Party.builder()
+                    .id(partyId)
                     .name("Family Budget")
-                    .partyLeaderId(ownerUserId)
+                    .partyLeaderId(partyLeaderId)
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
-                                    .playerId(ownerUserId)
+                                    .playerId(partyLeaderId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
@@ -413,50 +366,50 @@ class DefaultPartyServiceTest {
                     .build();
 
             PatchPartyCommand command = PatchPartyCommand.builder()
-                    .id(spaceId)
+                    .id(partyId)
                     .partyName("Updated Budget")
-                    .userId(ownerUserId)
+                    .playerId(partyLeaderId)
                     .build();
 
-            when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
-            when(spaceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(partyRepository.findById(partyId)).thenReturn(Optional.of(party));
+            when(partyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
             Party updated = service.patchParty(command);
 
             assertEquals("Updated Budget", updated.name(), "name should be updated");
             assertEquals(SharingMode.EVEN_SHARE, updated.sharingMode(), "sharingMode should remain unchanged");
-            verify(spaceRepository).save(any(Party.class));
+            verify(partyRepository).save(any(Party.class));
         }
 
         @Test
-        void givenSpaceNotFound_thenThrows() {
-            UUID spaceId = UUID.randomUUID();
+        void givenPartyNotFound_thenThrows() {
+            UUID partyId = UUID.randomUUID();
             UUID requesterId = UUID.randomUUID();
 
             PatchPartyCommand command = PatchPartyCommand.builder()
-                    .id(spaceId)
+                    .id(partyId)
                     .partyName("Updated Budget")
-                    .userId(requesterId)
+                    .playerId(requesterId)
                     .build();
 
-            when(spaceRepository.findById(spaceId)).thenReturn(Optional.empty());
+            when(partyRepository.findById(partyId)).thenReturn(Optional.empty());
 
             assertThrows(SharedSpaceNotFoundException.class, () -> service.patchParty(command));
-            verify(spaceRepository, never()).save(any());
+            verify(partyRepository, never()).save(any());
         }
 
         @Test
-        void givenNonOwnerAttemptsToUpdate_thenThrows() {
-            UUID ownerUserId = UUID.randomUUID();
-            UUID otherUserId = UUID.randomUUID();
-            UUID spaceId = UUID.randomUUID();
-            Party space = Party.builder()
-                    .id(spaceId)
+        void givenNotPartyLeader_thenThrows() {
+            UUID partyLeaderId = UUID.randomUUID();
+            UUID otherPlayerId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
+            Party party = Party.builder()
+                    .id(partyId)
                     .name("Family Budget")
-                    .partyLeaderId(ownerUserId)
+                    .partyLeaderId(partyLeaderId)
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
-                                    .playerId(ownerUserId)
+                                    .playerId(partyLeaderId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
@@ -470,15 +423,15 @@ class DefaultPartyServiceTest {
                     .build();
 
             PatchPartyCommand command = PatchPartyCommand.builder()
-                    .id(spaceId)
+                    .id(partyId)
                     .partyName("Updated Budget")
-                    .userId(otherUserId)
+                    .playerId(otherPlayerId)
                     .build();
 
-            when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
+            when(partyRepository.findById(partyId)).thenReturn(Optional.of(party));
 
             assertThrows(NotSpaceOwnerException.class, () -> service.patchParty(command));
-            verify(spaceRepository, never()).save(any());
+            verify(partyRepository, never()).save(any());
         }
     }
 }

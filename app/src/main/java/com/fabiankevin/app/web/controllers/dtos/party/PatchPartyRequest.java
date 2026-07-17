@@ -21,7 +21,7 @@ public record PatchPartyRequest(
                 .id(id)
                 .partyName(this.partyName())
                 .sharingMode(this.sharingMode())
-                .userId(userId)
+                .playerId(userId)
                 .build();
     }
 }

@@ -339,7 +339,7 @@ class PartyControllerTest {
             UUID partyId = UUID.randomUUID();
             UUID partyMemberId = UUID.randomUUID();
 
-            mockMvc.perform(delete("/api/parties/" + partyId + "/partyMembers/" + partyMemberId)
+            mockMvc.perform(delete("/api/parties/" + partyId + "/party-members/" + partyMemberId)
                     .with(jwt().jwt(jwt)))
                 .andExpect(status().isNoContent());
 
@@ -351,7 +351,7 @@ class PartyControllerTest {
             UUID partyId = UUID.randomUUID();
             UUID partyMemberId = UUID.randomUUID();
 
-            mockMvc.perform(delete("/api/parties/" + partyId + "/partyMembers/" + partyMemberId))
+            mockMvc.perform(delete("/api/parties/" + partyId + "/party-members/" + partyMemberId))
                 .andExpect(status().isForbidden());
 
             verifyNoInteractions(partyService);
@@ -365,7 +365,7 @@ class PartyControllerTest {
             doThrow(new CannotRemoveOwnerException())
                 .when(partyService).kickPartyMember(partyId, ownerParticipantId, userId);
 
-            mockMvc.perform(delete("/api/parties/" + partyId + "/partyMembers/" + ownerParticipantId)
+            mockMvc.perform(delete("/api/parties/" + partyId + "/party-members/" + ownerParticipantId)
                     .with(jwt().jwt(jwt)))
                 .andExpect(status().isConflict());
         }

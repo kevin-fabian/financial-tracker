@@ -27,14 +27,14 @@ public class DefaultPartyRepository implements PartyRepository {
     }
 
     @Override
-    public Optional<Party> findByUserId(UUID userId) {
+    public Optional<Party> findByPlayerId(UUID userId) {
         return jpaPartyRepository.findByPlayerId(userId).stream()
                 .findFirst()
                 .map(PartyEntity::toModel);
     }
 
     @Override
-    public List<Party> retrieveByUserId(UUID userId) {
+    public List<Party> retrieveByPlayerId(UUID userId) {
         return jpaPartyRepository.findByPlayerId(userId).stream()
                 .map(PartyEntity::toModel)
                 .toList();
@@ -48,7 +48,7 @@ public class DefaultPartyRepository implements PartyRepository {
     }
 
     @Override
-    public List<UUID> findParticipantUserIdsByUserId(UUID userId) {
+    public List<UUID> findPartyMembersPlayerIdsByPlayerId(UUID userId) {
         return jpaPartyRepository.findPartyMemberPlayerIdsByPlayerId(userId);
     }
 

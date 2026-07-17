@@ -93,7 +93,7 @@ public class DefaultTransactionService implements TransactionService {
 
         Transaction savedTransaction = transactionRepository.save(transaction);
 
-        partyRepository.findByUserId(userId).ifPresent(sharedSpace -> {
+        partyRepository.findByPlayerId(userId).ifPresent(sharedSpace -> {
             compositeEventPublisher.publish(sharedSpace.id(), new ItemEvent<>(
                     userId,
                     EventAction.ADDED,
@@ -156,7 +156,7 @@ public class DefaultTransactionService implements TransactionService {
 
     @Override
     public Page<Transaction> getTransactionsByPageQuery(PageQuery query, UUID userId, TransactionType type) {
-        Set<UUID> userIds = new HashSet<>(partyRepository.findParticipantUserIdsByUserId(userId));
+        Set<UUID> userIds = new HashSet<>(partyRepository.findPartyMembersPlayerIdsByPlayerId(userId));
         userIds.add(userId);
         return transactionRepository.getTransactionsByPageAndUserIdAndType(query, userIds, type);
     }

@@ -192,10 +192,10 @@ class DefaultPartyRepositoryTest {
     }
 
     @Test
-    void findByUserId_givenUserIsOwner_shouldReturnSharedSpace() {
+    void findByUserId_givenPlayerIsOwner_shouldReturnSharedSpace() {
         Party saved = partyRepository.save(party);
 
-        Optional<Party> found = partyRepository.findByUserId(saved.partyLeaderId());
+        Optional<Party> found = partyRepository.findByPlayerId(saved.partyLeaderId());
 
         Assertions.assertThat(found).isPresent();
         Assertions.assertThat(found.get().id()).isEqualTo(saved.id());
@@ -204,11 +204,11 @@ class DefaultPartyRepositoryTest {
     }
 
     @Test
-    void findByUserId_givenUserIsParticipant_shouldReturnSharedSpace() {
+    void findByUserId_givenPlayerIsParticipant_shouldReturnSharedSpace() {
         Party saved = partyRepository.save(party);
         UUID participantUserId = saved.partyMembers().getFirst().playerId();
 
-        Optional<Party> found = partyRepository.findByUserId(participantUserId);
+        Optional<Party> found = partyRepository.findByPlayerId(participantUserId);
 
         Assertions.assertThat(found).isPresent();
         Assertions.assertThat(found.get().id()).isEqualTo(saved.id());
@@ -217,8 +217,8 @@ class DefaultPartyRepositoryTest {
     }
 
     @Test
-    void findByUserId_givenUserIsNotOwnerOrParticipant_shouldReturnEmpty() {
-        Optional<Party> found = partyRepository.findByUserId(UUID.randomUUID());
+    void findByUserId_givenPlayerIsNotOwnerOrParticipant_shouldReturnEmpty() {
+        Optional<Party> found = partyRepository.findByPlayerId(UUID.randomUUID());
 
         Assertions.assertThat(found).isEmpty();
 

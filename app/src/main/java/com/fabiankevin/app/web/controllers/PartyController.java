@@ -122,7 +122,7 @@ public class PartyController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
-    @DeleteMapping("/{partyId}/partyMembers/{partyMemberId}")
+    @DeleteMapping("/{partyId}/party-members/{partyMemberId}")
     public ResponseEntity<Void> kickPartyMember(
         @PathVariable @NotNull @Schema(description = "ID of the party") UUID partyId,
         @PathVariable @NotNull @Schema(description = "ID of the participant to remove") UUID partyMemberId,

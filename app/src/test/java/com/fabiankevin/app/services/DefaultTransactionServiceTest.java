@@ -232,12 +232,12 @@ class DefaultTransactionServiceTest {
            when(transactionRepository.save(any())).then(invocation -> invocation.getArgument(0));
            Party party = mock(Party.class);
            when(party.id()).thenReturn(sharedSpaceId);
-           when(partyRepository.findByUserId(userId)).thenReturn(Optional.of(party));
+           when(partyRepository.findByPlayerId(userId)).thenReturn(Optional.of(party));
 
            Transaction transaction = transactionService.addTransaction(command);
 
            assertEquals("Food and drinks", transaction.description());
-           verify(partyRepository, times(1)).findByUserId(userId);
+           verify(partyRepository, times(1)).findByPlayerId(userId);
            verify(eventPublisher, times(1)).publish(eq(sharedSpaceId), any());
        }
 
@@ -265,12 +265,12 @@ class DefaultTransactionServiceTest {
                    .userId(userId)
                    .build()));
            when(transactionRepository.save(any())).then(invocation -> invocation.getArgument(0));
-           when(partyRepository.findByUserId(userId)).thenReturn(Optional.empty());
+           when(partyRepository.findByPlayerId(userId)).thenReturn(Optional.empty());
 
            Transaction transaction = transactionService.addTransaction(command);
 
            assertEquals("Food and drinks", transaction.description());
-           verify(partyRepository, times(1)).findByUserId(userId);
+           verify(partyRepository, times(1)).findByPlayerId(userId);
            verify(eventPublisher, never()).publish(any(), any());
        }
    }
