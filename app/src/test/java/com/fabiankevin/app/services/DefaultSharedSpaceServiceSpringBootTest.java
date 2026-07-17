@@ -117,6 +117,7 @@ public class DefaultSharedSpaceServiceSpringBootTest {
     void mutualSharingFlow_shouldCombineStats() {
         UUID ownerUserId = UUID.randomUUID();
         UUID partnerUserid = UUID.randomUUID();
+        String partnerEmail = "partner@example.com";
 
         // Owner: income 10000, expenses 3000
         addIncomeTransaction(ownerUserId, 10000);
@@ -137,10 +138,12 @@ public class DefaultSharedSpaceServiceSpringBootTest {
         UUID spaceId = initialSharedSpace.id();
 
         // Step 2: Invite a partner in a space
+        when(userClient.getUserByEmail(partnerEmail))
+                .thenReturn(User.builder().id(partnerUserid).firstName("Partner").lastName("User").build());
         Invitation invitation = invitationService.sendInvitation(SendInvitationCommand.builder()
                 .spaceId(spaceId)
                 .inviterUserId(ownerUserId)
-                        .inviteeEmail("")
+                .inviteeEmail(partnerEmail)
                 .build());
 
         // Step 3: Accept the invite
