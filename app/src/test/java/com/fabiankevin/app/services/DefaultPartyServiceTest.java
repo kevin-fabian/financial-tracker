@@ -47,7 +47,6 @@ class DefaultPartyServiceTest {
 
     @Nested
     class OrganizeParty {
-
         @Test
         void givenValidCommand_thenCreatesPartyWithOwnerAsPartyMember() {
             UUID partyLeaderId = UUID.randomUUID();
