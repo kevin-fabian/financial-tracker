@@ -10,9 +10,9 @@ import com.fabiankevin.app.models.shared_space.Party;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
-import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
 import com.fabiankevin.app.services.commands.shared_space.OrganizePartyCommand;
-import com.fabiankevin.app.services.commands.shared_space.SendInvitationCommand;
+import com.fabiankevin.app.services.commands.shared_space.invitations.AcceptInvitationCommand;
+import com.fabiankevin.app.services.commands.shared_space.invitations.SendInvitationCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.web.controllers.dtos.StatsQuery;
 import org.junit.jupiter.api.DisplayName;
@@ -82,8 +82,8 @@ public class DefaultPartyServiceSpringBootTest {
 
         // Step 1: Create a space
         Party initialParty = partyService.organize(OrganizePartyCommand.builder()
-                .spaceName("Partner Space")
-                .ownerUserId(ownerUserId)
+                .partyName("Partner Space")
+                .partyLeaderId(ownerUserId)
                 .sharingMode(SharingMode.EVEN_SHARE)
                 .build());
         UUID spaceId = initialParty.id();
@@ -92,7 +92,7 @@ public class DefaultPartyServiceSpringBootTest {
         when(userClient.getUserByEmail(partnerEmail))
                 .thenReturn(User.builder().id(partnerUserid).firstName("Partner").lastName("User").build());
         Invitation invitation = invitationService.sendInvitation(SendInvitationCommand.builder()
-                .spaceId(spaceId)
+                .partyId(spaceId)
                 .inviterUserId(ownerUserId)
                 .inviteeEmail(partnerEmail)
                 .build());
@@ -131,8 +131,8 @@ public class DefaultPartyServiceSpringBootTest {
 
         // Step 1: Create a space
         Party initialParty = partyService.organize(OrganizePartyCommand.builder()
-                .spaceName("Partner Space")
-                .ownerUserId(ownerUserId)
+                .partyName("Partner Space")
+                .partyLeaderId(ownerUserId)
                 .sharingMode(SharingMode.EVEN_SHARE)
                 .build());
         UUID spaceId = initialParty.id();
@@ -141,7 +141,7 @@ public class DefaultPartyServiceSpringBootTest {
         when(userClient.getUserByEmail(partnerEmail))
                 .thenReturn(User.builder().id(partnerUserid).firstName("Partner").lastName("User").build());
         Invitation invitation = invitationService.sendInvitation(SendInvitationCommand.builder()
-                .spaceId(spaceId)
+                .partyId(spaceId)
                 .inviterUserId(ownerUserId)
                 .inviteeEmail(partnerEmail)
                 .build());

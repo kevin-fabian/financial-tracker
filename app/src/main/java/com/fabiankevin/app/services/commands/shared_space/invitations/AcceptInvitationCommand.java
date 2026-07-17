@@ -1,4 +1,4 @@
-package com.fabiankevin.app.services.commands.shared_space;
+package com.fabiankevin.app.services.commands.shared_space.invitations;
 
 import lombok.Builder;
 

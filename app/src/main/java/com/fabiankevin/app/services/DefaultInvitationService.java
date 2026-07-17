@@ -12,9 +12,9 @@ import com.fabiankevin.app.models.shared_space.Party;
 import com.fabiankevin.app.models.shared_space.Player;
 import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
-import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
-import com.fabiankevin.app.services.commands.shared_space.RejectInvitationCommand;
-import com.fabiankevin.app.services.commands.shared_space.SendInvitationCommand;
+import com.fabiankevin.app.services.commands.shared_space.invitations.AcceptInvitationCommand;
+import com.fabiankevin.app.services.commands.shared_space.invitations.RejectInvitationCommand;
+import com.fabiankevin.app.services.commands.shared_space.invitations.SendInvitationCommand;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -38,7 +38,7 @@ public class DefaultInvitationService implements InvitationService {
     @Transactional
     @Override
     public Invitation sendInvitation(SendInvitationCommand command) {
-        Party space = findSpaceOrThrow(command.spaceId());
+        Party space = findSpaceOrThrow(command.partyId());
         if (!space.partyLeaderId().equals(command.inviterUserId())) {
             throw new NotSpaceOwnerException();
         }
@@ -49,7 +49,7 @@ public class DefaultInvitationService implements InvitationService {
             throw new ParticipantAlreadyExistsException();
         }
 
-        return invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(command.spaceId(), command.inviterUserId(), invitee.id())
+        return invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(command.partyId(), command.inviterUserId(), invitee.id())
                 .orElseGet(() -> {
                     Invitation invitation = Invitation.builder()
                             .inviterUserId(command.inviterUserId())

@@ -8,12 +8,12 @@ import java.util.UUID;
 
 @Builder
 public record OrganizePartyCommand(
-        UUID ownerUserId,
-        String spaceName,
+        UUID partyLeaderId,
+        String partyName,
         SharingMode sharingMode
 ) {
     public OrganizePartyCommand {
-        Objects.requireNonNull(ownerUserId, "Owner user ID cannot be null");
+        Objects.requireNonNull(partyLeaderId, "Party leader ID cannot be null");
         Objects.requireNonNull(sharingMode, "Sharing mode cannot be null");
     }
 }

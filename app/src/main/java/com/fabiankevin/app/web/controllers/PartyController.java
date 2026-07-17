@@ -82,7 +82,7 @@ public class PartyController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
-    @PatchMapping("/{spaceId}")
+    @PatchMapping("/{partyId}")
     public PartyResponse patchParty(
         @PathVariable @NotNull @Schema(description = "ID of the shared space to update") UUID spaceId,
         @RequestBody PatchPartyRequest request,
@@ -102,7 +102,7 @@ public class PartyController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
-    @DeleteMapping("/{spaceId}")
+    @DeleteMapping("/{partyId}")
     public ResponseEntity<Void> disbandParty(
         @PathVariable @NotNull @Schema(description = "ID of the shared space to delete") UUID spaceId,
         JwtAuthenticationToken jwtAuthenticationToken) {
@@ -121,7 +121,7 @@ public class PartyController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
-    @DeleteMapping("/{spaceId}/participants/{participantId}")
+    @DeleteMapping("/{partyId}/participants/{participantId}")
     public ResponseEntity<Void> kickPlayer(
         @PathVariable @NotNull @Schema(description = "ID of the shared space") UUID spaceId,
         @PathVariable @NotNull @Schema(description = "ID of the participant to remove") UUID participantId,

@@ -20,8 +20,8 @@ public record OrganizePartyRequest(
 ) {
     public OrganizePartyCommand toCommand(UUID ownerUserId) {
         return OrganizePartyCommand.builder()
-            .ownerUserId(ownerUserId)
-            .spaceName(spaceName)
+            .partyLeaderId(ownerUserId)
+            .partyName(spaceName)
             .sharingMode(sharingMode)
             .build();
     }

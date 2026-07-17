@@ -31,7 +31,7 @@ public class DefaultPartyService implements PartyService {
     public Party organize(OrganizePartyCommand command) {
         List<Player> initialParticipants = new ArrayList<>();
         initialParticipants.add(Player.builder()
-                .playerId(command.ownerUserId())
+                .playerId(command.partyLeaderId())
                 .accessLevel(AccessLevel.READ_WRITE)
                 .status(ParticipantStatus.ACTIVE)
                 .joinedAt(Instant.now())
@@ -55,8 +55,8 @@ public class DefaultPartyService implements PartyService {
                 .build());
 
         Party newSpace = Party.builder()
-                .name(command.spaceName() != null ? command.spaceName() : "Shared Space")
-                .partyLeaderId(command.ownerUserId())
+                .name(command.partyName() != null ? command.partyName() : "Shared Space")
+                .partyLeaderId(command.partyLeaderId())
                 .participants(initialParticipants)
                 .sharingMode(command.sharingMode())
                 .sharedResources(sharedResources)

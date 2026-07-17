@@ -3,9 +3,9 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.models.shared_space.Invitation;
 import com.fabiankevin.app.models.shared_space.InvitationSummary;
 import com.fabiankevin.app.models.shared_space.Party;
-import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
-import com.fabiankevin.app.services.commands.shared_space.RejectInvitationCommand;
-import com.fabiankevin.app.services.commands.shared_space.SendInvitationCommand;
+import com.fabiankevin.app.services.commands.shared_space.invitations.AcceptInvitationCommand;
+import com.fabiankevin.app.services.commands.shared_space.invitations.RejectInvitationCommand;
+import com.fabiankevin.app.services.commands.shared_space.invitations.SendInvitationCommand;
 
 import java.util.List;
 import java.util.UUID;

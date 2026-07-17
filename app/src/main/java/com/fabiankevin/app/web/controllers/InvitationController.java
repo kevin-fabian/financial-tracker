@@ -1,8 +1,8 @@
 package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.services.InvitationService;
-import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
-import com.fabiankevin.app.services.commands.shared_space.RejectInvitationCommand;
+import com.fabiankevin.app.services.commands.shared_space.invitations.AcceptInvitationCommand;
+import com.fabiankevin.app.services.commands.shared_space.invitations.RejectInvitationCommand;
 import com.fabiankevin.app.web.controllers.dtos.SendInvitationRequest;
 import com.fabiankevin.app.web.controllers.dtos.party.InvitationResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -57,7 +57,7 @@ public class InvitationController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
-    @PostMapping("/{spaceId}/invitations")
+    @PostMapping("/{partyId}/invitations")
     public ResponseEntity<Void> sendInvitation(
         @PathVariable @NotNull @Schema(description = "ID of the shared space where the invitation is sent") UUID spaceId,
         @Valid @RequestBody SendInvitationRequest request,
@@ -76,7 +76,7 @@ public class InvitationController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
-    @PostMapping("/{spaceId}/invitations/{invitationId}/accept")
+    @PostMapping("/{partyId}/invitations/{invitationId}/accept")
     public ResponseEntity<Void> acceptInvitation(
         @PathVariable @NotNull @Schema(description = "ID of the invitation to accept") UUID invitationId,
         JwtAuthenticationToken jwtAuthenticationToken) {
@@ -95,7 +95,7 @@ public class InvitationController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
-    @PostMapping("/{spaceId}/invitations/{invitationId}/reject")
+    @PostMapping("/{partyId}/invitations/{invitationId}/reject")
     public ResponseEntity<Void> rejectInvitation(
         @PathVariable @NotNull @Schema(description = "ID of the invitation to reject") UUID invitationId,
         JwtAuthenticationToken jwtAuthenticationToken) {
