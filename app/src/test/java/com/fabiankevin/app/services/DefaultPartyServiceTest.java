@@ -8,10 +8,11 @@ import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
 import com.fabiankevin.app.models.enums.shared_space.ResourceType;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
-import com.fabiankevin.app.models.shared_space.SharedSpace;
-import com.fabiankevin.app.models.shared_space.SpaceParticipant;
+import com.fabiankevin.app.models.shared_space.Party;
+import com.fabiankevin.app.models.shared_space.Player;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
-import com.fabiankevin.app.services.commands.shared_space.CreateSharedSpaceCommand;
+import com.fabiankevin.app.services.commands.shared_space.OrganizePartyCommand;
+import com.fabiankevin.app.services.commands.shared_space.PatchPartyCommand;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,13 +29,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class DefaultSharedSpaceServiceTest {
+class DefaultPartyServiceTest {
 
     @Mock
     private SharedSpaceRepository spaceRepository;
 
     @InjectMocks
-    private DefaultSharedSpaceService service;
+    private DefaultPartyService service;
 
     @Nested
     class CreateShare {
@@ -42,26 +43,26 @@ class DefaultSharedSpaceServiceTest {
         @Test
         void givenValidCommand_thenCreatesSpaceWithOwnerAsParticipant() {
             UUID ownerUserId = UUID.randomUUID();
-            CreateSharedSpaceCommand command = new CreateSharedSpaceCommand(
+            OrganizePartyCommand command = new OrganizePartyCommand(
                     ownerUserId,
                     "Trip Budget",
-                    SharingMode.MUTUAL_SHARING
+                    SharingMode.EVEN_SHARE
             );
 
-            ArgumentCaptor<SharedSpace> captor = ArgumentCaptor.forClass(SharedSpace.class);
+            ArgumentCaptor<Party> captor = ArgumentCaptor.forClass(Party.class);
             when(spaceRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
 
-            SharedSpace result = service.createShare(command);
+            Party result = service.organize(command);
 
             assertNotNull(result);
-            assertEquals("Trip Budget", result.spaceName());
-            assertEquals(ownerUserId, result.ownerUserId());
-            assertEquals(SharingMode.MUTUAL_SHARING, result.sharingMode());
+            assertEquals("Trip Budget", result.name());
+            assertEquals(ownerUserId, result.partyLeaderId());
+            assertEquals(SharingMode.EVEN_SHARE, result.sharingMode());
             assertTrue(result.active());
             assertEquals(1, result.participants().size());
 
-            SpaceParticipant owner = result.participants().getFirst();
-            assertEquals(ownerUserId, owner.userId());
+            Player owner = result.participants().getFirst();
+            assertEquals(ownerUserId, owner.playerId());
             assertEquals(AccessLevel.READ_WRITE, owner.accessLevel());
             assertEquals(ParticipantStatus.ACTIVE, owner.status());
 
@@ -70,33 +71,33 @@ class DefaultSharedSpaceServiceTest {
             assertEquals(ResourceType.BUDGET, result.sharedResources().get(1).type());
             assertEquals(ResourceType.BUDGET, result.sharedResources().get(2).type());
 
-            verify(spaceRepository).save(any(SharedSpace.class));
+            verify(spaceRepository).save(any(Party.class));
         }
 
         @Test
         void givenNullSpaceName_thenUsesDefaultName() {
             UUID ownerUserId = UUID.randomUUID();
-            CreateSharedSpaceCommand command = new CreateSharedSpaceCommand(
+            OrganizePartyCommand command = new OrganizePartyCommand(
                     ownerUserId,
                     null,
-                    SharingMode.MUTUAL_SHARING
+                    SharingMode.EVEN_SHARE
             );
 
-            ArgumentCaptor<SharedSpace> captor = ArgumentCaptor.forClass(SharedSpace.class);
+            ArgumentCaptor<Party> captor = ArgumentCaptor.forClass(Party.class);
             when(spaceRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
 
-            service.createShare(command);
+            service.organize(command);
 
-            assertEquals("Shared Space", captor.getValue().spaceName());
-            verify(spaceRepository).save(any(SharedSpace.class));
+            assertEquals("Shared Space", captor.getValue().name());
+            verify(spaceRepository).save(any(Party.class));
         }
 
         @Test
         void givenNullOwnerUserId_thenThrows() {
-            assertThrows(NullPointerException.class, () -> new CreateSharedSpaceCommand(
+            assertThrows(NullPointerException.class, () -> new OrganizePartyCommand(
                     null,
                     "My Space",
-                    SharingMode.MUTUAL_SHARING
+                    SharingMode.EVEN_SHARE
             ));
             verify(spaceRepository, never()).save(any());
         }
@@ -156,25 +157,25 @@ class DefaultSharedSpaceServiceTest {
             UUID ownerUserId = UUID.randomUUID();
             UUID participantUserId = UUID.randomUUID();
             UUID spaceId = UUID.randomUUID();
-            SharedSpace space = SharedSpace.builder()
+            Party space = Party.builder()
                     .id(spaceId)
-                    .spaceName("Family Budget")
-                    .ownerUserId(ownerUserId)
+                    .name("Family Budget")
+                    .partyLeaderId(ownerUserId)
                     .participants(new ArrayList<>(List.of(
-                            SpaceParticipant.builder()
-                                    .userId(ownerUserId)
+                            Player.builder()
+                                    .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
-                            SpaceParticipant.builder()
-                                    .userId(participantUserId)
+                            Player.builder()
+                                    .playerId(participantUserId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(ParticipantStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.MUTUAL_SHARING)
+                    .sharingMode(SharingMode.EVEN_SHARE)
                     .sharedResources(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
@@ -186,12 +187,12 @@ class DefaultSharedSpaceServiceTest {
 
             service.removeParticipant(spaceId, participantUserId, ownerUserId);
 
-            ArgumentCaptor<SharedSpace> captor = ArgumentCaptor.forClass(SharedSpace.class);
+            ArgumentCaptor<Party> captor = ArgumentCaptor.forClass(Party.class);
             verify(spaceRepository).save(captor.capture());
-            SharedSpace saved = captor.getValue();
+            Party saved = captor.getValue();
             assertEquals(1, saved.participants().size());
-            assertEquals(ownerUserId, saved.participants().getFirst().userId());
-            assertTrue(saved.participants().stream().noneMatch(p -> p.userId().equals(participantUserId)));
+            assertEquals(ownerUserId, saved.participants().getFirst().playerId());
+            assertTrue(saved.participants().stream().noneMatch(p -> p.playerId().equals(participantUserId)));
         }
 
         @Test
@@ -199,25 +200,25 @@ class DefaultSharedSpaceServiceTest {
             UUID ownerUserId = UUID.randomUUID();
             UUID participantUserId = UUID.randomUUID();
             UUID spaceId = UUID.randomUUID();
-            SharedSpace space = SharedSpace.builder()
+            Party space = Party.builder()
                     .id(spaceId)
-                    .spaceName("Family Budget")
-                    .ownerUserId(ownerUserId)
+                    .name("Family Budget")
+                    .partyLeaderId(ownerUserId)
                     .participants(new ArrayList<>(List.of(
-                            SpaceParticipant.builder()
-                                    .userId(ownerUserId)
+                            Player.builder()
+                                    .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
-                            SpaceParticipant.builder()
-                                    .userId(participantUserId)
+                            Player.builder()
+                                    .playerId(participantUserId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(ParticipantStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.MUTUAL_SHARING)
+                    .sharingMode(SharingMode.EVEN_SHARE)
                     .sharedResources(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
@@ -229,11 +230,11 @@ class DefaultSharedSpaceServiceTest {
 
             service.removeParticipant(spaceId, participantUserId, participantUserId);
 
-            ArgumentCaptor<SharedSpace> captor = ArgumentCaptor.forClass(SharedSpace.class);
+            ArgumentCaptor<Party> captor = ArgumentCaptor.forClass(Party.class);
             verify(spaceRepository).save(captor.capture());
-            SharedSpace saved = captor.getValue();
+            Party saved = captor.getValue();
             assertEquals(1, saved.participants().size());
-            assertEquals(ownerUserId, saved.participants().getFirst().userId());
+            assertEquals(ownerUserId, saved.participants().getFirst().playerId());
         }
 
         @Test
@@ -242,25 +243,25 @@ class DefaultSharedSpaceServiceTest {
             UUID participantUserId = UUID.randomUUID();
             UUID otherUserId = UUID.randomUUID();
             UUID spaceId = UUID.randomUUID();
-            SharedSpace space = SharedSpace.builder()
+            Party space = Party.builder()
                     .id(spaceId)
-                    .spaceName("Family Budget")
-                    .ownerUserId(ownerUserId)
+                    .name("Family Budget")
+                    .partyLeaderId(ownerUserId)
                     .participants(new ArrayList<>(List.of(
-                            SpaceParticipant.builder()
-                                    .userId(ownerUserId)
+                            Player.builder()
+                                    .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
-                            SpaceParticipant.builder()
-                                    .userId(participantUserId)
+                            Player.builder()
+                                    .playerId(participantUserId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(ParticipantStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.MUTUAL_SHARING)
+                    .sharingMode(SharingMode.EVEN_SHARE)
                     .sharedResources(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
@@ -277,19 +278,19 @@ class DefaultSharedSpaceServiceTest {
         void givenAttemptToRemoveOwner_thenThrows() {
             UUID ownerUserId = UUID.randomUUID();
             UUID spaceId = UUID.randomUUID();
-            SharedSpace space = SharedSpace.builder()
+            Party space = Party.builder()
                     .id(spaceId)
-                    .spaceName("Family Budget")
-                    .ownerUserId(ownerUserId)
+                    .name("Family Budget")
+                    .partyLeaderId(ownerUserId)
                     .participants(new ArrayList<>(List.of(
-                            SpaceParticipant.builder()
-                                    .userId(ownerUserId)
+                            Player.builder()
+                                    .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.MUTUAL_SHARING)
+                    .sharingMode(SharingMode.EVEN_SHARE)
                     .sharedResources(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
@@ -304,25 +305,25 @@ class DefaultSharedSpaceServiceTest {
     }
 
     @Nested
-    class DeleteSharedSpace {
+    class DeleteParty {
 
         @Test
         void givenOwnerDeletesSpace_thenDeleteByIdIsCalled() {
             UUID ownerUserId = UUID.randomUUID();
             UUID spaceId = UUID.randomUUID();
-            SharedSpace space = SharedSpace.builder()
+            Party space = Party.builder()
                     .id(spaceId)
-                    .spaceName("Family Budget")
-                    .ownerUserId(ownerUserId)
+                    .name("Family Budget")
+                    .partyLeaderId(ownerUserId)
                     .participants(new ArrayList<>(List.of(
-                            SpaceParticipant.builder()
-                                    .userId(ownerUserId)
+                            Player.builder()
+                                    .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.MUTUAL_SHARING)
+                    .sharingMode(SharingMode.EVEN_SHARE)
                     .sharedResources(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
@@ -352,19 +353,19 @@ class DefaultSharedSpaceServiceTest {
             UUID ownerUserId = UUID.randomUUID();
             UUID otherUserId = UUID.randomUUID();
             UUID spaceId = UUID.randomUUID();
-            SharedSpace space = SharedSpace.builder()
+            Party space = Party.builder()
                     .id(spaceId)
-                    .spaceName("Family Budget")
-                    .ownerUserId(ownerUserId)
+                    .name("Family Budget")
+                    .partyLeaderId(ownerUserId)
                     .participants(new ArrayList<>(List.of(
-                            SpaceParticipant.builder()
-                                    .userId(ownerUserId)
+                            Player.builder()
+                                    .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.MUTUAL_SHARING)
+                    .sharingMode(SharingMode.EVEN_SHARE)
                     .sharedResources(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
@@ -375,6 +376,102 @@ class DefaultSharedSpaceServiceTest {
 
             assertThrows(NotSpaceOwnerException.class, () -> service.deleteSharedSpace(spaceId, otherUserId));
             verify(spaceRepository, never()).deleteById(any());
+        }
+    }
+
+    @Nested
+    class PatchParty {
+
+        @Test
+        void givenOwnerUpdatesName_thenNameIsUpdated() {
+            UUID ownerUserId = UUID.randomUUID();
+            UUID spaceId = UUID.randomUUID();
+            Party space = Party.builder()
+                    .id(spaceId)
+                    .name("Family Budget")
+                    .partyLeaderId(ownerUserId)
+                    .participants(new ArrayList<>(List.of(
+                            Player.builder()
+                                    .playerId(ownerUserId)
+                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .status(ParticipantStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build()
+                    )))
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .sharedResources(new ArrayList<>())
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            PatchPartyCommand command = PatchPartyCommand.builder()
+                    .id(spaceId)
+                    .partyName("Updated Budget")
+                    .userId(ownerUserId)
+                    .build();
+
+            when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
+            when(spaceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+            Party updated = service.patchSharedSpace(command);
+
+            assertEquals("Updated Budget", updated.name(), "name should be updated");
+            assertEquals(SharingMode.EVEN_SHARE, updated.sharingMode(), "sharingMode should remain unchanged");
+            verify(spaceRepository).save(any(Party.class));
+        }
+
+        @Test
+        void givenSpaceNotFound_thenThrows() {
+            UUID spaceId = UUID.randomUUID();
+            UUID requesterId = UUID.randomUUID();
+
+            PatchPartyCommand command = PatchPartyCommand.builder()
+                    .id(spaceId)
+                    .partyName("Updated Budget")
+                    .userId(requesterId)
+                    .build();
+
+            when(spaceRepository.findById(spaceId)).thenReturn(Optional.empty());
+
+            assertThrows(SharedSpaceNotFoundException.class, () -> service.patchSharedSpace(command));
+            verify(spaceRepository, never()).save(any());
+        }
+
+        @Test
+        void givenNonOwnerAttemptsToUpdate_thenThrows() {
+            UUID ownerUserId = UUID.randomUUID();
+            UUID otherUserId = UUID.randomUUID();
+            UUID spaceId = UUID.randomUUID();
+            Party space = Party.builder()
+                    .id(spaceId)
+                    .name("Family Budget")
+                    .partyLeaderId(ownerUserId)
+                    .participants(new ArrayList<>(List.of(
+                            Player.builder()
+                                    .playerId(ownerUserId)
+                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .status(ParticipantStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build()
+                    )))
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .sharedResources(new ArrayList<>())
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            PatchPartyCommand command = PatchPartyCommand.builder()
+                    .id(spaceId)
+                    .partyName("Updated Budget")
+                    .userId(otherUserId)
+                    .build();
+
+            when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
+
+            assertThrows(NotSpaceOwnerException.class, () -> service.patchSharedSpace(command));
+            verify(spaceRepository, never()).save(any());
         }
     }
 }

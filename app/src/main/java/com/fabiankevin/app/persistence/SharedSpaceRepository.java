@@ -1,21 +1,21 @@
 package com.fabiankevin.app.persistence;
 
-import com.fabiankevin.app.models.shared_space.SharedSpace;
+import com.fabiankevin.app.models.shared_space.Party;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface SharedSpaceRepository {
-    SharedSpace save(SharedSpace space);
+    Party save(Party space);
 
-    Optional<SharedSpace> findById(UUID id);
+    Optional<Party> findById(UUID id);
 
-    Optional<SharedSpace> findByUserId(UUID userId);
+    Optional<Party> findByUserId(UUID userId);
 
-    List<SharedSpace> retrieveByUserId(UUID userId);
+    List<Party> retrieveByUserId(UUID userId);
 
-    List<SharedSpace> findAllById(Iterable<UUID> ids);
+    List<Party> findAllById(Iterable<UUID> ids);
 
     List<UUID> findParticipantUserIdsByUserId(UUID userId);
 

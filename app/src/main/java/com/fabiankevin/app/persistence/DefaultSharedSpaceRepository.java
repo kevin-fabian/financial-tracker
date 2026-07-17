@@ -1,6 +1,6 @@
 package com.fabiankevin.app.persistence;
 
-import com.fabiankevin.app.models.shared_space.SharedSpace;
+import com.fabiankevin.app.models.shared_space.Party;
 import com.fabiankevin.app.persistence.entities.SharedSpaceEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaSharedSpaceRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,32 +16,32 @@ public class DefaultSharedSpaceRepository implements SharedSpaceRepository {
     private final JpaSharedSpaceRepository jpaSharedSpaceRepository;
 
     @Override
-    public SharedSpace save(SharedSpace space) {
+    public Party save(Party space) {
         SharedSpaceEntity saved = jpaSharedSpaceRepository.save(SharedSpaceEntity.from(space));
         return saved.toModel();
     }
 
     @Override
-    public Optional<SharedSpace> findById(UUID id) {
+    public Optional<Party> findById(UUID id) {
         return jpaSharedSpaceRepository.findById(id).map(SharedSpaceEntity::toModel);
     }
 
     @Override
-    public Optional<SharedSpace> findByUserId(UUID userId) {
+    public Optional<Party> findByUserId(UUID userId) {
         return jpaSharedSpaceRepository.findByUserId(userId).stream()
                 .findFirst()
                 .map(SharedSpaceEntity::toModel);
     }
 
     @Override
-    public List<SharedSpace> retrieveByUserId(UUID userId) {
+    public List<Party> retrieveByUserId(UUID userId) {
         return jpaSharedSpaceRepository.findByUserId(userId).stream()
                 .map(SharedSpaceEntity::toModel)
                 .toList();
     }
 
     @Override
-    public List<SharedSpace> findAllById(Iterable<UUID> ids) {
+    public List<Party> findAllById(Iterable<UUID> ids) {
         return jpaSharedSpaceRepository.findAllById(ids).stream()
                 .map(SharedSpaceEntity::toModel)
                 .toList();

@@ -4,7 +4,7 @@ import com.fabiankevin.app.services.InvitationService;
 import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
 import com.fabiankevin.app.services.commands.shared_space.RejectInvitationCommand;
 import com.fabiankevin.app.web.controllers.dtos.SendInvitationRequest;
-import com.fabiankevin.app.web.controllers.dtos.shared_space.InvitationResponse;
+import com.fabiankevin.app.web.controllers.dtos.party.InvitationResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;

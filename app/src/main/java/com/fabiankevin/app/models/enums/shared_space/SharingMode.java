@@ -6,9 +6,9 @@ import lombok.Getter;
 @AllArgsConstructor
 @Getter
 public enum SharingMode {
-    MUTUAL_SHARING("Mutual Sharing", """
-            This space enables bidirectional synchronization of all
-            selected financial records between all invited participants
+    EVEN_SHARE("Even Share", """
+            Even Share enables bidirectional synchronization of all
+            selected financial records between all invited players
             """);
 
     private final String name;

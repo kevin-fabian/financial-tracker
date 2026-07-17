@@ -7,7 +7,7 @@ import com.fabiankevin.app.exceptions.TransactionNotFoundException;
 import com.fabiankevin.app.models.*;
 import com.fabiankevin.app.models.enums.SummaryType;
 import com.fabiankevin.app.models.enums.TransactionType;
-import com.fabiankevin.app.models.shared_space.SharedSpace;
+import com.fabiankevin.app.models.shared_space.Party;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
@@ -230,9 +230,9 @@ class DefaultTransactionServiceTest {
                    .userId(userId)
                    .build()));
            when(transactionRepository.save(any())).then(invocation -> invocation.getArgument(0));
-           SharedSpace sharedSpace = mock(SharedSpace.class);
-           when(sharedSpace.id()).thenReturn(sharedSpaceId);
-           when(sharedSpaceRepository.findByUserId(userId)).thenReturn(Optional.of(sharedSpace));
+           Party party = mock(Party.class);
+           when(party.id()).thenReturn(sharedSpaceId);
+           when(sharedSpaceRepository.findByUserId(userId)).thenReturn(Optional.of(party));
 
            Transaction transaction = transactionService.addTransaction(command);
 

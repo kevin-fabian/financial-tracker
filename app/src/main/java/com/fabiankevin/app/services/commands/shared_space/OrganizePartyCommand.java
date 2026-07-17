@@ -7,12 +7,12 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Builder
-public record CreateSharedSpaceCommand(
+public record OrganizePartyCommand(
         UUID ownerUserId,
         String spaceName,
         SharingMode sharingMode
 ) {
-    public CreateSharedSpaceCommand {
+    public OrganizePartyCommand {
         Objects.requireNonNull(ownerUserId, "Owner user ID cannot be null");
         Objects.requireNonNull(sharingMode, "Sharing mode cannot be null");
     }

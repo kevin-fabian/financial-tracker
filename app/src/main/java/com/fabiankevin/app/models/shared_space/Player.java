@@ -9,19 +9,19 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
-public record SpaceParticipant(
+public record Player(
         UUID id,
-        UUID userId,
+        UUID playerId,
         AccessLevel accessLevel,
         ParticipantStatus status,
         Instant joinedAt) {
-    public SpaceParticipant {
-        Objects.requireNonNull(userId, "userId");
+    public Player {
+        Objects.requireNonNull(playerId, "playerId");
         Objects.requireNonNull(accessLevel, "accessLevel");
         Objects.requireNonNull(status, "status");
     }
 
     public boolean isOwner(UUID ownerId) {
-        return userId == ownerId;
+        return playerId == ownerId;
     }
 }

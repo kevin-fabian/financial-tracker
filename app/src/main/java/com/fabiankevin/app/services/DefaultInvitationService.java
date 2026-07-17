@@ -8,8 +8,8 @@ import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
 import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
 import com.fabiankevin.app.models.shared_space.Invitation;
 import com.fabiankevin.app.models.shared_space.InvitationSummary;
-import com.fabiankevin.app.models.shared_space.SharedSpace;
-import com.fabiankevin.app.models.shared_space.SpaceParticipant;
+import com.fabiankevin.app.models.shared_space.Party;
+import com.fabiankevin.app.models.shared_space.Player;
 import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
 import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
@@ -38,8 +38,8 @@ public class DefaultInvitationService implements InvitationService {
     @Transactional
     @Override
     public Invitation sendInvitation(SendInvitationCommand command) {
-        SharedSpace space = findSpaceOrThrow(command.spaceId());
-        if (!space.ownerUserId().equals(command.inviterUserId())) {
+        Party space = findSpaceOrThrow(command.spaceId());
+        if (!space.partyLeaderId().equals(command.inviterUserId())) {
             throw new NotSpaceOwnerException();
         }
 
@@ -70,7 +70,7 @@ public class DefaultInvitationService implements InvitationService {
 
     @Transactional
     @Override
-    public SharedSpace acceptInvitation(AcceptInvitationCommand command) {
+    public Party acceptInvitation(AcceptInvitationCommand command) {
         Invitation invitation = findInvitationOrThrow(command.invitationId());
         validateInvitationActive(invitation);
 
@@ -95,19 +95,19 @@ public class DefaultInvitationService implements InvitationService {
                 .build();
         invitationRepository.save(updatedInvitation);
 
-        SharedSpace space = findSpaceOrThrow(invitation.sharedSpaceId());
+        Party space = findSpaceOrThrow(invitation.sharedSpaceId());
 
-        SpaceParticipant participant = SpaceParticipant.builder()
-                .userId(invitation.inviteeUserId())
+        Player participant = Player.builder()
+                .playerId(invitation.inviteeUserId())
                 .accessLevel(invitation.proposedRole())
                 .status(ParticipantStatus.ACTIVE)
                 .joinedAt(Instant.now())
                 .build();
 
-        List<SpaceParticipant> updatedParticipants = new ArrayList<>(space.participants());
+        List<Player> updatedParticipants = new ArrayList<>(space.participants());
         updatedParticipants.add(participant);
 
-        SharedSpace updatedSpace = space.toBuilder()
+        Party updatedSpace = space.toBuilder()
                 .participants(updatedParticipants)
                 .updatedAt(Instant.now())
                 .build();
@@ -162,17 +162,17 @@ public class DefaultInvitationService implements InvitationService {
                 .distinct()
                 .toList();
 
-        Map<UUID, SharedSpace> spacesById = spaceIds.isEmpty()
+        Map<UUID, Party> spacesById = spaceIds.isEmpty()
                 ? Map.of()
                 : spaceRepository.findAllById(spaceIds).stream()
-                        .collect(Collectors.toMap(SharedSpace::id, Function.identity()));
+                        .collect(Collectors.toMap(Party::id, Function.identity()));
 
         return invitations.stream()
                 .map(invitation -> toSummary(invitation, usersById, spacesById))
                 .toList();
     }
 
-    private SharedSpace findSpaceOrThrow(UUID spaceId) {
+    private Party findSpaceOrThrow(UUID spaceId) {
         return spaceRepository.findById(spaceId)
                 .orElseThrow(SharedSpaceNotFoundException::new);
     }
@@ -182,9 +182,9 @@ public class DefaultInvitationService implements InvitationService {
                 .orElseThrow(InvitationNotFoundException::new);
     }
 
-    private boolean isUserParticipant(SharedSpace space, UUID userId) {
+    private boolean isUserParticipant(Party space, UUID userId) {
         return space.participants().stream()
-                .anyMatch(spaceParticipant -> spaceParticipant.userId().equals(userId));
+                .anyMatch(spaceParticipant -> spaceParticipant.playerId().equals(userId));
     }
 
     private void validateInvitationActive(Invitation invitation) {
@@ -197,10 +197,10 @@ public class DefaultInvitationService implements InvitationService {
         }
     }
 
-    private InvitationSummary toSummary(Invitation invitation, Map<UUID, User> usersById, Map<UUID, SharedSpace> spacesById) {
+    private InvitationSummary toSummary(Invitation invitation, Map<UUID, User> usersById, Map<UUID, Party> spacesById) {
         User inviter = usersById.get(invitation.inviterUserId());
         User invitee = usersById.get(invitation.inviteeUserId());
-        SharedSpace space = spacesById.get(invitation.sharedSpaceId());
+        Party space = spacesById.get(invitation.sharedSpaceId());
 
         return InvitationSummary.builder()
                 .id(invitation.id())
@@ -216,7 +216,7 @@ public class DefaultInvitationService implements InvitationService {
                 .createdAt(invitation.createdAt())
                 .expiresAt(invitation.expiresAt())
                 .sharedSpaceId(invitation.sharedSpaceId())
-                .sharedSpaceName(space != null ? space.spaceName() : null)
+                .sharedSpaceName(space != null ? space.name() : null)
                 .build();
     }
 

@@ -1,4 +1,4 @@
-package com.fabiankevin.app.web.controllers.dtos.shared_space;
+package com.fabiankevin.app.web.controllers.dtos.party;
 
 import com.fabiankevin.app.models.shared_space.SharedResource;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -10,7 +10,7 @@ import java.util.UUID;
 
 @Builder(toBuilder = true)
 @Schema(description = "Response representing a resource shared into a space")
-public record SharedResourceResponse(
+public record SharedItemResponse(
         @Schema(description = "Shared resource identifier", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
         UUID id,
 
@@ -29,8 +29,8 @@ public record SharedResourceResponse(
         @Schema(description = "Timestamp when the resource was shared")
         Instant sharedAt
 ) {
-    public static SharedResourceResponse from(SharedResource resource) {
-        return SharedResourceResponse.builder()
+    public static SharedItemResponse from(SharedResource resource) {
+        return SharedItemResponse.builder()
                 .id(resource.id())
                 .type(resource.type() != null ? resource.type().name() : null)
                 .name(resource.type() != null ? resource.type().getName() : null)

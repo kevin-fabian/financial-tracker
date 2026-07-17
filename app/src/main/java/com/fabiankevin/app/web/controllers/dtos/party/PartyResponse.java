@@ -1,6 +1,6 @@
-package com.fabiankevin.app.web.controllers.dtos.shared_space;
+package com.fabiankevin.app.web.controllers.dtos.party;
 
-import com.fabiankevin.app.models.shared_space.SharedSpace;
+import com.fabiankevin.app.models.shared_space.Party;
 import com.fabiankevin.app.models.shared_space.SharedSpaceSummary;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
@@ -11,7 +11,7 @@ import java.util.UUID;
 
 @Builder(toBuilder = true)
 @Schema(description = "Response representing a shared space")
-public record SharedSpaceResponse(
+public record PartyResponse(
     @Schema(description = "Shared space identifier", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
     UUID id,
 
@@ -28,10 +28,10 @@ public record SharedSpaceResponse(
     String sharingModeDescription,
 
     @Schema(description = "Participants of the space")
-    List<ParticipantResponse> participants,
+    List<PlayerResponse> participants,
 
     @Schema(description = "Resources shared into the space")
-    List<SharedResourceResponse> sharedResources,
+    List<SharedItemResponse> sharedResources,
 
     @Schema(description = "Whether the space is active")
     boolean active,
@@ -42,37 +42,37 @@ public record SharedSpaceResponse(
     @Schema(description = "Timestamp when the space was last updated")
     Instant updatedAt
 ) {
-    public static SharedSpaceResponse from(SharedSpaceSummary space) {
-        return SharedSpaceResponse.builder()
+    public static PartyResponse from(SharedSpaceSummary space) {
+        return PartyResponse.builder()
             .id(space.id())
             .spaceName(space.spaceName())
             .ownerUserId(space.ownerUserId())
             .sharingModeName(space.sharingMode() != null ? space.sharingMode().getName() : null)
             .sharingModeDescription(space.sharingMode() != null ? space.sharingMode().getDescription() : null)
-            .participants(space.participants().stream().map(ParticipantResponse::from).toList())
-            .sharedResources(space.sharedResources().stream().map(SharedResourceResponse::from).toList())
+            .participants(space.participants().stream().map(PlayerResponse::from).toList())
+            .sharedResources(space.sharedResources().stream().map(SharedItemResponse::from).toList())
             .active(space.active())
             .createdAt(space.createdAt())
             .updatedAt(space.updatedAt())
             .build();
     }
 
-    public static SharedSpaceResponse from(SharedSpace space) {
-        return SharedSpaceResponse.builder()
+    public static PartyResponse from(Party space) {
+        return PartyResponse.builder()
             .id(space.id())
-            .spaceName(space.spaceName())
-            .ownerUserId(space.ownerUserId())
+            .spaceName(space.name())
+            .ownerUserId(space.partyLeaderId())
             .sharingModeName(space.sharingMode() != null ? space.sharingMode().getName() : null)
             .sharingModeDescription(space.sharingMode() != null ? space.sharingMode().getDescription() : null)
             .participants(space.participants().stream().map(p ->
-                ParticipantResponse.builder()
-                    .id(p.userId())
+                PlayerResponse.builder()
+                    .id(p.playerId())
                     .accessLevelName(p.accessLevel() != null ? p.accessLevel().getName() : null)
                     .accessLevelDescription(p.accessLevel() != null ? p.accessLevel().getDescription() : null)
                     .status(p.status() != null ? p.status().name() : null)
                     .joinedAt(p.joinedAt())
                     .build()).toList())
-            .sharedResources(space.sharedResources().stream().map(SharedResourceResponse::from).toList())
+            .sharedResources(space.sharedResources().stream().map(SharedItemResponse::from).toList())
             .active(space.active())
             .createdAt(space.createdAt())
             .updatedAt(space.updatedAt())

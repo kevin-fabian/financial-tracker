@@ -6,12 +6,12 @@ import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.shared_space.Invitation;
-import com.fabiankevin.app.models.shared_space.SharedSpace;
+import com.fabiankevin.app.models.shared_space.Party;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
-import com.fabiankevin.app.services.commands.shared_space.CreateSharedSpaceCommand;
+import com.fabiankevin.app.services.commands.shared_space.OrganizePartyCommand;
 import com.fabiankevin.app.services.commands.shared_space.SendInvitationCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.web.controllers.dtos.StatsQuery;
@@ -37,9 +37,9 @@ import static org.mockito.Mockito.when;
 
 @ActiveProfiles("test")
 @SpringBootTest
-public class DefaultSharedSpaceServiceSpringBootTest {
+public class DefaultPartyServiceSpringBootTest {
     @Autowired
-    private SharedSpaceService sharedSpaceService;
+    private PartyService partyService;
     @Autowired
     private InvitationService invitationService;
     @Autowired
@@ -81,12 +81,12 @@ public class DefaultSharedSpaceServiceSpringBootTest {
         addTransaction(partnerUserid, 3000);
 
         // Step 1: Create a space
-        SharedSpace initialSharedSpace = sharedSpaceService.createShare(CreateSharedSpaceCommand.builder()
+        Party initialParty = partyService.organize(OrganizePartyCommand.builder()
                 .spaceName("Partner Space")
                 .ownerUserId(ownerUserId)
-                .sharingMode(SharingMode.MUTUAL_SHARING)
+                .sharingMode(SharingMode.EVEN_SHARE)
                 .build());
-        UUID spaceId = initialSharedSpace.id();
+        UUID spaceId = initialParty.id();
 
         // Step 2: Invite a partner in a space
         when(userClient.getUserByEmail(partnerEmail))
@@ -130,12 +130,12 @@ public class DefaultSharedSpaceServiceSpringBootTest {
         addTransaction(partnerUserid, 1500);
 
         // Step 1: Create a space
-        SharedSpace initialSharedSpace = sharedSpaceService.createShare(CreateSharedSpaceCommand.builder()
+        Party initialParty = partyService.organize(OrganizePartyCommand.builder()
                 .spaceName("Partner Space")
                 .ownerUserId(ownerUserId)
-                .sharingMode(SharingMode.MUTUAL_SHARING)
+                .sharingMode(SharingMode.EVEN_SHARE)
                 .build());
-        UUID spaceId = initialSharedSpace.id();
+        UUID spaceId = initialParty.id();
 
         // Step 2: Invite a partner in a space
         when(userClient.getUserByEmail(partnerEmail))

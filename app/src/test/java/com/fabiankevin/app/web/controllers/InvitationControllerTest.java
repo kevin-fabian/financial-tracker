@@ -7,7 +7,7 @@ import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.shared_space.InvitationSummary;
 import com.fabiankevin.app.services.InvitationService;
-import com.fabiankevin.app.services.SharedSpaceService;
+import com.fabiankevin.app.services.PartyService;
 import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
 import com.fabiankevin.app.services.commands.shared_space.RejectInvitationCommand;
 import com.fabiankevin.app.services.commands.shared_space.SendInvitationCommand;
@@ -47,7 +47,7 @@ class InvitationControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private SharedSpaceService sharedSpaceService;
+    private PartyService partyService;
 
     @MockitoBean
     private InvitationService invitationService;
@@ -85,8 +85,8 @@ class InvitationControllerTest {
                 .inviterInitial("JD")
                 .inviteeName("Jane Smith")
                 .inviteeInitial("JS")
-                .proposedSharingModeName(SharingMode.MUTUAL_SHARING.getName())
-                .proposedSharingModeDescription(SharingMode.MUTUAL_SHARING.getDescription())
+                .proposedSharingModeName(SharingMode.EVEN_SHARE.getName())
+                .proposedSharingModeDescription(SharingMode.EVEN_SHARE.getDescription())
                 .proposedRoleName(AccessLevel.READ_WRITE.getName())
                 .proposedRoleDescription(AccessLevel.READ_WRITE.getDescription())
                 .status(PENDING)
@@ -101,8 +101,8 @@ class InvitationControllerTest {
                 .inviterInitial("BJ")
                 .inviteeName("Alice Brown")
                 .inviteeInitial("AB")
-                .proposedSharingModeName(SharingMode.MUTUAL_SHARING.getName())
-                .proposedSharingModeDescription(SharingMode.MUTUAL_SHARING.getDescription())
+                .proposedSharingModeName(SharingMode.EVEN_SHARE.getName())
+                .proposedSharingModeDescription(SharingMode.EVEN_SHARE.getDescription())
                 .proposedRoleName(AccessLevel.VIEW_ONLY.getName())
                 .proposedRoleDescription(AccessLevel.VIEW_ONLY.getDescription())
                 .status(PENDING)
@@ -124,7 +124,7 @@ class InvitationControllerTest {
                 .andExpect(jsonPath("$[0].inviteeName").value("Jane Smith"))
                 .andExpect(jsonPath("$[0].inviteeInitial").value("JS"))
                 .andExpect(jsonPath("$[0].proposedSharingModeName").value("Mutual Sharing"))
-                .andExpect(jsonPath("$[0].proposedSharingModeDescription").value(SharingMode.MUTUAL_SHARING.getDescription()))
+                .andExpect(jsonPath("$[0].proposedSharingModeDescription").value(SharingMode.EVEN_SHARE.getDescription()))
                 .andExpect(jsonPath("$[0].proposedRoleName").value("Read & Write"))
                 .andExpect(jsonPath("$[0].proposedRoleDescription").value(AccessLevel.READ_WRITE.getDescription()))
                 .andExpect(jsonPath("$[0].status").value("PENDING"))
@@ -138,7 +138,7 @@ class InvitationControllerTest {
                 .andExpect(jsonPath("$[1].inviteeName").value("Alice Brown"))
                 .andExpect(jsonPath("$[1].inviteeInitial").value("AB"))
                 .andExpect(jsonPath("$[1].proposedSharingModeName").value("Mutual Sharing"))
-                .andExpect(jsonPath("$[1].proposedSharingModeDescription").value(SharingMode.MUTUAL_SHARING.getDescription()))
+                .andExpect(jsonPath("$[1].proposedSharingModeDescription").value(SharingMode.EVEN_SHARE.getDescription()))
                 .andExpect(jsonPath("$[1].proposedRoleName").value("View Only"))
                 .andExpect(jsonPath("$[1].proposedRoleDescription").value(AccessLevel.VIEW_ONLY.getDescription()))
                 .andExpect(jsonPath("$[1].status").value("PENDING"))
@@ -155,7 +155,7 @@ class InvitationControllerTest {
             mockMvc.perform(get("/api/shared-spaces/invitations"))
                 .andExpect(status().isUnauthorized());
 
-            verifyNoInteractions(sharedSpaceService);
+            verifyNoInteractions(partyService);
         }
 
         @Test
@@ -217,7 +217,7 @@ class InvitationControllerTest {
                     .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden());
 
-            verifyNoInteractions(sharedSpaceService);
+            verifyNoInteractions(partyService);
         }
 
         @Test
@@ -260,7 +260,7 @@ class InvitationControllerTest {
             mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations/" + invitationId + "/accept"))
                 .andExpect(status().isForbidden());
 
-            verifyNoInteractions(sharedSpaceService);
+            verifyNoInteractions(partyService);
         }
 
         @Test
@@ -300,7 +300,7 @@ class InvitationControllerTest {
             mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations/" + invitationId + "/reject"))
                 .andExpect(status().isForbidden());
 
-            verifyNoInteractions(sharedSpaceService);
+            verifyNoInteractions(partyService);
         }
 
         @Test

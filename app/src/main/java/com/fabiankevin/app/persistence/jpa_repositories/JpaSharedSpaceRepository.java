@@ -10,7 +10,7 @@ import java.util.UUID;
 
 public interface JpaSharedSpaceRepository extends JpaRepository<SharedSpaceEntity, UUID> {
     @Query("SELECT DISTINCT s FROM SharedSpaceEntity s LEFT JOIN s.participants p WHERE s.ownerUserId = :userId OR p.userId = :userId")
-    List<SharedSpaceEntity> findByUserId(@Param("userId") UUID userId);
+    List<SharedSpaceEntity> findByUserId(@Param("playerId") UUID userId);
 
     @Query("""
             SELECT DISTINCT p.userId FROM SharedSpaceEntity s
@@ -19,5 +19,5 @@ public interface JpaSharedSpaceRepository extends JpaRepository<SharedSpaceEntit
                 SELECT s2.id FROM SharedSpaceEntity s2 LEFT JOIN s2.participants p2
                 WHERE s2.ownerUserId = :userId OR p2.userId = :userId)
             """)
-    List<UUID> findParticipantUserIdsByUserId(@Param("userId") UUID userId);
+    List<UUID> findParticipantUserIdsByUserId(@Param("playerId") UUID userId);
 }

@@ -4,9 +4,9 @@ import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
 import com.fabiankevin.app.models.enums.shared_space.ResourceType;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
+import com.fabiankevin.app.models.shared_space.Party;
+import com.fabiankevin.app.models.shared_space.Player;
 import com.fabiankevin.app.models.shared_space.SharedResource;
-import com.fabiankevin.app.models.shared_space.SharedSpace;
-import com.fabiankevin.app.models.shared_space.SpaceParticipant;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaSharedSpaceRepository;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,9 +27,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-@Import(DefaultSharedSpaceRepositoryTest.ContextConfiguration.class)
+@Import(DefaultPartyRepositoryTest.ContextConfiguration.class)
 @DataJpaTest
-class DefaultSharedSpaceRepositoryTest {
+class DefaultPartyRepositoryTest {
 
     @MockitoSpyBean
     private JpaSharedSpaceRepository jpaSharedSpaceRepository;
@@ -37,7 +37,7 @@ class DefaultSharedSpaceRepositoryTest {
     @Autowired
     private SharedSpaceRepository sharedSpaceRepository;
 
-    private SharedSpace sharedSpace;
+    private Party party;
 
     @TestConfiguration
     public static class ContextConfiguration {
@@ -58,18 +58,18 @@ class DefaultSharedSpaceRepositoryTest {
                 .sharedAt(Instant.now())
                 .build();
 
-        SpaceParticipant participant = SpaceParticipant.builder()
-                .userId(participantUserId)
+        Player participant = Player.builder()
+                .playerId(participantUserId)
                 .accessLevel(AccessLevel.READ_WRITE)
                 .status(ParticipantStatus.ACTIVE)
                 .joinedAt(Instant.now())
                 .build();
 
-        sharedSpace = SharedSpace.builder()
-                .spaceName("Family 2026 Budget")
-                .ownerUserId(ownerUserId)
+        party = Party.builder()
+                .name("Family 2026 Budget")
+                .partyLeaderId(ownerUserId)
                 .participants(List.of(participant))
-                .sharingMode(SharingMode.MUTUAL_SHARING)
+                .sharingMode(SharingMode.EVEN_SHARE)
                 .sharedResources(List.of(resource))
                 .active(true)
                 .createdAt(Instant.now())
@@ -79,31 +79,31 @@ class DefaultSharedSpaceRepositoryTest {
 
     @Test
     void save_givenNewSharedSpace_shouldPersistAndRetrieveAllFields() {
-        SharedSpace saved = sharedSpaceRepository.save(sharedSpace);
+        Party saved = sharedSpaceRepository.save(party);
 
-        Optional<SharedSpace> optRetrievedSharedSpace = sharedSpaceRepository.findById(saved.id());
+        Optional<Party> optRetrievedSharedSpace = sharedSpaceRepository.findById(saved.id());
 
         Assertions.assertThat(optRetrievedSharedSpace).isPresent();
-        SharedSpace retrievedsharedSpace = optRetrievedSharedSpace.get();
+        Party retrievedsharedSpace = optRetrievedSharedSpace.get();
         Assertions.assertThat(retrievedsharedSpace.id()).as("generated id should be present").isNotNull();
-        Assertions.assertThat(retrievedsharedSpace.spaceName()).isEqualTo("Family 2026 Budget");
-        Assertions.assertThat(retrievedsharedSpace.ownerUserId()).isEqualTo(sharedSpace.ownerUserId());
-        Assertions.assertThat(retrievedsharedSpace.sharingMode()).isEqualTo(SharingMode.MUTUAL_SHARING);
+        Assertions.assertThat(retrievedsharedSpace.name()).isEqualTo("Family 2026 Budget");
+        Assertions.assertThat(retrievedsharedSpace.partyLeaderId()).isEqualTo(party.partyLeaderId());
+        Assertions.assertThat(retrievedsharedSpace.sharingMode()).isEqualTo(SharingMode.EVEN_SHARE);
         Assertions.assertThat(retrievedsharedSpace.active()).isTrue();
-        Assertions.assertThat(retrievedsharedSpace.createdAt()).isEqualTo(sharedSpace.createdAt());
-        Assertions.assertThat(retrievedsharedSpace.updatedAt()).isEqualTo(sharedSpace.updatedAt());
+        Assertions.assertThat(retrievedsharedSpace.createdAt()).isEqualTo(party.createdAt());
+        Assertions.assertThat(retrievedsharedSpace.updatedAt()).isEqualTo(party.updatedAt());
 
         Assertions.assertThat(retrievedsharedSpace.participants())
                 .as("participants should be persisted and retrieved")
                 .hasSize(1);
-        SpaceParticipant retrievedParticipant = retrievedsharedSpace.participants().getFirst();
+        Player retrievedParticipant = retrievedsharedSpace.participants().getFirst();
         Assertions.assertThat(retrievedParticipant.id()).as("participant id should be generated").isNotNull();
-        Assertions.assertThat(retrievedParticipant.userId())
-                .isEqualTo(sharedSpace.participants().getFirst().userId());
+        Assertions.assertThat(retrievedParticipant.playerId())
+                .isEqualTo(party.participants().getFirst().playerId());
         Assertions.assertThat(retrievedParticipant.accessLevel()).isEqualTo(AccessLevel.READ_WRITE);
         Assertions.assertThat(retrievedParticipant.status()).isEqualTo(ParticipantStatus.ACTIVE);
         Assertions.assertThat(retrievedParticipant.joinedAt())
-                .isEqualTo(sharedSpace.participants().getFirst().joinedAt());
+                .isEqualTo(party.participants().getFirst().joinedAt());
         Assertions.assertThat(retrievedsharedSpace.sharedResources())
                 .as("shared resources should be persisted and retrieved")
                 .hasSize(1);
@@ -112,7 +112,7 @@ class DefaultSharedSpaceRepositoryTest {
         Assertions.assertThat(retrievedSharedResource.type()).isEqualTo(ResourceType.TRANSACTION);
         Assertions.assertThat(retrievedSharedResource.items()).containsExactly("txn-001", "txn-002");
         Assertions.assertThat(retrievedSharedResource.sharedAt())
-                .isEqualTo(sharedSpace.sharedResources().getFirst().sharedAt());
+                .isEqualTo(party.sharedResources().getFirst().sharedAt());
 
         verify(jpaSharedSpaceRepository, times(1)).save(any());
         verify(jpaSharedSpaceRepository, times(1)).findById(saved.id());
@@ -120,25 +120,25 @@ class DefaultSharedSpaceRepositoryTest {
 
     @Test
     void save_givenSharedSpaceWithParticipants_shouldCascadePersist() {
-        SharedSpace saved = sharedSpaceRepository.save(sharedSpace);
+        Party saved = sharedSpaceRepository.save(party);
 
-        Optional<SharedSpace> found = sharedSpaceRepository.findById(saved.id());
+        Optional<Party> found = sharedSpaceRepository.findById(saved.id());
 
         Assertions.assertThat(found).isPresent();
         Assertions.assertThat(found.get().participants())
                 .as("participants should be persisted and retrieved")
                 .hasSize(1);
-        Assertions.assertThat(found.get().participants().getFirst().userId())
-                .isEqualTo(sharedSpace.participants().getFirst().userId());
+        Assertions.assertThat(found.get().participants().getFirst().playerId())
+                .isEqualTo(party.participants().getFirst().playerId());
         Assertions.assertThat(found.get().participants().getFirst().accessLevel())
                 .isEqualTo(AccessLevel.READ_WRITE);
     }
 
     @Test
     void save_givenSharedSpaceWithSharedResources_shouldCascadePersist() {
-        SharedSpace saved = sharedSpaceRepository.save(sharedSpace);
+        Party saved = sharedSpaceRepository.save(party);
 
-        Optional<SharedSpace> found = sharedSpaceRepository.findById(saved.id());
+        Optional<Party> found = sharedSpaceRepository.findById(saved.id());
 
         Assertions.assertThat(found).isPresent();
         Assertions.assertThat(found.get().sharedResources())
@@ -153,18 +153,18 @@ class DefaultSharedSpaceRepositoryTest {
 
     @Test
     void save_givenSharedSpaceWithNullLists_shouldPersistWithEmptyLists() {
-        SharedSpace minimal = SharedSpace.builder()
-                .spaceName("Empty Space")
-                .ownerUserId(UUID.randomUUID())
-                .sharingMode(SharingMode.MUTUAL_SHARING)
+        Party minimal = Party.builder()
+                .name("Empty Space")
+                .partyLeaderId(UUID.randomUUID())
+                .sharingMode(SharingMode.EVEN_SHARE)
                 .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
 
-        SharedSpace saved = sharedSpaceRepository.save(minimal);
+        Party saved = sharedSpaceRepository.save(minimal);
 
-        Optional<SharedSpace> found = sharedSpaceRepository.findById(saved.id());
+        Optional<Party> found = sharedSpaceRepository.findById(saved.id());
 
         Assertions.assertThat(found).isPresent();
         Assertions.assertThat(found.get().participants()).isEmpty();
@@ -173,42 +173,42 @@ class DefaultSharedSpaceRepositoryTest {
 
     @Test
     void findById_givenExistingSharedSpace_shouldReturnSharedSpace() {
-        SharedSpace saved = sharedSpaceRepository.save(sharedSpace);
+        Party saved = sharedSpaceRepository.save(party);
 
-        Optional<SharedSpace> found = sharedSpaceRepository.findById(saved.id());
+        Optional<Party> found = sharedSpaceRepository.findById(saved.id());
 
         Assertions.assertThat(found).isPresent();
-        Assertions.assertThat(found.get().spaceName()).isEqualTo("Family 2026 Budget");
-        Assertions.assertThat(found.get().sharingMode()).isEqualTo(SharingMode.MUTUAL_SHARING);
+        Assertions.assertThat(found.get().name()).isEqualTo("Family 2026 Budget");
+        Assertions.assertThat(found.get().sharingMode()).isEqualTo(SharingMode.EVEN_SHARE);
 
         verify(jpaSharedSpaceRepository, times(1)).findById(saved.id());
     }
 
     @Test
     void findById_givenNonExisting_shouldReturnEmptyOptional() {
-        Optional<SharedSpace> found = sharedSpaceRepository.findById(UUID.randomUUID());
+        Optional<Party> found = sharedSpaceRepository.findById(UUID.randomUUID());
 
         Assertions.assertThat(found).as("non existing id returns empty optional").isEmpty();
     }
 
     @Test
     void findByUserId_givenUserIsOwner_shouldReturnSharedSpace() {
-        SharedSpace saved = sharedSpaceRepository.save(sharedSpace);
+        Party saved = sharedSpaceRepository.save(party);
 
-        Optional<SharedSpace> found = sharedSpaceRepository.findByUserId(saved.ownerUserId());
+        Optional<Party> found = sharedSpaceRepository.findByUserId(saved.partyLeaderId());
 
         Assertions.assertThat(found).isPresent();
         Assertions.assertThat(found.get().id()).isEqualTo(saved.id());
 
-        verify(jpaSharedSpaceRepository, times(1)).findByUserId(saved.ownerUserId());
+        verify(jpaSharedSpaceRepository, times(1)).findByUserId(saved.partyLeaderId());
     }
 
     @Test
     void findByUserId_givenUserIsParticipant_shouldReturnSharedSpace() {
-        SharedSpace saved = sharedSpaceRepository.save(sharedSpace);
-        UUID participantUserId = saved.participants().getFirst().userId();
+        Party saved = sharedSpaceRepository.save(party);
+        UUID participantUserId = saved.participants().getFirst().playerId();
 
-        Optional<SharedSpace> found = sharedSpaceRepository.findByUserId(participantUserId);
+        Optional<Party> found = sharedSpaceRepository.findByUserId(participantUserId);
 
         Assertions.assertThat(found).isPresent();
         Assertions.assertThat(found.get().id()).isEqualTo(saved.id());
@@ -218,7 +218,7 @@ class DefaultSharedSpaceRepositoryTest {
 
     @Test
     void findByUserId_givenUserIsNotOwnerOrParticipant_shouldReturnEmpty() {
-        Optional<SharedSpace> found = sharedSpaceRepository.findByUserId(UUID.randomUUID());
+        Optional<Party> found = sharedSpaceRepository.findByUserId(UUID.randomUUID());
 
         Assertions.assertThat(found).isEmpty();
 

@@ -15,7 +15,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class DefaultStatsService implements StatsService {
     private final TransactionRepository transactionRepository;
-    private final SharedSpaceService sharedSpaceService;
+    private final PartyService partyService;
 
     private static double sumByType(List<SummaryPoint> points, TransactionType type) {
         return points.stream()
@@ -57,7 +57,7 @@ public class DefaultStatsService implements StatsService {
     }
 
     private Set<UUID> resolveUserIds(UUID userId) {
-        Set<UUID> userIds = new HashSet<>(sharedSpaceService.getParticipantUserIds(userId));
+        Set<UUID> userIds = new HashSet<>(partyService.getParticipantUserIds(userId));
         userIds.add(userId);
         return userIds;
     }

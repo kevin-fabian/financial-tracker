@@ -9,8 +9,8 @@ import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.shared_space.Invitation;
 import com.fabiankevin.app.models.shared_space.InvitationSummary;
-import com.fabiankevin.app.models.shared_space.SharedSpace;
-import com.fabiankevin.app.models.shared_space.SpaceParticipant;
+import com.fabiankevin.app.models.shared_space.Party;
+import com.fabiankevin.app.models.shared_space.Player;
 import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
 import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
@@ -68,19 +68,19 @@ class DefaultInvitationServiceTest {
             UUID inviteeUserId = UUID.randomUUID();
             UUID spaceId = UUID.randomUUID();
             String inviteeEmail = "jane@example.com";
-            SharedSpace existingSpace = SharedSpace.builder()
+            Party existingSpace = Party.builder()
                     .id(spaceId)
-                    .spaceName("Family Budget")
-                    .ownerUserId(inviterUserId)
+                    .name("Family Budget")
+                    .partyLeaderId(inviterUserId)
                     .participants(new ArrayList<>(List.of(
-                            SpaceParticipant.builder()
-                                    .userId(inviterUserId)
+                            Player.builder()
+                                    .playerId(inviterUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.MUTUAL_SHARING)
+                    .sharingMode(SharingMode.EVEN_SHARE)
                     .sharedResources(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
@@ -104,9 +104,9 @@ class DefaultInvitationServiceTest {
 
             assertEquals(spaceId, result.sharedSpaceId());
             assertEquals(inviteeUserId, result.inviteeUserId());
-            assertEquals(SharingMode.MUTUAL_SHARING, result.proposedSharingMode());
+            assertEquals(SharingMode.EVEN_SHARE, result.proposedSharingMode());
             assertEquals(InvitationStatus.PENDING, result.status());
-            verify(spaceRepository, never()).save(any(SharedSpace.class));
+            verify(spaceRepository, never()).save(any(Party.class));
             verify(invitationRepository).save(any(Invitation.class));
         }
 
@@ -116,19 +116,19 @@ class DefaultInvitationServiceTest {
             UUID inviteeUserId = UUID.randomUUID();
             UUID spaceId = UUID.randomUUID();
             String inviteeEmail = "jane@example.com";
-            SharedSpace existingSpace = SharedSpace.builder()
+            Party existingSpace = Party.builder()
                     .id(spaceId)
-                    .spaceName("Family Budget")
-                    .ownerUserId(inviterUserId)
+                    .name("Family Budget")
+                    .partyLeaderId(inviterUserId)
                     .participants(new ArrayList<>(List.of(
-                            SpaceParticipant.builder()
-                                    .userId(inviterUserId)
+                            Player.builder()
+                                    .playerId(inviterUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.MUTUAL_SHARING)
+                    .sharingMode(SharingMode.EVEN_SHARE)
                     .sharedResources(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
@@ -139,7 +139,7 @@ class DefaultInvitationServiceTest {
                     .id(UUID.randomUUID())
                     .inviterUserId(inviterUserId)
                     .inviteeUserId(inviteeUserId)
-                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
@@ -171,12 +171,12 @@ class DefaultInvitationServiceTest {
             UUID spaceId = UUID.randomUUID();
             UUID ownerUserId = UUID.randomUUID();
             String inviteeEmail = "jane@example.com";
-            SharedSpace existingSpace = SharedSpace.builder()
+            Party existingSpace = Party.builder()
                     .id(spaceId)
-                    .spaceName("Family Budget")
-                    .ownerUserId(ownerUserId)
+                    .name("Family Budget")
+                    .partyLeaderId(ownerUserId)
                     .participants(new ArrayList<>())
-                    .sharingMode(SharingMode.MUTUAL_SHARING)
+                    .sharingMode(SharingMode.EVEN_SHARE)
                     .sharedResources(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
@@ -201,25 +201,25 @@ class DefaultInvitationServiceTest {
             UUID inviteeUserId = UUID.randomUUID();
             UUID spaceId = UUID.randomUUID();
             String inviteeEmail = "jane@example.com";
-            SharedSpace existingSpace = SharedSpace.builder()
+            Party existingSpace = Party.builder()
                     .id(spaceId)
-                    .spaceName("Family Budget")
-                    .ownerUserId(inviterUserId)
+                    .name("Family Budget")
+                    .partyLeaderId(inviterUserId)
                     .participants(new ArrayList<>(List.of(
-                            SpaceParticipant.builder()
-                                    .userId(inviterUserId)
+                            Player.builder()
+                                    .playerId(inviterUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
-                            SpaceParticipant.builder()
-                                    .userId(inviteeUserId)
+                            Player.builder()
+                                    .playerId(inviteeUserId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(ParticipantStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.MUTUAL_SHARING)
+                    .sharingMode(SharingMode.EVEN_SHARE)
                     .sharedResources(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
@@ -272,26 +272,26 @@ class DefaultInvitationServiceTest {
                     .id(invitationId)
                     .inviterUserId(inviterUserId)
                     .inviteeUserId(inviteeUserId)
-                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(604800))
                     .sharedSpaceId(spaceId)
                     .build();
-            SharedSpace space = SharedSpace.builder()
+            Party space = Party.builder()
                     .id(spaceId)
-                    .spaceName("Family Budget")
-                    .ownerUserId(inviterUserId)
+                    .name("Family Budget")
+                    .partyLeaderId(inviterUserId)
                     .participants(new ArrayList<>(List.of(
-                            SpaceParticipant.builder()
-                                    .userId(inviterUserId)
+                            Player.builder()
+                                    .playerId(inviterUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.MUTUAL_SHARING)
+                    .sharingMode(SharingMode.EVEN_SHARE)
                     .sharedResources(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
@@ -305,7 +305,7 @@ class DefaultInvitationServiceTest {
 
             AcceptInvitationCommand command = new AcceptInvitationCommand(invitationId, inviteeUserId);
 
-            SharedSpace result = service.acceptInvitation(command);
+            Party result = service.acceptInvitation(command);
 
             ArgumentCaptor<Invitation> invitationCaptor = ArgumentCaptor.forClass(Invitation.class);
             verify(invitationRepository).save(invitationCaptor.capture());
@@ -313,14 +313,14 @@ class DefaultInvitationServiceTest {
             assertEquals(inviteeUserId, invitationCaptor.getValue().inviteeUserId());
             assertNotNull(result);
             assertEquals(2, result.participants().size());
-            SpaceParticipant addedParticipant = result.participants().stream()
-                    .filter(p -> p.userId().equals(inviteeUserId))
+            Player addedParticipant = result.participants().stream()
+                    .filter(p -> p.playerId().equals(inviteeUserId))
                     .findFirst()
                     .orElseThrow(() -> new AssertionError("Invitee should be added as participant"));
             assertEquals(AccessLevel.VIEW_ONLY, addedParticipant.accessLevel());
             assertEquals(ParticipantStatus.ACTIVE, addedParticipant.status());
             assertNotNull(addedParticipant.joinedAt());
-            verify(spaceRepository).save(any(SharedSpace.class));
+            verify(spaceRepository).save(any(Party.class));
         }
 
         @Test
@@ -347,7 +347,7 @@ class DefaultInvitationServiceTest {
                     .id(invitationId)
                     .inviterUserId(inviterUserId)
                     .inviteeUserId(inviteeUserId)
-                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.ACCEPTED)
                     .createdAt(Instant.now())
@@ -374,7 +374,7 @@ class DefaultInvitationServiceTest {
                     .id(invitationId)
                     .inviterUserId(inviterUserId)
                     .inviteeUserId(inviteeUserId)
-                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now().minusSeconds(172800))
@@ -400,7 +400,7 @@ class DefaultInvitationServiceTest {
                     .id(invitationId)
                     .inviterUserId(inviterUserId)
                     .inviteeUserId(UUID.randomUUID())
-                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
@@ -428,7 +428,7 @@ class DefaultInvitationServiceTest {
                     .id(invitationId)
                     .inviterUserId(inviterUserId)
                     .inviteeUserId(inviteeUserId)
-                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
@@ -459,7 +459,7 @@ class DefaultInvitationServiceTest {
                 .id(UUID.randomUUID())
                 .inviterUserId(userId)
                 .inviteeUserId(inviteeUserId)
-                .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                .proposedSharingMode(SharingMode.EVEN_SHARE)
                 .proposedRole(AccessLevel.READ_WRITE)
                 .status(InvitationStatus.PENDING)
                 .createdAt(Instant.now())
@@ -470,7 +470,7 @@ class DefaultInvitationServiceTest {
                 .id(UUID.randomUUID())
                 .inviterUserId(inviterId)
                 .inviteeUserId(userId)
-                .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                .proposedSharingMode(SharingMode.EVEN_SHARE)
                 .proposedRole(AccessLevel.VIEW_ONLY)
                 .status(InvitationStatus.PENDING)
                 .createdAt(Instant.now())
@@ -486,11 +486,11 @@ class DefaultInvitationServiceTest {
                     User.builder().id(inviteeUserId).firstName("Jane").lastName("Smith").build(),
                     User.builder().id(inviterId).firstName("Bob").lastName("Jones").build()));
             when(spaceRepository.findAllById(List.of(spaceId)))
-                .thenReturn(List.of(SharedSpace.builder()
+                .thenReturn(List.of(Party.builder()
                     .id(spaceId)
-                    .spaceName("Family 2026 Budget")
-                    .ownerUserId(inviterId)
-                    .sharingMode(SharingMode.MUTUAL_SHARING)
+                    .name("Family 2026 Budget")
+                    .partyLeaderId(inviterId)
+                    .sharingMode(SharingMode.EVEN_SHARE)
                     .sharedResources(List.of())
                     .active(true)
                     .createdAt(Instant.now())
@@ -532,7 +532,7 @@ class DefaultInvitationServiceTest {
                     .id(invitationId)
                     .inviterUserId(inviterUserId)
                     .inviteeUserId(inviteeUserId)
-                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
@@ -566,7 +566,7 @@ class DefaultInvitationServiceTest {
                     .id(invitationId)
                     .inviterUserId(UUID.randomUUID())
                     .inviteeUserId(inviteeUserId)
-                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
@@ -590,7 +590,7 @@ class DefaultInvitationServiceTest {
                     .id(invitationId)
                     .inviterUserId(UUID.randomUUID())
                     .inviteeUserId(inviteeUserId)
-                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.ACCEPTED)
                     .createdAt(Instant.now())

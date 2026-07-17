@@ -6,14 +6,16 @@ import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
 import com.fabiankevin.app.models.enums.shared_space.ResourceType;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
+import com.fabiankevin.app.models.shared_space.Party;
 import com.fabiankevin.app.models.shared_space.SharedResource;
-import com.fabiankevin.app.models.shared_space.SharedSpace;
 import com.fabiankevin.app.models.shared_space.SharedSpaceSummary;
 import com.fabiankevin.app.models.shared_space.SpaceParticipantSummary;
 import com.fabiankevin.app.services.InvitationService;
-import com.fabiankevin.app.services.SharedSpaceService;
-import com.fabiankevin.app.services.commands.shared_space.CreateSharedSpaceCommand;
-import com.fabiankevin.app.web.controllers.dtos.shared_space.CreateSharedSpaceRequest;
+import com.fabiankevin.app.services.PartyService;
+import com.fabiankevin.app.services.commands.shared_space.OrganizePartyCommand;
+import com.fabiankevin.app.services.commands.shared_space.PatchPartyCommand;
+import com.fabiankevin.app.web.controllers.dtos.party.OrganizePartyRequest;
+import com.fabiankevin.app.web.controllers.dtos.party.PatchPartyRequest;
 import com.github.fabiankevin.lemon.web.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -41,14 +43,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ActiveProfiles("test")
 @Import({GlobalExceptionHandler.class})
-@WebMvcTest(SharedSpaceController.class)
-class SharedSpaceControllerTest {
+@WebMvcTest(PartyController.class)
+class PartyControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
-    private SharedSpaceService sharedSpaceService;
+    private PartyService partyService;
 
     @MockitoBean
     private InvitationService invitationService;
@@ -72,12 +74,12 @@ class SharedSpaceControllerTest {
             .build();
     }
 
-    private SharedSpace spaceWithId(UUID id, UUID ownerId) {
-        return SharedSpace.builder()
+    private Party spaceWithId(UUID id, UUID ownerId) {
+        return Party.builder()
             .id(id)
-            .spaceName("Family 2026 Budget")
-            .ownerUserId(ownerId)
-            .sharingMode(SharingMode.MUTUAL_SHARING)
+            .name("Family 2026 Budget")
+            .partyLeaderId(ownerId)
+            .sharingMode(SharingMode.EVEN_SHARE)
             .participants(List.of())
             .sharedResources(List.of())
             .active(true)
@@ -107,17 +109,17 @@ class SharedSpaceControllerTest {
     }
 
     @Nested
-    class CreateSharedSpace {
+    class CreateParty {
 
         @Test
         void givenValidRequest_thenReturnsCreated() throws Exception {
             UUID spaceId = UUID.randomUUID();
-            CreateSharedSpaceRequest request = CreateSharedSpaceRequest.builder()
+            OrganizePartyRequest request = OrganizePartyRequest.builder()
                 .spaceName("Family 2026 Budget")
-                .sharingMode(SharingMode.MUTUAL_SHARING)
+                .sharingMode(SharingMode.EVEN_SHARE)
                 .build();
 
-            when(sharedSpaceService.createShare(any())).thenReturn(spaceWithId(spaceId, userId));
+            when(partyService.organize(any())).thenReturn(spaceWithId(spaceId, userId));
 
             mockMvc.perform(post("/api/shared-spaces")
                     .with(jwt().jwt(jwt))
@@ -126,16 +128,16 @@ class SharedSpaceControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", matchesPattern("http://localhost/api/shared-spaces/[-a-f0-9]{36}")))
                 .andExpect(jsonPath("$.id").value(spaceId.toString()))
-                .andExpect(jsonPath("$.spaceName").value("Family 2026 Budget"));
+                .andExpect(jsonPath("$.name").value("Family 2026 Budget"));
 
-            verify(sharedSpaceService).createShare(any(CreateSharedSpaceCommand.class));
+            verify(partyService).organize(any(OrganizePartyCommand.class));
         }
 
         @Test
         void givenMissingJwt_thenReturnsForbidden() throws Exception {
-            CreateSharedSpaceRequest request = CreateSharedSpaceRequest.builder()
+            OrganizePartyRequest request = OrganizePartyRequest.builder()
                 .spaceName("Family 2026 Budget")
-                .sharingMode(SharingMode.MUTUAL_SHARING)
+                .sharingMode(SharingMode.EVEN_SHARE)
                 .build();
 
             mockMvc.perform(post("/api/shared-spaces")
@@ -143,12 +145,12 @@ class SharedSpaceControllerTest {
                     .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden());
 
-            verifyNoInteractions(sharedSpaceService);
+            verifyNoInteractions(partyService);
         }
 
         @Test
         void givenMissingSharingMode_thenReturnsBadRequest() throws Exception {
-            CreateSharedSpaceRequest request = CreateSharedSpaceRequest.builder()
+            OrganizePartyRequest request = OrganizePartyRequest.builder()
                 .spaceName("Family 2026 Budget")
                 .build();
 
@@ -158,7 +160,7 @@ class SharedSpaceControllerTest {
                     .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-            verifyNoInteractions(sharedSpaceService);
+            verifyNoInteractions(partyService);
         }
     }
 
@@ -174,7 +176,7 @@ class SharedSpaceControllerTest {
                 .id(spaceId)
                 .spaceName("Family 2026 Budget")
                 .ownerUserId(userId)
-                .sharingMode(SharingMode.MUTUAL_SHARING)
+                .sharingMode(SharingMode.EVEN_SHARE)
                 .participants(List.of(participantSummary(participantId)))
                 .sharedResources(List.of(sharedResource(resourceId, ResourceType.TRANSACTION)))
                 .active(true)
@@ -182,23 +184,23 @@ class SharedSpaceControllerTest {
                 .updatedAt(Instant.now())
                 .build();
 
-            when(sharedSpaceService.retrieveByUserId(userId)).thenReturn(List.of(space));
+            when(partyService.retrieveByUserId(userId)).thenReturn(List.of(space));
 
             mockMvc.perform(get("/api/shared-spaces")
                     .with(jwt().jwt(jwt)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(spaceId.toString()))
-                .andExpect(jsonPath("$[0].spaceName").value("Family 2026 Budget"))
-                .andExpect(jsonPath("$[0].ownerUserId").value(userId.toString()))
+                .andExpect(jsonPath("$[0].name").value("Family 2026 Budget"))
+                .andExpect(jsonPath("$[0].partyLeaderId").value(userId.toString()))
                 .andExpect(jsonPath("$[0].sharingModeName").value("Mutual Sharing"))
-                .andExpect(jsonPath("$[0].sharingModeDescription").value(SharingMode.MUTUAL_SHARING.getDescription()))
+                .andExpect(jsonPath("$[0].sharingModeDescription").value(SharingMode.EVEN_SHARE.getDescription()))
                 .andExpect(jsonPath("$[0].active").value(true))
                 .andExpect(jsonPath("$[0].createdAt").exists())
                 .andExpect(jsonPath("$[0].updatedAt").exists())
                 .andExpect(jsonPath("$[0].participants.length()").value(1))
                 .andExpect(jsonPath("$[0].participants[0].id").value(participantId.toString()))
-                .andExpect(jsonPath("$[0].participants[0].userId").value(participantId.toString()))
+                .andExpect(jsonPath("$[0].participants[0].playerId").value(participantId.toString()))
                 .andExpect(jsonPath("$[0].participants[0].name").value("John Doe"))
                 .andExpect(jsonPath("$[0].participants[0].initial").value("JD"))
                 .andExpect(jsonPath("$[0].participants[0].accessLevelName").value("Read & Write"))
@@ -214,7 +216,7 @@ class SharedSpaceControllerTest {
                 .andExpect(jsonPath("$[0].sharedResources[0].items[0]").value("item-1"))
                 .andExpect(jsonPath("$[0].sharedResources[0].sharedAt").exists());
 
-            verify(sharedSpaceService).retrieveByUserId(userId);
+            verify(partyService).retrieveByUserId(userId);
         }
 
         @Test
@@ -222,12 +224,12 @@ class SharedSpaceControllerTest {
             mockMvc.perform(get("/api/shared-spaces"))
                 .andExpect(status().isUnauthorized());
 
-            verifyNoInteractions(sharedSpaceService);
+            verifyNoInteractions(partyService);
         }
 
         @Test
         void givenUserWithNoSpaces_thenReturnsEmptyList() throws Exception {
-            when(sharedSpaceService.retrieveByUserId(userId)).thenReturn(List.of());
+            when(partyService.retrieveByUserId(userId)).thenReturn(List.of());
 
             mockMvc.perform(get("/api/shared-spaces")
                     .with(jwt().jwt(jwt)))
@@ -248,7 +250,7 @@ class SharedSpaceControllerTest {
                     .with(jwt().jwt(jwt)))
                 .andExpect(status().isNoContent());
 
-            verify(sharedSpaceService).removeParticipant(spaceId, participantId, userId);
+            verify(partyService).removeParticipant(spaceId, participantId, userId);
         }
 
         @Test
@@ -259,7 +261,7 @@ class SharedSpaceControllerTest {
             mockMvc.perform(delete("/api/shared-spaces/" + spaceId + "/participants/" + participantId))
                 .andExpect(status().isForbidden());
 
-            verifyNoInteractions(sharedSpaceService);
+            verifyNoInteractions(partyService);
         }
 
         @Test
@@ -268,7 +270,7 @@ class SharedSpaceControllerTest {
             UUID ownerParticipantId = UUID.randomUUID();
 
             doThrow(new CannotRemoveOwnerException())
-                .when(sharedSpaceService).removeParticipant(spaceId, ownerParticipantId, userId);
+                .when(partyService).removeParticipant(spaceId, ownerParticipantId, userId);
 
             mockMvc.perform(delete("/api/shared-spaces/" + spaceId + "/participants/" + ownerParticipantId)
                     .with(jwt().jwt(jwt)))
@@ -277,7 +279,7 @@ class SharedSpaceControllerTest {
     }
 
     @Nested
-    class DeleteSharedSpace {
+    class DeleteParty {
 
         @Test
         void givenOwner_thenReturnsNoContent() throws Exception {
@@ -287,7 +289,7 @@ class SharedSpaceControllerTest {
                     .with(jwt().jwt(jwt)))
                 .andExpect(status().isNoContent());
 
-            verify(sharedSpaceService).deleteSharedSpace(spaceId, userId);
+            verify(partyService).deleteSharedSpace(spaceId, userId);
         }
 
         @Test
@@ -297,7 +299,7 @@ class SharedSpaceControllerTest {
             mockMvc.perform(delete("/api/shared-spaces/" + spaceId))
                 .andExpect(status().isForbidden());
 
-            verifyNoInteractions(sharedSpaceService);
+            verifyNoInteractions(partyService);
         }
 
         @Test
@@ -305,10 +307,80 @@ class SharedSpaceControllerTest {
             UUID spaceId = UUID.randomUUID();
 
             doThrow(new SharedSpaceNotFoundException())
-                .when(sharedSpaceService).deleteSharedSpace(spaceId, userId);
+                .when(partyService).deleteSharedSpace(spaceId, userId);
 
             mockMvc.perform(delete("/api/shared-spaces/" + spaceId)
                     .with(jwt().jwt(jwt)))
+                .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    class PatchParty {
+
+        @Test
+        void givenValidRequest_thenReturnsUpdated() throws Exception {
+            UUID spaceId = UUID.randomUUID();
+            PatchPartyRequest request = PatchPartyRequest.builder()
+                .partyName("Updated Budget")
+                .sharingMode(SharingMode.EVEN_SHARE)
+                .build();
+
+            when(partyService.patchSharedSpace(any())).thenAnswer(invocation -> {
+                var command = invocation.getArgument(0, PatchPartyCommand.class);
+                return Party.builder()
+                    .id(command.id())
+                    .name(command.partyName())
+                    .partyLeaderId(userId)
+                    .sharingMode(command.sharingMode())
+                    .participants(List.of())
+                    .sharedResources(List.of())
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            });
+
+            mockMvc.perform(patch("/api/shared-spaces/" + spaceId)
+                    .with(jwt().jwt(jwt))
+                    .contentType("application/json")
+                    .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(spaceId.toString()))
+                .andExpect(jsonPath("$.name").value("Updated Budget"));
+
+            verify(partyService).patchSharedSpace(any());
+        }
+
+        @Test
+        void givenMissingJwt_thenReturnsForbidden() throws Exception {
+            UUID spaceId = UUID.randomUUID();
+            PatchPartyRequest request = PatchPartyRequest.builder()
+                .partyName("Updated Budget")
+                .build();
+
+            mockMvc.perform(patch("/api/shared-spaces/" + spaceId)
+                    .contentType("application/json")
+                    .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+
+            verifyNoInteractions(partyService);
+        }
+
+        @Test
+        void givenSpaceNotFound_thenReturnsNotFound() throws Exception {
+            UUID spaceId = UUID.randomUUID();
+            PatchPartyRequest request = PatchPartyRequest.builder()
+                .partyName("Updated Budget")
+                .build();
+
+            doThrow(new SharedSpaceNotFoundException())
+                .when(partyService).patchSharedSpace(any());
+
+            mockMvc.perform(patch("/api/shared-spaces/" + spaceId)
+                    .with(jwt().jwt(jwt))
+                    .contentType("application/json")
+                    .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound());
         }
     }

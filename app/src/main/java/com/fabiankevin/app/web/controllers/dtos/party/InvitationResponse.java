@@ -1,4 +1,4 @@
-package com.fabiankevin.app.web.controllers.dtos.shared_space;
+package com.fabiankevin.app.web.controllers.dtos.party;
 
 import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
 import com.fabiankevin.app.models.shared_space.InvitationSummary;

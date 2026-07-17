@@ -49,7 +49,7 @@ class DefaultInvitationRepositoryTest {
         invitation = Invitation.builder()
                 .inviterUserId(UUID.randomUUID())
                 .inviteeUserId(UUID.randomUUID())
-                .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                .proposedSharingMode(SharingMode.EVEN_SHARE)
                 .proposedRole(AccessLevel.READ_WRITE)
                 .status(InvitationStatus.PENDING)
                 .createdAt(Instant.now())
@@ -69,7 +69,7 @@ class DefaultInvitationRepositoryTest {
         Assertions.assertThat(restored.id()).as("generated id should be present").isNotNull();
         Assertions.assertThat(restored.inviterUserId()).isEqualTo(invitation.inviterUserId());
         Assertions.assertThat(restored.inviteeUserId()).isEqualTo(invitation.inviteeUserId());
-        Assertions.assertThat(restored.proposedSharingMode()).isEqualTo(SharingMode.MUTUAL_SHARING);
+        Assertions.assertThat(restored.proposedSharingMode()).isEqualTo(SharingMode.EVEN_SHARE);
         Assertions.assertThat(restored.proposedRole()).isEqualTo(AccessLevel.READ_WRITE);
         Assertions.assertThat(restored.status()).isEqualTo(InvitationStatus.PENDING);
         Assertions.assertThat(restored.createdAt()).isEqualTo(invitation.createdAt());
@@ -88,7 +88,7 @@ class DefaultInvitationRepositoryTest {
         Invitation accepted = Invitation.builder()
                 .inviterUserId(UUID.randomUUID())
                 .inviteeUserId(inviteeUserId)
-                .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                .proposedSharingMode(SharingMode.EVEN_SHARE)
                 .proposedRole(AccessLevel.READ_WRITE)
                 .status(InvitationStatus.ACCEPTED)
                 .createdAt(Instant.now())
@@ -115,7 +115,7 @@ class DefaultInvitationRepositoryTest {
         Assertions.assertThat(found).isPresent();
         Assertions.assertThat(found.get().inviteeUserId()).isEqualTo(invitation.inviteeUserId());
         Assertions.assertThat(found.get().status()).isEqualTo(InvitationStatus.PENDING);
-        Assertions.assertThat(found.get().proposedSharingMode()).isEqualTo(SharingMode.MUTUAL_SHARING);
+        Assertions.assertThat(found.get().proposedSharingMode()).isEqualTo(SharingMode.EVEN_SHARE);
         Assertions.assertThat(found.get().proposedRole()).isEqualTo(AccessLevel.READ_WRITE);
 
         verify(jpaInvitationRepository, times(1)).findById(saved.id());
@@ -137,7 +137,7 @@ class DefaultInvitationRepositoryTest {
             Invitation pending = Invitation.builder()
                     .inviterUserId(invitation.inviterUserId())
                     .inviteeUserId(invitation.inviteeUserId())
-                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.READ_WRITE)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
@@ -161,7 +161,7 @@ class DefaultInvitationRepositoryTest {
             Invitation pending = Invitation.builder()
                     .inviterUserId(invitation.inviterUserId())
                     .inviteeUserId(invitation.inviteeUserId())
-                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.READ_WRITE)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
@@ -182,7 +182,7 @@ class DefaultInvitationRepositoryTest {
             Invitation accepted = Invitation.builder()
                     .inviterUserId(invitation.inviterUserId())
                     .inviteeUserId(invitation.inviteeUserId())
-                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.READ_WRITE)
                     .status(InvitationStatus.ACCEPTED)
                     .createdAt(Instant.now())

@@ -1,9 +1,10 @@
 package com.fabiankevin.app.web.controllers;
 
-import com.fabiankevin.app.models.shared_space.SharedSpace;
-import com.fabiankevin.app.services.SharedSpaceService;
-import com.fabiankevin.app.web.controllers.dtos.shared_space.CreateSharedSpaceRequest;
-import com.fabiankevin.app.web.controllers.dtos.shared_space.SharedSpaceResponse;
+import com.fabiankevin.app.models.shared_space.Party;
+import com.fabiankevin.app.services.PartyService;
+import com.fabiankevin.app.web.controllers.dtos.party.OrganizePartyRequest;
+import com.fabiankevin.app.web.controllers.dtos.party.PartyResponse;
+import com.fabiankevin.app.web.controllers.dtos.party.PatchPartyRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -26,26 +27,26 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @RestController
 @RequestMapping(value = "/api/shared-spaces", version = "v1")
-public class SharedSpaceController {
-    private final SharedSpaceService sharedSpaceService;
+public class PartyController {
+    private final PartyService partyService;
 
     @Operation(
         summary = "Create a shared space",
         description = "Creates a new shared space owned by the authenticated user and returns it.",
         responses = {
             @ApiResponse(responseCode = "201", description = "Created - Shared space created successfully",
-                content = @Content(schema = @Schema(implementation = SharedSpaceResponse.class))),
+                content = @Content(schema = @Schema(implementation = PartyResponse.class))),
             @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
     @PostMapping
-    public ResponseEntity<SharedSpaceResponse> createSharedSpace(
-        @Valid @RequestBody CreateSharedSpaceRequest request,
+    public ResponseEntity<PartyResponse> organizeParty(
+        @Valid @RequestBody OrganizePartyRequest request,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        SharedSpace created = sharedSpaceService.createShare(request.toCommand(userId));
-        SharedSpaceResponse response = SharedSpaceResponse.from(created);
+        Party created = partyService.organize(request.toCommand(userId));
+        PartyResponse response = PartyResponse.from(created);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
             .path("/{id}")
             .buildAndExpand(response.id())
@@ -58,16 +59,37 @@ public class SharedSpaceController {
         description = "Retrieves all shared spaces the authenticated user participates in.",
         responses = {
             @ApiResponse(responseCode = "200", description = "OK - Shared spaces retrieved successfully",
-                content = @Content(array = @ArraySchema(schema = @Schema(implementation = SharedSpaceResponse.class)))),
+                content = @Content(array = @ArraySchema(schema = @Schema(implementation = PartyResponse.class)))),
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
     @GetMapping
-    public List<SharedSpaceResponse> getSharedSpaces(JwtAuthenticationToken jwtAuthenticationToken) {
+    public List<PartyResponse> getParties(JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        return sharedSpaceService.retrieveByUserId(userId).stream()
-            .map(SharedSpaceResponse::from)
+        return partyService.retrieveByUserId(userId).stream()
+            .map(PartyResponse::from)
             .toList();
+    }
+
+    @Operation(
+        summary = "Update a shared space",
+        description = "Updates the name and/or sharing mode of the shared space owned by the authenticated user.",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "OK - Shared space updated successfully",
+                content = @Content(schema = @Schema(implementation = PartyResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Only the owner can update the shared space"),
+            @ApiResponse(responseCode = "404", description = "Not Found - Shared space not found"),
+            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+        }
+    )
+    @PatchMapping("/{spaceId}")
+    public PartyResponse patchParty(
+        @PathVariable @NotNull @Schema(description = "ID of the shared space to update") UUID spaceId,
+        @RequestBody PatchPartyRequest request,
+        JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        Party updated = partyService.patchSharedSpace(request.toCommand(spaceId, userId));
+        return PartyResponse.from(updated);
     }
 
     @Operation(
@@ -81,11 +103,11 @@ public class SharedSpaceController {
         }
     )
     @DeleteMapping("/{spaceId}")
-    public ResponseEntity<Void> deleteSharedSpace(
+    public ResponseEntity<Void> disbandParty(
         @PathVariable @NotNull @Schema(description = "ID of the shared space to delete") UUID spaceId,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        sharedSpaceService.deleteSharedSpace(spaceId, userId);
+        partyService.deleteSharedSpace(spaceId, userId);
         return ResponseEntity.noContent().build();
     }
 
@@ -100,12 +122,12 @@ public class SharedSpaceController {
         }
     )
     @DeleteMapping("/{spaceId}/participants/{participantId}")
-    public ResponseEntity<Void> removeParticipant(
+    public ResponseEntity<Void> kickPlayer(
         @PathVariable @NotNull @Schema(description = "ID of the shared space") UUID spaceId,
         @PathVariable @NotNull @Schema(description = "ID of the participant to remove") UUID participantId,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        sharedSpaceService.removeParticipant(spaceId, participantId, userId);
+        partyService.removeParticipant(spaceId, participantId, userId);
         return ResponseEntity.noContent().build();
     }
 }

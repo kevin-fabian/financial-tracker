@@ -22,11 +22,6 @@ public class AppConfig {
     public CategoryService categoryService(CacheManager cacheManager, DefaultCategoryService delegate) {
         return new CachedCategoryService(cacheManager, delegate);
     }
-//
-//    @Bean
-//    public AccountService accountService(CacheManager cacheManager, DefaultAccountService delegate) {
-//        return new DefaultAccountService(cacheManager, delegate);
-//    }
 
     @Bean
     public TransactionService transactionService(CacheManager cacheManager,
@@ -36,8 +31,8 @@ public class AppConfig {
 
     @Bean
     public StatsService statsService(TransactionRepository transactionRepository,
-                                     SharedSpaceService sharedSpaceService) {
-        return new DefaultStatsService(transactionRepository, sharedSpaceService);
+                                     PartyService partyService) {
+        return new DefaultStatsService(transactionRepository, partyService);
     }
 
     @Bean

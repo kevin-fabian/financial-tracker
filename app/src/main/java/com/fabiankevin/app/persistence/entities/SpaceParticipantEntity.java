@@ -2,7 +2,7 @@ package com.fabiankevin.app.persistence.entities;
 
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
-import com.fabiankevin.app.models.shared_space.SpaceParticipant;
+import com.fabiankevin.app.models.shared_space.Player;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -40,21 +40,21 @@ public class SpaceParticipantEntity {
     @JoinColumn(name = "shared_space_id")
     private SharedSpaceEntity sharedSpace;
 
-    public static SpaceParticipantEntity from(SpaceParticipant participant) {
+    public static SpaceParticipantEntity from(Player participant) {
         if (participant == null) return null;
         return SpaceParticipantEntity.builder()
                 .id(participant.id())
-                .userId(participant.userId())
+                .userId(participant.playerId())
                 .accessLevel(participant.accessLevel())
                 .status(participant.status())
                 .joinedAt(participant.joinedAt())
                 .build();
     }
 
-    public SpaceParticipant toModel() {
-        return SpaceParticipant.builder()
+    public Player toModel() {
+        return Player.builder()
                 .id(this.id)
-                .userId(this.userId)
+                .playerId(this.userId)
                 .accessLevel(this.accessLevel)
                 .status(this.status)
                 .joinedAt(this.joinedAt)

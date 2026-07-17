@@ -38,7 +38,7 @@ public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUI
             GROUP BY c
             """)
     Page<CategorySummaryProjection> findAllByUserIdAndTransactionTypeWithSummary(
-            @Param("userId") UUID userId,
+            @Param("playerId") UUID userId,
             @Param("type") TransactionType type,
             @Param("monthStart") java.time.LocalDate monthStart,
             @Param("monthEnd") java.time.LocalDate monthEnd,

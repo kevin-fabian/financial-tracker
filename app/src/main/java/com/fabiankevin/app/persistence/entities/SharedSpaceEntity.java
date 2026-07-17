@@ -1,9 +1,9 @@
 package com.fabiankevin.app.persistence.entities;
 
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
+import com.fabiankevin.app.models.shared_space.Party;
+import com.fabiankevin.app.models.shared_space.Player;
 import com.fabiankevin.app.models.shared_space.SharedResource;
-import com.fabiankevin.app.models.shared_space.SharedSpace;
-import com.fabiankevin.app.models.shared_space.SpaceParticipant;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -55,12 +55,12 @@ public class SharedSpaceEntity {
     @Column(name = "expires_at")
     private Instant expiresAt;
 
-    public static SharedSpaceEntity from(SharedSpace space) {
+    public static SharedSpaceEntity from(Party space) {
         if (space == null) return null;
         SharedSpaceEntity entity = SharedSpaceEntity.builder()
                 .id(space.id())
-                .spaceName(space.spaceName())
-                .ownerUserId(space.ownerUserId())
+                .spaceName(space.name())
+                .ownerUserId(space.partyLeaderId())
                 .sharingMode(space.sharingMode())
                 .active(space.active())
                 .participants(new HashSet<>())
@@ -69,7 +69,7 @@ public class SharedSpaceEntity {
                 .updatedAt(space.updatedAt())
                 .build();
 
-        for (SpaceParticipant participant : space.participants()) {
+        for (Player participant : space.participants()) {
             entity.addParticipant(SpaceParticipantEntity.from(participant));
         }
 
@@ -92,8 +92,8 @@ public class SharedSpaceEntity {
         this.sharedResources.add(resource);
     }
 
-    public SharedSpace toModel() {
-        List<SpaceParticipant> participants = this.participants != null
+    public Party toModel() {
+        List<Player> participants = this.participants != null
                 ? this.participants.stream().map(SpaceParticipantEntity::toModel).toList()
                 : List.of();
 
@@ -101,10 +101,10 @@ public class SharedSpaceEntity {
                 ? this.sharedResources.stream().map(SharedResourceEntity::toModel).toList()
                 : List.of();
 
-        return SharedSpace.builder()
+        return Party.builder()
                 .id(this.id)
-                .spaceName(this.spaceName)
-                .ownerUserId(this.ownerUserId)
+                .name(this.spaceName)
+                .partyLeaderId(this.ownerUserId)
                 .participants(participants)
                 .sharingMode(this.sharingMode)
                 .sharedResources(sharedResources)

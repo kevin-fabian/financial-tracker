@@ -19,9 +19,9 @@ public record SharedSpaceSummary(
         Instant updatedAt
 ) {
     public SharedSpaceSummary {
-        Objects.requireNonNull(ownerUserId, "ownerUserId is required");
+        Objects.requireNonNull(ownerUserId, "partyLeaderId is required");
         Objects.requireNonNull(sharingMode, "sharingMode is required");
-        Objects.requireNonNull(spaceName, "spaceName is required");
+        Objects.requireNonNull(spaceName, "name is required");
         Objects.requireNonNull(createdAt, "createdAt is required");
         sharedResources = Optional.ofNullable(sharedResources).orElse(new ArrayList<>());
         participants = Optional.ofNullable(participants).orElse(new ArrayList<>());
