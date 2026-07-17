@@ -96,7 +96,7 @@ class DefaultInvitationServiceTest {
             when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(existingSpace));
             when(userClient.getUserByEmail(inviteeEmail))
                     .thenReturn(User.builder().id(inviteeUserId).firstName("Jane").lastName("Doe").build());
-            when(invitationRepository.findPendingByInviterAndInvitee(inviterUserId, inviteeUserId))
+            when(invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(spaceId, inviterUserId, inviteeUserId))
                     .thenReturn(Optional.empty());
             when(invitationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -156,7 +156,7 @@ class DefaultInvitationServiceTest {
             when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(existingSpace));
             when(userClient.getUserByEmail(inviteeEmail))
                     .thenReturn(User.builder().id(inviteeUserId).firstName("Jane").lastName("Doe").build());
-            when(invitationRepository.findPendingByInviterAndInvitee(inviterUserId, inviteeUserId))
+            when(invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(spaceId, inviterUserId, inviteeUserId))
                     .thenReturn(Optional.of(existingInvitation));
 
             Invitation result = service.sendInvitation(command);

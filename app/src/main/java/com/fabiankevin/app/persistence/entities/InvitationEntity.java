@@ -48,8 +48,7 @@ public class InvitationEntity {
     @Column(name = "expires_at")
     private Instant expiresAt;
 
-    @Column(name = "resulting_shared_space_id")
-    private UUID resultingSharedSpaceId;
+    private UUID sharedSpaceId;
 
     public static InvitationEntity from(Invitation invitation) {
         if (invitation == null) return null;
@@ -62,7 +61,7 @@ public class InvitationEntity {
                 .status(invitation.status())
                 .createdAt(invitation.createdAt())
                 .expiresAt(invitation.expiresAt())
-                .resultingSharedSpaceId(invitation.sharedSpaceId())
+                .sharedSpaceId(invitation.sharedSpaceId())
                 .build();
     }
 
@@ -76,7 +75,7 @@ public class InvitationEntity {
                 .status(this.status)
                 .createdAt(this.createdAt)
                 .expiresAt(this.expiresAt)
-                .sharedSpaceId(this.resultingSharedSpaceId)
+                .sharedSpaceId(this.sharedSpaceId)
                 .build();
     }
 

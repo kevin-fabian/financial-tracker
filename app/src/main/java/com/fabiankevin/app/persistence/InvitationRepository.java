@@ -11,7 +11,7 @@ public interface InvitationRepository {
 
     Optional<Invitation> findById(UUID id);
 
-    Optional<Invitation> findPendingByInviterAndInvitee(UUID inviterUserId, UUID inviteeUserId);
+    Optional<Invitation> findPendingBySpaceIdAndInviterAndInvitee(UUID spaceId, UUID inviterUserId, UUID inviteeUserId);
 
     List<Invitation> findByInviterUserIdOrInviteeUserId(UUID userId);
 }

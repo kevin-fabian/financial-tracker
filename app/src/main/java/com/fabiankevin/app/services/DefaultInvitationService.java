@@ -49,7 +49,7 @@ public class DefaultInvitationService implements InvitationService {
             throw new ParticipantAlreadyExistsException();
         }
 
-        return invitationRepository.findPendingByInviterAndInvitee(command.inviterUserId(), invitee.id())
+        return invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(command.spaceId(), command.inviterUserId(), invitee.id())
                 .orElseGet(() -> {
                     Invitation invitation = Invitation.builder()
                             .inviterUserId(command.inviterUserId())

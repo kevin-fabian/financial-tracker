@@ -29,8 +29,8 @@ public class DefaultInvitationRepository implements InvitationRepository {
     }
 
     @Override
-    public Optional<Invitation> findPendingByInviterAndInvitee(UUID inviterUserId, UUID inviteeUserId) {
-        return jpaInvitationRepository.findByInviterUserIdAndInviteeUserIdAndStatus(inviterUserId, inviteeUserId, InvitationStatus.PENDING)
+    public Optional<Invitation> findPendingBySpaceIdAndInviterAndInvitee(UUID spaceId, UUID inviterUserId, UUID inviteeUserId) {
+        return jpaInvitationRepository.findBySharedSpaceIdAndInviterUserIdAndInviteeUserIdAndStatus(spaceId, inviterUserId, inviteeUserId, InvitationStatus.PENDING)
                 .map(InvitationEntity::toModel);
     }
 

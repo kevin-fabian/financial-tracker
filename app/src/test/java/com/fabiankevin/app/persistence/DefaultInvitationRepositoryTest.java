@@ -7,6 +7,7 @@ import com.fabiankevin.app.models.shared_space.Invitation;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaInvitationRepository;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -125,5 +126,75 @@ class DefaultInvitationRepositoryTest {
         Optional<Invitation> found = invitationRepository.findById(UUID.randomUUID());
 
         Assertions.assertThat(found).as("non existing id returns empty optional").isEmpty();
+    }
+
+    @Nested
+    class FindPendingBySpaceIdAndInviterAndInviteeTest {
+
+        @Test
+        void givenMatchingPendingInvitation_shouldReturnInvitation() {
+            UUID spaceId = UUID.randomUUID();
+            Invitation pending = Invitation.builder()
+                    .inviterUserId(invitation.inviterUserId())
+                    .inviteeUserId(invitation.inviteeUserId())
+                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedRole(AccessLevel.READ_WRITE)
+                    .status(InvitationStatus.PENDING)
+                    .createdAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(86400))
+                    .sharedSpaceId(spaceId)
+                    .build();
+            Invitation saved = invitationRepository.save(pending);
+
+            Optional<Invitation> found = invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(
+                    spaceId, saved.inviterUserId(), saved.inviteeUserId());
+
+            Assertions.assertThat(found).isPresent();
+            Assertions.assertThat(found.get().id()).isEqualTo(saved.id());
+            Assertions.assertThat(found.get().sharedSpaceId()).isEqualTo(spaceId);
+            Assertions.assertThat(found.get().status()).isEqualTo(InvitationStatus.PENDING);
+        }
+
+        @Test
+        void givenDifferentSpace_shouldReturnEmpty() {
+            UUID spaceId = UUID.randomUUID();
+            Invitation pending = Invitation.builder()
+                    .inviterUserId(invitation.inviterUserId())
+                    .inviteeUserId(invitation.inviteeUserId())
+                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedRole(AccessLevel.READ_WRITE)
+                    .status(InvitationStatus.PENDING)
+                    .createdAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(86400))
+                    .sharedSpaceId(spaceId)
+                    .build();
+            Invitation saved = invitationRepository.save(pending);
+
+            Optional<Invitation> found = invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(
+                    UUID.randomUUID(), saved.inviterUserId(), saved.inviteeUserId());
+
+            Assertions.assertThat(found).isEmpty();
+        }
+
+        @Test
+        void givenNonPendingStatus_shouldReturnEmpty() {
+            UUID spaceId = UUID.randomUUID();
+            Invitation accepted = Invitation.builder()
+                    .inviterUserId(invitation.inviterUserId())
+                    .inviteeUserId(invitation.inviteeUserId())
+                    .proposedSharingMode(SharingMode.MUTUAL_SHARING)
+                    .proposedRole(AccessLevel.READ_WRITE)
+                    .status(InvitationStatus.ACCEPTED)
+                    .createdAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(86400))
+                    .sharedSpaceId(spaceId)
+                    .build();
+            Invitation saved = invitationRepository.save(accepted);
+
+            Optional<Invitation> found = invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(
+                    spaceId, saved.inviterUserId(), saved.inviteeUserId());
+
+            Assertions.assertThat(found).isEmpty();
+        }
     }
 }
