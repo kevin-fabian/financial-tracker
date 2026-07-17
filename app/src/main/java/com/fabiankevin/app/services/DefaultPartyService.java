@@ -1,7 +1,10 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.exceptions.shared_space.*;
+import com.fabiankevin.app.exceptions.shared_space.CannotRemoveOwnerException;
+import com.fabiankevin.app.exceptions.shared_space.ForbiddenException;
+import com.fabiankevin.app.exceptions.shared_space.NotSpaceOwnerException;
+import com.fabiankevin.app.exceptions.shared_space.SharedSpaceNotFoundException;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.PartyMemberStatus;
@@ -27,9 +30,9 @@ public class DefaultPartyService implements PartyService {
 
     @Transactional
     @Override
-    public Party organize(OrganizePartyCommand command) {
-        List<PartyMember> initialParticipants = new ArrayList<>();
-        initialParticipants.add(PartyMember.builder()
+    public PartySummary organize(OrganizePartyCommand command) {
+        List<PartyMember> initialPartyMembers = new ArrayList<>();
+        initialPartyMembers.add(PartyMember.builder()
                 .playerId(command.partyLeaderId())
                 .accessLevel(AccessLevel.READ_WRITE)
                 .status(PartyMemberStatus.ACTIVE)
@@ -53,10 +56,10 @@ public class DefaultPartyService implements PartyService {
                 .items(List.of())
                 .build());
 
-        Party newSpace = Party.builder()
-                .name(command.partyName() != null ? command.partyName() : "Shared Space")
+        Party newParty = Party.builder()
+                .name(command.partyName() != null ? command.partyName() : "New Party")
                 .partyLeaderId(command.partyLeaderId())
-                .partyMembers(initialParticipants)
+                .partyMembers(initialPartyMembers)
                 .sharingMode(command.sharingMode())
                 .sharedItems(sharedItems)
                 .active(true)
@@ -64,7 +67,8 @@ public class DefaultPartyService implements PartyService {
                 .updatedAt(Instant.now())
                 .build();
 
-        return spaceRepository.save(newSpace);
+        Party saved = spaceRepository.save(newParty);
+        return toSummaryWithUsers(saved);
     }
 
     @Transactional
@@ -97,21 +101,8 @@ public class DefaultPartyService implements PartyService {
 
     @Override
     public List<PartySummary> retrieveByUserId(UUID userId) {
-        List<Party> parties = spaceRepository.retrieveByUserId(userId);
-
-        List<UUID> allParticipantIds = parties.stream()
-                .flatMap(party -> party.partyMembers().stream())
-                .map(PartyMember::playerId)
-                .distinct()
-                .toList();
-
-        Map<UUID, User> usersById = allParticipantIds.isEmpty()
-                ? Map.of()
-                : userClient.getUsersByIds(allParticipantIds).stream()
-                .collect(Collectors.toMap(User::id, Function.identity()));
-
-        return parties.stream()
-                .map(party -> toSummary(party, usersById))
+        return spaceRepository.retrieveByUserId(userId).stream()
+                .map(this::toSummaryWithUsers)
                 .toList();
     }
 
@@ -158,26 +149,36 @@ public class DefaultPartyService implements PartyService {
                 .orElseThrow(SharedSpaceNotFoundException::new);
     }
 
-    private PartyMember findParticipantOrThrow(Party party, UUID userId) {
-        return party.partyMembers().stream()
-                .filter(p -> p.playerId().equals(userId))
-                .findFirst()
-                .orElseThrow(() -> new ParticipantNotFoundException(userId));
+    private PartySummary toSummaryWithUsers(Party party) {
+        List<UUID> partyMemberIds = party.partyMembers().stream()
+                .map(PartyMember::playerId)
+                .distinct()
+                .toList();
+
+        Map<UUID, User> usersById = partyMemberIds.isEmpty()
+                ? Map.of()
+                : userClient.getUsersByIds(partyMemberIds).stream()
+                .collect(Collectors.toMap(User::id, Function.identity()));
+
+        return toSummary(party, usersById);
     }
 
-    private PartySummary toSummary(Party party, Map<UUID, User> usersById) {
-        List<PartyMemberSummary> participantSummaries = party.partyMembers().stream()
-                .map(participant -> {
-                    User user = usersById.get(participant.playerId());
+    private PartySummary toSummary(Party party, Map<UUID, User> playerIds) {
+        List<PartyMemberSummary> partyMemberSummaries = party.partyMembers().stream()
+                .map(partyMember -> {
+                    User user = playerIds.get(partyMember.playerId());
                     String name = user != null ? user.firstName() + " " + user.lastName() : null;
                     String initial = deriveInitial(user);
+                    boolean leader = party.partyLeaderId() == partyMember.playerId();
                     return PartyMemberSummary.builder()
-                            .id(participant.playerId())
+                            .id(partyMember.playerId())
                             .name(name)
                             .initial(initial)
-                            .accessLevel(participant.accessLevel())
-                            .status(participant.status())
-                            .joinedAt(participant.joinedAt())
+                            .partyLeader(leader)
+                            .partyMember(!leader)
+                            .accessLevel(partyMember.accessLevel())
+                            .status(partyMember.status())
+                            .joinedAt(partyMember.joinedAt())
                             .build();
                 })
                 .toList();
@@ -186,7 +187,7 @@ public class DefaultPartyService implements PartyService {
                 .id(party.id())
                 .name(party.name())
                 .partyLeaderId(party.partyLeaderId())
-                .participants(participantSummaries)
+                .participants(partyMemberSummaries)
                 .sharingMode(party.sharingMode())
                 .sharedItems(party.sharedItems())
                 .active(party.active())

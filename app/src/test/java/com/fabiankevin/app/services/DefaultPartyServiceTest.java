@@ -10,6 +10,8 @@ import com.fabiankevin.app.models.enums.shared_space.ResourceType;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.party.Party;
 import com.fabiankevin.app.models.party.PartyMember;
+import com.fabiankevin.app.models.party.PartyMemberSummary;
+import com.fabiankevin.app.models.party.PartySummary;
 import com.fabiankevin.app.persistence.PartyRepository;
 import com.fabiankevin.app.services.commands.shared_space.OrganizePartyCommand;
 import com.fabiankevin.app.services.commands.shared_space.PatchPartyCommand;
@@ -34,6 +36,9 @@ class DefaultPartyServiceTest {
     @Mock
     private PartyRepository spaceRepository;
 
+    @Mock
+    private com.fabiankevin.app.clients.UserClient userClient;
+
     @InjectMocks
     private DefaultPartyService service;
 
@@ -51,18 +56,19 @@ class DefaultPartyServiceTest {
 
             ArgumentCaptor<Party> captor = ArgumentCaptor.forClass(Party.class);
             when(spaceRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(userClient.getUsersByIds(any())).thenReturn(List.of());
 
-            Party result = service.organize(command);
+            PartySummary result = service.organize(command);
 
             assertNotNull(result);
             assertEquals("Trip Budget", result.name());
             assertEquals(ownerUserId, result.partyLeaderId());
             assertEquals(SharingMode.EVEN_SHARE, result.sharingMode());
             assertTrue(result.active());
-            assertEquals(1, result.partyMembers().size());
+            assertEquals(1, result.participants().size());
 
-            PartyMember owner = result.partyMembers().getFirst();
-            assertEquals(ownerUserId, owner.playerId());
+            PartyMemberSummary owner = result.participants().getFirst();
+            assertEquals(ownerUserId, owner.id());
             assertEquals(AccessLevel.READ_WRITE, owner.accessLevel());
             assertEquals(PartyMemberStatus.ACTIVE, owner.status());
 
@@ -85,6 +91,7 @@ class DefaultPartyServiceTest {
 
             ArgumentCaptor<Party> captor = ArgumentCaptor.forClass(Party.class);
             when(spaceRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(userClient.getUsersByIds(any())).thenReturn(List.of());
 
             service.organize(command);
 

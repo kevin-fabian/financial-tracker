@@ -6,7 +6,7 @@ import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.party.Invitation;
-import com.fabiankevin.app.models.party.Party;
+import com.fabiankevin.app.models.party.PartySummary;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
@@ -81,7 +81,7 @@ public class DefaultPartyServiceSpringBootTest {
         addTransaction(partnerUserid, 3000);
 
         // Step 1: Create a space
-        Party initialParty = partyService.organize(OrganizePartyCommand.builder()
+        PartySummary initialParty = partyService.organize(OrganizePartyCommand.builder()
                 .partyName("Partner Space")
                 .partyLeaderId(ownerUserId)
                 .sharingMode(SharingMode.EVEN_SHARE)
@@ -130,7 +130,7 @@ public class DefaultPartyServiceSpringBootTest {
         addTransaction(partnerUserid, 1500);
 
         // Step 1: Create a space
-        Party initialParty = partyService.organize(OrganizePartyCommand.builder()
+        PartySummary initialParty = partyService.organize(OrganizePartyCommand.builder()
                 .partyName("Partner Space")
                 .partyLeaderId(ownerUserId)
                 .sharingMode(SharingMode.EVEN_SHARE)

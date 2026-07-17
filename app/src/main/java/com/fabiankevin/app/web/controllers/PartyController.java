@@ -1,6 +1,7 @@
 package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.models.party.Party;
+import com.fabiankevin.app.models.party.PartySummary;
 import com.fabiankevin.app.services.PartyService;
 import com.fabiankevin.app.web.controllers.dtos.party.OrganizePartyRequest;
 import com.fabiankevin.app.web.controllers.dtos.party.PartyResponse;
@@ -45,7 +46,7 @@ public class PartyController {
         @Valid @RequestBody OrganizePartyRequest request,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        Party created = partyService.organize(request.toCommand(userId));
+        PartySummary created = partyService.organize(request.toCommand(userId));
         PartyResponse response = PartyResponse.from(created);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
             .path("/{id}")

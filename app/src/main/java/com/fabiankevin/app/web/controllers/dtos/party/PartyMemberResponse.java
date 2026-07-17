@@ -10,40 +10,45 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 @Schema(description = "Response representing a participant in a party")
 public record PartyMemberResponse(
-    @Schema(description = "Participant identifier", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
-    UUID id,
+        @Schema(description = "Participant identifier", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
+        UUID id,
 
-    @Schema(description = "Player identifier", example = "a1b2c3d4-...")
-    UUID playerId,
+        @Schema(description = "Player identifier", example = "a1b2c3d4-...")
+        UUID playerId,
 
-    @Schema(description = "Display name of the participant", example = "John Doe")
-    String name,
+        @Schema(description = "Display name of the participant", example = "John Doe")
+        String name,
 
-    @Schema(description = "Initials derived from the participant name", example = "JD")
-    String initial,
+        boolean partyLeader,
+        boolean partyMember,
 
-    @Schema(description = "Access level name of the participant", example = "Read & Write")
-    String accessLevelName,
+        @Schema(description = "Initials derived from the participant name", example = "JD")
+        String initial,
 
-    @Schema(description = "Access level description of the participant")
-    String accessLevelDescription,
+        @Schema(description = "Access level name of the participant", example = "Read & Write")
+        String accessLevelName,
 
-    @Schema(description = "Status of the participant", example = "ACTIVE")
-    String status,
+        @Schema(description = "Access level description of the participant")
+        String accessLevelDescription,
 
-    @Schema(description = "Timestamp when the participant joined")
-    Instant joinedAt
+        @Schema(description = "Status of the participant", example = "ACTIVE")
+        String status,
+
+        @Schema(description = "Timestamp when the participant joined")
+        Instant joinedAt
 ) {
-    public static PartyMemberResponse from(PartyMemberSummary participant) {
+    public static PartyMemberResponse from(PartyMemberSummary partyMember) {
         return PartyMemberResponse.builder()
-            .id(participant.id())
-            .playerId(participant.id())
-            .name(participant.name())
-            .initial(participant.initial())
-            .accessLevelName(participant.accessLevel() != null ? participant.accessLevel().getName() : null)
-            .accessLevelDescription(participant.accessLevel() != null ? participant.accessLevel().getDescription() : null)
-            .status(participant.status() != null ? participant.status().name() : null)
-            .joinedAt(participant.joinedAt())
-            .build();
+                .id(partyMember.id())
+                .playerId(partyMember.id())
+                .name(partyMember.name())
+                .partyMember(partyMember.partyMember())
+                .partyLeader(partyMember.partyLeader())
+                .initial(partyMember.initial())
+                .accessLevelName(partyMember.accessLevel() != null ? partyMember.accessLevel().getName() : null)
+                .accessLevelDescription(partyMember.accessLevel() != null ? partyMember.accessLevel().getDescription() : null)
+                .status(partyMember.status() != null ? partyMember.status().name() : null)
+                .joinedAt(partyMember.joinedAt())
+                .build();
     }
 }

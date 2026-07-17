@@ -74,13 +74,13 @@ class PartyControllerTest {
             .build();
     }
 
-    private Party spaceWithId(UUID id, UUID ownerId) {
-        return Party.builder()
+    private PartySummary partyWithId(UUID id, UUID ownerId) {
+        return PartySummary.builder()
             .id(id)
             .name("Family 2026 Budget")
             .partyLeaderId(ownerId)
             .sharingMode(SharingMode.EVEN_SHARE)
-            .partyMembers(List.of())
+            .participants(List.of())
             .sharedItems(List.of())
             .active(true)
             .createdAt(Instant.now())
@@ -115,11 +115,11 @@ class PartyControllerTest {
         void givenValidRequest_thenReturnsCreated() throws Exception {
             UUID partyId = UUID.randomUUID();
             OrganizePartyRequest request = OrganizePartyRequest.builder()
-                .partyName("Family 2026 Budget")
+                .name("Family 2026 Budget")
                 .sharingMode(SharingMode.EVEN_SHARE)
                 .build();
 
-            when(partyService.organize(any())).thenReturn(spaceWithId(partyId, userId));
+            when(partyService.organize(any())).thenReturn(partyWithId(partyId, userId));
 
             mockMvc.perform(post("/api/parties")
                     .with(jwt().jwt(jwt))
@@ -136,7 +136,7 @@ class PartyControllerTest {
         @Test
         void givenMissingJwt_thenReturnsForbidden() throws Exception {
             OrganizePartyRequest request = OrganizePartyRequest.builder()
-                .partyName("Family 2026 Budget")
+                .name("Family 2026 Budget")
                 .sharingMode(SharingMode.EVEN_SHARE)
                 .build();
 
@@ -151,7 +151,7 @@ class PartyControllerTest {
         @Test
         void givenMissingSharingMode_thenReturnsBadRequest() throws Exception {
             OrganizePartyRequest request = OrganizePartyRequest.builder()
-                .partyName("Family 2026 Budget")
+                .name("Family 2026 Budget")
                 .build();
 
             mockMvc.perform(post("/api/parties")
@@ -207,14 +207,14 @@ class PartyControllerTest {
                 .andExpect(jsonPath("$[0].partyMembers[0].accessLevelDescription").value(READ_WRITE.getDescription()))
                 .andExpect(jsonPath("$[0].partyMembers[0].status").value("ACTIVE"))
                 .andExpect(jsonPath("$[0].partyMembers[0].joinedAt").exists())
-                .andExpect(jsonPath("$[0].sharedResources.length()").value(1))
-                .andExpect(jsonPath("$[0].sharedResources[0].id").value(resourceId.toString()))
-                .andExpect(jsonPath("$[0].sharedResources[0].type").value("TRANSACTION"))
-                .andExpect(jsonPath("$[0].sharedResources[0].name").value("Transaction"))
-                .andExpect(jsonPath("$[0].sharedResources[0].description").value(ResourceType.TRANSACTION.getDescription()))
-                .andExpect(jsonPath("$[0].sharedResources[0].items.length()").value(2))
-                .andExpect(jsonPath("$[0].sharedResources[0].items[0]").value("item-1"))
-                .andExpect(jsonPath("$[0].sharedResources[0].sharedAt").exists());
+                .andExpect(jsonPath("$[0].sharedLoots.length()").value(1))
+                .andExpect(jsonPath("$[0].sharedLoots[0].id").value(resourceId.toString()))
+                .andExpect(jsonPath("$[0].sharedLoots[0].type").value("TRANSACTION"))
+                .andExpect(jsonPath("$[0].sharedLoots[0].name").value("Transaction"))
+                .andExpect(jsonPath("$[0].sharedLoots[0].description").value(ResourceType.TRANSACTION.getDescription()))
+                .andExpect(jsonPath("$[0].sharedLoots[0].items.length()").value(2))
+                .andExpect(jsonPath("$[0].sharedLoots[0].items[0]").value("item-1"))
+                .andExpect(jsonPath("$[0].sharedLoots[0].sharedAt").exists());
 
             verify(partyService).retrieveByUserId(userId);
         }

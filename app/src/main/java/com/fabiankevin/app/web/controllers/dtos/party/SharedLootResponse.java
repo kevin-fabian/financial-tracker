@@ -10,7 +10,7 @@ import java.util.UUID;
 
 @Builder(toBuilder = true)
 @Schema(description = "Response representing a resource shared into a space")
-public record SharedItemResponse(
+public record SharedLootResponse(
         @Schema(description = "Shared resource identifier", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
         UUID id,
 
@@ -29,8 +29,8 @@ public record SharedItemResponse(
         @Schema(description = "Timestamp when the resource was shared")
         Instant sharedAt
 ) {
-    public static SharedItemResponse from(SharedItem resource) {
-        return SharedItemResponse.builder()
+    public static SharedLootResponse from(SharedItem resource) {
+        return SharedLootResponse.builder()
                 .id(resource.id())
                 .type(resource.type() != null ? resource.type().name() : null)
                 .name(resource.type() != null ? resource.type().getName() : null)

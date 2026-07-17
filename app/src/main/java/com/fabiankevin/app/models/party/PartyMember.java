@@ -20,8 +20,4 @@ public record PartyMember(
         Objects.requireNonNull(accessLevel, "accessLevel");
         Objects.requireNonNull(status, "status");
     }
-
-    public boolean isOwner(UUID ownerId) {
-        return playerId == ownerId;
-    }
 }

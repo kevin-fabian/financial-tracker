@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface PartyService {
-    Party organize(OrganizePartyCommand command);
+    PartySummary organize(OrganizePartyCommand command);
 
     void kickPartyMember(UUID partyId, UUID participantId, UUID requesterId);
 

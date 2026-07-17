@@ -30,8 +30,8 @@ public record PartyResponse(
     @Schema(description = "Members of the party")
     List<PartyMemberResponse> partyMembers,
 
-    @Schema(description = "Resources shared into the party")
-    List<SharedItemResponse> sharedResources,
+    @Schema(description = "Shared loots into the party")
+    List<SharedLootResponse> sharedLoots,
 
     @Schema(description = "Whether the party is active")
     boolean active,
@@ -50,7 +50,7 @@ public record PartyResponse(
             .sharingModeName(party.sharingMode() != null ? party.sharingMode().getName() : null)
             .sharingModeDescription(party.sharingMode() != null ? party.sharingMode().getDescription() : null)
             .partyMembers(party.participants().stream().map(PartyMemberResponse::from).toList())
-            .sharedResources(party.sharedItems().stream().map(SharedItemResponse::from).toList())
+            .sharedLoots(party.sharedItems().stream().map(SharedLootResponse::from).toList())
             .active(party.active())
             .createdAt(party.createdAt())
             .updatedAt(party.updatedAt())
@@ -72,7 +72,7 @@ public record PartyResponse(
                     .status(p.status() != null ? p.status().name() : null)
                     .joinedAt(p.joinedAt())
                     .build()).toList())
-            .sharedResources(party.sharedItems().stream().map(SharedItemResponse::from).toList())
+            .sharedLoots(party.sharedItems().stream().map(SharedLootResponse::from).toList())
             .active(party.active())
             .createdAt(party.createdAt())
             .updatedAt(party.updatedAt())

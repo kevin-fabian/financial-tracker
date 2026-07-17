@@ -12,7 +12,7 @@ import java.util.UUID;
 @Schema(description = "Request to create a party")
 public record OrganizePartyRequest(
     @Schema(description = "Display name for the party", example = "Family 2026 Budget")
-    String partyName,
+    String name,
 
     @NotNull(message = "Sharing mode is required")
     @Schema(description = "Global sharing mode for the party", example = "MUTUAL_SHARING")
@@ -21,7 +21,7 @@ public record OrganizePartyRequest(
     public OrganizePartyCommand toCommand(UUID partyLeaderId) {
         return OrganizePartyCommand.builder()
             .partyLeaderId(partyLeaderId)
-            .partyName(partyName)
+            .partyName(name)
             .sharingMode(sharingMode)
             .build();
     }

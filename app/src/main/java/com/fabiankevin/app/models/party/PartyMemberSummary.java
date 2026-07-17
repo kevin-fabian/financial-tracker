@@ -13,6 +13,8 @@ public record PartyMemberSummary(
         UUID id,
         String name,
         String initial,
+        boolean partyLeader,
+        boolean partyMember,
         AccessLevel accessLevel,
         PartyMemberStatus status,
         Instant joinedAt) {
