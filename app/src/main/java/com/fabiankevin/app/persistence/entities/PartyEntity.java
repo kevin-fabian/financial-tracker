@@ -1,6 +1,6 @@
 package com.fabiankevin.app.persistence.entities;
 
-import com.fabiankevin.app.models.enums.shared_space.SharingMode;
+import com.fabiankevin.app.models.enums.party.SharingMode;
 import com.fabiankevin.app.models.party.Party;
 import com.fabiankevin.app.models.party.PartyMember;
 import com.fabiankevin.app.models.party.SharedItem;

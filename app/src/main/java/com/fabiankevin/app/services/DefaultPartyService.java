@@ -1,18 +1,18 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.exceptions.shared_space.CannotRemoveOwnerException;
-import com.fabiankevin.app.exceptions.shared_space.ForbiddenException;
-import com.fabiankevin.app.exceptions.shared_space.NotSpaceOwnerException;
-import com.fabiankevin.app.exceptions.shared_space.SharedSpaceNotFoundException;
+import com.fabiankevin.app.exceptions.party.CannotRemoveOwnerException;
+import com.fabiankevin.app.exceptions.party.ForbiddenException;
+import com.fabiankevin.app.exceptions.party.NotPartyLeaderException;
+import com.fabiankevin.app.exceptions.party.PartyNotFoundException;
 import com.fabiankevin.app.models.User;
-import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
-import com.fabiankevin.app.models.enums.shared_space.PartyMemberStatus;
-import com.fabiankevin.app.models.enums.shared_space.ResourceType;
+import com.fabiankevin.app.models.enums.party.AccessLevel;
+import com.fabiankevin.app.models.enums.party.PartyMemberStatus;
+import com.fabiankevin.app.models.enums.party.ResourceType;
 import com.fabiankevin.app.models.party.*;
 import com.fabiankevin.app.persistence.PartyRepository;
-import com.fabiankevin.app.services.commands.shared_space.OrganizePartyCommand;
-import com.fabiankevin.app.services.commands.shared_space.PatchPartyCommand;
+import com.fabiankevin.app.services.commands.party.OrganizePartyCommand;
+import com.fabiankevin.app.services.commands.party.PatchPartyCommand;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -117,7 +117,7 @@ public class DefaultPartyService implements PartyService {
         Party party = findPartyOrThrow(partyId);
 
         if (!party.partyLeaderId().equals(requesterId)) {
-            throw new NotSpaceOwnerException();
+            throw new NotPartyLeaderException();
         }
 
         partyRepository.deleteById(partyId);
@@ -129,7 +129,7 @@ public class DefaultPartyService implements PartyService {
         Party existing = findPartyOrThrow(command.id());
 
         if (!existing.partyLeaderId().equals(command.playerId())) {
-            throw new NotSpaceOwnerException();
+            throw new NotPartyLeaderException();
         }
 
         Party.PartyBuilder builder = existing.toBuilder()
@@ -146,7 +146,7 @@ public class DefaultPartyService implements PartyService {
 
     private Party findPartyOrThrow(UUID partyId) {
         return partyRepository.findById(partyId)
-                .orElseThrow(SharedSpaceNotFoundException::new);
+                .orElseThrow(PartyNotFoundException::new);
     }
 
     private PartySummary toSummaryWithUsers(Party party) {

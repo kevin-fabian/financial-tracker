@@ -1,6 +1,6 @@
-package com.fabiankevin.app.services.commands.shared_space;
+package com.fabiankevin.app.services.commands.party;
 
-import com.fabiankevin.app.models.enums.shared_space.ResourceType;
+import com.fabiankevin.app.models.enums.party.ResourceType;
 import lombok.Builder;
 
 import java.util.List;

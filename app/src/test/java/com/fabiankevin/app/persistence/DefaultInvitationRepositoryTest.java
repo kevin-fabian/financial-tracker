@@ -1,8 +1,8 @@
 package com.fabiankevin.app.persistence;
 
-import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
-import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
-import com.fabiankevin.app.models.enums.shared_space.SharingMode;
+import com.fabiankevin.app.models.enums.party.AccessLevel;
+import com.fabiankevin.app.models.enums.party.InvitationStatus;
+import com.fabiankevin.app.models.enums.party.SharingMode;
 import com.fabiankevin.app.models.party.Invitation;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaInvitationRepository;
 import org.assertj.core.api.Assertions;

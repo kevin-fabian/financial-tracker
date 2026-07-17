@@ -1,19 +1,19 @@
 package com.fabiankevin.app.web.controllers;
 
-import com.fabiankevin.app.exceptions.shared_space.CannotRemoveOwnerException;
-import com.fabiankevin.app.exceptions.shared_space.SharedSpaceNotFoundException;
-import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
-import com.fabiankevin.app.models.enums.shared_space.PartyMemberStatus;
-import com.fabiankevin.app.models.enums.shared_space.ResourceType;
-import com.fabiankevin.app.models.enums.shared_space.SharingMode;
+import com.fabiankevin.app.exceptions.party.CannotRemoveOwnerException;
+import com.fabiankevin.app.exceptions.party.PartyNotFoundException;
+import com.fabiankevin.app.models.enums.party.AccessLevel;
+import com.fabiankevin.app.models.enums.party.PartyMemberStatus;
+import com.fabiankevin.app.models.enums.party.ResourceType;
+import com.fabiankevin.app.models.enums.party.SharingMode;
 import com.fabiankevin.app.models.party.Party;
 import com.fabiankevin.app.models.party.PartyMemberSummary;
 import com.fabiankevin.app.models.party.PartySummary;
 import com.fabiankevin.app.models.party.SharedItem;
 import com.fabiankevin.app.services.InvitationService;
 import com.fabiankevin.app.services.PartyService;
-import com.fabiankevin.app.services.commands.shared_space.OrganizePartyCommand;
-import com.fabiankevin.app.services.commands.shared_space.PatchPartyCommand;
+import com.fabiankevin.app.services.commands.party.OrganizePartyCommand;
+import com.fabiankevin.app.services.commands.party.PatchPartyCommand;
 import com.fabiankevin.app.web.controllers.dtos.party.OrganizePartyRequest;
 import com.fabiankevin.app.web.controllers.dtos.party.PatchPartyRequest;
 import com.github.fabiankevin.lemon.web.GlobalExceptionHandler;
@@ -33,7 +33,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import static com.fabiankevin.app.models.enums.shared_space.AccessLevel.READ_WRITE;
+import static com.fabiankevin.app.models.enums.party.AccessLevel.READ_WRITE;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -399,7 +399,7 @@ class PartyControllerTest {
         void givenSpaceNotFound_thenReturnsNotFound() throws Exception {
             UUID partyId = UUID.randomUUID();
 
-            doThrow(new SharedSpaceNotFoundException())
+            doThrow(new PartyNotFoundException())
                 .when(partyService).disbandParty(partyId, userId);
 
             mockMvc.perform(delete("/api/parties/" + partyId)
@@ -467,7 +467,7 @@ class PartyControllerTest {
                 .partyName("Updated Budget")
                 .build();
 
-            doThrow(new SharedSpaceNotFoundException())
+            doThrow(new PartyNotFoundException())
                 .when(partyService).patchParty(any());
 
             mockMvc.perform(patch("/api/parties/" + partyId)

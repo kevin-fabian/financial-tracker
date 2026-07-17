@@ -2,8 +2,8 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.models.party.Party;
 import com.fabiankevin.app.models.party.PartySummary;
-import com.fabiankevin.app.services.commands.shared_space.OrganizePartyCommand;
-import com.fabiankevin.app.services.commands.shared_space.PatchPartyCommand;
+import com.fabiankevin.app.services.commands.party.OrganizePartyCommand;
+import com.fabiankevin.app.services.commands.party.PatchPartyCommand;
 
 import java.util.List;
 import java.util.UUID;

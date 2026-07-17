@@ -1,6 +1,6 @@
 package com.fabiankevin.app.web.controllers.dtos;
 
-import com.fabiankevin.app.services.commands.shared_space.invitations.SendInvitationCommand;
+import com.fabiankevin.app.services.commands.party.invitations.SendInvitationCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;

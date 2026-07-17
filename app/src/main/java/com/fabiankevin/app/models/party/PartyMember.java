@@ -1,7 +1,7 @@
 package com.fabiankevin.app.models.party;
 
-import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
-import com.fabiankevin.app.models.enums.shared_space.PartyMemberStatus;
+import com.fabiankevin.app.models.enums.party.AccessLevel;
+import com.fabiankevin.app.models.enums.party.PartyMemberStatus;
 import lombok.Builder;
 
 import java.time.Instant;

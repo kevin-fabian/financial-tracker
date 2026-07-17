@@ -1,4 +1,4 @@
-package com.fabiankevin.app.exceptions.shared_space;
+package com.fabiankevin.app.exceptions.party;
 
 import com.github.fabiankevin.lemon.web.exceptions.NotFoundException;
 

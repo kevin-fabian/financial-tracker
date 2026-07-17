@@ -1,6 +1,6 @@
 package com.fabiankevin.app.models.party;
 
-import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
+import com.fabiankevin.app.models.enums.party.InvitationStatus;
 import lombok.Builder;
 
 import java.time.Instant;

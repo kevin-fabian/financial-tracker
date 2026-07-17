@@ -1,7 +1,7 @@
 package com.fabiankevin.app.web.controllers.dtos.party;
 
-import com.fabiankevin.app.models.enums.shared_space.SharingMode;
-import com.fabiankevin.app.services.commands.shared_space.PatchPartyCommand;
+import com.fabiankevin.app.models.enums.party.SharingMode;
+import com.fabiankevin.app.services.commands.party.PatchPartyCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 

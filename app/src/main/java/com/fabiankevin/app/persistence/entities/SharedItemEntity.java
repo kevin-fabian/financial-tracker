@@ -1,6 +1,6 @@
 package com.fabiankevin.app.persistence.entities;
 
-import com.fabiankevin.app.models.enums.shared_space.ResourceType;
+import com.fabiankevin.app.models.enums.party.ResourceType;
 import com.fabiankevin.app.models.party.SharedItem;
 import jakarta.persistence.*;
 import lombok.*;

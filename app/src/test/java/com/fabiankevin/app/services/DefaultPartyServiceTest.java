@@ -1,20 +1,20 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.exceptions.shared_space.CannotRemoveOwnerException;
-import com.fabiankevin.app.exceptions.shared_space.NotSpaceOwnerException;
-import com.fabiankevin.app.exceptions.shared_space.SharedSpaceNotFoundException;
-import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
-import com.fabiankevin.app.models.enums.shared_space.PartyMemberStatus;
-import com.fabiankevin.app.models.enums.shared_space.ResourceType;
-import com.fabiankevin.app.models.enums.shared_space.SharingMode;
+import com.fabiankevin.app.exceptions.party.CannotRemoveOwnerException;
+import com.fabiankevin.app.exceptions.party.NotPartyLeaderException;
+import com.fabiankevin.app.exceptions.party.PartyNotFoundException;
+import com.fabiankevin.app.models.enums.party.AccessLevel;
+import com.fabiankevin.app.models.enums.party.PartyMemberStatus;
+import com.fabiankevin.app.models.enums.party.ResourceType;
+import com.fabiankevin.app.models.enums.party.SharingMode;
 import com.fabiankevin.app.models.party.Party;
 import com.fabiankevin.app.models.party.PartyMember;
 import com.fabiankevin.app.models.party.PartyMemberSummary;
 import com.fabiankevin.app.models.party.PartySummary;
 import com.fabiankevin.app.persistence.PartyRepository;
-import com.fabiankevin.app.services.commands.shared_space.OrganizePartyCommand;
-import com.fabiankevin.app.services.commands.shared_space.PatchPartyCommand;
+import com.fabiankevin.app.services.commands.party.OrganizePartyCommand;
+import com.fabiankevin.app.services.commands.party.PatchPartyCommand;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -303,7 +303,7 @@ class DefaultPartyServiceTest {
 
             when(partyRepository.findById(partyId)).thenReturn(Optional.empty());
 
-            assertThrows(SharedSpaceNotFoundException.class, () -> service.disbandParty(partyId, requesterId));
+            assertThrows(PartyNotFoundException.class, () -> service.disbandParty(partyId, requesterId));
             verify(partyRepository, never()).deleteById(any());
         }
 
@@ -333,7 +333,7 @@ class DefaultPartyServiceTest {
 
             when(partyRepository.findById(partyId)).thenReturn(Optional.of(party));
 
-            assertThrows(NotSpaceOwnerException.class, () -> service.disbandParty(partyId, otherPlayerId));
+            assertThrows(NotPartyLeaderException.class, () -> service.disbandParty(partyId, otherPlayerId));
             verify(partyRepository, never()).deleteById(any());
         }
     }
@@ -393,7 +393,7 @@ class DefaultPartyServiceTest {
 
             when(partyRepository.findById(partyId)).thenReturn(Optional.empty());
 
-            assertThrows(SharedSpaceNotFoundException.class, () -> service.patchParty(command));
+            assertThrows(PartyNotFoundException.class, () -> service.patchParty(command));
             verify(partyRepository, never()).save(any());
         }
 
@@ -429,7 +429,7 @@ class DefaultPartyServiceTest {
 
             when(partyRepository.findById(partyId)).thenReturn(Optional.of(party));
 
-            assertThrows(NotSpaceOwnerException.class, () -> service.patchParty(command));
+            assertThrows(NotPartyLeaderException.class, () -> service.patchParty(command));
             verify(partyRepository, never()).save(any());
         }
     }

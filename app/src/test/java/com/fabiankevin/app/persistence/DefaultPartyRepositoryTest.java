@@ -1,9 +1,9 @@
 package com.fabiankevin.app.persistence;
 
-import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
-import com.fabiankevin.app.models.enums.shared_space.PartyMemberStatus;
-import com.fabiankevin.app.models.enums.shared_space.ResourceType;
-import com.fabiankevin.app.models.enums.shared_space.SharingMode;
+import com.fabiankevin.app.models.enums.party.AccessLevel;
+import com.fabiankevin.app.models.enums.party.PartyMemberStatus;
+import com.fabiankevin.app.models.enums.party.ResourceType;
+import com.fabiankevin.app.models.enums.party.SharingMode;
 import com.fabiankevin.app.models.party.Party;
 import com.fabiankevin.app.models.party.PartyMember;
 import com.fabiankevin.app.models.party.SharedItem;

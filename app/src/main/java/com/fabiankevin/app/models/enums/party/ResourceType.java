@@ -1,4 +1,4 @@
-package com.fabiankevin.app.models.enums.shared_space;
+package com.fabiankevin.app.models.enums.party;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

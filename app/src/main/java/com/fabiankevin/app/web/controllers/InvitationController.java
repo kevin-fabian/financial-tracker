@@ -1,8 +1,8 @@
 package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.services.InvitationService;
-import com.fabiankevin.app.services.commands.shared_space.invitations.AcceptInvitationCommand;
-import com.fabiankevin.app.services.commands.shared_space.invitations.RejectInvitationCommand;
+import com.fabiankevin.app.services.commands.party.invitations.AcceptInvitationCommand;
+import com.fabiankevin.app.services.commands.party.invitations.RejectInvitationCommand;
 import com.fabiankevin.app.web.controllers.dtos.SendInvitationRequest;
 import com.fabiankevin.app.web.controllers.dtos.party.InvitationResponse;
 import io.swagger.v3.oas.annotations.Operation;

@@ -1,15 +1,15 @@
 package com.fabiankevin.app.models.party;
 
-import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
-import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
-import com.fabiankevin.app.models.enums.shared_space.SharingMode;
+import com.fabiankevin.app.models.enums.party.AccessLevel;
+import com.fabiankevin.app.models.enums.party.InvitationStatus;
+import com.fabiankevin.app.models.enums.party.SharingMode;
 import lombok.Builder;
 
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
-import static com.fabiankevin.app.models.enums.shared_space.InvitationStatus.PENDING;
+import static com.fabiankevin.app.models.enums.party.InvitationStatus.PENDING;
 
 @Builder
 public record Invitation(

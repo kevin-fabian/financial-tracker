@@ -1,20 +1,20 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.exceptions.shared_space.*;
+import com.fabiankevin.app.exceptions.party.*;
 import com.fabiankevin.app.models.User;
-import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
-import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
-import com.fabiankevin.app.models.enums.shared_space.PartyMemberStatus;
+import com.fabiankevin.app.models.enums.party.AccessLevel;
+import com.fabiankevin.app.models.enums.party.InvitationStatus;
+import com.fabiankevin.app.models.enums.party.PartyMemberStatus;
 import com.fabiankevin.app.models.party.Invitation;
 import com.fabiankevin.app.models.party.InvitationSummary;
 import com.fabiankevin.app.models.party.Party;
 import com.fabiankevin.app.models.party.PartyMember;
 import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.PartyRepository;
-import com.fabiankevin.app.services.commands.shared_space.invitations.AcceptInvitationCommand;
-import com.fabiankevin.app.services.commands.shared_space.invitations.RejectInvitationCommand;
-import com.fabiankevin.app.services.commands.shared_space.invitations.SendInvitationCommand;
+import com.fabiankevin.app.services.commands.party.invitations.AcceptInvitationCommand;
+import com.fabiankevin.app.services.commands.party.invitations.RejectInvitationCommand;
+import com.fabiankevin.app.services.commands.party.invitations.SendInvitationCommand;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -40,13 +40,13 @@ public class DefaultInvitationService implements InvitationService {
     public Invitation sendInvitation(SendInvitationCommand command) {
         Party space = findSpaceOrThrow(command.partyId());
         if (!space.partyLeaderId().equals(command.inviterPlayerId())) {
-            throw new NotSpaceOwnerException();
+            throw new NotPartyLeaderException();
         }
 
         User invitee = userClient.getUserByEmail(command.inviteeEmail());
 
         if (isUserParticipant(space, invitee.id())) {
-            throw new ParticipantAlreadyExistsException();
+            throw new PartyMemberAlreadyExistsException();
         }
 
         return invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(command.partyId(), command.inviterPlayerId(), invitee.id())
@@ -174,7 +174,7 @@ public class DefaultInvitationService implements InvitationService {
 
     private Party findSpaceOrThrow(UUID spaceId) {
         return spaceRepository.findById(spaceId)
-                .orElseThrow(SharedSpaceNotFoundException::new);
+                .orElseThrow(PartyNotFoundException::new);
     }
 
     private Invitation findInvitationOrThrow(UUID invitationId) {

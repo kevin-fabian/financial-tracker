@@ -1,16 +1,16 @@
 package com.fabiankevin.app.web.controllers;
 
-import com.fabiankevin.app.exceptions.shared_space.ForbiddenException;
-import com.fabiankevin.app.exceptions.shared_space.InvitationNotFoundException;
-import com.fabiankevin.app.exceptions.shared_space.NotSpaceOwnerException;
-import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
-import com.fabiankevin.app.models.enums.shared_space.SharingMode;
+import com.fabiankevin.app.exceptions.party.ForbiddenException;
+import com.fabiankevin.app.exceptions.party.InvitationNotFoundException;
+import com.fabiankevin.app.exceptions.party.NotPartyLeaderException;
+import com.fabiankevin.app.models.enums.party.AccessLevel;
+import com.fabiankevin.app.models.enums.party.SharingMode;
 import com.fabiankevin.app.models.party.InvitationSummary;
 import com.fabiankevin.app.services.InvitationService;
 import com.fabiankevin.app.services.PartyService;
-import com.fabiankevin.app.services.commands.shared_space.invitations.AcceptInvitationCommand;
-import com.fabiankevin.app.services.commands.shared_space.invitations.RejectInvitationCommand;
-import com.fabiankevin.app.services.commands.shared_space.invitations.SendInvitationCommand;
+import com.fabiankevin.app.services.commands.party.invitations.AcceptInvitationCommand;
+import com.fabiankevin.app.services.commands.party.invitations.RejectInvitationCommand;
+import com.fabiankevin.app.services.commands.party.invitations.SendInvitationCommand;
 import com.fabiankevin.app.web.controllers.dtos.SendInvitationRequest;
 import com.github.fabiankevin.lemon.web.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,7 +29,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import static com.fabiankevin.app.models.enums.shared_space.InvitationStatus.PENDING;
+import static com.fabiankevin.app.models.enums.party.InvitationStatus.PENDING;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -227,7 +227,7 @@ class InvitationControllerTest {
                 .email("jane@example.com")
                 .build();
 
-            when(invitationService.sendInvitation(any())).thenThrow(new NotSpaceOwnerException());
+            when(invitationService.sendInvitation(any())).thenThrow(new NotPartyLeaderException());
 
             mockMvc.perform(post("/api/parties/" + partyId + "/invitations")
                     .with(jwt().jwt(jwt))
