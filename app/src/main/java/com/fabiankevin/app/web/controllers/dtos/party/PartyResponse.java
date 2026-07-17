@@ -49,7 +49,7 @@ public record PartyResponse(
             .partyLeaderId(party.partyLeaderId())
             .sharingModeName(party.sharingMode() != null ? party.sharingMode().getName() : null)
             .sharingModeDescription(party.sharingMode() != null ? party.sharingMode().getDescription() : null)
-            .partyMembers(party.participants().stream().map(PartyMemberResponse::from).toList())
+            .partyMembers(party.partyMembers().stream().map(PartyMemberResponse::from).toList())
             .sharedLoots(party.sharedItems().stream().map(SharedLootResponse::from).toList())
             .active(party.active())
             .createdAt(party.createdAt())

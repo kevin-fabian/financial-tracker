@@ -11,7 +11,7 @@ public record PartySummary(
         UUID id,
         String name,
         UUID partyLeaderId,
-        List<PartyMemberSummary> participants,
+        List<PartyMemberSummary> partyMembers,
         SharingMode sharingMode,
         List<SharedItem> sharedItems,
         boolean active,
@@ -24,6 +24,6 @@ public record PartySummary(
         Objects.requireNonNull(name, "name is required");
         Objects.requireNonNull(createdAt, "createdAt is required");
         sharedItems = Optional.ofNullable(sharedItems).orElse(new ArrayList<>());
-        participants = Optional.ofNullable(participants).orElse(new ArrayList<>());
+        partyMembers = Optional.ofNullable(partyMembers).orElse(new ArrayList<>());
     }
 }

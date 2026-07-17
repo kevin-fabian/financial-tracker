@@ -80,7 +80,7 @@ class PartyControllerTest {
             .name("Family 2026 Budget")
             .partyLeaderId(ownerId)
             .sharingMode(SharingMode.EVEN_SHARE)
-            .participants(List.of())
+            .partyMembers(List.of(leaderSummary(ownerId)))
             .sharedItems(List.of())
             .active(true)
             .createdAt(Instant.now())
@@ -93,6 +93,21 @@ class PartyControllerTest {
             .id(id)
             .name("John Doe")
             .initial("JD")
+            .partyLeader(false)
+            .partyMember(true)
+            .accessLevel(AccessLevel.READ_WRITE)
+            .status(PartyMemberStatus.ACTIVE)
+            .joinedAt(Instant.now())
+            .build();
+    }
+
+    private PartyMemberSummary leaderSummary(UUID id) {
+        return PartyMemberSummary.builder()
+            .id(id)
+            .name("Jane Leader")
+            .initial("JL")
+            .partyLeader(true)
+            .partyMember(false)
             .accessLevel(AccessLevel.READ_WRITE)
             .status(PartyMemberStatus.ACTIVE)
             .joinedAt(Instant.now())
@@ -128,7 +143,44 @@ class PartyControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", matchesPattern("http://localhost/api/parties/[-a-f0-9]{36}")))
                 .andExpect(jsonPath("$.id").value(partyId.toString()))
-                .andExpect(jsonPath("$.name").value("Family 2026 Budget"));
+                .andExpect(jsonPath("$.name").value("Family 2026 Budget"))
+                .andExpect(jsonPath("$.partyMembers.length()").value(1))
+                .andExpect(jsonPath("$.partyMembers[0].id").value(userId.toString()))
+                .andExpect(jsonPath("$.partyMembers[0].partyLeader").value(true))
+                .andExpect(jsonPath("$.partyMembers[0].partyMember").value(false));
+
+            verify(partyService).organize(any(OrganizePartyCommand.class));
+        }
+
+        @Test
+        void givenValidRequest_thenLeaderIsAlsoPartyMember() throws Exception {
+            UUID partyId = UUID.randomUUID();
+            OrganizePartyRequest request = OrganizePartyRequest.builder()
+                .name("Family 2026 Budget")
+                .sharingMode(SharingMode.EVEN_SHARE)
+                .build();
+
+            PartySummary party = PartySummary.builder()
+                .id(partyId)
+                .name("Family 2026 Budget")
+                .partyLeaderId(userId)
+                .sharingMode(SharingMode.EVEN_SHARE)
+                .partyMembers(List.of(leaderSummary(userId)))
+                .sharedItems(List.of())
+                .active(true)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+            when(partyService.organize(any())).thenReturn(party);
+
+            mockMvc.perform(post("/api/parties")
+                    .with(jwt().jwt(jwt))
+                    .contentType("application/json")
+                    .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.partyMembers[0].partyLeader").value(true))
+                .andExpect(jsonPath("$.partyMembers[0].partyMember").value(false));
 
             verify(partyService).organize(any(OrganizePartyCommand.class));
         }
@@ -177,7 +229,7 @@ class PartyControllerTest {
                 .name("Family 2026 Budget")
                 .partyLeaderId(userId)
                 .sharingMode(SharingMode.EVEN_SHARE)
-                .participants(List.of(participantSummary(partyMemberId)))
+                .partyMembers(List.of(leaderSummary(userId), participantSummary(partyMemberId)))
                 .sharedItems(List.of(sharedResource(resourceId, ResourceType.TRANSACTION)))
                 .active(true)
                 .createdAt(Instant.now())
@@ -198,15 +250,27 @@ class PartyControllerTest {
                 .andExpect(jsonPath("$[0].active").value(true))
                 .andExpect(jsonPath("$[0].createdAt").exists())
                 .andExpect(jsonPath("$[0].updatedAt").exists())
-                .andExpect(jsonPath("$[0].partyMembers.length()").value(1))
-                .andExpect(jsonPath("$[0].partyMembers[0].id").value(partyMemberId.toString()))
-                .andExpect(jsonPath("$[0].partyMembers[0].playerId").value(partyMemberId.toString()))
-                .andExpect(jsonPath("$[0].partyMembers[0].name").value("John Doe"))
-                .andExpect(jsonPath("$[0].partyMembers[0].initial").value("JD"))
+                .andExpect(jsonPath("$[0].partyMembers.length()").value(2))
+                .andExpect(jsonPath("$[0].partyMembers[0].id").value(userId.toString()))
+                .andExpect(jsonPath("$[0].partyMembers[0].playerId").value(userId.toString()))
+                .andExpect(jsonPath("$[0].partyMembers[0].name").value("Jane Leader"))
+                .andExpect(jsonPath("$[0].partyMembers[0].initial").value("JL"))
+                .andExpect(jsonPath("$[0].partyMembers[0].partyLeader").value(true))
+                .andExpect(jsonPath("$[0].partyMembers[0].partyMember").value(false))
                 .andExpect(jsonPath("$[0].partyMembers[0].accessLevelName").value("Read & Write"))
                 .andExpect(jsonPath("$[0].partyMembers[0].accessLevelDescription").value(READ_WRITE.getDescription()))
                 .andExpect(jsonPath("$[0].partyMembers[0].status").value("ACTIVE"))
                 .andExpect(jsonPath("$[0].partyMembers[0].joinedAt").exists())
+                .andExpect(jsonPath("$[0].partyMembers[1].id").value(partyMemberId.toString()))
+                .andExpect(jsonPath("$[0].partyMembers[1].playerId").value(partyMemberId.toString()))
+                .andExpect(jsonPath("$[0].partyMembers[1].name").value("John Doe"))
+                .andExpect(jsonPath("$[0].partyMembers[1].initial").value("JD"))
+                .andExpect(jsonPath("$[0].partyMembers[1].partyLeader").value(false))
+                .andExpect(jsonPath("$[0].partyMembers[1].partyMember").value(true))
+                .andExpect(jsonPath("$[0].partyMembers[1].accessLevelName").value("Read & Write"))
+                .andExpect(jsonPath("$[0].partyMembers[1].accessLevelDescription").value(READ_WRITE.getDescription()))
+                .andExpect(jsonPath("$[0].partyMembers[1].status").value("ACTIVE"))
+                .andExpect(jsonPath("$[0].partyMembers[1].joinedAt").exists())
                 .andExpect(jsonPath("$[0].sharedLoots.length()").value(1))
                 .andExpect(jsonPath("$[0].sharedLoots[0].id").value(resourceId.toString()))
                 .andExpect(jsonPath("$[0].sharedLoots[0].type").value("TRANSACTION"))
@@ -215,6 +279,35 @@ class PartyControllerTest {
                 .andExpect(jsonPath("$[0].sharedLoots[0].items.length()").value(2))
                 .andExpect(jsonPath("$[0].sharedLoots[0].items[0]").value("item-1"))
                 .andExpect(jsonPath("$[0].sharedLoots[0].sharedAt").exists());
+
+            verify(partyService).retrieveByUserId(userId);
+        }
+
+        @Test
+        void givenUserWithSpaces_thenLeaderIsAlsoPartyMember() throws Exception {
+            UUID partyId = UUID.randomUUID();
+            UUID partyMemberId = UUID.randomUUID();
+            PartySummary party = PartySummary.builder()
+                .id(partyId)
+                .name("Family 2026 Budget")
+                .partyLeaderId(userId)
+                .sharingMode(SharingMode.EVEN_SHARE)
+                .partyMembers(List.of(leaderSummary(userId), participantSummary(partyMemberId)))
+                .sharedItems(List.of())
+                .active(true)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+            when(partyService.retrieveByUserId(userId)).thenReturn(List.of(party));
+
+            mockMvc.perform(get("/api/parties")
+                    .with(jwt().jwt(jwt)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].partyMembers[0].partyLeader").value(true))
+                .andExpect(jsonPath("$[0].partyMembers[0].partyMember").value(false))
+                .andExpect(jsonPath("$[0].partyMembers[1].partyLeader").value(false))
+                .andExpect(jsonPath("$[0].partyMembers[1].partyMember").value(true));
 
             verify(partyService).retrieveByUserId(userId);
         }

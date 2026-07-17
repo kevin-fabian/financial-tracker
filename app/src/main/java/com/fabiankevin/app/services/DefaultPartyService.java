@@ -169,13 +169,13 @@ public class DefaultPartyService implements PartyService {
                     User user = playerIds.get(partyMember.playerId());
                     String name = user != null ? user.firstName() + " " + user.lastName() : null;
                     String initial = deriveInitial(user);
-                    boolean leader = party.partyLeaderId() == partyMember.playerId();
+                    boolean leader = party.partyLeaderId().equals(partyMember.playerId());
                     return PartyMemberSummary.builder()
                             .id(partyMember.playerId())
                             .name(name)
                             .initial(initial)
                             .partyLeader(leader)
-                            .partyMember(!leader)
+                            .partyMember(true)
                             .accessLevel(partyMember.accessLevel())
                             .status(partyMember.status())
                             .joinedAt(partyMember.joinedAt())
@@ -187,7 +187,7 @@ public class DefaultPartyService implements PartyService {
                 .id(party.id())
                 .name(party.name())
                 .partyLeaderId(party.partyLeaderId())
-                .participants(partyMemberSummaries)
+                .partyMembers(partyMemberSummaries)
                 .sharingMode(party.sharingMode())
                 .sharedItems(party.sharedItems())
                 .active(party.active())

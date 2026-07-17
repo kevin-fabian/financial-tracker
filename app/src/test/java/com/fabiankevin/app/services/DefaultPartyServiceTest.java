@@ -65,9 +65,9 @@ class DefaultPartyServiceTest {
             assertEquals(ownerUserId, result.partyLeaderId());
             assertEquals(SharingMode.EVEN_SHARE, result.sharingMode());
             assertTrue(result.active());
-            assertEquals(1, result.participants().size());
+            assertEquals(1, result.partyMembers().size());
 
-            PartyMemberSummary owner = result.participants().getFirst();
+            PartyMemberSummary owner = result.partyMembers().getFirst();
             assertEquals(ownerUserId, owner.id());
             assertEquals(AccessLevel.READ_WRITE, owner.accessLevel());
             assertEquals(PartyMemberStatus.ACTIVE, owner.status());
@@ -95,7 +95,7 @@ class DefaultPartyServiceTest {
 
             service.organize(command);
 
-            assertEquals("Shared Space", captor.getValue().name());
+            assertEquals("New Party", captor.getValue().name());
             verify(spaceRepository).save(any(Party.class));
         }
 
