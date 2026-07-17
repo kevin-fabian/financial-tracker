@@ -5,7 +5,7 @@ import com.fabiankevin.app.events.StatsEventPublisher;
 import com.fabiankevin.app.events.TransactionEventPublisher;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
-import com.fabiankevin.app.persistence.SharedSpaceRepository;
+import com.fabiankevin.app.persistence.PartyRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.*;
 import com.fabiankevin.app.services.summaries.SummaryGenerator;
@@ -50,14 +50,14 @@ public class AppConfig {
             CategoryRepository categoryRepository,
             TransactionRepository transactionRepository,
             List<SummaryGenerator> generators,
-            SharedSpaceRepository sharedSpaceRepository,
+            PartyRepository partyRepository,
             CompositeTransactionEventPublisher compositeTransactionEventPublisher) {
         return new DefaultTransactionService(
                 accountRepository,
                 categoryRepository,
                 transactionRepository,
                 generators,
-                sharedSpaceRepository,
+                partyRepository,
                 compositeTransactionEventPublisher);
     }
 }

@@ -5,8 +5,8 @@ import com.fabiankevin.app.models.*;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
-import com.fabiankevin.app.models.shared_space.Invitation;
-import com.fabiankevin.app.models.shared_space.Party;
+import com.fabiankevin.app.models.party.Invitation;
+import com.fabiankevin.app.models.party.Party;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
@@ -93,14 +93,14 @@ public class DefaultPartyServiceSpringBootTest {
                 .thenReturn(User.builder().id(partnerUserid).firstName("Partner").lastName("User").build());
         Invitation invitation = invitationService.sendInvitation(SendInvitationCommand.builder()
                 .partyId(spaceId)
-                .inviterUserId(ownerUserId)
+                .inviterPlayerId(ownerUserId)
                 .inviteeEmail(partnerEmail)
                 .build());
 
         // Step 3: Accept the invite
         invitationService.acceptInvitation(AcceptInvitationCommand.builder()
                 .invitationId(invitation.id())
-                .acceptingUserId(partnerUserid)
+                .acceptingPlayerId(partnerUserid)
                 .build());
 
         Page<Transaction> transactionsByPageQuery = transactionService.getTransactionsByPageQuery(PageQuery.withDefaults(),
@@ -142,14 +142,14 @@ public class DefaultPartyServiceSpringBootTest {
                 .thenReturn(User.builder().id(partnerUserid).firstName("Partner").lastName("User").build());
         Invitation invitation = invitationService.sendInvitation(SendInvitationCommand.builder()
                 .partyId(spaceId)
-                .inviterUserId(ownerUserId)
+                .inviterPlayerId(ownerUserId)
                 .inviteeEmail(partnerEmail)
                 .build());
 
         // Step 3: Accept the invite
         invitationService.acceptInvitation(AcceptInvitationCommand.builder()
                 .invitationId(invitation.id())
-                .acceptingUserId(partnerUserid)
+                .acceptingPlayerId(partnerUserid)
                 .build());
 
         StatsQuery query = StatsQuery.builder()

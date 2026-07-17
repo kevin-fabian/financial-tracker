@@ -18,7 +18,7 @@ public record SendInvitationRequest(
 ) {
     public SendInvitationCommand toCommand(UUID inviterUserId, UUID spaceId) {
         return SendInvitationCommand.builder()
-            .inviterUserId(inviterUserId)
+            .inviterPlayerId(inviterUserId)
             .inviteeEmail(email)
             .partyId(spaceId)
             .build();

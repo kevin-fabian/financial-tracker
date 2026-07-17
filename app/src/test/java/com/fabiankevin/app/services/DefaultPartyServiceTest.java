@@ -5,12 +5,12 @@ import com.fabiankevin.app.exceptions.shared_space.ForbiddenException;
 import com.fabiankevin.app.exceptions.shared_space.NotSpaceOwnerException;
 import com.fabiankevin.app.exceptions.shared_space.SharedSpaceNotFoundException;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
-import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
+import com.fabiankevin.app.models.enums.shared_space.PartyMemberStatus;
 import com.fabiankevin.app.models.enums.shared_space.ResourceType;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
-import com.fabiankevin.app.models.shared_space.Party;
-import com.fabiankevin.app.models.shared_space.PartyMember;
-import com.fabiankevin.app.persistence.SharedSpaceRepository;
+import com.fabiankevin.app.models.party.Party;
+import com.fabiankevin.app.models.party.PartyMember;
+import com.fabiankevin.app.persistence.PartyRepository;
 import com.fabiankevin.app.services.commands.shared_space.OrganizePartyCommand;
 import com.fabiankevin.app.services.commands.shared_space.PatchPartyCommand;
 import org.junit.jupiter.api.Nested;
@@ -32,7 +32,7 @@ import static org.mockito.Mockito.*;
 class DefaultPartyServiceTest {
 
     @Mock
-    private SharedSpaceRepository spaceRepository;
+    private PartyRepository spaceRepository;
 
     @InjectMocks
     private DefaultPartyService service;
@@ -64,7 +64,7 @@ class DefaultPartyServiceTest {
             PartyMember owner = result.partyMembers().getFirst();
             assertEquals(ownerUserId, owner.playerId());
             assertEquals(AccessLevel.READ_WRITE, owner.accessLevel());
-            assertEquals(ParticipantStatus.ACTIVE, owner.status());
+            assertEquals(PartyMemberStatus.ACTIVE, owner.status());
 
             assertEquals(3, result.sharedItems().size());
             assertEquals(ResourceType.TRANSACTION, result.sharedItems().get(0).type());
@@ -165,13 +165,13 @@ class DefaultPartyServiceTest {
                             PartyMember.builder()
                                     .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
-                                    .status(ParticipantStatus.ACTIVE)
+                                    .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
                             PartyMember.builder()
                                     .playerId(participantUserId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(ParticipantStatus.ACTIVE)
+                                    .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
@@ -208,13 +208,13 @@ class DefaultPartyServiceTest {
                             PartyMember.builder()
                                     .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
-                                    .status(ParticipantStatus.ACTIVE)
+                                    .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
                             PartyMember.builder()
                                     .playerId(participantUserId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(ParticipantStatus.ACTIVE)
+                                    .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
@@ -251,13 +251,13 @@ class DefaultPartyServiceTest {
                             PartyMember.builder()
                                     .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
-                                    .status(ParticipantStatus.ACTIVE)
+                                    .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
                             PartyMember.builder()
                                     .playerId(participantUserId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(ParticipantStatus.ACTIVE)
+                                    .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
@@ -286,7 +286,7 @@ class DefaultPartyServiceTest {
                             PartyMember.builder()
                                     .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
-                                    .status(ParticipantStatus.ACTIVE)
+                                    .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
@@ -319,7 +319,7 @@ class DefaultPartyServiceTest {
                             PartyMember.builder()
                                     .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
-                                    .status(ParticipantStatus.ACTIVE)
+                                    .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
@@ -361,7 +361,7 @@ class DefaultPartyServiceTest {
                             PartyMember.builder()
                                     .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
-                                    .status(ParticipantStatus.ACTIVE)
+                                    .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
@@ -394,7 +394,7 @@ class DefaultPartyServiceTest {
                             PartyMember.builder()
                                     .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
-                                    .status(ParticipantStatus.ACTIVE)
+                                    .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
@@ -451,7 +451,7 @@ class DefaultPartyServiceTest {
                             PartyMember.builder()
                                     .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
-                                    .status(ParticipantStatus.ACTIVE)
+                                    .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))

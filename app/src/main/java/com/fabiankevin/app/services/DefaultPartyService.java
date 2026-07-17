@@ -4,10 +4,10 @@ import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.shared_space.*;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
-import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
+import com.fabiankevin.app.models.enums.shared_space.PartyMemberStatus;
 import com.fabiankevin.app.models.enums.shared_space.ResourceType;
-import com.fabiankevin.app.models.shared_space.*;
-import com.fabiankevin.app.persistence.SharedSpaceRepository;
+import com.fabiankevin.app.models.party.*;
+import com.fabiankevin.app.persistence.PartyRepository;
 import com.fabiankevin.app.services.commands.shared_space.OrganizePartyCommand;
 import com.fabiankevin.app.services.commands.shared_space.PatchPartyCommand;
 import jakarta.transaction.Transactional;
@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class DefaultPartyService implements PartyService {
-    private final SharedSpaceRepository spaceRepository;
+    private final PartyRepository spaceRepository;
     private final UserClient userClient;
 
     @Transactional
@@ -32,7 +32,7 @@ public class DefaultPartyService implements PartyService {
         initialParticipants.add(PartyMember.builder()
                 .playerId(command.partyLeaderId())
                 .accessLevel(AccessLevel.READ_WRITE)
-                .status(ParticipantStatus.ACTIVE)
+                .status(PartyMemberStatus.ACTIVE)
                 .joinedAt(Instant.now())
                 .build());
 

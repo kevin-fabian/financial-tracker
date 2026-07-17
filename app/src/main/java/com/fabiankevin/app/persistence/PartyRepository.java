@@ -1,12 +1,12 @@
 package com.fabiankevin.app.persistence;
 
-import com.fabiankevin.app.models.shared_space.Party;
+import com.fabiankevin.app.models.party.Party;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface SharedSpaceRepository {
+public interface PartyRepository {
     Party save(Party space);
 
     Optional<Party> findById(UUID id);

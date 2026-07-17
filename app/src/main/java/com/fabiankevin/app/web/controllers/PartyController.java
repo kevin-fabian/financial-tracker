@@ -1,6 +1,6 @@
 package com.fabiankevin.app.web.controllers;
 
-import com.fabiankevin.app.models.shared_space.Party;
+import com.fabiankevin.app.models.party.Party;
 import com.fabiankevin.app.services.PartyService;
 import com.fabiankevin.app.web.controllers.dtos.party.OrganizePartyRequest;
 import com.fabiankevin.app.web.controllers.dtos.party.PartyResponse;

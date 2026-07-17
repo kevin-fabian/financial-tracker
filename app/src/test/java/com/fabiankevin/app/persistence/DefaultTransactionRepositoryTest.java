@@ -10,7 +10,7 @@ import com.fabiankevin.app.persistence.entities.AccountEntity;
 import com.fabiankevin.app.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
-import com.fabiankevin.app.persistence.jpa_repositories.JpaSharedSpaceRepository;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaPartyRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import com.fabiankevin.app.services.DefaultTransactionService;
 import com.fabiankevin.app.services.TransactionService;
@@ -73,8 +73,8 @@ class DefaultTransactionRepositoryTest {
         }
 
         @Bean
-        public SharedSpaceRepository sharedSpaceRepository(JpaSharedSpaceRepository jpaSharedSpaceRepository) {
-            return new DefaultSharedSpaceRepository(jpaSharedSpaceRepository);
+        public PartyRepository sharedSpaceRepository(JpaPartyRepository jpaPartyRepository) {
+            return new DefaultPartyRepository(jpaPartyRepository);
         }
 
         @Bean
@@ -82,13 +82,13 @@ class DefaultTransactionRepositoryTest {
                 AccountRepository accountRepository,
                 CategoryRepository categoryRepository,
                 TransactionRepository transactionRepository,
-                SharedSpaceRepository sharedSpaceRepository) {
+                PartyRepository partyRepository) {
             return new DefaultTransactionService(
                     accountRepository,
                     categoryRepository,
                     transactionRepository,
                     List.of(),
-                    sharedSpaceRepository,
+                    partyRepository,
                     new CompositeTransactionEventPublisher(List.of()));
         }
     }

@@ -1,7 +1,7 @@
 package com.fabiankevin.app.web.controllers.dtos.party;
 
-import com.fabiankevin.app.models.shared_space.Party;
-import com.fabiankevin.app.models.shared_space.PartySummary;
+import com.fabiankevin.app.models.party.Party;
+import com.fabiankevin.app.models.party.PartySummary;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 

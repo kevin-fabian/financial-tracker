@@ -5,13 +5,13 @@ import com.fabiankevin.app.exceptions.shared_space.*;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
-import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
-import com.fabiankevin.app.models.shared_space.Invitation;
-import com.fabiankevin.app.models.shared_space.InvitationSummary;
-import com.fabiankevin.app.models.shared_space.Party;
-import com.fabiankevin.app.models.shared_space.PartyMember;
+import com.fabiankevin.app.models.enums.shared_space.PartyMemberStatus;
+import com.fabiankevin.app.models.party.Invitation;
+import com.fabiankevin.app.models.party.InvitationSummary;
+import com.fabiankevin.app.models.party.Party;
+import com.fabiankevin.app.models.party.PartyMember;
 import com.fabiankevin.app.persistence.InvitationRepository;
-import com.fabiankevin.app.persistence.SharedSpaceRepository;
+import com.fabiankevin.app.persistence.PartyRepository;
 import com.fabiankevin.app.services.commands.shared_space.invitations.AcceptInvitationCommand;
 import com.fabiankevin.app.services.commands.shared_space.invitations.RejectInvitationCommand;
 import com.fabiankevin.app.services.commands.shared_space.invitations.SendInvitationCommand;
@@ -32,14 +32,14 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DefaultInvitationService implements InvitationService {
     private final InvitationRepository invitationRepository;
-    private final SharedSpaceRepository spaceRepository;
+    private final PartyRepository spaceRepository;
     private final UserClient userClient;
 
     @Transactional
     @Override
     public Invitation sendInvitation(SendInvitationCommand command) {
         Party space = findSpaceOrThrow(command.partyId());
-        if (!space.partyLeaderId().equals(command.inviterUserId())) {
+        if (!space.partyLeaderId().equals(command.inviterPlayerId())) {
             throw new NotSpaceOwnerException();
         }
 
@@ -49,11 +49,11 @@ public class DefaultInvitationService implements InvitationService {
             throw new ParticipantAlreadyExistsException();
         }
 
-        return invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(command.partyId(), command.inviterUserId(), invitee.id())
+        return invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(command.partyId(), command.inviterPlayerId(), invitee.id())
                 .orElseGet(() -> {
                     Invitation invitation = Invitation.builder()
-                            .inviterUserId(command.inviterUserId())
-                            .inviteeUserId(invitee.id())
+                            .inviterPlayerId(command.inviterPlayerId())
+                            .inviteePlayerId(invitee.id())
                             .proposedSharingMode(space.sharingMode())
                             .proposedRole(AccessLevel.READ_WRITE)
                             .status(InvitationStatus.PENDING)
@@ -74,18 +74,18 @@ public class DefaultInvitationService implements InvitationService {
         Invitation invitation = findInvitationOrThrow(command.invitationId());
         validateInvitationActive(invitation);
 
-        if (invitation.inviterUserId().equals(command.acceptingUserId())) {
+        if (invitation.inviterPlayerId().equals(command.acceptingPlayerId())) {
             throw new InviterCannotAcceptOwnInvitationException();
         }
 
-        if (!invitation.inviteeUserId().equals(command.acceptingUserId())) {
+        if (!invitation.inviteePlayerId().equals(command.acceptingPlayerId())) {
             throw new ForbiddenException("Only the invited user can accept");
         }
 
         Invitation updatedInvitation = Invitation.builder()
                 .id(invitation.id())
-                .inviterUserId(invitation.inviterUserId())
-                .inviteeUserId(invitation.inviteeUserId())
+                .inviterPlayerId(invitation.inviterPlayerId())
+                .inviteePlayerId(invitation.inviteePlayerId())
                 .proposedSharingMode(invitation.proposedSharingMode())
                 .proposedRole(invitation.proposedRole())
                 .status(InvitationStatus.ACCEPTED)
@@ -98,9 +98,9 @@ public class DefaultInvitationService implements InvitationService {
         Party space = findSpaceOrThrow(invitation.sharedSpaceId());
 
         PartyMember participant = PartyMember.builder()
-                .playerId(invitation.inviteeUserId())
+                .playerId(invitation.inviteePlayerId())
                 .accessLevel(invitation.proposedRole())
-                .status(ParticipantStatus.ACTIVE)
+                .status(PartyMemberStatus.ACTIVE)
                 .joinedAt(Instant.now())
                 .build();
 
@@ -120,7 +120,7 @@ public class DefaultInvitationService implements InvitationService {
     public Invitation rejectInvitation(RejectInvitationCommand command) {
         Invitation invitation = findInvitationOrThrow(command.invitationId());
 
-        if (!invitation.inviteeUserId().equals(command.inviteeUserId())) {
+        if (!invitation.inviteePlayerId().equals(command.inviteeUserId())) {
             throw new ForbiddenException("Only the invited user can reject");
         }
 
@@ -130,8 +130,8 @@ public class DefaultInvitationService implements InvitationService {
 
         Invitation updatedInvitation = Invitation.builder()
                 .id(invitation.id())
-                .inviterUserId(invitation.inviterUserId())
-                .inviteeUserId(invitation.inviteeUserId())
+                .inviterPlayerId(invitation.inviterPlayerId())
+                .inviteePlayerId(invitation.inviteePlayerId())
                 .proposedSharingMode(invitation.proposedSharingMode())
                 .proposedRole(invitation.proposedRole())
                 .status(InvitationStatus.REJECTED)
@@ -148,7 +148,7 @@ public class DefaultInvitationService implements InvitationService {
         List<Invitation> invitations = invitationRepository.findByInviterUserIdOrInviteeUserId(userId);
 
         List<UUID> userIds = invitations.stream()
-                .flatMap(invitation -> List.of(invitation.inviterUserId(), invitation.inviteeUserId()).stream())
+                .flatMap(invitation -> List.of(invitation.inviterPlayerId(), invitation.inviteePlayerId()).stream())
                 .distinct()
                 .toList();
 
@@ -198,8 +198,8 @@ public class DefaultInvitationService implements InvitationService {
     }
 
     private InvitationSummary toSummary(Invitation invitation, Map<UUID, User> usersById, Map<UUID, Party> spacesById) {
-        User inviter = usersById.get(invitation.inviterUserId());
-        User invitee = usersById.get(invitation.inviteeUserId());
+        User inviter = usersById.get(invitation.inviterPlayerId());
+        User invitee = usersById.get(invitation.inviteePlayerId());
         Party space = spacesById.get(invitation.sharedSpaceId());
 
         return InvitationSummary.builder()

@@ -5,14 +5,14 @@ import com.fabiankevin.app.exceptions.shared_space.*;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
-import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
+import com.fabiankevin.app.models.enums.shared_space.PartyMemberStatus;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
-import com.fabiankevin.app.models.shared_space.Invitation;
-import com.fabiankevin.app.models.shared_space.InvitationSummary;
-import com.fabiankevin.app.models.shared_space.Party;
-import com.fabiankevin.app.models.shared_space.PartyMember;
+import com.fabiankevin.app.models.party.Invitation;
+import com.fabiankevin.app.models.party.InvitationSummary;
+import com.fabiankevin.app.models.party.Party;
+import com.fabiankevin.app.models.party.PartyMember;
 import com.fabiankevin.app.persistence.InvitationRepository;
-import com.fabiankevin.app.persistence.SharedSpaceRepository;
+import com.fabiankevin.app.persistence.PartyRepository;
 import com.fabiankevin.app.services.commands.shared_space.invitations.AcceptInvitationCommand;
 import com.fabiankevin.app.services.commands.shared_space.invitations.RejectInvitationCommand;
 import com.fabiankevin.app.services.commands.shared_space.invitations.SendInvitationCommand;
@@ -38,7 +38,7 @@ import static org.mockito.Mockito.*;
 class DefaultInvitationServiceTest {
 
     @Mock
-    private SharedSpaceRepository spaceRepository;
+    private PartyRepository spaceRepository;
 
     @Mock
     private InvitationRepository invitationRepository;
@@ -76,7 +76,7 @@ class DefaultInvitationServiceTest {
                             PartyMember.builder()
                                     .playerId(inviterUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
-                                    .status(ParticipantStatus.ACTIVE)
+                                    .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
@@ -103,7 +103,7 @@ class DefaultInvitationServiceTest {
             Invitation result = service.sendInvitation(command);
 
             assertEquals(spaceId, result.sharedSpaceId());
-            assertEquals(inviteeUserId, result.inviteeUserId());
+            assertEquals(inviteeUserId, result.inviteePlayerId());
             assertEquals(SharingMode.EVEN_SHARE, result.proposedSharingMode());
             assertEquals(InvitationStatus.PENDING, result.status());
             verify(spaceRepository, never()).save(any(Party.class));
@@ -124,7 +124,7 @@ class DefaultInvitationServiceTest {
                             PartyMember.builder()
                                     .playerId(inviterUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
-                                    .status(ParticipantStatus.ACTIVE)
+                                    .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
@@ -137,8 +137,8 @@ class DefaultInvitationServiceTest {
 
             Invitation existingInvitation = Invitation.builder()
                     .id(UUID.randomUUID())
-                    .inviterUserId(inviterUserId)
-                    .inviteeUserId(inviteeUserId)
+                    .inviterPlayerId(inviterUserId)
+                    .inviteePlayerId(inviteeUserId)
                     .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
@@ -209,13 +209,13 @@ class DefaultInvitationServiceTest {
                             PartyMember.builder()
                                     .playerId(inviterUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
-                                    .status(ParticipantStatus.ACTIVE)
+                                    .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
                             PartyMember.builder()
                                     .playerId(inviteeUserId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(ParticipantStatus.ACTIVE)
+                                    .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
@@ -270,8 +270,8 @@ class DefaultInvitationServiceTest {
             UUID invitationId = UUID.randomUUID();
             Invitation invitation = Invitation.builder()
                     .id(invitationId)
-                    .inviterUserId(inviterUserId)
-                    .inviteeUserId(inviteeUserId)
+                    .inviterPlayerId(inviterUserId)
+                    .inviteePlayerId(inviteeUserId)
                     .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
@@ -287,7 +287,7 @@ class DefaultInvitationServiceTest {
                             PartyMember.builder()
                                     .playerId(inviterUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
-                                    .status(ParticipantStatus.ACTIVE)
+                                    .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
@@ -310,7 +310,7 @@ class DefaultInvitationServiceTest {
             ArgumentCaptor<Invitation> invitationCaptor = ArgumentCaptor.forClass(Invitation.class);
             verify(invitationRepository).save(invitationCaptor.capture());
             assertEquals(InvitationStatus.ACCEPTED, invitationCaptor.getValue().status());
-            assertEquals(inviteeUserId, invitationCaptor.getValue().inviteeUserId());
+            assertEquals(inviteeUserId, invitationCaptor.getValue().inviteePlayerId());
             assertNotNull(result);
             assertEquals(2, result.partyMembers().size());
             PartyMember addedParticipant = result.partyMembers().stream()
@@ -318,7 +318,7 @@ class DefaultInvitationServiceTest {
                     .findFirst()
                     .orElseThrow(() -> new AssertionError("Invitee should be added as participant"));
             assertEquals(AccessLevel.VIEW_ONLY, addedParticipant.accessLevel());
-            assertEquals(ParticipantStatus.ACTIVE, addedParticipant.status());
+            assertEquals(PartyMemberStatus.ACTIVE, addedParticipant.status());
             assertNotNull(addedParticipant.joinedAt());
             verify(spaceRepository).save(any(Party.class));
         }
@@ -345,8 +345,8 @@ class DefaultInvitationServiceTest {
             UUID spaceId = UUID.randomUUID();
             Invitation invitation = Invitation.builder()
                     .id(invitationId)
-                    .inviterUserId(inviterUserId)
-                    .inviteeUserId(inviteeUserId)
+                    .inviterPlayerId(inviterUserId)
+                    .inviteePlayerId(inviteeUserId)
                     .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.ACCEPTED)
@@ -372,8 +372,8 @@ class DefaultInvitationServiceTest {
             UUID spaceId = UUID.randomUUID();
             Invitation invitation = Invitation.builder()
                     .id(invitationId)
-                    .inviterUserId(inviterUserId)
-                    .inviteeUserId(inviteeUserId)
+                    .inviterPlayerId(inviterUserId)
+                    .inviteePlayerId(inviteeUserId)
                     .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
@@ -398,8 +398,8 @@ class DefaultInvitationServiceTest {
             UUID spaceId = UUID.randomUUID();
             Invitation invitation = Invitation.builder()
                     .id(invitationId)
-                    .inviterUserId(inviterUserId)
-                    .inviteeUserId(UUID.randomUUID())
+                    .inviterPlayerId(inviterUserId)
+                    .inviteePlayerId(UUID.randomUUID())
                     .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
@@ -426,8 +426,8 @@ class DefaultInvitationServiceTest {
             UUID spaceId = UUID.randomUUID();
             Invitation invitation = Invitation.builder()
                     .id(invitationId)
-                    .inviterUserId(inviterUserId)
-                    .inviteeUserId(inviteeUserId)
+                    .inviterPlayerId(inviterUserId)
+                    .inviteePlayerId(inviteeUserId)
                     .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
@@ -457,8 +457,8 @@ class DefaultInvitationServiceTest {
             UUID inviteeUserId = UUID.randomUUID();
             Invitation sent = Invitation.builder()
                 .id(UUID.randomUUID())
-                .inviterUserId(userId)
-                .inviteeUserId(inviteeUserId)
+                .inviterPlayerId(userId)
+                .inviteePlayerId(inviteeUserId)
                 .proposedSharingMode(SharingMode.EVEN_SHARE)
                 .proposedRole(AccessLevel.READ_WRITE)
                 .status(InvitationStatus.PENDING)
@@ -468,8 +468,8 @@ class DefaultInvitationServiceTest {
                 .build();
             Invitation received = Invitation.builder()
                 .id(UUID.randomUUID())
-                .inviterUserId(inviterId)
-                .inviteeUserId(userId)
+                .inviterPlayerId(inviterId)
+                .inviteePlayerId(userId)
                 .proposedSharingMode(SharingMode.EVEN_SHARE)
                 .proposedRole(AccessLevel.VIEW_ONLY)
                 .status(InvitationStatus.PENDING)
@@ -530,8 +530,8 @@ class DefaultInvitationServiceTest {
             UUID invitationId = UUID.randomUUID();
             Invitation invitation = Invitation.builder()
                     .id(invitationId)
-                    .inviterUserId(inviterUserId)
-                    .inviteeUserId(inviteeUserId)
+                    .inviterPlayerId(inviterUserId)
+                    .inviteePlayerId(inviteeUserId)
                     .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
@@ -551,8 +551,8 @@ class DefaultInvitationServiceTest {
             verify(invitationRepository).save(captor.capture());
             assertEquals(InvitationStatus.REJECTED, captor.getValue().status());
             assertEquals(InvitationStatus.REJECTED, result.status());
-            assertEquals(inviteeUserId, result.inviteeUserId());
-            assertEquals(inviterUserId, result.inviterUserId());
+            assertEquals(inviteeUserId, result.inviteePlayerId());
+            assertEquals(inviterUserId, result.inviterPlayerId());
             assertEquals(spaceId, result.sharedSpaceId());
             verify(spaceRepository, never()).save(any());
         }
@@ -564,8 +564,8 @@ class DefaultInvitationServiceTest {
             UUID invitationId = UUID.randomUUID();
             Invitation invitation = Invitation.builder()
                     .id(invitationId)
-                    .inviterUserId(UUID.randomUUID())
-                    .inviteeUserId(inviteeUserId)
+                    .inviterPlayerId(UUID.randomUUID())
+                    .inviteePlayerId(inviteeUserId)
                     .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
@@ -588,8 +588,8 @@ class DefaultInvitationServiceTest {
             UUID invitationId = UUID.randomUUID();
             Invitation invitation = Invitation.builder()
                     .id(invitationId)
-                    .inviterUserId(UUID.randomUUID())
-                    .inviteeUserId(inviteeUserId)
+                    .inviterPlayerId(UUID.randomUUID())
+                    .inviteePlayerId(inviteeUserId)
                     .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.ACCEPTED)

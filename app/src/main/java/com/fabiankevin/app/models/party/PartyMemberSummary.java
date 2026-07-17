@@ -1,7 +1,7 @@
-package com.fabiankevin.app.models.shared_space;
+package com.fabiankevin.app.models.party;
 
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
-import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
+import com.fabiankevin.app.models.enums.shared_space.PartyMemberStatus;
 import lombok.Builder;
 
 import java.time.Instant;
@@ -9,19 +9,15 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
-public record PartyMember(
+public record PartyMemberSummary(
         UUID id,
-        UUID playerId,
+        String name,
+        String initial,
         AccessLevel accessLevel,
-        ParticipantStatus status,
+        PartyMemberStatus status,
         Instant joinedAt) {
-    public PartyMember {
-        Objects.requireNonNull(playerId, "playerId");
+    public PartyMemberSummary {
         Objects.requireNonNull(accessLevel, "accessLevel");
         Objects.requireNonNull(status, "status");
-    }
-
-    public boolean isOwner(UUID ownerId) {
-        return playerId == ownerId;
     }
 }

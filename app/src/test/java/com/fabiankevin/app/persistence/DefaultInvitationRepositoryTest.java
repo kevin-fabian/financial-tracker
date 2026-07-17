@@ -3,7 +3,7 @@ package com.fabiankevin.app.persistence;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
-import com.fabiankevin.app.models.shared_space.Invitation;
+import com.fabiankevin.app.models.party.Invitation;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaInvitationRepository;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,8 +47,8 @@ class DefaultInvitationRepositoryTest {
     @BeforeEach
     void setUp() {
         invitation = Invitation.builder()
-                .inviterUserId(UUID.randomUUID())
-                .inviteeUserId(UUID.randomUUID())
+                .inviterPlayerId(UUID.randomUUID())
+                .inviteePlayerId(UUID.randomUUID())
                 .proposedSharingMode(SharingMode.EVEN_SHARE)
                 .proposedRole(AccessLevel.READ_WRITE)
                 .status(InvitationStatus.PENDING)
@@ -67,8 +67,8 @@ class DefaultInvitationRepositoryTest {
         Assertions.assertThat(found).isPresent();
         Invitation restored = found.get();
         Assertions.assertThat(restored.id()).as("generated id should be present").isNotNull();
-        Assertions.assertThat(restored.inviterUserId()).isEqualTo(invitation.inviterUserId());
-        Assertions.assertThat(restored.inviteeUserId()).isEqualTo(invitation.inviteeUserId());
+        Assertions.assertThat(restored.inviterPlayerId()).isEqualTo(invitation.inviterPlayerId());
+        Assertions.assertThat(restored.inviteePlayerId()).isEqualTo(invitation.inviteePlayerId());
         Assertions.assertThat(restored.proposedSharingMode()).isEqualTo(SharingMode.EVEN_SHARE);
         Assertions.assertThat(restored.proposedRole()).isEqualTo(AccessLevel.READ_WRITE);
         Assertions.assertThat(restored.status()).isEqualTo(InvitationStatus.PENDING);
@@ -86,8 +86,8 @@ class DefaultInvitationRepositoryTest {
         UUID inviteeUserId = UUID.randomUUID();
 
         Invitation accepted = Invitation.builder()
-                .inviterUserId(UUID.randomUUID())
-                .inviteeUserId(inviteeUserId)
+                .inviterPlayerId(UUID.randomUUID())
+                .inviteePlayerId(inviteeUserId)
                 .proposedSharingMode(SharingMode.EVEN_SHARE)
                 .proposedRole(AccessLevel.READ_WRITE)
                 .status(InvitationStatus.ACCEPTED)
@@ -102,7 +102,7 @@ class DefaultInvitationRepositoryTest {
 
         Assertions.assertThat(found).isPresent();
         Assertions.assertThat(found.get().status()).isEqualTo(InvitationStatus.ACCEPTED);
-        Assertions.assertThat(found.get().inviteeUserId()).isEqualTo(inviteeUserId);
+        Assertions.assertThat(found.get().inviteePlayerId()).isEqualTo(inviteeUserId);
         Assertions.assertThat(found.get().sharedSpaceId()).isEqualTo(resultingSpaceId);
     }
 
@@ -113,7 +113,7 @@ class DefaultInvitationRepositoryTest {
         Optional<Invitation> found = invitationRepository.findById(saved.id());
 
         Assertions.assertThat(found).isPresent();
-        Assertions.assertThat(found.get().inviteeUserId()).isEqualTo(invitation.inviteeUserId());
+        Assertions.assertThat(found.get().inviteePlayerId()).isEqualTo(invitation.inviteePlayerId());
         Assertions.assertThat(found.get().status()).isEqualTo(InvitationStatus.PENDING);
         Assertions.assertThat(found.get().proposedSharingMode()).isEqualTo(SharingMode.EVEN_SHARE);
         Assertions.assertThat(found.get().proposedRole()).isEqualTo(AccessLevel.READ_WRITE);
@@ -135,8 +135,8 @@ class DefaultInvitationRepositoryTest {
         void givenMatchingPendingInvitation_shouldReturnInvitation() {
             UUID spaceId = UUID.randomUUID();
             Invitation pending = Invitation.builder()
-                    .inviterUserId(invitation.inviterUserId())
-                    .inviteeUserId(invitation.inviteeUserId())
+                    .inviterPlayerId(invitation.inviterPlayerId())
+                    .inviteePlayerId(invitation.inviteePlayerId())
                     .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.READ_WRITE)
                     .status(InvitationStatus.PENDING)
@@ -147,7 +147,7 @@ class DefaultInvitationRepositoryTest {
             Invitation saved = invitationRepository.save(pending);
 
             Optional<Invitation> found = invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(
-                    spaceId, saved.inviterUserId(), saved.inviteeUserId());
+                    spaceId, saved.inviterPlayerId(), saved.inviteePlayerId());
 
             Assertions.assertThat(found).isPresent();
             Assertions.assertThat(found.get().id()).isEqualTo(saved.id());
@@ -159,8 +159,8 @@ class DefaultInvitationRepositoryTest {
         void givenDifferentSpace_shouldReturnEmpty() {
             UUID spaceId = UUID.randomUUID();
             Invitation pending = Invitation.builder()
-                    .inviterUserId(invitation.inviterUserId())
-                    .inviteeUserId(invitation.inviteeUserId())
+                    .inviterPlayerId(invitation.inviterPlayerId())
+                    .inviteePlayerId(invitation.inviteePlayerId())
                     .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.READ_WRITE)
                     .status(InvitationStatus.PENDING)
@@ -171,7 +171,7 @@ class DefaultInvitationRepositoryTest {
             Invitation saved = invitationRepository.save(pending);
 
             Optional<Invitation> found = invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(
-                    UUID.randomUUID(), saved.inviterUserId(), saved.inviteeUserId());
+                    UUID.randomUUID(), saved.inviterPlayerId(), saved.inviteePlayerId());
 
             Assertions.assertThat(found).isEmpty();
         }
@@ -180,8 +180,8 @@ class DefaultInvitationRepositoryTest {
         void givenNonPendingStatus_shouldReturnEmpty() {
             UUID spaceId = UUID.randomUUID();
             Invitation accepted = Invitation.builder()
-                    .inviterUserId(invitation.inviterUserId())
-                    .inviteeUserId(invitation.inviteeUserId())
+                    .inviterPlayerId(invitation.inviterPlayerId())
+                    .inviteePlayerId(invitation.inviteePlayerId())
                     .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.READ_WRITE)
                     .status(InvitationStatus.ACCEPTED)
@@ -192,7 +192,7 @@ class DefaultInvitationRepositoryTest {
             Invitation saved = invitationRepository.save(accepted);
 
             Optional<Invitation> found = invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(
-                    spaceId, saved.inviterUserId(), saved.inviteeUserId());
+                    spaceId, saved.inviterPlayerId(), saved.inviteePlayerId());
 
             Assertions.assertThat(found).isEmpty();
         }

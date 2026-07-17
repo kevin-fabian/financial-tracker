@@ -1,7 +1,7 @@
 package com.fabiankevin.app.services;
 
-import com.fabiankevin.app.models.shared_space.Party;
-import com.fabiankevin.app.models.shared_space.PartySummary;
+import com.fabiankevin.app.models.party.Party;
+import com.fabiankevin.app.models.party.PartySummary;
 import com.fabiankevin.app.services.commands.shared_space.OrganizePartyCommand;
 import com.fabiankevin.app.services.commands.shared_space.PatchPartyCommand;
 

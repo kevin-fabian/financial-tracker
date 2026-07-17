@@ -3,13 +3,13 @@ package com.fabiankevin.app.web.controllers;
 import com.fabiankevin.app.exceptions.shared_space.CannotRemoveOwnerException;
 import com.fabiankevin.app.exceptions.shared_space.SharedSpaceNotFoundException;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
-import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
+import com.fabiankevin.app.models.enums.shared_space.PartyMemberStatus;
 import com.fabiankevin.app.models.enums.shared_space.ResourceType;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
-import com.fabiankevin.app.models.shared_space.Party;
-import com.fabiankevin.app.models.shared_space.PartyMemberSummary;
-import com.fabiankevin.app.models.shared_space.PartySummary;
-import com.fabiankevin.app.models.shared_space.SharedItem;
+import com.fabiankevin.app.models.party.Party;
+import com.fabiankevin.app.models.party.PartyMemberSummary;
+import com.fabiankevin.app.models.party.PartySummary;
+import com.fabiankevin.app.models.party.SharedItem;
 import com.fabiankevin.app.services.InvitationService;
 import com.fabiankevin.app.services.PartyService;
 import com.fabiankevin.app.services.commands.shared_space.OrganizePartyCommand;
@@ -94,7 +94,7 @@ class PartyControllerTest {
             .name("John Doe")
             .initial("JD")
             .accessLevel(AccessLevel.READ_WRITE)
-            .status(ParticipantStatus.ACTIVE)
+            .status(PartyMemberStatus.ACTIVE)
             .joinedAt(Instant.now())
             .build();
     }

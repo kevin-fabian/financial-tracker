@@ -1,9 +1,9 @@
 package com.fabiankevin.app.persistence.entities;
 
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
-import com.fabiankevin.app.models.shared_space.Party;
-import com.fabiankevin.app.models.shared_space.PartyMember;
-import com.fabiankevin.app.models.shared_space.SharedItem;
+import com.fabiankevin.app.models.party.Party;
+import com.fabiankevin.app.models.party.PartyMember;
+import com.fabiankevin.app.models.party.SharedItem;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,28 +20,28 @@ import java.util.UUID;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "shared_spaces")
+@Table(name = "parties")
 @Entity
-public class SharedSpaceEntity {
+public class PartyEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "space_name")
-    private String spaceName;
+    @Column(name = "name")
+    private String name;
 
-    @Column(name = "owner_user_id")
-    private UUID ownerUserId;
+    @Column(name = "party_leader_id")
+    private UUID partyLeaderId;
 
-    @OneToMany(mappedBy = "sharedSpace", cascade = CascadeType.ALL, orphanRemoval = true, fetch =  FetchType.EAGER)
-    private Set<SpaceParticipantEntity> participants = new HashSet<>();
+    @OneToMany(mappedBy = "party", cascade = CascadeType.ALL, orphanRemoval = true, fetch =  FetchType.EAGER)
+    private Set<PartyMemberEntity> partyMembers = new HashSet<>();
 
     @Enumerated(EnumType.STRING)
     @Column(name = "sharing_mode")
     private SharingMode sharingMode;
 
-    @OneToMany(mappedBy = "sharedSpace", cascade = CascadeType.ALL, orphanRemoval = true, fetch =  FetchType.EAGER)
-    private Set<SharedResourceEntity> sharedResources = new HashSet<>();
+    @OneToMany(mappedBy = "party", cascade = CascadeType.ALL, orphanRemoval = true, fetch =  FetchType.EAGER)
+    private Set<SharedItemEntity> sharedItems = new HashSet<>();
 
     @Column(name = "active")
     private boolean active;
@@ -55,56 +55,56 @@ public class SharedSpaceEntity {
     @Column(name = "expires_at")
     private Instant expiresAt;
 
-    public static SharedSpaceEntity from(Party space) {
+    public static PartyEntity from(Party space) {
         if (space == null) return null;
-        SharedSpaceEntity entity = SharedSpaceEntity.builder()
+        PartyEntity entity = PartyEntity.builder()
                 .id(space.id())
-                .spaceName(space.name())
-                .ownerUserId(space.partyLeaderId())
+                .name(space.name())
+                .partyLeaderId(space.partyLeaderId())
                 .sharingMode(space.sharingMode())
                 .active(space.active())
-                .participants(new HashSet<>())
-                .sharedResources(new HashSet<>())
+                .partyMembers(new HashSet<>())
+                .sharedItems(new HashSet<>())
                 .createdAt(space.createdAt())
                 .updatedAt(space.updatedAt())
                 .build();
 
         for (PartyMember participant : space.partyMembers()) {
-            entity.addParticipant(SpaceParticipantEntity.from(participant));
+            entity.addParticipant(PartyMemberEntity.from(participant));
         }
 
         for (SharedItem sharedItem : space.sharedItems()) {
-            entity.addResource(SharedResourceEntity.from(sharedItem));
+            entity.addResource(SharedItemEntity.from(sharedItem));
         }
 
         return entity;
     }
 
-    public void addParticipant(SpaceParticipantEntity participant) {
+    public void addParticipant(PartyMemberEntity participant) {
         if (participant == null) return;
-        participant.setSharedSpace(this);
-        this.participants.add(participant);
+        participant.setParty(this);
+        this.partyMembers.add(participant);
     }
 
-    public void addResource(SharedResourceEntity resource) {
+    public void addResource(SharedItemEntity resource) {
         if (resource == null) return;
-        resource.setSharedSpace(this);
-        this.sharedResources.add(resource);
+        resource.setParty(this);
+        this.sharedItems.add(resource);
     }
 
     public Party toModel() {
-        List<PartyMember> participants = this.participants != null
-                ? this.participants.stream().map(SpaceParticipantEntity::toModel).toList()
+        List<PartyMember> participants = this.partyMembers != null
+                ? this.partyMembers.stream().map(PartyMemberEntity::toModel).toList()
                 : List.of();
 
-        List<SharedItem> sharedItems = this.sharedResources != null
-                ? this.sharedResources.stream().map(SharedResourceEntity::toModel).toList()
+        List<SharedItem> sharedItems = this.sharedItems != null
+                ? this.sharedItems.stream().map(SharedItemEntity::toModel).toList()
                 : List.of();
 
         return Party.builder()
                 .id(this.id)
-                .name(this.spaceName)
-                .partyLeaderId(this.ownerUserId)
+                .name(this.name)
+                .partyLeaderId(this.partyLeaderId)
                 .partyMembers(participants)
                 .sharingMode(this.sharingMode)
                 .sharedItems(sharedItems)

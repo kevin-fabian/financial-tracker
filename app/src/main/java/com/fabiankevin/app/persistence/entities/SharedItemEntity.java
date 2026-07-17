@@ -1,7 +1,7 @@
 package com.fabiankevin.app.persistence.entities;
 
 import com.fabiankevin.app.models.enums.shared_space.ResourceType;
-import com.fabiankevin.app.models.shared_space.SharedItem;
+import com.fabiankevin.app.models.party.SharedItem;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -11,15 +11,15 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-@ToString(exclude = "sharedSpace")
-@EqualsAndHashCode(exclude = "sharedSpace")
+@ToString(exclude = "party")
+@EqualsAndHashCode(exclude = "party")
 @Builder(toBuilder = true)
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "shared_resources")
+@Table(name = "shared_items")
 @Entity
-public class SharedResourceEntity {
+public class SharedItemEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -36,12 +36,12 @@ public class SharedResourceEntity {
     private Instant sharedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "shared_space_id")
-    private SharedSpaceEntity sharedSpace;
+    @JoinColumn(name = "party_id")
+    private PartyEntity party;
 
-    public static SharedResourceEntity from(SharedItem resource) {
+    public static SharedItemEntity from(SharedItem resource) {
         if (resource == null) return null;
-        return SharedResourceEntity.builder()
+        return SharedItemEntity.builder()
                 .id(resource.id())
                 .type(resource.type())
                 .itemIds(resource.items())

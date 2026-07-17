@@ -7,12 +7,12 @@ import java.util.UUID;
 
 @Builder
 public record SendInvitationCommand(
-        UUID inviterUserId,
+        UUID inviterPlayerId,
         String inviteeEmail,
         UUID partyId
 ) {
     public SendInvitationCommand {
-        Objects.requireNonNull(inviterUserId, "Inviter ID cannot be null");
+        Objects.requireNonNull(inviterPlayerId, "Inviter ID cannot be null");
         Objects.requireNonNull(inviteeEmail, "Invitee email cannot be null");
         Objects.requireNonNull(partyId, "Space ID cannot be null");
     }

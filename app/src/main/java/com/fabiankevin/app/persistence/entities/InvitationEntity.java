@@ -3,7 +3,7 @@ package com.fabiankevin.app.persistence.entities;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
-import com.fabiankevin.app.models.shared_space.Invitation;
+import com.fabiankevin.app.models.party.Invitation;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -24,11 +24,11 @@ public class InvitationEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "inviter_user_id")
-    private UUID inviterUserId;
+    @Column(name = "inviter_player_id")
+    private UUID inviterPlayerId;
 
-    @Column(name = "invitee_user_id")
-    private UUID inviteeUserId;
+    @Column(name = "invitee_player_id")
+    private UUID inviteePlayerId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "proposed_sharing_mode")
@@ -48,34 +48,34 @@ public class InvitationEntity {
     @Column(name = "expires_at")
     private Instant expiresAt;
 
-    private UUID sharedSpaceId;
+    private UUID partyId;
 
     public static InvitationEntity from(Invitation invitation) {
         if (invitation == null) return null;
         return InvitationEntity.builder()
                 .id(invitation.id())
-                .inviterUserId(invitation.inviterUserId())
-                .inviteeUserId(invitation.inviteeUserId())
+                .inviterPlayerId(invitation.inviterPlayerId())
+                .inviteePlayerId(invitation.inviteePlayerId())
                 .proposedSharingMode(invitation.proposedSharingMode())
                 .proposedRole(invitation.proposedRole())
                 .status(invitation.status())
                 .createdAt(invitation.createdAt())
                 .expiresAt(invitation.expiresAt())
-                .sharedSpaceId(invitation.sharedSpaceId())
+                .partyId(invitation.sharedSpaceId())
                 .build();
     }
 
     public Invitation toModel() {
         return Invitation.builder()
                 .id(this.id)
-                .inviterUserId(this.inviterUserId)
-                .inviteeUserId(this.inviteeUserId)
+                .inviterPlayerId(this.inviterPlayerId)
+                .inviteePlayerId(this.inviteePlayerId)
                 .proposedSharingMode(this.proposedSharingMode)
                 .proposedRole(this.proposedRole)
                 .status(this.status)
                 .createdAt(this.createdAt)
                 .expiresAt(this.expiresAt)
-                .sharedSpaceId(this.sharedSpaceId)
+                .sharedSpaceId(this.partyId)
                 .build();
     }
 

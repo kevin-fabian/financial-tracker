@@ -1,4 +1,4 @@
-package com.fabiankevin.app.models.shared_space;
+package com.fabiankevin.app.models.party;
 
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
@@ -14,8 +14,8 @@ import static com.fabiankevin.app.models.enums.shared_space.InvitationStatus.PEN
 @Builder
 public record Invitation(
         UUID id,
-        UUID inviterUserId,
-        UUID inviteeUserId,
+        UUID inviterPlayerId,
+        UUID inviteePlayerId,
         SharingMode proposedSharingMode,
         AccessLevel proposedRole,
         InvitationStatus status,
@@ -24,8 +24,8 @@ public record Invitation(
         UUID sharedSpaceId
 ) {
     public Invitation {
-        Objects.requireNonNull(inviterUserId, "inviterUserId");
-        Objects.requireNonNull(inviteeUserId, "inviteeUserId");
+        Objects.requireNonNull(inviterPlayerId, "inviterPlayerId");
+        Objects.requireNonNull(inviteePlayerId, "inviteePlayerId");
         Objects.requireNonNull(status, "status");
     }
 

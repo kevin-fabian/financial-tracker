@@ -1,7 +1,7 @@
 package com.fabiankevin.app.web.controllers.dtos.party;
 
 import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
-import com.fabiankevin.app.models.shared_space.InvitationSummary;
+import com.fabiankevin.app.models.party.InvitationSummary;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 

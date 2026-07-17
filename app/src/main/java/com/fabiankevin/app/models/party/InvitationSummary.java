@@ -1,4 +1,4 @@
-package com.fabiankevin.app.models.shared_space;
+package com.fabiankevin.app.models.party;
 
 import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
 import lombok.Builder;

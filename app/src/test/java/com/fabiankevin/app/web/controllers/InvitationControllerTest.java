@@ -5,7 +5,7 @@ import com.fabiankevin.app.exceptions.shared_space.InvitationNotFoundException;
 import com.fabiankevin.app.exceptions.shared_space.NotSpaceOwnerException;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
-import com.fabiankevin.app.models.shared_space.InvitationSummary;
+import com.fabiankevin.app.models.party.InvitationSummary;
 import com.fabiankevin.app.services.InvitationService;
 import com.fabiankevin.app.services.PartyService;
 import com.fabiankevin.app.services.commands.shared_space.invitations.AcceptInvitationCommand;

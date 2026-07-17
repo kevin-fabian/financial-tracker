@@ -31,6 +31,6 @@ public interface JpaAccountRepository extends JpaRepository<AccountEntity, UUID>
             GROUP BY acc
             """)
     Page<AccountSummaryProjection> findAllByUserIdWithSummary(
-            @Param("playerId") UUID userId,
+            @Param("userId") UUID userId,
             Pageable pageable);
 }

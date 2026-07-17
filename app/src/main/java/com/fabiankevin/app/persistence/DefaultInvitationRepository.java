@@ -1,7 +1,7 @@
 package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
-import com.fabiankevin.app.models.shared_space.Invitation;
+import com.fabiankevin.app.models.party.Invitation;
 import com.fabiankevin.app.persistence.entities.InvitationEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaInvitationRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,13 +30,13 @@ public class DefaultInvitationRepository implements InvitationRepository {
 
     @Override
     public Optional<Invitation> findPendingBySpaceIdAndInviterAndInvitee(UUID spaceId, UUID inviterUserId, UUID inviteeUserId) {
-        return jpaInvitationRepository.findBySharedSpaceIdAndInviterUserIdAndInviteeUserIdAndStatus(spaceId, inviterUserId, inviteeUserId, InvitationStatus.PENDING)
+        return jpaInvitationRepository.findByPartyIdAndInviterPlayerIdAndInviteePlayerIdAndStatus(spaceId, inviterUserId, inviteeUserId, InvitationStatus.PENDING)
                 .map(InvitationEntity::toModel);
     }
 
     @Override
     public List<Invitation> findByInviterUserIdOrInviteeUserId(UUID userId) {
-        return jpaInvitationRepository.findByInviterUserIdOrInviteeUserId(userId, userId, Sort.by(Sort.Direction.DESC, "createdAt"))
+        return jpaInvitationRepository.findByInviterPlayerIdOrInviteePlayerId(userId, userId, Sort.by(Sort.Direction.DESC, "createdAt"))
                 .stream()
                 .map(InvitationEntity::toModel)
                 .toList();

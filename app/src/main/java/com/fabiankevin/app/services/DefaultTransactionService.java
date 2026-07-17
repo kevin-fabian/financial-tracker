@@ -10,7 +10,7 @@ import com.fabiankevin.app.models.enums.SummaryType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
-import com.fabiankevin.app.persistence.SharedSpaceRepository;
+import com.fabiankevin.app.persistence.PartyRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.PatchTransactionCommand;
@@ -32,7 +32,7 @@ public class DefaultTransactionService implements TransactionService {
     private final CategoryRepository categoryRepository;
     private final TransactionRepository transactionRepository;
     private final Map<SummaryType, SummaryGenerator> generators;
-    private final SharedSpaceRepository sharedSpaceRepository;
+    private final PartyRepository partyRepository;
     private final EventPublisher<Transaction> compositeEventPublisher;
 
     public DefaultTransactionService(
@@ -40,7 +40,7 @@ public class DefaultTransactionService implements TransactionService {
             CategoryRepository categoryRepository,
             TransactionRepository transactionRepository,
             List<SummaryGenerator> generators,
-            SharedSpaceRepository sharedSpaceRepository,
+            PartyRepository partyRepository,
             EventPublisher<Transaction> compositeEventPublisher) {
         this.accountRepository = accountRepository;
         this.categoryRepository = categoryRepository;
@@ -50,7 +50,7 @@ public class DefaultTransactionService implements TransactionService {
                         SummaryGenerator::supports,
                         Function.identity()
                 ));
-        this.sharedSpaceRepository = sharedSpaceRepository;
+        this.partyRepository = partyRepository;
         this.compositeEventPublisher = compositeEventPublisher;
     }
 
@@ -93,7 +93,7 @@ public class DefaultTransactionService implements TransactionService {
 
         Transaction savedTransaction = transactionRepository.save(transaction);
 
-        sharedSpaceRepository.findByUserId(userId).ifPresent(sharedSpace -> {
+        partyRepository.findByUserId(userId).ifPresent(sharedSpace -> {
             compositeEventPublisher.publish(sharedSpace.id(), new ItemEvent<>(
                     userId,
                     EventAction.ADDED,
@@ -156,7 +156,7 @@ public class DefaultTransactionService implements TransactionService {
 
     @Override
     public Page<Transaction> getTransactionsByPageQuery(PageQuery query, UUID userId, TransactionType type) {
-        Set<UUID> userIds = new HashSet<>(sharedSpaceRepository.findParticipantUserIdsByUserId(userId));
+        Set<UUID> userIds = new HashSet<>(partyRepository.findParticipantUserIdsByUserId(userId));
         userIds.add(userId);
         return transactionRepository.getTransactionsByPageAndUserIdAndType(query, userIds, type);
     }

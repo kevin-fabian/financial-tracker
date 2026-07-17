@@ -7,10 +7,10 @@ import com.fabiankevin.app.exceptions.TransactionNotFoundException;
 import com.fabiankevin.app.models.*;
 import com.fabiankevin.app.models.enums.SummaryType;
 import com.fabiankevin.app.models.enums.TransactionType;
-import com.fabiankevin.app.models.shared_space.Party;
+import com.fabiankevin.app.models.party.Party;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
-import com.fabiankevin.app.persistence.SharedSpaceRepository;
+import com.fabiankevin.app.persistence.PartyRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.PatchTransactionCommand;
@@ -44,7 +44,7 @@ class DefaultTransactionServiceTest {
     private TransactionRepository transactionRepository;
     private final SummaryGenerator categorySummaryGenerator = mock(SummaryGenerator.class);
     @Mock
-    private SharedSpaceRepository sharedSpaceRepository;
+    private PartyRepository partyRepository;
     @Mock
     private EventPublisher<Transaction> eventPublisher;
     private DefaultTransactionService transactionService;
@@ -58,7 +58,7 @@ class DefaultTransactionServiceTest {
                 categoryRepository,
                 transactionRepository,
                 summaryGenerators,
-                sharedSpaceRepository,
+                partyRepository,
                 eventPublisher
         );
     }
@@ -232,12 +232,12 @@ class DefaultTransactionServiceTest {
            when(transactionRepository.save(any())).then(invocation -> invocation.getArgument(0));
            Party party = mock(Party.class);
            when(party.id()).thenReturn(sharedSpaceId);
-           when(sharedSpaceRepository.findByUserId(userId)).thenReturn(Optional.of(party));
+           when(partyRepository.findByUserId(userId)).thenReturn(Optional.of(party));
 
            Transaction transaction = transactionService.addTransaction(command);
 
            assertEquals("Food and drinks", transaction.description());
-           verify(sharedSpaceRepository, times(1)).findByUserId(userId);
+           verify(partyRepository, times(1)).findByUserId(userId);
            verify(eventPublisher, times(1)).publish(eq(sharedSpaceId), any());
        }
 
@@ -265,12 +265,12 @@ class DefaultTransactionServiceTest {
                    .userId(userId)
                    .build()));
            when(transactionRepository.save(any())).then(invocation -> invocation.getArgument(0));
-           when(sharedSpaceRepository.findByUserId(userId)).thenReturn(Optional.empty());
+           when(partyRepository.findByUserId(userId)).thenReturn(Optional.empty());
 
            Transaction transaction = transactionService.addTransaction(command);
 
            assertEquals("Food and drinks", transaction.description());
-           verify(sharedSpaceRepository, times(1)).findByUserId(userId);
+           verify(partyRepository, times(1)).findByUserId(userId);
            verify(eventPublisher, never()).publish(any(), any());
        }
    }

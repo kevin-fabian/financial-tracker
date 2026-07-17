@@ -1,6 +1,6 @@
 package com.fabiankevin.app.persistence;
 
-import com.fabiankevin.app.models.shared_space.Invitation;
+import com.fabiankevin.app.models.party.Invitation;
 
 import java.util.List;
 import java.util.Optional;
