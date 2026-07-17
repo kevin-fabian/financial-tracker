@@ -115,7 +115,7 @@ class DefaultPartyServiceTest {
 
             when(spaceRepository.findParticipantUserIdsByUserId(userId)).thenReturn(expected);
 
-            List<UUID> result = service.getParticipantUserIds(userId);
+            List<UUID> result = service.getPartyMembersUserId(userId);
 
             assertEquals(3, result.size());
             assertTrue(result.containsAll(expected));
@@ -128,7 +128,7 @@ class DefaultPartyServiceTest {
 
             when(spaceRepository.findParticipantUserIdsByUserId(userId)).thenReturn(List.of());
 
-            List<UUID> result = service.getParticipantUserIds(userId);
+            List<UUID> result = service.getPartyMembersUserId(userId);
 
             assertTrue(result.isEmpty());
             verify(spaceRepository).findParticipantUserIdsByUserId(userId);
@@ -141,7 +141,7 @@ class DefaultPartyServiceTest {
 
             when(spaceRepository.findParticipantUserIdsByUserId(userId)).thenReturn(List.of(userId, otherParticipant));
 
-            List<UUID> result = service.getParticipantUserIds(userId);
+            List<UUID> result = service.getPartyMembersUserId(userId);
 
             assertEquals(2, result.size());
             assertEquals(Set.of(userId, otherParticipant), Set.copyOf(result));
@@ -185,7 +185,7 @@ class DefaultPartyServiceTest {
             when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
             when(spaceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-            service.removeParticipant(spaceId, participantUserId, ownerUserId);
+            service.kickPartyMember(spaceId, participantUserId, ownerUserId);
 
             ArgumentCaptor<Party> captor = ArgumentCaptor.forClass(Party.class);
             verify(spaceRepository).save(captor.capture());
@@ -228,7 +228,7 @@ class DefaultPartyServiceTest {
             when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
             when(spaceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-            service.removeParticipant(spaceId, participantUserId, participantUserId);
+            service.kickPartyMember(spaceId, participantUserId, participantUserId);
 
             ArgumentCaptor<Party> captor = ArgumentCaptor.forClass(Party.class);
             verify(spaceRepository).save(captor.capture());
@@ -270,7 +270,7 @@ class DefaultPartyServiceTest {
 
             when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
 
-            assertThrows(ForbiddenException.class, () -> service.removeParticipant(spaceId, participantUserId, otherUserId));
+            assertThrows(ForbiddenException.class, () -> service.kickPartyMember(spaceId, participantUserId, otherUserId));
             verify(spaceRepository, never()).save(any());
         }
 
@@ -299,7 +299,7 @@ class DefaultPartyServiceTest {
 
             when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
 
-            assertThrows(CannotRemoveOwnerException.class, () -> service.removeParticipant(spaceId, ownerUserId, ownerUserId));
+            assertThrows(CannotRemoveOwnerException.class, () -> service.kickPartyMember(spaceId, ownerUserId, ownerUserId));
             verify(spaceRepository, never()).save(any());
         }
     }
@@ -332,7 +332,7 @@ class DefaultPartyServiceTest {
 
             when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
 
-            service.deleteParty(spaceId, ownerUserId);
+            service.disbandParty(spaceId, ownerUserId);
 
             verify(spaceRepository).deleteById(spaceId);
         }
@@ -344,7 +344,7 @@ class DefaultPartyServiceTest {
 
             when(spaceRepository.findById(spaceId)).thenReturn(Optional.empty());
 
-            assertThrows(SharedSpaceNotFoundException.class, () -> service.deleteParty(spaceId, requesterId));
+            assertThrows(SharedSpaceNotFoundException.class, () -> service.disbandParty(spaceId, requesterId));
             verify(spaceRepository, never()).deleteById(any());
         }
 
@@ -374,7 +374,7 @@ class DefaultPartyServiceTest {
 
             when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
 
-            assertThrows(NotSpaceOwnerException.class, () -> service.deleteParty(spaceId, otherUserId));
+            assertThrows(NotSpaceOwnerException.class, () -> service.disbandParty(spaceId, otherUserId));
             verify(spaceRepository, never()).deleteById(any());
         }
     }

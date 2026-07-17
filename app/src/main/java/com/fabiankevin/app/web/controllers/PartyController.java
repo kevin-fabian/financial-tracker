@@ -107,7 +107,7 @@ public class PartyController {
         @PathVariable @NotNull @Schema(description = "ID of the party to delete") UUID partyId,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        partyService.deleteParty(partyId, userId);
+        partyService.disbandParty(partyId, userId);
         return ResponseEntity.noContent().build();
     }
 
@@ -127,7 +127,7 @@ public class PartyController {
         @PathVariable @NotNull @Schema(description = "ID of the participant to remove") UUID partyMemberId,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        partyService.removeParticipant(partyId, partyMemberId, userId);
+        partyService.kickPartyMember(partyId, partyMemberId, userId);
         return ResponseEntity.noContent().build();
     }
 }

@@ -250,7 +250,7 @@ class PartyControllerTest {
                     .with(jwt().jwt(jwt)))
                 .andExpect(status().isNoContent());
 
-            verify(partyService).removeParticipant(partyId, partyMemberId, userId);
+            verify(partyService).kickPartyMember(partyId, partyMemberId, userId);
         }
 
         @Test
@@ -270,7 +270,7 @@ class PartyControllerTest {
             UUID ownerParticipantId = UUID.randomUUID();
 
             doThrow(new CannotRemoveOwnerException())
-                .when(partyService).removeParticipant(partyId, ownerParticipantId, userId);
+                .when(partyService).kickPartyMember(partyId, ownerParticipantId, userId);
 
             mockMvc.perform(delete("/api/parties/" + partyId + "/partyMembers/" + ownerParticipantId)
                     .with(jwt().jwt(jwt)))
@@ -289,7 +289,7 @@ class PartyControllerTest {
                     .with(jwt().jwt(jwt)))
                 .andExpect(status().isNoContent());
 
-            verify(partyService).deleteParty(partyId, userId);
+            verify(partyService).disbandParty(partyId, userId);
         }
 
         @Test
@@ -307,7 +307,7 @@ class PartyControllerTest {
             UUID partyId = UUID.randomUUID();
 
             doThrow(new SharedSpaceNotFoundException())
-                .when(partyService).deleteParty(partyId, userId);
+                .when(partyService).disbandParty(partyId, userId);
 
             mockMvc.perform(delete("/api/parties/" + partyId)
                     .with(jwt().jwt(jwt)))

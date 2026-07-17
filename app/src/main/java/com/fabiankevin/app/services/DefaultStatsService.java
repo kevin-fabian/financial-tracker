@@ -57,7 +57,7 @@ public class DefaultStatsService implements StatsService {
     }
 
     private Set<UUID> resolveUserIds(UUID userId) {
-        Set<UUID> userIds = new HashSet<>(partyService.getParticipantUserIds(userId));
+        Set<UUID> userIds = new HashSet<>(partyService.getPartyMembersUserId(userId));
         userIds.add(userId);
         return userIds;
     }

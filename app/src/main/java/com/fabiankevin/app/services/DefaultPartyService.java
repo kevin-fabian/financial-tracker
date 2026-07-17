@@ -8,7 +8,6 @@ import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
 import com.fabiankevin.app.models.enums.shared_space.ResourceType;
 import com.fabiankevin.app.models.shared_space.*;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
-import com.fabiankevin.app.services.commands.shared_space.AddSharedResourceCommand;
 import com.fabiankevin.app.services.commands.shared_space.OrganizePartyCommand;
 import com.fabiankevin.app.services.commands.shared_space.PatchPartyCommand;
 import jakarta.transaction.Transactional;
@@ -70,7 +69,7 @@ public class DefaultPartyService implements PartyService {
 
     @Transactional
     @Override
-    public void removeParticipant(UUID partyId, UUID participantId, UUID requesterId) {
+    public void kickPartyMember(UUID partyId, UUID participantId, UUID requesterId) {
         Party party = findPartyOrThrow(partyId);
 
         boolean isOwner = party.partyLeaderId().equals(requesterId);
@@ -116,37 +115,14 @@ public class DefaultPartyService implements PartyService {
                 .toList();
     }
 
-    @Transactional
     @Override
-    public SharedItem addResource(UUID partyId, AddSharedResourceCommand command) {
-        Party party = findPartyOrThrow(partyId);
-
-        SharedItem resource = SharedItem.builder()
-                .type(command.type())
-                .items(command.itemIds())
-                .sharedAt(Instant.now())
-                .build();
-
-        List<SharedItem> updatedResources = new ArrayList<>(party.sharedItems());
-        updatedResources.add(resource);
-
-        Party updatedParty = party.toBuilder()
-                .sharedItems(updatedResources)
-                .updatedAt(Instant.now())
-                .build();
-
-        spaceRepository.save(updatedParty);
-        return resource;
-    }
-
-    @Override
-    public List<UUID> getParticipantUserIds(UUID userId) {
+    public List<UUID> getPartyMembersUserId(UUID userId) {
         return spaceRepository.findParticipantUserIdsByUserId(userId);
     }
 
     @Transactional
     @Override
-    public void deleteParty(UUID partyId, UUID requesterId) {
+    public void disbandParty(UUID partyId, UUID requesterId) {
         Party party = findPartyOrThrow(partyId);
 
         if (!party.partyLeaderId().equals(requesterId)) {
