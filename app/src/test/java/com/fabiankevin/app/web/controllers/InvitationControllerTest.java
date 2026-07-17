@@ -114,7 +114,7 @@ class InvitationControllerTest {
 
             when(invitationService.getInvitationsByUserId(userId)).thenReturn(List.of(sent, received));
 
-            mockMvc.perform(get("/api/shared-spaces/invitations")
+            mockMvc.perform(get("/api/parties/invitations")
                 .with(jwt().jwt(jwt)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
@@ -152,7 +152,7 @@ class InvitationControllerTest {
 
         @Test
         void givenMissingJwt_thenReturnsUnauthorized() throws Exception {
-            mockMvc.perform(get("/api/shared-spaces/invitations"))
+            mockMvc.perform(get("/api/parties/invitations"))
                 .andExpect(status().isUnauthorized());
 
             verifyNoInteractions(partyService);
@@ -162,7 +162,7 @@ class InvitationControllerTest {
         void givenUserWithNoInvitations_thenReturnsEmptyList() throws Exception {
             when(invitationService.getInvitationsByUserId(userId)).thenReturn(List.of());
 
-            mockMvc.perform(get("/api/shared-spaces/invitations")
+            mockMvc.perform(get("/api/parties/invitations")
                 .with(jwt().jwt(jwt)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
@@ -176,7 +176,7 @@ class InvitationControllerTest {
         void givenUnrecognizedParameter_thenReturnsBadRequest() throws Exception {
             UUID partyId = UUID.randomUUID();
 
-            mockMvc.perform(post("/api/shared-spaces/" + partyId + "/invitations")
+            mockMvc.perform(post("/api/parties/" + partyId + "/invitations")
                             .with(jwt().jwt(jwt))
                             .contentType("application/json")
                             .content("""
@@ -196,7 +196,7 @@ class InvitationControllerTest {
                 .email("jane@example.com")
                 .build();
 
-            mockMvc.perform(post("/api/shared-spaces/" + partyId + "/invitations")
+            mockMvc.perform(post("/api/parties/" + partyId + "/invitations")
                     .with(jwt().jwt(jwt))
                     .contentType("application/json")
                     .content(jsonMapper.writeValueAsString(request)))
@@ -212,7 +212,7 @@ class InvitationControllerTest {
                 .email("jane@example.com")
                 .build();
 
-            mockMvc.perform(post("/api/shared-spaces/" + partyId + "/invitations")
+            mockMvc.perform(post("/api/parties/" + partyId + "/invitations")
                     .contentType("application/json")
                     .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden());
@@ -229,7 +229,7 @@ class InvitationControllerTest {
 
             when(invitationService.sendInvitation(any())).thenThrow(new NotSpaceOwnerException());
 
-            mockMvc.perform(post("/api/shared-spaces/" + partyId + "/invitations")
+            mockMvc.perform(post("/api/parties/" + partyId + "/invitations")
                     .with(jwt().jwt(jwt))
                     .contentType("application/json")
                     .content(jsonMapper.writeValueAsString(request)))
@@ -245,7 +245,7 @@ class InvitationControllerTest {
             UUID partyId = UUID.randomUUID();
             UUID invitationId = UUID.randomUUID();
 
-            mockMvc.perform(post("/api/shared-spaces/" + partyId + "/invitations/" + invitationId + "/accept")
+            mockMvc.perform(post("/api/parties/" + partyId + "/invitations/" + invitationId + "/accept")
                     .with(jwt().jwt(jwt)))
                 .andExpect(status().isNoContent());
 
@@ -257,7 +257,7 @@ class InvitationControllerTest {
             UUID partyId = UUID.randomUUID();
             UUID invitationId = UUID.randomUUID();
 
-            mockMvc.perform(post("/api/shared-spaces/" + partyId + "/invitations/" + invitationId + "/accept"))
+            mockMvc.perform(post("/api/parties/" + partyId + "/invitations/" + invitationId + "/accept"))
                 .andExpect(status().isForbidden());
 
             verifyNoInteractions(partyService);
@@ -271,7 +271,7 @@ class InvitationControllerTest {
             doThrow(new InvitationNotFoundException())
                 .when(invitationService).acceptInvitation(any());
 
-            mockMvc.perform(post("/api/shared-spaces/" + partyId + "/invitations/" + invitationId + "/accept")
+            mockMvc.perform(post("/api/parties/" + partyId + "/invitations/" + invitationId + "/accept")
                     .with(jwt().jwt(jwt)))
                 .andExpect(status().isNotFound());
         }
@@ -285,7 +285,7 @@ class InvitationControllerTest {
             UUID partyId = UUID.randomUUID();
             UUID invitationId = UUID.randomUUID();
 
-            mockMvc.perform(post("/api/shared-spaces/" + partyId + "/invitations/" + invitationId + "/reject")
+            mockMvc.perform(post("/api/parties/" + partyId + "/invitations/" + invitationId + "/reject")
                     .with(jwt().jwt(jwt)))
                 .andExpect(status().isNoContent());
 
@@ -297,7 +297,7 @@ class InvitationControllerTest {
             UUID partyId = UUID.randomUUID();
             UUID invitationId = UUID.randomUUID();
 
-            mockMvc.perform(post("/api/shared-spaces/" + partyId + "/invitations/" + invitationId + "/reject"))
+            mockMvc.perform(post("/api/parties/" + partyId + "/invitations/" + invitationId + "/reject"))
                 .andExpect(status().isForbidden());
 
             verifyNoInteractions(partyService);
@@ -310,7 +310,7 @@ class InvitationControllerTest {
 
             when(invitationService.rejectInvitation(any())).thenThrow(new ForbiddenException("Only the invited user can reject"));
 
-            mockMvc.perform(post("/api/shared-spaces/" + partyId + "/invitations/" + invitationId + "/reject")
+            mockMvc.perform(post("/api/parties/" + partyId + "/invitations/" + invitationId + "/reject")
                     .with(jwt().jwt(jwt)))
                 .andExpect(status().isForbidden());
         }

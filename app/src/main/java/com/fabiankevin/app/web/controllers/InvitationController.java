@@ -24,7 +24,7 @@ import java.util.UUID;
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@RequestMapping(value = "/api/shared-spaces", version = "v1")
+@RequestMapping(value = "/api/parties", version = "v1")
 public class InvitationController {
     private final InvitationService invitationService;
 
@@ -47,29 +47,29 @@ public class InvitationController {
 
     @Operation(
         summary = "Send an invitation",
-        description = "Sends an invitation to join the specified shared space. Only the space owner can invite.",
+        description = "Sends an invitation to join the specified party. Only the party leader can invite.",
         responses = {
             @ApiResponse(responseCode = "204", description = "No Content - Invitation sent successfully"),
             @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Only the space owner can invite"),
-            @ApiResponse(responseCode = "404", description = "Not Found - Shared space does not exist"),
+            @ApiResponse(responseCode = "404", description = "Not Found - party does not exist"),
             @ApiResponse(responseCode = "409", description = "Conflict - User is already a participant"),
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
     @PostMapping("/{partyId}/invitations")
     public ResponseEntity<Void> sendInvitation(
-        @PathVariable @NotNull @Schema(description = "ID of the shared space where the invitation is sent") UUID spaceId,
+        @PathVariable @NotNull @Schema(description = "ID of the party where the invitation is sent") UUID partyId,
         @Valid @RequestBody SendInvitationRequest request,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        invitationService.sendInvitation(request.toCommand(userId, spaceId));
+        invitationService.sendInvitation(request.toCommand(userId, partyId));
         return ResponseEntity.noContent().build();
     }
 
     @Operation(
         summary = "Accept an invitation",
-        description = "Accepts a pending invitation and adds the authenticated user to the shared space.",
+        description = "Accepts a pending invitation and adds the authenticated user to the party.",
         responses = {
             @ApiResponse(responseCode = "204", description = "No Content - Invitation accepted successfully"),
             @ApiResponse(responseCode = "400", description = "Bad Request - Invalid invitation state"),
