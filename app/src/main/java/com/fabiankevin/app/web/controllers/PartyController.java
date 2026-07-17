@@ -26,15 +26,15 @@ import java.util.UUID;
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@RequestMapping(value = "/api/shared-spaces", version = "v1")
+@RequestMapping(value = "/api/parties", version = "v1")
 public class PartyController {
     private final PartyService partyService;
 
     @Operation(
-        summary = "Create a shared space",
-        description = "Creates a new shared space owned by the authenticated user and returns it.",
+        summary = "Create a party",
+        description = "Creates a new party owned by the authenticated user and returns it.",
         responses = {
-            @ApiResponse(responseCode = "201", description = "Created - Shared space created successfully",
+            @ApiResponse(responseCode = "201", description = "Created - Party created successfully",
                 content = @Content(schema = @Schema(implementation = PartyResponse.class))),
             @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
@@ -55,10 +55,10 @@ public class PartyController {
     }
 
     @Operation(
-        summary = "List shared spaces for the authenticated user",
-        description = "Retrieves all shared spaces the authenticated user participates in.",
+        summary = "List parties for the authenticated user",
+        description = "Retrieves all parties the authenticated user participates in.",
         responses = {
-            @ApiResponse(responseCode = "200", description = "OK - Shared spaces retrieved successfully",
+            @ApiResponse(responseCode = "200", description = "OK - Parties retrieved successfully",
                 content = @Content(array = @ArraySchema(schema = @Schema(implementation = PartyResponse.class)))),
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
@@ -72,62 +72,62 @@ public class PartyController {
     }
 
     @Operation(
-        summary = "Update a shared space",
-        description = "Updates the name and/or sharing mode of the shared space owned by the authenticated user.",
+        summary = "Patch a party",
+        description = "Updates the name and/or sharing mode of the party owned by the authenticated user.",
         responses = {
-            @ApiResponse(responseCode = "200", description = "OK - Shared space updated successfully",
+            @ApiResponse(responseCode = "200", description = "OK - Party updated successfully",
                 content = @Content(schema = @Schema(implementation = PartyResponse.class))),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Only the owner can update the shared space"),
-            @ApiResponse(responseCode = "404", description = "Not Found - Shared space not found"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Only the owner can update the party"),
+            @ApiResponse(responseCode = "404", description = "Not Found - Party not found"),
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
     @PatchMapping("/{partyId}")
     public PartyResponse patchParty(
-        @PathVariable @NotNull @Schema(description = "ID of the shared space to update") UUID spaceId,
+        @PathVariable @NotNull @Schema(description = "ID of the party to update") UUID partyId,
         @RequestBody PatchPartyRequest request,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        Party updated = partyService.patchSharedSpace(request.toCommand(spaceId, userId));
+        Party updated = partyService.patchParty(request.toCommand(partyId, userId));
         return PartyResponse.from(updated);
     }
 
     @Operation(
-        summary = "Delete a shared space",
-        description = "Deletes the shared space owned by the authenticated user.",
+        summary = "Disband a party",
+        description = "Deletes the party owned by the authenticated user.",
         responses = {
-            @ApiResponse(responseCode = "204", description = "No Content - Shared space deleted successfully"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Only the owner can delete the shared space"),
-            @ApiResponse(responseCode = "404", description = "Not Found - Shared space not found"),
+            @ApiResponse(responseCode = "204", description = "No Content - Party deleted successfully"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Only the owner can delete the party"),
+            @ApiResponse(responseCode = "404", description = "Not Found - Party not found"),
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
     @DeleteMapping("/{partyId}")
     public ResponseEntity<Void> disbandParty(
-        @PathVariable @NotNull @Schema(description = "ID of the shared space to delete") UUID spaceId,
+        @PathVariable @NotNull @Schema(description = "ID of the party to delete") UUID partyId,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        partyService.deleteSharedSpace(spaceId, userId);
+        partyService.deleteParty(partyId, userId);
         return ResponseEntity.noContent().build();
     }
 
     @Operation(
-        summary = "Remove a participant",
-        description = "Removes a participant from the shared space. Only the owner or the participant themselves can remove.",
+        summary = "Kick a party member",
+        description = "Kick a party member from the party. Only party leader can kick a member.",
         responses = {
-            @ApiResponse(responseCode = "204", description = "No Content - Participant removed successfully"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Not allowed to remove this participant"),
-            @ApiResponse(responseCode = "409", description = "Conflict - Cannot remove the space owner"),
+            @ApiResponse(responseCode = "204", description = "No Content - Party member has been kicked successfully"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Not allowed to remove this party member"),
+            @ApiResponse(responseCode = "409", description = "Conflict - Cannot remove the party owner"),
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
-    @DeleteMapping("/{partyId}/participants/{participantId}")
-    public ResponseEntity<Void> kickPlayer(
-        @PathVariable @NotNull @Schema(description = "ID of the shared space") UUID spaceId,
-        @PathVariable @NotNull @Schema(description = "ID of the participant to remove") UUID participantId,
+    @DeleteMapping("/{partyId}/partyMembers/{partyMemberId}")
+    public ResponseEntity<Void> kickPartyMember(
+        @PathVariable @NotNull @Schema(description = "ID of the party") UUID partyId,
+        @PathVariable @NotNull @Schema(description = "ID of the participant to remove") UUID partyMemberId,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        partyService.removeParticipant(spaceId, participantId, userId);
+        partyService.removeParticipant(partyId, partyMemberId, userId);
         return ResponseEntity.noContent().build();
     }
 }

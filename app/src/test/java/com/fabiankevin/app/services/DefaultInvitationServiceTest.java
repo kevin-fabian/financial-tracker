@@ -10,7 +10,7 @@ import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.shared_space.Invitation;
 import com.fabiankevin.app.models.shared_space.InvitationSummary;
 import com.fabiankevin.app.models.shared_space.Party;
-import com.fabiankevin.app.models.shared_space.Player;
+import com.fabiankevin.app.models.shared_space.PartyMember;
 import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
 import com.fabiankevin.app.services.commands.shared_space.invitations.AcceptInvitationCommand;
@@ -72,8 +72,8 @@ class DefaultInvitationServiceTest {
                     .id(spaceId)
                     .name("Family Budget")
                     .partyLeaderId(inviterUserId)
-                    .participants(new ArrayList<>(List.of(
-                            Player.builder()
+                    .partyMembers(new ArrayList<>(List.of(
+                            PartyMember.builder()
                                     .playerId(inviterUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
@@ -81,7 +81,7 @@ class DefaultInvitationServiceTest {
                                     .build()
                     )))
                     .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedResources(new ArrayList<>())
+                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -120,8 +120,8 @@ class DefaultInvitationServiceTest {
                     .id(spaceId)
                     .name("Family Budget")
                     .partyLeaderId(inviterUserId)
-                    .participants(new ArrayList<>(List.of(
-                            Player.builder()
+                    .partyMembers(new ArrayList<>(List.of(
+                            PartyMember.builder()
                                     .playerId(inviterUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
@@ -129,7 +129,7 @@ class DefaultInvitationServiceTest {
                                     .build()
                     )))
                     .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedResources(new ArrayList<>())
+                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -175,9 +175,9 @@ class DefaultInvitationServiceTest {
                     .id(spaceId)
                     .name("Family Budget")
                     .partyLeaderId(ownerUserId)
-                    .participants(new ArrayList<>())
+                    .partyMembers(new ArrayList<>())
                     .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedResources(new ArrayList<>())
+                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -205,14 +205,14 @@ class DefaultInvitationServiceTest {
                     .id(spaceId)
                     .name("Family Budget")
                     .partyLeaderId(inviterUserId)
-                    .participants(new ArrayList<>(List.of(
-                            Player.builder()
+                    .partyMembers(new ArrayList<>(List.of(
+                            PartyMember.builder()
                                     .playerId(inviterUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
-                            Player.builder()
+                            PartyMember.builder()
                                     .playerId(inviteeUserId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(ParticipantStatus.ACTIVE)
@@ -220,7 +220,7 @@ class DefaultInvitationServiceTest {
                                     .build()
                     )))
                     .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedResources(new ArrayList<>())
+                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -283,8 +283,8 @@ class DefaultInvitationServiceTest {
                     .id(spaceId)
                     .name("Family Budget")
                     .partyLeaderId(inviterUserId)
-                    .participants(new ArrayList<>(List.of(
-                            Player.builder()
+                    .partyMembers(new ArrayList<>(List.of(
+                            PartyMember.builder()
                                     .playerId(inviterUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
@@ -292,7 +292,7 @@ class DefaultInvitationServiceTest {
                                     .build()
                     )))
                     .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedResources(new ArrayList<>())
+                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -312,8 +312,8 @@ class DefaultInvitationServiceTest {
             assertEquals(InvitationStatus.ACCEPTED, invitationCaptor.getValue().status());
             assertEquals(inviteeUserId, invitationCaptor.getValue().inviteeUserId());
             assertNotNull(result);
-            assertEquals(2, result.participants().size());
-            Player addedParticipant = result.participants().stream()
+            assertEquals(2, result.partyMembers().size());
+            PartyMember addedParticipant = result.partyMembers().stream()
                     .filter(p -> p.playerId().equals(inviteeUserId))
                     .findFirst()
                     .orElseThrow(() -> new AssertionError("Invitee should be added as participant"));
@@ -491,7 +491,7 @@ class DefaultInvitationServiceTest {
                     .name("Family 2026 Budget")
                     .partyLeaderId(inviterId)
                     .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedResources(List.of())
+                    .sharedItems(List.of())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())

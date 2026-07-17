@@ -29,26 +29,26 @@ public class DefaultPartyService implements PartyService {
     @Transactional
     @Override
     public Party organize(OrganizePartyCommand command) {
-        List<Player> initialParticipants = new ArrayList<>();
-        initialParticipants.add(Player.builder()
+        List<PartyMember> initialParticipants = new ArrayList<>();
+        initialParticipants.add(PartyMember.builder()
                 .playerId(command.partyLeaderId())
                 .accessLevel(AccessLevel.READ_WRITE)
                 .status(ParticipantStatus.ACTIVE)
                 .joinedAt(Instant.now())
                 .build());
 
-        List<SharedResource> sharedResources = new ArrayList<>();
-        sharedResources.add(SharedResource.builder()
+        List<SharedItem> sharedItems = new ArrayList<>();
+        sharedItems.add(SharedItem.builder()
                 .type(ResourceType.TRANSACTION)
                 .sharedAt(Instant.now())
                 .items(List.of())
                 .build());
-        sharedResources.add(SharedResource.builder()
+        sharedItems.add(SharedItem.builder()
                 .type(ResourceType.BUDGET)
                 .sharedAt(Instant.now())
                 .items(List.of())
                 .build());
-        sharedResources.add(SharedResource.builder()
+        sharedItems.add(SharedItem.builder()
                 .type(ResourceType.BUDGET)
                 .sharedAt(Instant.now())
                 .items(List.of())
@@ -57,9 +57,9 @@ public class DefaultPartyService implements PartyService {
         Party newSpace = Party.builder()
                 .name(command.partyName() != null ? command.partyName() : "Shared Space")
                 .partyLeaderId(command.partyLeaderId())
-                .participants(initialParticipants)
+                .partyMembers(initialParticipants)
                 .sharingMode(command.sharingMode())
-                .sharedResources(sharedResources)
+                .sharedItems(sharedItems)
                 .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -70,39 +70,39 @@ public class DefaultPartyService implements PartyService {
 
     @Transactional
     @Override
-    public void removeParticipant(UUID spaceId, UUID participantId, UUID requesterId) {
-        Party space = findSpaceOrThrow(spaceId);
+    public void removeParticipant(UUID partyId, UUID participantId, UUID requesterId) {
+        Party party = findPartyOrThrow(partyId);
 
-        boolean isOwner = space.partyLeaderId().equals(requesterId);
+        boolean isOwner = party.partyLeaderId().equals(requesterId);
         boolean isSelf = participantId.equals(requesterId);
 
         if (!isOwner && !isSelf) {
             throw new ForbiddenException("Only the owner or the participant themselves can remove a participant");
         }
 
-        if (participantId.equals(space.partyLeaderId())) {
+        if (participantId.equals(party.partyLeaderId())) {
             throw new CannotRemoveOwnerException();
         }
 
-        List<Player> updatedParticipants = space.participants().stream()
+        List<PartyMember> updatedParticipants = party.partyMembers().stream()
                 .filter(p -> !p.playerId().equals(participantId))
                 .collect(Collectors.toList());
 
-        Party updatedSpace = space.toBuilder()
-                .participants(updatedParticipants)
+        Party updatedParty = party.toBuilder()
+                .partyMembers(updatedParticipants)
                 .updatedAt(Instant.now())
                 .build();
 
-        spaceRepository.save(updatedSpace);
+        spaceRepository.save(updatedParty);
     }
 
     @Override
-    public List<SharedSpaceSummary> retrieveByUserId(UUID userId) {
-        List<Party> spaces = spaceRepository.retrieveByUserId(userId);
+    public List<PartySummary> retrieveByUserId(UUID userId) {
+        List<Party> parties = spaceRepository.retrieveByUserId(userId);
 
-        List<UUID> allParticipantIds = spaces.stream()
-                .flatMap(space -> space.participants().stream())
-                .map(Player::playerId)
+        List<UUID> allParticipantIds = parties.stream()
+                .flatMap(party -> party.partyMembers().stream())
+                .map(PartyMember::playerId)
                 .distinct()
                 .toList();
 
@@ -111,31 +111,31 @@ public class DefaultPartyService implements PartyService {
                 : userClient.getUsersByIds(allParticipantIds).stream()
                 .collect(Collectors.toMap(User::id, Function.identity()));
 
-        return spaces.stream()
-                .map(space -> toSummary(space, usersById))
+        return parties.stream()
+                .map(party -> toSummary(party, usersById))
                 .toList();
     }
 
     @Transactional
     @Override
-    public SharedResource addResource(UUID spaceId, AddSharedResourceCommand command) {
-        Party space = findSpaceOrThrow(spaceId);
+    public SharedItem addResource(UUID partyId, AddSharedResourceCommand command) {
+        Party party = findPartyOrThrow(partyId);
 
-        SharedResource resource = SharedResource.builder()
+        SharedItem resource = SharedItem.builder()
                 .type(command.type())
                 .items(command.itemIds())
                 .sharedAt(Instant.now())
                 .build();
 
-        List<SharedResource> updatedResources = new ArrayList<>(space.sharedResources());
+        List<SharedItem> updatedResources = new ArrayList<>(party.sharedItems());
         updatedResources.add(resource);
 
-        Party updatedSpace = space.toBuilder()
-                .sharedResources(updatedResources)
+        Party updatedParty = party.toBuilder()
+                .sharedItems(updatedResources)
                 .updatedAt(Instant.now())
                 .build();
 
-        spaceRepository.save(updatedSpace);
+        spaceRepository.save(updatedParty);
         return resource;
     }
 
@@ -146,20 +146,20 @@ public class DefaultPartyService implements PartyService {
 
     @Transactional
     @Override
-    public void deleteSharedSpace(UUID spaceId, UUID requesterId) {
-        Party space = findSpaceOrThrow(spaceId);
+    public void deleteParty(UUID partyId, UUID requesterId) {
+        Party party = findPartyOrThrow(partyId);
 
-        if (!space.partyLeaderId().equals(requesterId)) {
+        if (!party.partyLeaderId().equals(requesterId)) {
             throw new NotSpaceOwnerException();
         }
 
-        spaceRepository.deleteById(spaceId);
+        spaceRepository.deleteById(partyId);
     }
 
     @Transactional
     @Override
-    public Party patchSharedSpace(PatchPartyCommand command) {
-        Party existing = findSpaceOrThrow(command.id());
+    public Party patchParty(PatchPartyCommand command) {
+        Party existing = findPartyOrThrow(command.id());
 
         if (!existing.partyLeaderId().equals(command.userId())) {
             throw new NotSpaceOwnerException();
@@ -177,25 +177,25 @@ public class DefaultPartyService implements PartyService {
         return spaceRepository.save(builder.build());
     }
 
-    private Party findSpaceOrThrow(UUID spaceId) {
-        return spaceRepository.findById(spaceId)
+    private Party findPartyOrThrow(UUID partyId) {
+        return spaceRepository.findById(partyId)
                 .orElseThrow(SharedSpaceNotFoundException::new);
     }
 
-    private Player findParticipantOrThrow(Party space, UUID userId) {
-        return space.participants().stream()
+    private PartyMember findParticipantOrThrow(Party party, UUID userId) {
+        return party.partyMembers().stream()
                 .filter(p -> p.playerId().equals(userId))
                 .findFirst()
                 .orElseThrow(() -> new ParticipantNotFoundException(userId));
     }
 
-    private SharedSpaceSummary toSummary(Party space, Map<UUID, User> usersById) {
-        List<SpaceParticipantSummary> participantSummaries = space.participants().stream()
+    private PartySummary toSummary(Party party, Map<UUID, User> usersById) {
+        List<PartyMemberSummary> participantSummaries = party.partyMembers().stream()
                 .map(participant -> {
                     User user = usersById.get(participant.playerId());
                     String name = user != null ? user.firstName() + " " + user.lastName() : null;
                     String initial = deriveInitial(user);
-                    return SpaceParticipantSummary.builder()
+                    return PartyMemberSummary.builder()
                             .id(participant.playerId())
                             .name(name)
                             .initial(initial)
@@ -206,16 +206,16 @@ public class DefaultPartyService implements PartyService {
                 })
                 .toList();
 
-        return SharedSpaceSummary.builder()
-                .id(space.id())
-                .spaceName(space.name())
-                .ownerUserId(space.partyLeaderId())
+        return PartySummary.builder()
+                .id(party.id())
+                .name(party.name())
+                .partyLeaderId(party.partyLeaderId())
                 .participants(participantSummaries)
-                .sharingMode(space.sharingMode())
-                .sharedResources(space.sharedResources())
-                .active(space.active())
-                .createdAt(space.createdAt())
-                .updatedAt(space.updatedAt())
+                .sharingMode(party.sharingMode())
+                .sharedItems(party.sharedItems())
+                .active(party.active())
+                .createdAt(party.createdAt())
+                .updatedAt(party.updatedAt())
                 .build();
     }
 

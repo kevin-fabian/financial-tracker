@@ -9,19 +9,19 @@ import lombok.Builder;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
-@Schema(description = "Request to create a shared space")
+@Schema(description = "Request to create a party")
 public record OrganizePartyRequest(
-    @Schema(description = "Display name for the space", example = "Family 2026 Budget")
-    String spaceName,
+    @Schema(description = "Display name for the party", example = "Family 2026 Budget")
+    String partyName,
 
     @NotNull(message = "Sharing mode is required")
-    @Schema(description = "Global sharing mode for the space", example = "MUTUAL_SHARING")
+    @Schema(description = "Global sharing mode for the party", example = "MUTUAL_SHARING")
     SharingMode sharingMode
 ) {
-    public OrganizePartyCommand toCommand(UUID ownerUserId) {
+    public OrganizePartyCommand toCommand(UUID partyLeaderId) {
         return OrganizePartyCommand.builder()
-            .partyLeaderId(ownerUserId)
-            .partyName(spaceName)
+            .partyLeaderId(partyLeaderId)
+            .partyName(partyName)
             .sharingMode(sharingMode)
             .build();
     }

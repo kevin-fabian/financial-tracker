@@ -9,14 +9,14 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
-public record SpaceParticipantSummary(
+public record PartyMemberSummary(
         UUID id,
         String name,
         String initial,
         AccessLevel accessLevel,
         ParticipantStatus status,
         Instant joinedAt) {
-    public SpaceParticipantSummary {
+    public PartyMemberSummary {
         Objects.requireNonNull(accessLevel, "accessLevel");
         Objects.requireNonNull(status, "status");
     }

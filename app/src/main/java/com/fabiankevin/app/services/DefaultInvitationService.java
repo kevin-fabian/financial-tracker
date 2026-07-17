@@ -9,7 +9,7 @@ import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
 import com.fabiankevin.app.models.shared_space.Invitation;
 import com.fabiankevin.app.models.shared_space.InvitationSummary;
 import com.fabiankevin.app.models.shared_space.Party;
-import com.fabiankevin.app.models.shared_space.Player;
+import com.fabiankevin.app.models.shared_space.PartyMember;
 import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
 import com.fabiankevin.app.services.commands.shared_space.invitations.AcceptInvitationCommand;
@@ -97,18 +97,18 @@ public class DefaultInvitationService implements InvitationService {
 
         Party space = findSpaceOrThrow(invitation.sharedSpaceId());
 
-        Player participant = Player.builder()
+        PartyMember participant = PartyMember.builder()
                 .playerId(invitation.inviteeUserId())
                 .accessLevel(invitation.proposedRole())
                 .status(ParticipantStatus.ACTIVE)
                 .joinedAt(Instant.now())
                 .build();
 
-        List<Player> updatedParticipants = new ArrayList<>(space.participants());
+        List<PartyMember> updatedParticipants = new ArrayList<>(space.partyMembers());
         updatedParticipants.add(participant);
 
         Party updatedSpace = space.toBuilder()
-                .participants(updatedParticipants)
+                .partyMembers(updatedParticipants)
                 .updatedAt(Instant.now())
                 .build();
 
@@ -183,7 +183,7 @@ public class DefaultInvitationService implements InvitationService {
     }
 
     private boolean isUserParticipant(Party space, UUID userId) {
-        return space.participants().stream()
+        return space.partyMembers().stream()
                 .anyMatch(spaceParticipant -> spaceParticipant.playerId().equals(userId));
     }
 

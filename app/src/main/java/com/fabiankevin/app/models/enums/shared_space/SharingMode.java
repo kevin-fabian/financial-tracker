@@ -12,5 +12,5 @@ public enum SharingMode {
             """);
 
     private final String name;
-    private final String description;// All participants share equally
+    private final String description;// All partyMembers share equally
 }

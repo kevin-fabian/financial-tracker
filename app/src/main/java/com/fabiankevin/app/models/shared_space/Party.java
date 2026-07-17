@@ -11,9 +11,9 @@ public record Party(
         UUID id,
         String name, // "Family 2026 Budget", "Trip Expenses"
         UUID partyLeaderId, // Primary owner (can have co-owners)
-        List<Player> participants, // Core: Multiple participants with individual roles
+        List<PartyMember> partyMembers, // Core: Multiple partyMembers with individual roles
         SharingMode sharingMode, // Global sharing mode for the space
-        List<SharedResource> sharedResources, // Resources shared into this space
+        List<SharedItem> sharedItems, // Resources shared into this space
         boolean active,
         Instant createdAt,
         Instant updatedAt
@@ -23,7 +23,7 @@ public record Party(
         Objects.requireNonNull(sharingMode, "sharingMode is required");
         Objects.requireNonNull(name, "name is required");
         Objects.requireNonNull(createdAt, "createdAt is required");
-        sharedResources = Optional.ofNullable(sharedResources).orElse(new ArrayList<>());
-        participants = Optional.ofNullable(participants).orElse(new ArrayList<>());
+        sharedItems = Optional.ofNullable(sharedItems).orElse(new ArrayList<>());
+        partyMembers = Optional.ofNullable(partyMembers).orElse(new ArrayList<>());
     }
 }

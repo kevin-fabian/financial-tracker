@@ -1,7 +1,7 @@
 package com.fabiankevin.app.persistence.entities;
 
 import com.fabiankevin.app.models.enums.shared_space.ResourceType;
-import com.fabiankevin.app.models.shared_space.SharedResource;
+import com.fabiankevin.app.models.shared_space.SharedItem;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -39,7 +39,7 @@ public class SharedResourceEntity {
     @JoinColumn(name = "shared_space_id")
     private SharedSpaceEntity sharedSpace;
 
-    public static SharedResourceEntity from(SharedResource resource) {
+    public static SharedResourceEntity from(SharedItem resource) {
         if (resource == null) return null;
         return SharedResourceEntity.builder()
                 .id(resource.id())
@@ -49,8 +49,8 @@ public class SharedResourceEntity {
                 .build();
     }
 
-    public SharedResource toModel() {
-        return SharedResource.builder()
+    public SharedItem toModel() {
+        return SharedItem.builder()
                 .id(this.id)
                 .type(this.type)
                 .items(this.itemIds)

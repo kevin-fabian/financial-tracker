@@ -76,7 +76,7 @@ class InvitationControllerTest {
 
         @Test
         void givenUserWithInvitations_thenReturnsList() throws Exception {
-            UUID spaceId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
             UUID sentId = UUID.randomUUID();
             UUID receivedId = UUID.randomUUID();
             InvitationSummary sent = InvitationSummary.builder()
@@ -92,7 +92,7 @@ class InvitationControllerTest {
                 .status(PENDING)
                 .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(86_400))
-                .sharedSpaceId(spaceId)
+                .sharedSpaceId(partyId)
                 .sharedSpaceName("Family 2026 Budget")
                 .build();
             InvitationSummary received = InvitationSummary.builder()
@@ -108,7 +108,7 @@ class InvitationControllerTest {
                 .status(PENDING)
                 .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(86_400))
-                .sharedSpaceId(spaceId)
+                .sharedSpaceId(partyId)
                 .sharedSpaceName("Trip Expenses")
                 .build();
 
@@ -123,28 +123,28 @@ class InvitationControllerTest {
                 .andExpect(jsonPath("$[0].inviterInitial").value("JD"))
                 .andExpect(jsonPath("$[0].inviteeName").value("Jane Smith"))
                 .andExpect(jsonPath("$[0].inviteeInitial").value("JS"))
-                .andExpect(jsonPath("$[0].proposedSharingModeName").value("Mutual Sharing"))
+                .andExpect(jsonPath("$[0].proposedSharingModeName").value("Even Share"))
                 .andExpect(jsonPath("$[0].proposedSharingModeDescription").value(SharingMode.EVEN_SHARE.getDescription()))
                 .andExpect(jsonPath("$[0].proposedRoleName").value("Read & Write"))
                 .andExpect(jsonPath("$[0].proposedRoleDescription").value(AccessLevel.READ_WRITE.getDescription()))
                 .andExpect(jsonPath("$[0].status").value("PENDING"))
                 .andExpect(jsonPath("$[0].createdAt").exists())
                 .andExpect(jsonPath("$[0].expiresAt").exists())
-                .andExpect(jsonPath("$[0].sharedSpaceId").value(spaceId.toString()))
+                .andExpect(jsonPath("$[0].sharedSpaceId").value(partyId.toString()))
                 .andExpect(jsonPath("$[0].sharedSpaceName").value("Family 2026 Budget"))
                 .andExpect(jsonPath("$[1].id").value(receivedId.toString()))
                 .andExpect(jsonPath("$[1].inviterName").value("Bob Jones"))
                 .andExpect(jsonPath("$[1].inviterInitial").value("BJ"))
                 .andExpect(jsonPath("$[1].inviteeName").value("Alice Brown"))
                 .andExpect(jsonPath("$[1].inviteeInitial").value("AB"))
-                .andExpect(jsonPath("$[1].proposedSharingModeName").value("Mutual Sharing"))
+                .andExpect(jsonPath("$[1].proposedSharingModeName").value("Even Share"))
                 .andExpect(jsonPath("$[1].proposedSharingModeDescription").value(SharingMode.EVEN_SHARE.getDescription()))
                 .andExpect(jsonPath("$[1].proposedRoleName").value("View Only"))
                 .andExpect(jsonPath("$[1].proposedRoleDescription").value(AccessLevel.VIEW_ONLY.getDescription()))
                 .andExpect(jsonPath("$[1].status").value("PENDING"))
                 .andExpect(jsonPath("$[1].createdAt").exists())
                 .andExpect(jsonPath("$[1].expiresAt").exists())
-                .andExpect(jsonPath("$[1].sharedSpaceId").value(spaceId.toString()))
+                .andExpect(jsonPath("$[1].sharedSpaceId").value(partyId.toString()))
                 .andExpect(jsonPath("$[1].sharedSpaceName").value("Trip Expenses"));
 
             verify(invitationService).getInvitationsByUserId(userId);
@@ -174,9 +174,9 @@ class InvitationControllerTest {
 
         @Test
         void givenUnrecognizedParameter_thenReturnsBadRequest() throws Exception {
-            UUID spaceId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
 
-            mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations")
+            mockMvc.perform(post("/api/shared-spaces/" + partyId + "/invitations")
                             .with(jwt().jwt(jwt))
                             .contentType("application/json")
                             .content("""
@@ -191,12 +191,12 @@ class InvitationControllerTest {
 
         @Test
         void givenValidRequest_thenReturnsNoContent() throws Exception {
-            UUID spaceId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
             SendInvitationRequest request = SendInvitationRequest.builder()
                 .email("jane@example.com")
                 .build();
 
-            mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations")
+            mockMvc.perform(post("/api/shared-spaces/" + partyId + "/invitations")
                     .with(jwt().jwt(jwt))
                     .contentType("application/json")
                     .content(jsonMapper.writeValueAsString(request)))
@@ -207,12 +207,12 @@ class InvitationControllerTest {
 
         @Test
         void givenMissingJwt_thenReturnsForbidden() throws Exception {
-            UUID spaceId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
             SendInvitationRequest request = SendInvitationRequest.builder()
                 .email("jane@example.com")
                 .build();
 
-            mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations")
+            mockMvc.perform(post("/api/shared-spaces/" + partyId + "/invitations")
                     .contentType("application/json")
                     .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden());
@@ -222,14 +222,14 @@ class InvitationControllerTest {
 
         @Test
         void givenNotOwner_thenReturnsForbidden() throws Exception {
-            UUID spaceId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
             SendInvitationRequest request = SendInvitationRequest.builder()
                 .email("jane@example.com")
                 .build();
 
             when(invitationService.sendInvitation(any())).thenThrow(new NotSpaceOwnerException());
 
-            mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations")
+            mockMvc.perform(post("/api/shared-spaces/" + partyId + "/invitations")
                     .with(jwt().jwt(jwt))
                     .contentType("application/json")
                     .content(jsonMapper.writeValueAsString(request)))
@@ -242,10 +242,10 @@ class InvitationControllerTest {
 
         @Test
         void givenPending_thenReturnsNoContent() throws Exception {
-            UUID spaceId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
             UUID invitationId = UUID.randomUUID();
 
-            mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations/" + invitationId + "/accept")
+            mockMvc.perform(post("/api/shared-spaces/" + partyId + "/invitations/" + invitationId + "/accept")
                     .with(jwt().jwt(jwt)))
                 .andExpect(status().isNoContent());
 
@@ -254,10 +254,10 @@ class InvitationControllerTest {
 
         @Test
         void givenMissingJwt_thenReturnsForbidden() throws Exception {
-            UUID spaceId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
             UUID invitationId = UUID.randomUUID();
 
-            mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations/" + invitationId + "/accept"))
+            mockMvc.perform(post("/api/shared-spaces/" + partyId + "/invitations/" + invitationId + "/accept"))
                 .andExpect(status().isForbidden());
 
             verifyNoInteractions(partyService);
@@ -265,13 +265,13 @@ class InvitationControllerTest {
 
         @Test
         void givenNotFound_thenReturnsNotFound() throws Exception {
-            UUID spaceId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
             UUID invitationId = UUID.randomUUID();
 
             doThrow(new InvitationNotFoundException())
                 .when(invitationService).acceptInvitation(any());
 
-            mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations/" + invitationId + "/accept")
+            mockMvc.perform(post("/api/shared-spaces/" + partyId + "/invitations/" + invitationId + "/accept")
                     .with(jwt().jwt(jwt)))
                 .andExpect(status().isNotFound());
         }
@@ -282,10 +282,10 @@ class InvitationControllerTest {
 
         @Test
         void givenInvitee_thenReturnsNoContent() throws Exception {
-            UUID spaceId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
             UUID invitationId = UUID.randomUUID();
 
-            mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations/" + invitationId + "/reject")
+            mockMvc.perform(post("/api/shared-spaces/" + partyId + "/invitations/" + invitationId + "/reject")
                     .with(jwt().jwt(jwt)))
                 .andExpect(status().isNoContent());
 
@@ -294,10 +294,10 @@ class InvitationControllerTest {
 
         @Test
         void givenMissingJwt_thenReturnsForbidden() throws Exception {
-            UUID spaceId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
             UUID invitationId = UUID.randomUUID();
 
-            mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations/" + invitationId + "/reject"))
+            mockMvc.perform(post("/api/shared-spaces/" + partyId + "/invitations/" + invitationId + "/reject"))
                 .andExpect(status().isForbidden());
 
             verifyNoInteractions(partyService);
@@ -305,12 +305,12 @@ class InvitationControllerTest {
 
         @Test
         void givenNotInvitee_thenReturnsForbidden() throws Exception {
-            UUID spaceId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
             UUID invitationId = UUID.randomUUID();
 
             when(invitationService.rejectInvitation(any())).thenThrow(new ForbiddenException("Only the invited user can reject"));
 
-            mockMvc.perform(post("/api/shared-spaces/" + spaceId + "/invitations/" + invitationId + "/reject")
+            mockMvc.perform(post("/api/shared-spaces/" + partyId + "/invitations/" + invitationId + "/reject")
                     .with(jwt().jwt(jwt)))
                 .andExpect(status().isForbidden());
         }

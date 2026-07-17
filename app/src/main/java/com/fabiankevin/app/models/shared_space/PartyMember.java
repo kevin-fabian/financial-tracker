@@ -9,13 +9,13 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
-public record Player(
+public record PartyMember(
         UUID id,
         UUID playerId,
         AccessLevel accessLevel,
         ParticipantStatus status,
         Instant joinedAt) {
-    public Player {
+    public PartyMember {
         Objects.requireNonNull(playerId, "playerId");
         Objects.requireNonNull(accessLevel, "accessLevel");
         Objects.requireNonNull(status, "status");

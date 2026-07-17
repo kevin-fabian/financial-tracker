@@ -1,6 +1,6 @@
 package com.fabiankevin.app.web.controllers.dtos.party;
 
-import com.fabiankevin.app.models.shared_space.SharedResource;
+import com.fabiankevin.app.models.shared_space.SharedItem;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
@@ -29,7 +29,7 @@ public record SharedItemResponse(
         @Schema(description = "Timestamp when the resource was shared")
         Instant sharedAt
 ) {
-    public static SharedItemResponse from(SharedResource resource) {
+    public static SharedItemResponse from(SharedItem resource) {
         return SharedItemResponse.builder()
                 .id(resource.id())
                 .type(resource.type() != null ? resource.type().name() : null)

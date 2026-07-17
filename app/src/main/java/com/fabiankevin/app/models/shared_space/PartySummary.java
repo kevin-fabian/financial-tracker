@@ -7,23 +7,23 @@ import java.time.Instant;
 import java.util.*;
 
 @Builder(toBuilder = true)
-public record SharedSpaceSummary(
+public record PartySummary(
         UUID id,
-        String spaceName,
-        UUID ownerUserId,
-        List<SpaceParticipantSummary> participants,
+        String name,
+        UUID partyLeaderId,
+        List<PartyMemberSummary> participants,
         SharingMode sharingMode,
-        List<SharedResource> sharedResources,
+        List<SharedItem> sharedItems,
         boolean active,
         Instant createdAt,
         Instant updatedAt
 ) {
-    public SharedSpaceSummary {
-        Objects.requireNonNull(ownerUserId, "partyLeaderId is required");
+    public PartySummary {
+        Objects.requireNonNull(partyLeaderId, "partyLeaderId is required");
         Objects.requireNonNull(sharingMode, "sharingMode is required");
-        Objects.requireNonNull(spaceName, "name is required");
+        Objects.requireNonNull(name, "name is required");
         Objects.requireNonNull(createdAt, "createdAt is required");
-        sharedResources = Optional.ofNullable(sharedResources).orElse(new ArrayList<>());
+        sharedItems = Optional.ofNullable(sharedItems).orElse(new ArrayList<>());
         participants = Optional.ofNullable(participants).orElse(new ArrayList<>());
     }
 }

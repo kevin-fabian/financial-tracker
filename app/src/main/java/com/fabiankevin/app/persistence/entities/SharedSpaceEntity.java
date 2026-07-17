@@ -2,8 +2,8 @@ package com.fabiankevin.app.persistence.entities;
 
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.shared_space.Party;
-import com.fabiankevin.app.models.shared_space.Player;
-import com.fabiankevin.app.models.shared_space.SharedResource;
+import com.fabiankevin.app.models.shared_space.PartyMember;
+import com.fabiankevin.app.models.shared_space.SharedItem;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -69,12 +69,12 @@ public class SharedSpaceEntity {
                 .updatedAt(space.updatedAt())
                 .build();
 
-        for (Player participant : space.participants()) {
+        for (PartyMember participant : space.partyMembers()) {
             entity.addParticipant(SpaceParticipantEntity.from(participant));
         }
 
-        for (SharedResource sharedResource : space.sharedResources()) {
-            entity.addResource(SharedResourceEntity.from(sharedResource));
+        for (SharedItem sharedItem : space.sharedItems()) {
+            entity.addResource(SharedResourceEntity.from(sharedItem));
         }
 
         return entity;
@@ -93,11 +93,11 @@ public class SharedSpaceEntity {
     }
 
     public Party toModel() {
-        List<Player> participants = this.participants != null
+        List<PartyMember> participants = this.participants != null
                 ? this.participants.stream().map(SpaceParticipantEntity::toModel).toList()
                 : List.of();
 
-        List<SharedResource> sharedResources = this.sharedResources != null
+        List<SharedItem> sharedItems = this.sharedResources != null
                 ? this.sharedResources.stream().map(SharedResourceEntity::toModel).toList()
                 : List.of();
 
@@ -105,9 +105,9 @@ public class SharedSpaceEntity {
                 .id(this.id)
                 .name(this.spaceName)
                 .partyLeaderId(this.ownerUserId)
-                .participants(participants)
+                .partyMembers(participants)
                 .sharingMode(this.sharingMode)
-                .sharedResources(sharedResources)
+                .sharedItems(sharedItems)
                 .active(this.active)
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)

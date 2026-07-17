@@ -9,7 +9,7 @@ import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
 import com.fabiankevin.app.models.enums.shared_space.ResourceType;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.shared_space.Party;
-import com.fabiankevin.app.models.shared_space.Player;
+import com.fabiankevin.app.models.shared_space.PartyMember;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
 import com.fabiankevin.app.services.commands.shared_space.OrganizePartyCommand;
 import com.fabiankevin.app.services.commands.shared_space.PatchPartyCommand;
@@ -59,17 +59,17 @@ class DefaultPartyServiceTest {
             assertEquals(ownerUserId, result.partyLeaderId());
             assertEquals(SharingMode.EVEN_SHARE, result.sharingMode());
             assertTrue(result.active());
-            assertEquals(1, result.participants().size());
+            assertEquals(1, result.partyMembers().size());
 
-            Player owner = result.participants().getFirst();
+            PartyMember owner = result.partyMembers().getFirst();
             assertEquals(ownerUserId, owner.playerId());
             assertEquals(AccessLevel.READ_WRITE, owner.accessLevel());
             assertEquals(ParticipantStatus.ACTIVE, owner.status());
 
-            assertEquals(3, result.sharedResources().size());
-            assertEquals(ResourceType.TRANSACTION, result.sharedResources().get(0).type());
-            assertEquals(ResourceType.BUDGET, result.sharedResources().get(1).type());
-            assertEquals(ResourceType.BUDGET, result.sharedResources().get(2).type());
+            assertEquals(3, result.sharedItems().size());
+            assertEquals(ResourceType.TRANSACTION, result.sharedItems().get(0).type());
+            assertEquals(ResourceType.BUDGET, result.sharedItems().get(1).type());
+            assertEquals(ResourceType.BUDGET, result.sharedItems().get(2).type());
 
             verify(spaceRepository).save(any(Party.class));
         }
@@ -161,14 +161,14 @@ class DefaultPartyServiceTest {
                     .id(spaceId)
                     .name("Family Budget")
                     .partyLeaderId(ownerUserId)
-                    .participants(new ArrayList<>(List.of(
-                            Player.builder()
+                    .partyMembers(new ArrayList<>(List.of(
+                            PartyMember.builder()
                                     .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
-                            Player.builder()
+                            PartyMember.builder()
                                     .playerId(participantUserId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(ParticipantStatus.ACTIVE)
@@ -176,7 +176,7 @@ class DefaultPartyServiceTest {
                                     .build()
                     )))
                     .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedResources(new ArrayList<>())
+                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -190,9 +190,9 @@ class DefaultPartyServiceTest {
             ArgumentCaptor<Party> captor = ArgumentCaptor.forClass(Party.class);
             verify(spaceRepository).save(captor.capture());
             Party saved = captor.getValue();
-            assertEquals(1, saved.participants().size());
-            assertEquals(ownerUserId, saved.participants().getFirst().playerId());
-            assertTrue(saved.participants().stream().noneMatch(p -> p.playerId().equals(participantUserId)));
+            assertEquals(1, saved.partyMembers().size());
+            assertEquals(ownerUserId, saved.partyMembers().getFirst().playerId());
+            assertTrue(saved.partyMembers().stream().noneMatch(p -> p.playerId().equals(participantUserId)));
         }
 
         @Test
@@ -204,14 +204,14 @@ class DefaultPartyServiceTest {
                     .id(spaceId)
                     .name("Family Budget")
                     .partyLeaderId(ownerUserId)
-                    .participants(new ArrayList<>(List.of(
-                            Player.builder()
+                    .partyMembers(new ArrayList<>(List.of(
+                            PartyMember.builder()
                                     .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
-                            Player.builder()
+                            PartyMember.builder()
                                     .playerId(participantUserId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(ParticipantStatus.ACTIVE)
@@ -219,7 +219,7 @@ class DefaultPartyServiceTest {
                                     .build()
                     )))
                     .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedResources(new ArrayList<>())
+                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -233,8 +233,8 @@ class DefaultPartyServiceTest {
             ArgumentCaptor<Party> captor = ArgumentCaptor.forClass(Party.class);
             verify(spaceRepository).save(captor.capture());
             Party saved = captor.getValue();
-            assertEquals(1, saved.participants().size());
-            assertEquals(ownerUserId, saved.participants().getFirst().playerId());
+            assertEquals(1, saved.partyMembers().size());
+            assertEquals(ownerUserId, saved.partyMembers().getFirst().playerId());
         }
 
         @Test
@@ -247,14 +247,14 @@ class DefaultPartyServiceTest {
                     .id(spaceId)
                     .name("Family Budget")
                     .partyLeaderId(ownerUserId)
-                    .participants(new ArrayList<>(List.of(
-                            Player.builder()
+                    .partyMembers(new ArrayList<>(List.of(
+                            PartyMember.builder()
                                     .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
-                            Player.builder()
+                            PartyMember.builder()
                                     .playerId(participantUserId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(ParticipantStatus.ACTIVE)
@@ -262,7 +262,7 @@ class DefaultPartyServiceTest {
                                     .build()
                     )))
                     .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedResources(new ArrayList<>())
+                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -282,8 +282,8 @@ class DefaultPartyServiceTest {
                     .id(spaceId)
                     .name("Family Budget")
                     .partyLeaderId(ownerUserId)
-                    .participants(new ArrayList<>(List.of(
-                            Player.builder()
+                    .partyMembers(new ArrayList<>(List.of(
+                            PartyMember.builder()
                                     .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
@@ -291,7 +291,7 @@ class DefaultPartyServiceTest {
                                     .build()
                     )))
                     .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedResources(new ArrayList<>())
+                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -315,8 +315,8 @@ class DefaultPartyServiceTest {
                     .id(spaceId)
                     .name("Family Budget")
                     .partyLeaderId(ownerUserId)
-                    .participants(new ArrayList<>(List.of(
-                            Player.builder()
+                    .partyMembers(new ArrayList<>(List.of(
+                            PartyMember.builder()
                                     .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
@@ -324,7 +324,7 @@ class DefaultPartyServiceTest {
                                     .build()
                     )))
                     .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedResources(new ArrayList<>())
+                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -332,7 +332,7 @@ class DefaultPartyServiceTest {
 
             when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
 
-            service.deleteSharedSpace(spaceId, ownerUserId);
+            service.deleteParty(spaceId, ownerUserId);
 
             verify(spaceRepository).deleteById(spaceId);
         }
@@ -344,7 +344,7 @@ class DefaultPartyServiceTest {
 
             when(spaceRepository.findById(spaceId)).thenReturn(Optional.empty());
 
-            assertThrows(SharedSpaceNotFoundException.class, () -> service.deleteSharedSpace(spaceId, requesterId));
+            assertThrows(SharedSpaceNotFoundException.class, () -> service.deleteParty(spaceId, requesterId));
             verify(spaceRepository, never()).deleteById(any());
         }
 
@@ -357,8 +357,8 @@ class DefaultPartyServiceTest {
                     .id(spaceId)
                     .name("Family Budget")
                     .partyLeaderId(ownerUserId)
-                    .participants(new ArrayList<>(List.of(
-                            Player.builder()
+                    .partyMembers(new ArrayList<>(List.of(
+                            PartyMember.builder()
                                     .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
@@ -366,7 +366,7 @@ class DefaultPartyServiceTest {
                                     .build()
                     )))
                     .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedResources(new ArrayList<>())
+                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -374,7 +374,7 @@ class DefaultPartyServiceTest {
 
             when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
 
-            assertThrows(NotSpaceOwnerException.class, () -> service.deleteSharedSpace(spaceId, otherUserId));
+            assertThrows(NotSpaceOwnerException.class, () -> service.deleteParty(spaceId, otherUserId));
             verify(spaceRepository, never()).deleteById(any());
         }
     }
@@ -390,8 +390,8 @@ class DefaultPartyServiceTest {
                     .id(spaceId)
                     .name("Family Budget")
                     .partyLeaderId(ownerUserId)
-                    .participants(new ArrayList<>(List.of(
-                            Player.builder()
+                    .partyMembers(new ArrayList<>(List.of(
+                            PartyMember.builder()
                                     .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
@@ -399,7 +399,7 @@ class DefaultPartyServiceTest {
                                     .build()
                     )))
                     .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedResources(new ArrayList<>())
+                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -414,7 +414,7 @@ class DefaultPartyServiceTest {
             when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
             when(spaceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-            Party updated = service.patchSharedSpace(command);
+            Party updated = service.patchParty(command);
 
             assertEquals("Updated Budget", updated.name(), "name should be updated");
             assertEquals(SharingMode.EVEN_SHARE, updated.sharingMode(), "sharingMode should remain unchanged");
@@ -434,7 +434,7 @@ class DefaultPartyServiceTest {
 
             when(spaceRepository.findById(spaceId)).thenReturn(Optional.empty());
 
-            assertThrows(SharedSpaceNotFoundException.class, () -> service.patchSharedSpace(command));
+            assertThrows(SharedSpaceNotFoundException.class, () -> service.patchParty(command));
             verify(spaceRepository, never()).save(any());
         }
 
@@ -447,8 +447,8 @@ class DefaultPartyServiceTest {
                     .id(spaceId)
                     .name("Family Budget")
                     .partyLeaderId(ownerUserId)
-                    .participants(new ArrayList<>(List.of(
-                            Player.builder()
+                    .partyMembers(new ArrayList<>(List.of(
+                            PartyMember.builder()
                                     .playerId(ownerUserId)
                                     .accessLevel(AccessLevel.READ_WRITE)
                                     .status(ParticipantStatus.ACTIVE)
@@ -456,7 +456,7 @@ class DefaultPartyServiceTest {
                                     .build()
                     )))
                     .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedResources(new ArrayList<>())
+                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -470,7 +470,7 @@ class DefaultPartyServiceTest {
 
             when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
 
-            assertThrows(NotSpaceOwnerException.class, () -> service.patchSharedSpace(command));
+            assertThrows(NotSpaceOwnerException.class, () -> service.patchParty(command));
             verify(spaceRepository, never()).save(any());
         }
     }
