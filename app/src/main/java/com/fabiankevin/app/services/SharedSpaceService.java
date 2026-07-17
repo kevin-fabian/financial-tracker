@@ -18,4 +18,6 @@ public interface SharedSpaceService {
     SharedResource addResource(UUID spaceId, AddSharedResourceCommand command);
 
     List<UUID> getParticipantUserIds(UUID userId);
+
+    void deleteSharedSpace(UUID spaceId, UUID requesterId);
 }

@@ -2,6 +2,8 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.exceptions.shared_space.CannotRemoveOwnerException;
 import com.fabiankevin.app.exceptions.shared_space.ForbiddenException;
+import com.fabiankevin.app.exceptions.shared_space.NotSpaceOwnerException;
+import com.fabiankevin.app.exceptions.shared_space.SharedSpaceNotFoundException;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
 import com.fabiankevin.app.models.enums.shared_space.ResourceType;
@@ -298,6 +300,81 @@ class DefaultSharedSpaceServiceTest {
 
             assertThrows(CannotRemoveOwnerException.class, () -> service.removeParticipant(spaceId, ownerUserId, ownerUserId));
             verify(spaceRepository, never()).save(any());
+        }
+    }
+
+    @Nested
+    class DeleteSharedSpace {
+
+        @Test
+        void givenOwnerDeletesSpace_thenDeleteByIdIsCalled() {
+            UUID ownerUserId = UUID.randomUUID();
+            UUID spaceId = UUID.randomUUID();
+            SharedSpace space = SharedSpace.builder()
+                    .id(spaceId)
+                    .spaceName("Family Budget")
+                    .ownerUserId(ownerUserId)
+                    .participants(new ArrayList<>(List.of(
+                            SpaceParticipant.builder()
+                                    .userId(ownerUserId)
+                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .status(ParticipantStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build()
+                    )))
+                    .sharingMode(SharingMode.MUTUAL_SHARING)
+                    .sharedResources(new ArrayList<>())
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
+
+            service.deleteSharedSpace(spaceId, ownerUserId);
+
+            verify(spaceRepository).deleteById(spaceId);
+        }
+
+        @Test
+        void givenSpaceNotFound_thenThrows() {
+            UUID spaceId = UUID.randomUUID();
+            UUID requesterId = UUID.randomUUID();
+
+            when(spaceRepository.findById(spaceId)).thenReturn(Optional.empty());
+
+            assertThrows(SharedSpaceNotFoundException.class, () -> service.deleteSharedSpace(spaceId, requesterId));
+            verify(spaceRepository, never()).deleteById(any());
+        }
+
+        @Test
+        void givenNonOwnerAttemptsToDelete_thenThrows() {
+            UUID ownerUserId = UUID.randomUUID();
+            UUID otherUserId = UUID.randomUUID();
+            UUID spaceId = UUID.randomUUID();
+            SharedSpace space = SharedSpace.builder()
+                    .id(spaceId)
+                    .spaceName("Family Budget")
+                    .ownerUserId(ownerUserId)
+                    .participants(new ArrayList<>(List.of(
+                            SpaceParticipant.builder()
+                                    .userId(ownerUserId)
+                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .status(ParticipantStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build()
+                    )))
+                    .sharingMode(SharingMode.MUTUAL_SHARING)
+                    .sharedResources(new ArrayList<>())
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(space));
+
+            assertThrows(NotSpaceOwnerException.class, () -> service.deleteSharedSpace(spaceId, otherUserId));
+            verify(spaceRepository, never()).deleteById(any());
         }
     }
 }

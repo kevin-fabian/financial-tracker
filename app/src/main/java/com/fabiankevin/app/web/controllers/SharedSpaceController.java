@@ -71,6 +71,25 @@ public class SharedSpaceController {
     }
 
     @Operation(
+        summary = "Delete a shared space",
+        description = "Deletes the shared space owned by the authenticated user.",
+        responses = {
+            @ApiResponse(responseCode = "204", description = "No Content - Shared space deleted successfully"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Only the owner can delete the shared space"),
+            @ApiResponse(responseCode = "404", description = "Not Found - Shared space not found"),
+            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+        }
+    )
+    @DeleteMapping("/{spaceId}")
+    public ResponseEntity<Void> deleteSharedSpace(
+        @PathVariable @NotNull @Schema(description = "ID of the shared space to delete") UUID spaceId,
+        JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        sharedSpaceService.deleteSharedSpace(spaceId, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
         summary = "Remove a participant",
         description = "Removes a participant from the shared space. Only the owner or the participant themselves can remove.",
         responses = {

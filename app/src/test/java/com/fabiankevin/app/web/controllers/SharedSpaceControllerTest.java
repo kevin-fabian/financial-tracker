@@ -1,6 +1,7 @@
 package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.exceptions.shared_space.CannotRemoveOwnerException;
+import com.fabiankevin.app.exceptions.shared_space.SharedSpaceNotFoundException;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
 import com.fabiankevin.app.models.enums.shared_space.ResourceType;
@@ -272,6 +273,43 @@ class SharedSpaceControllerTest {
             mockMvc.perform(delete("/api/shared-spaces/" + spaceId + "/participants/" + ownerParticipantId)
                     .with(jwt().jwt(jwt)))
                 .andExpect(status().isConflict());
+        }
+    }
+
+    @Nested
+    class DeleteSharedSpace {
+
+        @Test
+        void givenOwner_thenReturnsNoContent() throws Exception {
+            UUID spaceId = UUID.randomUUID();
+
+            mockMvc.perform(delete("/api/shared-spaces/" + spaceId)
+                    .with(jwt().jwt(jwt)))
+                .andExpect(status().isNoContent());
+
+            verify(sharedSpaceService).deleteSharedSpace(spaceId, userId);
+        }
+
+        @Test
+        void givenMissingJwt_thenReturnsForbidden() throws Exception {
+            UUID spaceId = UUID.randomUUID();
+
+            mockMvc.perform(delete("/api/shared-spaces/" + spaceId))
+                .andExpect(status().isForbidden());
+
+            verifyNoInteractions(sharedSpaceService);
+        }
+
+        @Test
+        void givenSpaceNotFound_thenReturnsNotFound() throws Exception {
+            UUID spaceId = UUID.randomUUID();
+
+            doThrow(new SharedSpaceNotFoundException())
+                .when(sharedSpaceService).deleteSharedSpace(spaceId, userId);
+
+            mockMvc.perform(delete("/api/shared-spaces/" + spaceId)
+                    .with(jwt().jwt(jwt)))
+                .andExpect(status().isNotFound());
         }
     }
 }

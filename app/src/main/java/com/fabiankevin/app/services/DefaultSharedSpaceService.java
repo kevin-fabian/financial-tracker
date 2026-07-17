@@ -1,10 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.exceptions.shared_space.CannotRemoveOwnerException;
-import com.fabiankevin.app.exceptions.shared_space.ForbiddenException;
-import com.fabiankevin.app.exceptions.shared_space.ParticipantNotFoundException;
-import com.fabiankevin.app.exceptions.shared_space.SharedSpaceNotFoundException;
+import com.fabiankevin.app.exceptions.shared_space.*;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
@@ -147,6 +144,18 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
     @Override
     public List<UUID> getParticipantUserIds(UUID userId) {
         return spaceRepository.findParticipantUserIdsByUserId(userId);
+    }
+
+    @Transactional
+    @Override
+    public void deleteSharedSpace(UUID spaceId, UUID requesterId) {
+        SharedSpace space = findSpaceOrThrow(spaceId);
+
+        if (!space.ownerUserId().equals(requesterId)) {
+            throw new NotSpaceOwnerException();
+        }
+
+        spaceRepository.deleteById(spaceId);
     }
 
     private SharedSpace findSpaceOrThrow(UUID spaceId) {

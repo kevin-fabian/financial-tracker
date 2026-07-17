@@ -51,4 +51,9 @@ public class DefaultSharedSpaceRepository implements SharedSpaceRepository {
     public List<UUID> findParticipantUserIdsByUserId(UUID userId) {
         return jpaSharedSpaceRepository.findParticipantUserIdsByUserId(userId);
     }
+
+    @Override
+    public void deleteById(UUID id) {
+        jpaSharedSpaceRepository.deleteById(id);
+    }
 }

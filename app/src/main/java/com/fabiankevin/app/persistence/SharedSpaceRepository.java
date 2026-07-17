@@ -18,4 +18,6 @@ public interface SharedSpaceRepository {
     List<SharedSpace> findAllById(Iterable<UUID> ids);
 
     List<UUID> findParticipantUserIdsByUserId(UUID userId);
+
+    void deleteById(UUID id);
 }
