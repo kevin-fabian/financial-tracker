@@ -4,7 +4,6 @@ import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.*;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
-import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.shared_space.Invitation;
 import com.fabiankevin.app.models.shared_space.SharedSpace;
@@ -34,6 +33,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
 
 @ActiveProfiles("test")
 @SpringBootTest
@@ -68,6 +68,7 @@ public class DefaultSharedSpaceServiceSpringBootTest {
     void mutualSharingFlow_shouldCombineTransactions() {
         UUID ownerUserId = UUID.randomUUID();
         UUID partnerUserid = UUID.randomUUID();
+        String partnerEmail = "partner@example.com";
 
         // Owner transactions
         addTransaction(ownerUserId, 500);
@@ -88,11 +89,12 @@ public class DefaultSharedSpaceServiceSpringBootTest {
         UUID spaceId = initialSharedSpace.id();
 
         // Step 2: Invite a partner in a space
+        when(userClient.getUserByEmail(partnerEmail))
+                .thenReturn(User.builder().id(partnerUserid).firstName("Partner").lastName("User").build());
         Invitation invitation = invitationService.sendInvitation(SendInvitationCommand.builder()
                 .spaceId(spaceId)
                 .inviterUserId(ownerUserId)
-                .inviteeUserId(partnerUserid)
-                .proposedRole(AccessLevel.READ_WRITE)
+                .inviteeEmail(partnerEmail)
                 .build());
 
         // Step 3: Accept the invite
@@ -138,8 +140,7 @@ public class DefaultSharedSpaceServiceSpringBootTest {
         Invitation invitation = invitationService.sendInvitation(SendInvitationCommand.builder()
                 .spaceId(spaceId)
                 .inviterUserId(ownerUserId)
-                .inviteeUserId(partnerUserid)
-                .proposedRole(AccessLevel.READ_WRITE)
+                        .inviteeEmail("")
                 .build());
 
         // Step 3: Accept the invite

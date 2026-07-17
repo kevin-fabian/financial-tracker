@@ -41,6 +41,13 @@ public class DefaultSharedSpaceRepository implements SharedSpaceRepository {
     }
 
     @Override
+    public List<SharedSpace> findAllById(Iterable<UUID> ids) {
+        return jpaSharedSpaceRepository.findAllById(ids).stream()
+                .map(SharedSpaceEntity::toModel)
+                .toList();
+    }
+
+    @Override
     public List<UUID> findParticipantUserIdsByUserId(UUID userId) {
         return jpaSharedSpaceRepository.findParticipantUserIdsByUserId(userId);
     }

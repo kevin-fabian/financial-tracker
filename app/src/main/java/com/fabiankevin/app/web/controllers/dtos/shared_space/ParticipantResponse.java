@@ -1,6 +1,6 @@
 package com.fabiankevin.app.web.controllers.dtos.shared_space;
 
-import com.fabiankevin.app.models.shared_space.SpaceParticipant;
+import com.fabiankevin.app.models.shared_space.SpaceParticipantSummary;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
@@ -16,29 +16,32 @@ public record ParticipantResponse(
     @Schema(description = "User identifier of the participant", example = "a1b2c3d4-...")
     UUID userId,
 
+    @Schema(description = "Display name of the participant", example = "John Doe")
     String name,
 
+    @Schema(description = "Initials derived from the participant name", example = "JD")
     String initial,
 
-    @Schema(description = "Access level of the participant", example = "READ_WRITE")
-    String accessLevel,
+    @Schema(description = "Access level name of the participant", example = "Read & Write")
+    String accessLevelName,
+
+    @Schema(description = "Access level description of the participant")
+    String accessLevelDescription,
 
     @Schema(description = "Status of the participant", example = "ACTIVE")
     String status,
 
     @Schema(description = "Timestamp when the participant joined")
-    Instant joinedAt,
-
-    int transactionCount,
-    double averageAmount,
-    int goalCount,
-    int checklistCount
+    Instant joinedAt
 ) {
-    public static ParticipantResponse from(SpaceParticipant participant) {
+    public static ParticipantResponse from(SpaceParticipantSummary participant) {
         return ParticipantResponse.builder()
             .id(participant.id())
-            .userId(participant.userId())
-            .accessLevel(participant.accessLevel() != null ? participant.accessLevel().name() : null)
+            .userId(participant.id())
+            .name(participant.name())
+            .initial(participant.initial())
+            .accessLevelName(participant.accessLevel() != null ? participant.accessLevel().getName() : null)
+            .accessLevelDescription(participant.accessLevel() != null ? participant.accessLevel().getDescription() : null)
             .status(participant.status() != null ? participant.status().name() : null)
             .joinedAt(participant.joinedAt())
             .build();

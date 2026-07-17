@@ -1,9 +1,13 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.shared_space.*;
+import com.fabiankevin.app.models.User;
+import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
 import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
 import com.fabiankevin.app.models.shared_space.Invitation;
+import com.fabiankevin.app.models.shared_space.InvitationSummary;
 import com.fabiankevin.app.models.shared_space.SharedSpace;
 import com.fabiankevin.app.models.shared_space.SpaceParticipant;
 import com.fabiankevin.app.persistence.InvitationRepository;
@@ -19,13 +23,17 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class DefaultInvitationService implements InvitationService {
     private final InvitationRepository invitationRepository;
     private final SharedSpaceRepository spaceRepository;
+    private final UserClient userClient;
 
     @Transactional
     @Override
@@ -35,17 +43,19 @@ public class DefaultInvitationService implements InvitationService {
             throw new NotSpaceOwnerException();
         }
 
-        if (isUserParticipant(space, command.inviteeUserId())) {
+        User invitee = userClient.getUserByEmail(command.inviteeEmail());
+
+        if (isUserParticipant(space, invitee.id())) {
             throw new ParticipantAlreadyExistsException();
         }
 
-        return invitationRepository.findPendingByInviterAndInvitee(command.inviterUserId(), command.inviteeUserId())
+        return invitationRepository.findPendingByInviterAndInvitee(command.inviterUserId(), invitee.id())
                 .orElseGet(() -> {
                     Invitation invitation = Invitation.builder()
                             .inviterUserId(command.inviterUserId())
-                            .inviteeUserId(command.inviteeUserId())
+                            .inviteeUserId(invitee.id())
                             .proposedSharingMode(space.sharingMode())
-                            .proposedRole(command.proposedRole())
+                            .proposedRole(AccessLevel.READ_WRITE)
                             .status(InvitationStatus.PENDING)
                             .createdAt(Instant.now())
                             .expiresAt(Instant.now().plus(Duration.ofDays(7)))
@@ -134,8 +144,32 @@ public class DefaultInvitationService implements InvitationService {
     }
 
     @Override
-    public List<Invitation> getInvitationsByUserId(UUID userId) {
-        return invitationRepository.findByInviterUserIdOrInviteeUserId(userId);
+    public List<InvitationSummary> getInvitationsByUserId(UUID userId) {
+        List<Invitation> invitations = invitationRepository.findByInviterUserIdOrInviteeUserId(userId);
+
+        List<UUID> userIds = invitations.stream()
+                .flatMap(invitation -> List.of(invitation.inviterUserId(), invitation.inviteeUserId()).stream())
+                .distinct()
+                .toList();
+
+        Map<UUID, User> usersById = userIds.isEmpty()
+                ? Map.of()
+                : userClient.getUsersByIds(userIds).stream()
+                        .collect(Collectors.toMap(User::id, Function.identity()));
+
+        List<UUID> spaceIds = invitations.stream()
+                .map(Invitation::sharedSpaceId)
+                .distinct()
+                .toList();
+
+        Map<UUID, SharedSpace> spacesById = spaceIds.isEmpty()
+                ? Map.of()
+                : spaceRepository.findAllById(spaceIds).stream()
+                        .collect(Collectors.toMap(SharedSpace::id, Function.identity()));
+
+        return invitations.stream()
+                .map(invitation -> toSummary(invitation, usersById, spacesById))
+                .toList();
     }
 
     private SharedSpace findSpaceOrThrow(UUID spaceId) {
@@ -161,5 +195,35 @@ public class DefaultInvitationService implements InvitationService {
         if (invitation.isExpired()) {
             throw new InvitationExpiredException();
         }
+    }
+
+    private InvitationSummary toSummary(Invitation invitation, Map<UUID, User> usersById, Map<UUID, SharedSpace> spacesById) {
+        User inviter = usersById.get(invitation.inviterUserId());
+        User invitee = usersById.get(invitation.inviteeUserId());
+        SharedSpace space = spacesById.get(invitation.sharedSpaceId());
+
+        return InvitationSummary.builder()
+                .id(invitation.id())
+                .inviterName(inviter != null ? inviter.firstName() + " " + inviter.lastName() : null)
+                .inviterInitial(deriveInitial(inviter))
+                .inviteeName(invitee != null ? invitee.firstName() + " " + invitee.lastName() : null)
+                .inviteeInitial(deriveInitial(invitee))
+                .proposedSharingModeName(invitation.proposedSharingMode() != null ? invitation.proposedSharingMode().getName() : null)
+                .proposedSharingModeDescription(invitation.proposedSharingMode() != null ? invitation.proposedSharingMode().getDescription() : null)
+                .proposedRoleName(invitation.proposedRole() != null ? invitation.proposedRole().getName() : null)
+                .proposedRoleDescription(invitation.proposedRole() != null ? invitation.proposedRole().getDescription() : null)
+                .status(invitation.status())
+                .createdAt(invitation.createdAt())
+                .expiresAt(invitation.expiresAt())
+                .sharedSpaceId(invitation.sharedSpaceId())
+                .sharedSpaceName(space != null ? space.spaceName() : null)
+                .build();
+    }
+
+    private String deriveInitial(User user) {
+        if (user == null || user.firstName() == null || user.lastName() == null) {
+            return null;
+        }
+        return "" + user.firstName().charAt(0) + user.lastName().charAt(0);
     }
 }

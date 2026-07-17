@@ -1,6 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.models.shared_space.Invitation;
+import com.fabiankevin.app.models.shared_space.InvitationSummary;
 import com.fabiankevin.app.models.shared_space.SharedSpace;
 import com.fabiankevin.app.services.commands.shared_space.AcceptInvitationCommand;
 import com.fabiankevin.app.services.commands.shared_space.RejectInvitationCommand;
@@ -16,5 +17,5 @@ public interface InvitationService {
 
     Invitation rejectInvitation(RejectInvitationCommand command);
 
-    List<Invitation> getInvitationsByUserId(UUID userId);
+    List<InvitationSummary> getInvitationsByUserId(UUID userId);
 }

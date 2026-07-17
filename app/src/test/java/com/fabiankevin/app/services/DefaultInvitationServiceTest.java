@@ -1,11 +1,14 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.shared_space.*;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.InvitationStatus;
 import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
 import com.fabiankevin.app.models.enums.shared_space.SharingMode;
 import com.fabiankevin.app.models.shared_space.Invitation;
+import com.fabiankevin.app.models.shared_space.InvitationSummary;
 import com.fabiankevin.app.models.shared_space.SharedSpace;
 import com.fabiankevin.app.models.shared_space.SpaceParticipant;
 import com.fabiankevin.app.persistence.InvitationRepository;
@@ -40,6 +43,9 @@ class DefaultInvitationServiceTest {
     @Mock
     private InvitationRepository invitationRepository;
 
+    @Mock
+    private UserClient userClient;
+
     @InjectMocks
     private DefaultInvitationService service;
 
@@ -49,14 +55,10 @@ class DefaultInvitationServiceTest {
         @Test
         void givenNullSpaceId_thenThrows() {
             UUID inviterUserId = UUID.randomUUID();
-            UUID inviteeUserId = UUID.randomUUID();
             assertThrows(NullPointerException.class, () -> new SendInvitationCommand(
                     inviterUserId,
-                    inviteeUserId,
-                    null,
-                    "Trip Budget",
-                    SharingMode.MUTUAL_SHARING,
-                    AccessLevel.READ_WRITE
+                    "jane@example.com",
+                    null
             ));
         }
 
@@ -65,6 +67,7 @@ class DefaultInvitationServiceTest {
             UUID inviterUserId = UUID.randomUUID();
             UUID inviteeUserId = UUID.randomUUID();
             UUID spaceId = UUID.randomUUID();
+            String inviteeEmail = "jane@example.com";
             SharedSpace existingSpace = SharedSpace.builder()
                     .id(spaceId)
                     .spaceName("Family Budget")
@@ -86,14 +89,13 @@ class DefaultInvitationServiceTest {
 
             SendInvitationCommand command = new SendInvitationCommand(
                     inviterUserId,
-                    inviteeUserId,
-                    spaceId,
-                    null,
-                    null,
-                    AccessLevel.VIEW_ONLY
+                    inviteeEmail,
+                    spaceId
             );
 
             when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(existingSpace));
+            when(userClient.getUserByEmail(inviteeEmail))
+                    .thenReturn(User.builder().id(inviteeUserId).firstName("Jane").lastName("Doe").build());
             when(invitationRepository.findPendingByInviterAndInvitee(inviterUserId, inviteeUserId))
                     .thenReturn(Optional.empty());
             when(invitationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -113,6 +115,7 @@ class DefaultInvitationServiceTest {
             UUID inviterUserId = UUID.randomUUID();
             UUID inviteeUserId = UUID.randomUUID();
             UUID spaceId = UUID.randomUUID();
+            String inviteeEmail = "jane@example.com";
             SharedSpace existingSpace = SharedSpace.builder()
                     .id(spaceId)
                     .spaceName("Family Budget")
@@ -146,14 +149,13 @@ class DefaultInvitationServiceTest {
 
             SendInvitationCommand command = new SendInvitationCommand(
                     inviterUserId,
-                    inviteeUserId,
-                    spaceId,
-                    null,
-                    null,
-                    AccessLevel.VIEW_ONLY
+                    inviteeEmail,
+                    spaceId
             );
 
             when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(existingSpace));
+            when(userClient.getUserByEmail(inviteeEmail))
+                    .thenReturn(User.builder().id(inviteeUserId).firstName("Jane").lastName("Doe").build());
             when(invitationRepository.findPendingByInviterAndInvitee(inviterUserId, inviteeUserId))
                     .thenReturn(Optional.of(existingInvitation));
 
@@ -166,9 +168,9 @@ class DefaultInvitationServiceTest {
         @Test
         void givenExistingSpaceWhereUserIsNotOwner_thenThrows() {
             UUID inviterUserId = UUID.randomUUID();
-            UUID inviteeUserId = UUID.randomUUID();
-            UUID ownerUserId = UUID.randomUUID();
             UUID spaceId = UUID.randomUUID();
+            UUID ownerUserId = UUID.randomUUID();
+            String inviteeEmail = "jane@example.com";
             SharedSpace existingSpace = SharedSpace.builder()
                     .id(spaceId)
                     .spaceName("Family Budget")
@@ -183,11 +185,8 @@ class DefaultInvitationServiceTest {
 
             SendInvitationCommand command = new SendInvitationCommand(
                     inviterUserId,
-                    inviteeUserId,
-                    spaceId,
-                    null,
-                    null,
-                    AccessLevel.VIEW_ONLY
+                    inviteeEmail,
+                    spaceId
             );
 
             when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(existingSpace));
@@ -201,6 +200,7 @@ class DefaultInvitationServiceTest {
             UUID inviterUserId = UUID.randomUUID();
             UUID inviteeUserId = UUID.randomUUID();
             UUID spaceId = UUID.randomUUID();
+            String inviteeEmail = "jane@example.com";
             SharedSpace existingSpace = SharedSpace.builder()
                     .id(spaceId)
                     .spaceName("Family Budget")
@@ -228,14 +228,12 @@ class DefaultInvitationServiceTest {
 
             SendInvitationCommand command = new SendInvitationCommand(
                     inviterUserId,
-                    inviteeUserId,
-                    spaceId,
-                    null,
-                    null,
-                    AccessLevel.VIEW_ONLY
-            );
+                    inviteeEmail,
+                    spaceId);
 
             when(spaceRepository.findById(spaceId)).thenReturn(Optional.of(existingSpace));
+            when(userClient.getUserByEmail(inviteeEmail))
+                    .thenReturn(User.builder().id(inviteeUserId).firstName("Jane").lastName("Doe").build());
 
             assertThrows(ParticipantAlreadyExistsException.class, () -> service.sendInvitation(command));
             verify(invitationRepository, never()).save(any());
@@ -243,28 +241,20 @@ class DefaultInvitationServiceTest {
 
         @Test
         void givenNullInviterUserId_thenThrows() {
-            UUID inviteeUserId = UUID.randomUUID();
-            UUID spaceId = UUID.randomUUID();
             assertThrows(NullPointerException.class, () -> new SendInvitationCommand(
                     null,
-                    inviteeUserId,
-                    spaceId,
-                    "New Space",
-                    SharingMode.MUTUAL_SHARING,
-                    AccessLevel.READ_WRITE
+                    "jane@example.com",
+                    UUID.randomUUID()
             ));
         }
 
         @Test
-        void givenNullInviteeUserId_thenThrows() {
+        void givenNullInviteeEmail_thenThrows() {
             UUID inviterUserId = UUID.randomUUID();
             assertThrows(NullPointerException.class, () -> new SendInvitationCommand(
                     inviterUserId,
                     null,
-                    UUID.randomUUID(),
-                    null,
-                    SharingMode.MUTUAL_SHARING,
-                    AccessLevel.READ_WRITE
+                    UUID.randomUUID()
             ));
         }
     }
@@ -464,10 +454,11 @@ class DefaultInvitationServiceTest {
             UUID userId = UUID.randomUUID();
             UUID inviterId = UUID.randomUUID();
             UUID spaceId = UUID.randomUUID();
+            UUID inviteeUserId = UUID.randomUUID();
             Invitation sent = Invitation.builder()
                 .id(UUID.randomUUID())
                 .inviterUserId(userId)
-                .inviteeUserId(UUID.randomUUID())
+                .inviteeUserId(inviteeUserId)
                 .proposedSharingMode(SharingMode.MUTUAL_SHARING)
                 .proposedRole(AccessLevel.READ_WRITE)
                 .status(InvitationStatus.PENDING)
@@ -489,12 +480,29 @@ class DefaultInvitationServiceTest {
 
             when(invitationRepository.findByInviterUserIdOrInviteeUserId(userId))
                 .thenReturn(List.of(sent, received));
+            when(userClient.getUsersByIds(List.of(userId, inviteeUserId, inviterId)))
+                .thenReturn(List.of(
+                    User.builder().id(userId).firstName("John").lastName("Doe").build(),
+                    User.builder().id(inviteeUserId).firstName("Jane").lastName("Smith").build(),
+                    User.builder().id(inviterId).firstName("Bob").lastName("Jones").build()));
+            when(spaceRepository.findAllById(List.of(spaceId)))
+                .thenReturn(List.of(SharedSpace.builder()
+                    .id(spaceId)
+                    .spaceName("Family 2026 Budget")
+                    .ownerUserId(inviterId)
+                    .sharingMode(SharingMode.MUTUAL_SHARING)
+                    .sharedResources(List.of())
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build()));
 
-            List<Invitation> result = service.getInvitationsByUserId(userId);
+            List<InvitationSummary> result = service.getInvitationsByUserId(userId);
 
             assertEquals(2, result.size());
-            assertTrue(result.containsAll(List.of(sent, received)));
             verify(invitationRepository).findByInviterUserIdOrInviteeUserId(userId);
+            verify(userClient).getUsersByIds(List.of(userId, inviteeUserId, inviterId));
+            verify(spaceRepository).findAllById(List.of(spaceId));
         }
 
         @Test
@@ -503,10 +511,11 @@ class DefaultInvitationServiceTest {
 
             when(invitationRepository.findByInviterUserIdOrInviteeUserId(userId)).thenReturn(List.of());
 
-            List<Invitation> result = service.getInvitationsByUserId(userId);
+            List<InvitationSummary> result = service.getInvitationsByUserId(userId);
 
             assertTrue(result.isEmpty());
             verify(invitationRepository).findByInviterUserIdOrInviteeUserId(userId);
+            verifyNoInteractions(userClient);
         }
     }
 

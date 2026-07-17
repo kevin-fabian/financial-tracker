@@ -17,8 +17,10 @@ public record SharedResourceResponse(
         @Schema(description = "Type of the shared resource", example = "TRANSACTION")
         String type,
 
+        @Schema(description = "Display name of the resource type", example = "Transaction")
         String name,
 
+        @Schema(description = "Description of the resource type")
         String description,
 
         @Schema(description = "Identifiers of the shared items")
@@ -31,6 +33,8 @@ public record SharedResourceResponse(
         return SharedResourceResponse.builder()
                 .id(resource.id())
                 .type(resource.type() != null ? resource.type().name() : null)
+                .name(resource.type() != null ? resource.type().getName() : null)
+                .description(resource.type() != null ? resource.type().getDescription() : null)
                 .items(resource.items())
                 .sharedAt(resource.sharedAt())
                 .build();

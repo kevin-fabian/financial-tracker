@@ -1,15 +1,15 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.shared_space.CannotRemoveOwnerException;
 import com.fabiankevin.app.exceptions.shared_space.ForbiddenException;
 import com.fabiankevin.app.exceptions.shared_space.ParticipantNotFoundException;
 import com.fabiankevin.app.exceptions.shared_space.SharedSpaceNotFoundException;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.shared_space.AccessLevel;
 import com.fabiankevin.app.models.enums.shared_space.ParticipantStatus;
 import com.fabiankevin.app.models.enums.shared_space.ResourceType;
-import com.fabiankevin.app.models.shared_space.SharedResource;
-import com.fabiankevin.app.models.shared_space.SharedSpace;
-import com.fabiankevin.app.models.shared_space.SpaceParticipant;
+import com.fabiankevin.app.models.shared_space.*;
 import com.fabiankevin.app.persistence.SharedSpaceRepository;
 import com.fabiankevin.app.services.commands.shared_space.AddSharedResourceCommand;
 import com.fabiankevin.app.services.commands.shared_space.CreateSharedSpaceCommand;
@@ -20,13 +20,16 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class DefaultSharedSpaceService implements SharedSpaceService {
     private final SharedSpaceRepository spaceRepository;
+    private final UserClient userClient;
 
     @Transactional
     @Override
@@ -99,8 +102,23 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
     }
 
     @Override
-    public List<SharedSpace> retrieveByUserId(UUID userId) {
-        return spaceRepository.retrieveByUserId(userId);
+    public List<SharedSpaceSummary> retrieveByUserId(UUID userId) {
+        List<SharedSpace> spaces = spaceRepository.retrieveByUserId(userId);
+
+        List<UUID> allParticipantIds = spaces.stream()
+                .flatMap(space -> space.participants().stream())
+                .map(SpaceParticipant::userId)
+                .distinct()
+                .toList();
+
+        Map<UUID, User> usersById = allParticipantIds.isEmpty()
+                ? Map.of()
+                : userClient.getUsersByIds(allParticipantIds).stream()
+                        .collect(Collectors.toMap(User::id, Function.identity()));
+
+        return spaces.stream()
+                .map(space -> toSummary(space, usersById))
+                .toList();
     }
 
     @Transactional
@@ -141,5 +159,42 @@ public class DefaultSharedSpaceService implements SharedSpaceService {
                 .filter(p -> p.userId().equals(userId))
                 .findFirst()
                 .orElseThrow(() -> new ParticipantNotFoundException(userId));
+    }
+
+    private SharedSpaceSummary toSummary(SharedSpace space, Map<UUID, User> usersById) {
+        List<SpaceParticipantSummary> participantSummaries = space.participants().stream()
+                .map(participant -> {
+                    User user = usersById.get(participant.userId());
+                    String name = user != null ? user.firstName() + " " + user.lastName() : null;
+                    String initial = deriveInitial(user);
+                    return SpaceParticipantSummary.builder()
+                            .id(participant.userId())
+                            .name(name)
+                            .initial(initial)
+                            .accessLevel(participant.accessLevel())
+                            .status(participant.status())
+                            .joinedAt(participant.joinedAt())
+                            .build();
+                })
+                .toList();
+
+        return SharedSpaceSummary.builder()
+                .id(space.id())
+                .spaceName(space.spaceName())
+                .ownerUserId(space.ownerUserId())
+                .participants(participantSummaries)
+                .sharingMode(space.sharingMode())
+                .sharedResources(space.sharedResources())
+                .active(space.active())
+                .createdAt(space.createdAt())
+                .updatedAt(space.updatedAt())
+                .build();
+    }
+
+    private String deriveInitial(User user) {
+        if (user == null || user.firstName() == null || user.lastName() == null) {
+            return null;
+        }
+        return "" + user.firstName().charAt(0) + user.lastName().charAt(0);
     }
 }
