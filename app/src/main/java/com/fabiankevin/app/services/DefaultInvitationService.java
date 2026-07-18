@@ -124,29 +124,20 @@ public class DefaultInvitationService implements InvitationService {
     public InvitationSummary rejectInvitation(RejectInvitationCommand command) {
         Invitation invitation = findInvitationOrThrow(command.invitationId());
 
-        if (!invitation.inviteePlayerId().equals(command.inviteeUserId())) {
-            throw new ForbiddenException("Only the invited user can reject");
+        boolean isInvitee = invitation.inviteePlayerId().equals(command.rejectingUserId());
+        boolean isInviter = invitation.inviterPlayerId().equals(command.rejectingUserId());
+
+        if (!isInvitee && !isInviter) {
+            throw new ForbiddenException("Only the invited user or the inviter can reject the invitation");
         }
 
         if (invitation.status() != InvitationStatus.PENDING) {
             throw new InvitationAlreadyHandledException();
         }
 
-        Invitation updatedInvitation = Invitation.builder()
-                .id(invitation.id())
-                .inviterPlayerId(invitation.inviterPlayerId())
-                .inviteePlayerId(invitation.inviteePlayerId())
-                .proposedSharingMode(invitation.proposedSharingMode())
-                .proposedRole(invitation.proposedRole())
-                .status(InvitationStatus.REJECTED)
-                .createdAt(invitation.createdAt())
-                .expiresAt(invitation.expiresAt())
-                .sharedSpaceId(invitation.sharedSpaceId())
-                .build();
+        invitationRepository.delete(invitation.id());
 
-        invitationRepository.save(updatedInvitation);
-
-        return toSummary(updatedInvitation, command.inviteeUserId());
+        return toSummary(invitation, command.rejectingUserId());
     }
 
     @Override

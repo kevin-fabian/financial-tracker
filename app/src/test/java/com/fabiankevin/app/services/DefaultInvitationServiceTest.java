@@ -570,7 +570,6 @@ class DefaultInvitationServiceTest {
                     .build();
 
             when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
-            when(invitationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(List.of(inviterUserId, inviteeUserId)))
                     .thenReturn(List.of(
                             User.builder().id(inviterUserId).firstName("John").lastName("Doe").build(),
@@ -582,10 +581,8 @@ class DefaultInvitationServiceTest {
 
             InvitationSummary result = service.rejectInvitation(command);
 
-            ArgumentCaptor<Invitation> captor = ArgumentCaptor.forClass(Invitation.class);
-            verify(invitationRepository).save(captor.capture());
-            assertEquals(InvitationStatus.REJECTED, captor.getValue().status());
-            assertEquals(InvitationStatus.REJECTED, result.status());
+            verify(invitationRepository).delete(invitationId);
+            verify(invitationRepository, never()).save(any());
             assertEquals(partyId, result.partyId());
             assertFalse(result.inviter());
             assertEquals("John Doe", result.inviterName());
@@ -594,7 +591,7 @@ class DefaultInvitationServiceTest {
         }
 
         @Test
-        void givenNonInviteeAttemptsToReject_thenThrows() {
+        void givenNonInviteeOrNonInviterAttemptsToReject_thenThrows() {
             UUID inviteeUserId = UUID.randomUUID();
             UUID otherUserId = UUID.randomUUID();
             UUID invitationId = UUID.randomUUID();
@@ -615,7 +612,44 @@ class DefaultInvitationServiceTest {
             RejectInvitationCommand command = new RejectInvitationCommand(invitationId, otherUserId);
 
             assertThrows(ForbiddenException.class, () -> service.rejectInvitation(command));
+            verify(invitationRepository, never()).delete(any());
+        }
+
+        @Test
+        void givenInviterCancelsInvitation_thenInvitationIsDeleted() {
+            UUID inviterUserId = UUID.randomUUID();
+            UUID inviteeUserId = UUID.randomUUID();
+            UUID invitationId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
+            Invitation invitation = Invitation.builder()
+                    .id(invitationId)
+                    .inviterPlayerId(inviterUserId)
+                    .inviteePlayerId(inviteeUserId)
+                    .proposedSharingMode(SharingMode.EVEN_SHARE)
+                    .proposedRole(AccessLevel.VIEW_ONLY)
+                    .status(InvitationStatus.PENDING)
+                    .createdAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(604800))
+                    .sharedSpaceId(partyId)
+                    .build();
+
+            when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
+            when(userClient.getUsersByIds(List.of(inviterUserId, inviteeUserId)))
+                    .thenReturn(List.of(
+                            User.builder().id(inviterUserId).firstName("John").lastName("Doe").build(),
+                            User.builder().id(inviteeUserId).firstName("Jane").lastName("Smith").build()
+                    ));
+            when(spaceRepository.findById(partyId)).thenReturn(Optional.empty());
+
+            RejectInvitationCommand command = new RejectInvitationCommand(invitationId, inviterUserId);
+
+            InvitationSummary result = service.rejectInvitation(command);
+
+            verify(invitationRepository).delete(invitationId);
             verify(invitationRepository, never()).save(any());
+            assertEquals(partyId, result.partyId());
+            assertTrue(result.inviter());
+            verify(spaceRepository, never()).save(any());
         }
 
         @Test
@@ -639,7 +673,7 @@ class DefaultInvitationServiceTest {
             RejectInvitationCommand command = new RejectInvitationCommand(invitationId, inviteeUserId);
 
             assertThrows(InvitationAlreadyHandledException.class, () -> service.rejectInvitation(command));
-            verify(invitationRepository, never()).save(any());
+            verify(invitationRepository, never()).delete(any());
         }
     }
 }

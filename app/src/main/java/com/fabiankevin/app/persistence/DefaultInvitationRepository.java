@@ -24,6 +24,11 @@ public class DefaultInvitationRepository implements InvitationRepository {
     }
 
     @Override
+    public void delete(UUID id) {
+        jpaInvitationRepository.deleteById(id);
+    }
+
+    @Override
     public Optional<Invitation> findById(UUID id) {
         return jpaInvitationRepository.findById(id).map(InvitationEntity::toModel);
     }

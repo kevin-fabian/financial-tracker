@@ -2,6 +2,7 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.party.CannotRemoveOwnerException;
+import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.exceptions.party.NotPartyLeaderException;
 import com.fabiankevin.app.exceptions.party.PartyNotFoundException;
 import com.fabiankevin.app.models.User;
@@ -354,6 +355,42 @@ class DefaultPartyServiceTest {
             when(partyRepository.findById(partyId)).thenReturn(Optional.of(party));
 
             assertThrows(CannotRemoveOwnerException.class, () -> service.kickPartyMember(partyId, partyLeaderId, partyLeaderId));
+            verify(partyRepository, never()).save(any());
+        }
+
+        @Test
+        void givenPartyMemberKicksLeader_thenThrows() {
+            UUID partyLeaderId = UUID.randomUUID();
+            UUID memberId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
+            Party party = Party.builder()
+                    .id(partyId)
+                    .name("Family Budget")
+                    .partyLeaderId(partyLeaderId)
+                    .partyMembers(new ArrayList<>(List.of(
+                            PartyMember.builder()
+                                    .playerId(partyLeaderId)
+                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .status(PartyMemberStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build(),
+                            PartyMember.builder()
+                                    .playerId(memberId)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
+                                    .status(PartyMemberStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build()
+                    )))
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .sharedItems(new ArrayList<>())
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(partyRepository.findById(partyId)).thenReturn(Optional.of(party));
+
+            assertThrows(ForbiddenException.class, () -> service.kickPartyMember(partyId, partyLeaderId, memberId));
             verify(partyRepository, never()).save(any());
         }
     }

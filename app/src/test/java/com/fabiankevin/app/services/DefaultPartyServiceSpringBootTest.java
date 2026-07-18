@@ -1,6 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
+import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.exceptions.party.InviterCannotAcceptOwnInvitationException;
 import com.fabiankevin.app.exceptions.party.PartyMemberAlreadyExistsException;
 import com.fabiankevin.app.models.*;
@@ -11,6 +12,7 @@ import com.fabiankevin.app.models.party.InvitationSummary;
 import com.fabiankevin.app.models.party.PartySummary;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
+import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.party.OrganizePartyCommand;
 import com.fabiankevin.app.services.commands.party.invitations.AcceptInvitationCommand;
@@ -54,6 +56,8 @@ public class DefaultPartyServiceSpringBootTest {
     private AccountRepository accountRepository;
     @Autowired
     private CategoryRepository categoryRepository;
+    @Autowired
+    private InvitationRepository invitationRepository;
     @MockitoBean
     private UserClient userClient;
     @MockitoBean
@@ -271,6 +275,51 @@ public class DefaultPartyServiceSpringBootTest {
             assertTrue(afterKick.partyMembers().getFirst().partyLeader(),
                     "remaining member should be the leader");
         }
+
+        @DisplayName("""
+            Party member tries to kick the leader: should throw
+            """)
+        @Test
+        void partyMemberKicksLeader_thenThrows() {
+            UUID ownerUserId = UUID.randomUUID();
+            UUID partnerUserid = UUID.randomUUID();
+            String partnerEmail = "partner@example.com";
+
+            // Step 1: Create a party as the leader
+            PartySummary initialParty = partyService.organize(OrganizePartyCommand.builder()
+                    .partyName("Partner Party")
+                    .partyLeaderId(ownerUserId)
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .build());
+            UUID partyId = initialParty.id();
+
+            // Step 2: Invite a partner
+            when(userClient.getUserByEmail(partnerEmail))
+                    .thenReturn(User.builder().id(partnerUserid).firstName("Partner").lastName("User").build());
+            when(userClient.getUsersByIds(List.of(ownerUserId, partnerUserid)))
+                    .thenReturn(List.of(
+                            User.builder().id(ownerUserId).firstName("Owner").lastName("User").build(),
+                            User.builder().id(partnerUserid).firstName("Partner").lastName("User").build()
+                    ));
+            InvitationSummary invitation = invitationService.sendInvitation(SendInvitationCommand.builder()
+                    .partyId(partyId)
+                    .inviterPlayerId(ownerUserId)
+                    .inviteeEmail(partnerEmail)
+                    .build());
+
+            // Step 3: Partner accepts the invitation
+            invitationService.acceptInvitation(AcceptInvitationCommand.builder()
+                    .invitationId(invitation.id())
+                    .acceptingPlayerId(partnerUserid)
+                    .build());
+
+            PartySummary afterAcceptance = partyService.retrieveByUserId(ownerUserId).getFirst();
+            assertEquals(2, afterAcceptance.partyMembers().size(),
+                    "party should have leader + member after acceptance");
+
+            // Step 4: Member tries to kick the leader
+            assertThrows(ForbiddenException.class, () -> partyService.kickPartyMember(partyId, ownerUserId, partnerUserid));
+        }
     }
 
     @Nested
@@ -356,6 +405,47 @@ public class DefaultPartyServiceSpringBootTest {
                     "party should contain only the leader after rejection");
             assertTrue(afterRejection.partyMembers().getFirst().partyLeader(),
                     "remaining member should be the leader");
+        }
+
+        @DisplayName("""
+            Party leader invites a party member, then leader cancels the invitation: invitation should be deleted
+            """)
+        @Test
+        void partyLeaderCancelsInvitation_thenInvitationShouldBeDeleted() {
+            UUID ownerUserId = UUID.randomUUID();
+            UUID partnerUserId = UUID.randomUUID();
+            String partnerEmail = "partner@example.com";
+
+            // Step 1: Create a party as the leader
+            PartySummary initialParty = partyService.organize(OrganizePartyCommand.builder()
+                    .partyName("Partner Party")
+                    .partyLeaderId(ownerUserId)
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .build());
+            UUID partyId = initialParty.id();
+
+            // Step 2: Invite a partner
+            when(userClient.getUserByEmail(partnerEmail))
+                    .thenReturn(User.builder().id(partnerUserId).firstName("Partner").lastName("User").build());
+            when(userClient.getUsersByIds(List.of(ownerUserId, partnerUserId)))
+                    .thenReturn(List.of(
+                            User.builder().id(ownerUserId).firstName("Owner").lastName("User").build(),
+                            User.builder().id(partnerUserId).firstName("Partner").lastName("User").build()
+                    ));
+            InvitationSummary invitation = invitationService.sendInvitation(SendInvitationCommand.builder()
+                    .partyId(partyId)
+                    .inviterPlayerId(ownerUserId)
+                    .inviteeEmail(partnerEmail)
+                    .build());
+
+            assertTrue(invitationRepository.findById(invitation.id()).isPresent(),
+                    "invitation should exist after being sent");
+
+            // Step 3: Leader cancels the invitation
+            invitationService.rejectInvitation(new RejectInvitationCommand(invitation.id(), ownerUserId));
+
+            assertTrue(invitationRepository.findById(invitation.id()).isEmpty(),
+                    "invitation should be deleted after leader cancels it");
         }
 
         @DisplayName("""

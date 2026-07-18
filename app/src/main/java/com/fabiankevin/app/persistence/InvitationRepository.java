@@ -9,6 +9,8 @@ import java.util.UUID;
 public interface InvitationRepository {
     Invitation save(Invitation invitation);
 
+    void delete(UUID id);
+
     Optional<Invitation> findById(UUID id);
 
     Optional<Invitation> findPendingBySpaceIdAndInviterAndInvitee(UUID spaceId, UUID inviterUserId, UUID inviteeUserId);
