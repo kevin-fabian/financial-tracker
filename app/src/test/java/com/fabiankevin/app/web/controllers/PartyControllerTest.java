@@ -88,10 +88,10 @@ class PartyControllerTest {
                 .build();
     }
 
-    private PartyMemberSummary partyMemberSummary(UUID id) {
+    private PartyMemberSummary partyMemberSummary(UUID playerId) {
         return PartyMemberSummary.builder()
-                .id(id)
-                .playerId(UUID.randomUUID())
+                .id(UUID.randomUUID())
+                .playerId(playerId)
                 .name("John Doe")
                 .initial("JD")
                 .partyLeader(false)
@@ -104,7 +104,8 @@ class PartyControllerTest {
 
     private PartyMemberSummary leaderSummary(UUID id) {
         return PartyMemberSummary.builder()
-                .id(id)
+                .id(UUID.randomUUID())
+                .playerId(id)
                 .name("Jane Leader")
                 .initial("JL")
                 .partyLeader(true)
@@ -146,7 +147,8 @@ class PartyControllerTest {
                     .andExpect(jsonPath("$.id").value(partyId.toString()))
                     .andExpect(jsonPath("$.name").value("Family 2026 Budget"))
                     .andExpect(jsonPath("$.partyMembers.length()").value(1))
-                    .andExpect(jsonPath("$.partyMembers[0].id").value(userId.toString()))
+                    .andExpect(jsonPath("$.partyMembers[0].id").exists())
+                    .andExpect(jsonPath("$.partyMembers[0].playerId").value(userId.toString()))
                     .andExpect(jsonPath("$.partyMembers[0].partyLeader").value(true))
                     .andExpect(jsonPath("$.partyMembers[0].partyMember").value(false));
 
@@ -252,7 +254,7 @@ class PartyControllerTest {
                     .andExpect(jsonPath("$[0].createdAt").exists())
                     .andExpect(jsonPath("$[0].updatedAt").exists())
                     .andExpect(jsonPath("$[0].partyMembers.length()").value(2))
-                    .andExpect(jsonPath("$[0].partyMembers[0].id").value(userId.toString()))
+                    .andExpect(jsonPath("$[0].partyMembers[0].id").exists())
                     .andExpect(jsonPath("$[0].partyMembers[0].playerId").value(userId.toString()))
                     .andExpect(jsonPath("$[0].partyMembers[0].name").value("Jane Leader"))
                     .andExpect(jsonPath("$[0].partyMembers[0].initial").value("JL"))
@@ -262,7 +264,7 @@ class PartyControllerTest {
                     .andExpect(jsonPath("$[0].partyMembers[0].accessLevelDescription").value(READ_WRITE.getDescription()))
                     .andExpect(jsonPath("$[0].partyMembers[0].status").value("ACTIVE"))
                     .andExpect(jsonPath("$[0].partyMembers[0].joinedAt").exists())
-                    .andExpect(jsonPath("$[0].partyMembers[1].id").value(partyMemberId.toString()))
+                    .andExpect(jsonPath("$[0].partyMembers[1].id").exists())
                     .andExpect(jsonPath("$[0].partyMembers[1].playerId").value(partyMemberId.toString()))
                     .andExpect(jsonPath("$[0].partyMembers[1].name").value("John Doe"))
                     .andExpect(jsonPath("$[0].partyMembers[1].initial").value("JD"))
