@@ -1,6 +1,8 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
+import com.fabiankevin.app.exceptions.party.InviterCannotAcceptOwnInvitationException;
+import com.fabiankevin.app.exceptions.party.PartyMemberAlreadyExistsException;
 import com.fabiankevin.app.models.*;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
@@ -34,8 +36,7 @@ import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 @ActiveProfiles("test")
@@ -168,7 +169,7 @@ public class DefaultPartyServiceSpringBootTest {
     }
 
     @Nested
-    class PartyLeader {
+    class Party {
         @DisplayName("""
             Party leader disbands the party: party should no longer be returned for the leader
             """)
@@ -273,12 +274,140 @@ public class DefaultPartyServiceSpringBootTest {
     }
 
     @Nested
-    class PartyMember {
+    class PartyInvitation {
+        @DisplayName("""
+            Party leader creates a party, invites a party member who accepts: party should have 2 members (leader + member)
+            """)
+        @Test
+        void partyLeaderInvitesMemberWhoAccepts_thenPartyShouldHaveTwoMembers() {
+            UUID ownerUserId = UUID.randomUUID();
+            UUID partnerUserId = UUID.randomUUID();
+            String partnerEmail = "partner@example.com";
+
+            // Step 1: Create a party as the leader
+            PartySummary initialParty = partyService.organize(OrganizePartyCommand.builder()
+                    .partyName("Partner Party")
+                    .partyLeaderId(ownerUserId)
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .build());
+            UUID partyId = initialParty.id();
+
+            // Step 2: Invite a partner
+            when(userClient.getUserByEmail(partnerEmail))
+                    .thenReturn(User.builder().id(partnerUserId).firstName("Partner").lastName("User").build());
+            when(userClient.getUsersByIds(List.of(ownerUserId, partnerUserId)))
+                    .thenReturn(List.of(
+                            User.builder().id(ownerUserId).firstName("Owner").lastName("User").build(),
+                            User.builder().id(partnerUserId).firstName("Partner").lastName("User").build()
+                    ));
+            InvitationSummary invitation = invitationService.sendInvitation(SendInvitationCommand.builder()
+                    .partyId(partyId)
+                    .inviterPlayerId(ownerUserId)
+                    .inviteeEmail(partnerEmail)
+                    .build());
+
+            // Step 3: Partner accepts the invitation
+            invitationService.acceptInvitation(AcceptInvitationCommand.builder()
+                    .invitationId(invitation.id())
+                    .acceptingPlayerId(partnerUserId)
+                    .build());
+
+            PartySummary afterAcceptance = partyService.retrieveByUserId(ownerUserId).getFirst();
+            assertEquals(2, afterAcceptance.partyMembers().size(),
+                    "party should have leader + member after acceptance");
+        }
+
+        @DisplayName("""
+            Party leader creates a party, invites a party member who rejects: party should contain only the leader
+            """)
+        @Test
+        void partyLeaderInvitesMemberWhoRejects_thenPartyShouldHaveLeaderOnly() {
+            UUID ownerUserId = UUID.randomUUID();
+            UUID partnerUserId = UUID.randomUUID();
+            String partnerEmail = "partner@example.com";
+
+            // Step 1: Create a party as the leader
+            PartySummary initialParty = partyService.organize(OrganizePartyCommand.builder()
+                    .partyName("Partner Party")
+                    .partyLeaderId(ownerUserId)
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .build());
+            UUID partyId = initialParty.id();
+
+            // Step 2: Invite a partner
+            when(userClient.getUserByEmail(partnerEmail))
+                    .thenReturn(User.builder().id(partnerUserId).firstName("Partner").lastName("User").build());
+            when(userClient.getUsersByIds(List.of(ownerUserId, partnerUserId)))
+                    .thenReturn(List.of(
+                            User.builder().id(ownerUserId).firstName("Owner").lastName("User").build(),
+                            User.builder().id(partnerUserId).firstName("Partner").lastName("User").build()
+                    ));
+            InvitationSummary invitation = invitationService.sendInvitation(SendInvitationCommand.builder()
+                    .partyId(partyId)
+                    .inviterPlayerId(ownerUserId)
+                    .inviteeEmail(partnerEmail)
+                    .build());
+
+            // Step 3: Partner rejects the invitation
+            invitationService.rejectInvitation(new RejectInvitationCommand(invitation.id(), partnerUserId));
+
+            PartySummary afterRejection = partyService.retrieveByUserId(ownerUserId).getFirst();
+            assertEquals(1, afterRejection.partyMembers().size(),
+                    "party should contain only the leader after rejection");
+            assertTrue(afterRejection.partyMembers().getFirst().partyLeader(),
+                    "remaining member should be the leader");
+        }
+
+        @DisplayName("""
+            A party member leaves from an existing party: user should not belong to any party
+            """)
+        @Test
+        void partyMemberLeavesExistingParty_thenUserShouldNotBelongToAnyParty() {
+            UUID ownerUserId = UUID.randomUUID();
+            UUID partnerUserId = UUID.randomUUID();
+            String partnerEmail = "partner@example.com";
+
+            // Step 1: Create a party as the leader
+            PartySummary initialParty = partyService.organize(OrganizePartyCommand.builder()
+                    .partyName("Partner Party")
+                    .partyLeaderId(ownerUserId)
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .build());
+            UUID partyId = initialParty.id();
+
+            // Step 2: Invite a partner and accept
+            when(userClient.getUserByEmail(partnerEmail))
+                    .thenReturn(User.builder().id(partnerUserId).firstName("Partner").lastName("User").build());
+            when(userClient.getUsersByIds(List.of(ownerUserId, partnerUserId)))
+                    .thenReturn(List.of(
+                            User.builder().id(ownerUserId).firstName("Owner").lastName("User").build(),
+                            User.builder().id(partnerUserId).firstName("Partner").lastName("User").build()
+                    ));
+            InvitationSummary invitation = invitationService.sendInvitation(SendInvitationCommand.builder()
+                    .partyId(partyId)
+                    .inviterPlayerId(ownerUserId)
+                    .inviteeEmail(partnerEmail)
+                    .build());
+            invitationService.acceptInvitation(AcceptInvitationCommand.builder()
+                    .invitationId(invitation.id())
+                    .acceptingPlayerId(partnerUserId)
+                    .build());
+
+            assertEquals(2, partyService.retrieveByUserId(ownerUserId).getFirst().partyMembers().size(),
+                    "party should have leader + member after acceptance");
+
+            // Step 3: Party member leaves the party
+            partyService.kickPartyMember(partyId, partnerUserId, partnerUserId);
+
+            assertTrue(partyService.retrieveByUserId(partnerUserId).isEmpty(),
+                    "leaving user should not belong to any party");
+        }
+
         @DisplayName("""
             Invitee rejects invitation: party should still contain only the leader
             """)
         @Test
-        void inviteeRejectInvitationFlow_shouldKeepPartyWithLeaderOnly() {
+        void inviteeRejectsInvitation_shouldKeepPartyWithLeaderOnly() {
             UUID ownerUserId = UUID.randomUUID();
             UUID partnerUserid = UUID.randomUUID();
             String partnerEmail = "partner@example.com";
@@ -316,6 +445,210 @@ public class DefaultPartyServiceSpringBootTest {
                     "party should still contain only the leader after rejection");
             assertTrue(afterRejection.partyMembers().getFirst().partyLeader(),
                     "remaining member should be the leader");
+        }
+
+        @DisplayName("""
+            Party leader invites two party members who both accept: party should have 3 members
+            """)
+        @Test
+        void partyLeaderInvitesTwoMembersWhoAccept_thenPartyShouldHaveThreeMembers() {
+            UUID ownerUserId = UUID.randomUUID();
+            UUID firstMemberId = UUID.randomUUID();
+            UUID secondMemberId = UUID.randomUUID();
+            String firstMemberEmail = "first@example.com";
+            String secondMemberEmail = "second@example.com";
+
+            // Step 1: Create a party as the leader
+            PartySummary initialParty = partyService.organize(OrganizePartyCommand.builder()
+                    .partyName("Partner Party")
+                    .partyLeaderId(ownerUserId)
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .build());
+            UUID partyId = initialParty.id();
+
+            // Step 2: Invite first member and accept
+            when(userClient.getUserByEmail(firstMemberEmail))
+                    .thenReturn(User.builder().id(firstMemberId).firstName("First").lastName("Member").build());
+            when(userClient.getUsersByIds(List.of(ownerUserId, firstMemberId)))
+                    .thenReturn(List.of(
+                            User.builder().id(ownerUserId).firstName("Owner").lastName("User").build(),
+                            User.builder().id(firstMemberId).firstName("First").lastName("Member").build()
+                    ));
+            InvitationSummary firstInvitation = invitationService.sendInvitation(SendInvitationCommand.builder()
+                    .partyId(partyId)
+                    .inviterPlayerId(ownerUserId)
+                    .inviteeEmail(firstMemberEmail)
+                    .build());
+            invitationService.acceptInvitation(AcceptInvitationCommand.builder()
+                    .invitationId(firstInvitation.id())
+                    .acceptingPlayerId(firstMemberId)
+                    .build());
+
+            // Step 3: Invite second member and accept
+            when(userClient.getUserByEmail(secondMemberEmail))
+                    .thenReturn(User.builder().id(secondMemberId).firstName("Second").lastName("Member").build());
+            when(userClient.getUsersByIds(List.of(ownerUserId, secondMemberId)))
+                    .thenReturn(List.of(
+                            User.builder().id(ownerUserId).firstName("Owner").lastName("User").build(),
+                            User.builder().id(secondMemberId).firstName("Second").lastName("Member").build()
+                    ));
+            InvitationSummary secondInvitation = invitationService.sendInvitation(SendInvitationCommand.builder()
+                    .partyId(partyId)
+                    .inviterPlayerId(ownerUserId)
+                    .inviteeEmail(secondMemberEmail)
+                    .build());
+            invitationService.acceptInvitation(AcceptInvitationCommand.builder()
+                    .invitationId(secondInvitation.id())
+                    .acceptingPlayerId(secondMemberId)
+                    .build());
+
+            PartySummary afterAcceptance = partyService.retrieveByUserId(ownerUserId).getFirst();
+            assertEquals(3, afterAcceptance.partyMembers().size(),
+                    "party should have leader + two members after both accept");
+        }
+
+        @DisplayName("""
+            Party leader creates a party, invites a party member who is already in a party: should throw
+            """)
+        @Test
+        void partyLeaderInvitesMemberAlreadyInParty_thenShouldThrow() {
+            UUID ownerUserId = UUID.randomUUID();
+            UUID partnerUserId = UUID.randomUUID();
+            String partnerEmail = "partner@example.com";
+
+            // Step 1: Create a party as the leader
+            PartySummary initialParty = partyService.organize(OrganizePartyCommand.builder()
+                    .partyName("Partner Party")
+                    .partyLeaderId(ownerUserId)
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .build());
+            UUID partyId = initialParty.id();
+
+            // Step 2: Invite a partner and accept
+            when(userClient.getUserByEmail(partnerEmail))
+                    .thenReturn(User.builder().id(partnerUserId).firstName("Partner").lastName("User").build());
+            when(userClient.getUsersByIds(List.of(ownerUserId, partnerUserId)))
+                    .thenReturn(List.of(
+                            User.builder().id(ownerUserId).firstName("Owner").lastName("User").build(),
+                            User.builder().id(partnerUserId).firstName("Partner").lastName("User").build()
+                    ));
+            InvitationSummary invitation = invitationService.sendInvitation(SendInvitationCommand.builder()
+                    .partyId(partyId)
+                    .inviterPlayerId(ownerUserId)
+                    .inviteeEmail(partnerEmail)
+                    .build());
+            invitationService.acceptInvitation(AcceptInvitationCommand.builder()
+                    .invitationId(invitation.id())
+                    .acceptingPlayerId(partnerUserId)
+                    .build());
+
+            // Step 3: Try to invite the same partner again who is already a member
+            assertThrows(PartyMemberAlreadyExistsException.class, () ->
+                    invitationService.sendInvitation(SendInvitationCommand.builder()
+                            .partyId(partyId)
+                            .inviterPlayerId(ownerUserId)
+                            .inviteeEmail(partnerEmail)
+                            .build()));
+        }
+
+        @DisplayName("""
+            Party leader creates a party, invites himself: should throw
+            """)
+        @Test
+        void partyLeaderInvitesHimself_thenShouldThrow() {
+            UUID ownerUserId = UUID.randomUUID();
+            String ownerEmail = "owner@example.com";
+
+            // Step 1: Create a party as the leader
+            PartySummary initialParty = partyService.organize(OrganizePartyCommand.builder()
+                    .partyName("Solo Party")
+                    .partyLeaderId(ownerUserId)
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .build());
+            UUID partyId = initialParty.id();
+
+            // Step 2: Leader tries to invite himself
+            when(userClient.getUserByEmail(ownerEmail))
+                    .thenReturn(User.builder().id(ownerUserId).firstName("Owner").lastName("User").build());
+
+            assertThrows(PartyMemberAlreadyExistsException.class, () ->
+                    invitationService.sendInvitation(SendInvitationCommand.builder()
+                            .partyId(partyId)
+                            .inviterPlayerId(ownerUserId)
+                            .inviteeEmail(ownerEmail)
+                            .build()));
+        }
+
+        @DisplayName("""
+            Party leader creates a party, invites a party member, then the leader tries to accept: should throw
+            """)
+        @Test
+        void partyLeaderTriesToAcceptOwnInvitation_thenShouldThrow() {
+            UUID ownerUserId = UUID.randomUUID();
+            UUID partnerUserId = UUID.randomUUID();
+            String partnerEmail = "partner@example.com";
+
+            // Step 1: Create a party as the leader
+            PartySummary initialParty = partyService.organize(OrganizePartyCommand.builder()
+                    .partyName("Partner Party")
+                    .partyLeaderId(ownerUserId)
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .build());
+            UUID partyId = initialParty.id();
+
+            // Step 2: Invite a partner
+            when(userClient.getUserByEmail(partnerEmail))
+                    .thenReturn(User.builder().id(partnerUserId).firstName("Partner").lastName("User").build());
+            when(userClient.getUsersByIds(List.of(ownerUserId, partnerUserId)))
+                    .thenReturn(List.of(
+                            User.builder().id(ownerUserId).firstName("Owner").lastName("User").build(),
+                            User.builder().id(partnerUserId).firstName("Partner").lastName("User").build()
+                    ));
+            InvitationSummary invitation = invitationService.sendInvitation(SendInvitationCommand.builder()
+                    .partyId(partyId)
+                    .inviterPlayerId(ownerUserId)
+                    .inviteeEmail(partnerEmail)
+                    .build());
+
+            // Step 3: Leader tries to accept their own invitation
+            assertThrows(InviterCannotAcceptOwnInvitationException.class, () ->
+                    invitationService.acceptInvitation(AcceptInvitationCommand.builder()
+                            .invitationId(invitation.id())
+                            .acceptingPlayerId(ownerUserId)
+                            .build()));
+        }
+
+        @DisplayName("""
+            Party leader creates a party, then creates a party again: should return the existing party
+            """)
+        @Test
+        void partyLeaderCreatesPartyAgain_thenShouldReturnExistingParty() {
+            UUID ownerUserId = UUID.randomUUID();
+
+            // Step 1: Create a party as the leader
+            PartySummary firstParty = partyService.organize(OrganizePartyCommand.builder()
+                    .partyName("My Party")
+                    .partyLeaderId(ownerUserId)
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .build());
+            UUID firstPartyId = firstParty.id();
+
+            when(userClient.getUsersByIds(List.of(ownerUserId)))
+                    .thenReturn(List.of(
+                            User.builder().id(ownerUserId).firstName("Owner").lastName("User").build()
+                    ));
+
+            // Step 2: Create a party again
+            PartySummary secondParty = partyService.organize(OrganizePartyCommand.builder()
+                    .partyName("Another Party")
+                    .partyLeaderId(ownerUserId)
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .build());
+
+            assertEquals(firstPartyId, secondParty.id(),
+                    "second organize call should return the existing party");
+            assertEquals("My Party", secondParty.name(),
+                    "second organize call should return the original party name");
         }
     }
 
