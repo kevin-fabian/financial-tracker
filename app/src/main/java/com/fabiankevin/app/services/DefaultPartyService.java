@@ -78,22 +78,22 @@ public class DefaultPartyService implements PartyService {
 
     @Transactional
     @Override
-    public void kickPartyMember(UUID partyId, UUID participantId, UUID requesterId) {
+    public void kickPartyMember(UUID partyId, UUID partyMemberId, UUID requesterId) {
         Party party = findPartyOrThrow(partyId);
 
         boolean isOwner = party.partyLeaderId().equals(requesterId);
-        boolean isSelf = participantId.equals(requesterId);
+        boolean isSelf = partyMemberId.equals(requesterId);
 
         if (!isOwner && !isSelf) {
             throw new ForbiddenException("Only the owner or the participant themselves can remove a participant");
         }
 
-        if (participantId.equals(party.partyLeaderId())) {
+        if (partyMemberId.equals(party.partyLeaderId())) {
             throw new CannotRemoveOwnerException();
         }
 
         List<PartyMember> updatedParticipants = party.partyMembers().stream()
-                .filter(p -> !p.playerId().equals(participantId))
+                .filter(p -> !p.playerId().equals(partyMemberId))
                 .collect(Collectors.toList());
 
         Party updatedParty = party.toBuilder()
