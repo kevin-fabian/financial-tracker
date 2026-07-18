@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DefaultInvitationService implements InvitationService {
     private final InvitationRepository invitationRepository;
-    private final PartyRepository spaceRepository;
+    private final PartyRepository partyRepository;
     private final UserClient userClient;
 
     @Transactional
@@ -67,7 +67,7 @@ public class DefaultInvitationService implements InvitationService {
                     return invitationRepository.save(newInvitation);
                 });
 
-        return toSummary(invitation);
+        return toSummary(invitation, command.inviterPlayerId());
     }
 
     @Transactional
@@ -114,9 +114,9 @@ public class DefaultInvitationService implements InvitationService {
                 .updatedAt(Instant.now())
                 .build();
 
-        spaceRepository.save(updatedSpace);
+        partyRepository.save(updatedSpace);
 
-        return toSummary(updatedInvitation);
+        return toSummary(updatedInvitation, command.acceptingPlayerId());
     }
 
     @Transactional
@@ -146,7 +146,7 @@ public class DefaultInvitationService implements InvitationService {
 
         invitationRepository.save(updatedInvitation);
 
-        return toSummary(updatedInvitation);
+        return toSummary(updatedInvitation, command.inviteeUserId());
     }
 
     @Override
@@ -170,16 +170,16 @@ public class DefaultInvitationService implements InvitationService {
 
         Map<UUID, Party> spacesById = spaceIds.isEmpty()
                 ? Map.of()
-                : spaceRepository.findAllById(spaceIds).stream()
+                : partyRepository.findAllById(spaceIds).stream()
                         .collect(Collectors.toMap(Party::id, Function.identity()));
 
         return invitations.stream()
-                .map(invitation -> toSummary(invitation, usersById, spacesById))
+                .map(invitation -> toSummary(invitation, usersById, spacesById, userId))
                 .toList();
     }
 
     private Party findSpaceOrThrow(UUID spaceId) {
-        return spaceRepository.findById(spaceId)
+        return partyRepository.findById(spaceId)
                 .orElseThrow(PartyNotFoundException::new);
     }
 
@@ -203,7 +203,7 @@ public class DefaultInvitationService implements InvitationService {
         }
     }
 
-    private InvitationSummary toSummary(Invitation invitation, Map<UUID, User> usersById, Map<UUID, Party> spacesById) {
+    private InvitationSummary toSummary(Invitation invitation, Map<UUID, User> usersById, Map<UUID, Party> spacesById, UUID currentUserId) {
         User inviter = usersById.get(invitation.inviterPlayerId());
         User invitee = usersById.get(invitation.inviteePlayerId());
         Party space = spacesById.get(invitation.sharedSpaceId());
@@ -221,20 +221,21 @@ public class DefaultInvitationService implements InvitationService {
                 .status(invitation.status())
                 .createdAt(invitation.createdAt())
                 .expiresAt(invitation.expiresAt())
-                .sharedSpaceId(invitation.sharedSpaceId())
-                .sharedSpaceName(space != null ? space.name() : null)
+                .partyId(invitation.sharedSpaceId())
+                .partyName(space != null ? space.name() : null)
+                .inviter(invitation.inviterPlayerId().equals(currentUserId))
                 .build();
     }
 
-    private InvitationSummary toSummary(Invitation invitation) {
+    private InvitationSummary toSummary(Invitation invitation, UUID currentUserId) {
         List<UUID> userIds = List.of(invitation.inviterPlayerId(), invitation.inviteePlayerId());
         Map<UUID, User> usersById = userClient.getUsersByIds(userIds).stream()
                 .collect(Collectors.toMap(User::id, Function.identity()));
-        Party space = spaceRepository.findById(invitation.sharedSpaceId()).orElse(null);
+        Party space = partyRepository.findById(invitation.sharedSpaceId()).orElse(null);
         Map<UUID, Party> spacesById = space != null
                 ? Map.of(space.id(), space)
                 : Map.of();
-        return toSummary(invitation, usersById, spacesById);
+        return toSummary(invitation, usersById, spacesById, currentUserId);
     }
 
     private String deriveInitial(User user) {

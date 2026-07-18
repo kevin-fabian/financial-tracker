@@ -72,7 +72,7 @@ class InvitationControllerTest {
             .build();
     }
 
-    private InvitationSummary invitationSummary(UUID invitationId, UUID sharedSpaceId, InvitationStatus status) {
+    private InvitationSummary invitationSummary(UUID invitationId, UUID partyId, InvitationStatus status, boolean inviter) {
         return InvitationSummary.builder()
             .id(invitationId)
             .inviterName("John Doe")
@@ -86,8 +86,9 @@ class InvitationControllerTest {
             .status(status)
             .createdAt(Instant.now())
             .expiresAt(Instant.now().plusSeconds(86_400))
-            .sharedSpaceId(sharedSpaceId)
-            .sharedSpaceName("Family 2026 Budget")
+            .partyId(partyId)
+            .partyName("Family 2026 Budget")
+            .inviter(inviter)
             .build();
     }
 
@@ -112,8 +113,9 @@ class InvitationControllerTest {
                 .status(PENDING)
                 .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(86_400))
-                .sharedSpaceId(partyId)
-                .sharedSpaceName("Family 2026 Budget")
+                .partyId(partyId)
+                .partyName("Family 2026 Budget")
+                .inviter(true)
                 .build();
             InvitationSummary received = InvitationSummary.builder()
                 .id(receivedId)
@@ -128,8 +130,9 @@ class InvitationControllerTest {
                 .status(PENDING)
                 .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(86_400))
-                .sharedSpaceId(partyId)
-                .sharedSpaceName("Trip Expenses")
+                .partyId(partyId)
+                .partyName("Trip Expenses")
+                .inviter(false)
                 .build();
 
             when(invitationService.getInvitationsByUserId(userId)).thenReturn(List.of(sent, received));
@@ -152,6 +155,7 @@ class InvitationControllerTest {
                 .andExpect(jsonPath("$[0].expiresAt").exists())
                 .andExpect(jsonPath("$[0].partyId").value(partyId.toString()))
                 .andExpect(jsonPath("$[0].partyName").value("Family 2026 Budget"))
+                .andExpect(jsonPath("$[0].inviter").value(true))
                 .andExpect(jsonPath("$[1].id").value(receivedId.toString()))
                 .andExpect(jsonPath("$[1].inviterName").value("Bob Jones"))
                 .andExpect(jsonPath("$[1].inviterInitial").value("BJ"))
@@ -165,7 +169,8 @@ class InvitationControllerTest {
                 .andExpect(jsonPath("$[1].createdAt").exists())
                 .andExpect(jsonPath("$[1].expiresAt").exists())
                 .andExpect(jsonPath("$[1].partyId").value(partyId.toString()))
-                .andExpect(jsonPath("$[1].partyName").value("Trip Expenses"));
+                .andExpect(jsonPath("$[1].partyName").value("Trip Expenses"))
+                .andExpect(jsonPath("$[1].inviter").value(false));
 
             verify(invitationService).getInvitationsByUserId(userId);
         }
@@ -218,7 +223,7 @@ class InvitationControllerTest {
                 .build();
 
             when(invitationService.sendInvitation(any(SendInvitationCommand.class)))
-                .thenReturn(invitationSummary(invitationId, partyId, PENDING));
+                .thenReturn(invitationSummary(invitationId, partyId, PENDING, true));
 
             mockMvc.perform(post("/api/parties/" + partyId + "/invitations")
                     .with(jwt().jwt(jwt))
@@ -238,7 +243,8 @@ class InvitationControllerTest {
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andExpect(jsonPath("$.expiresAt").exists())
                 .andExpect(jsonPath("$.partyId").value(partyId.toString()))
-                .andExpect(jsonPath("$.partyName").value("Family 2026 Budget"));
+                .andExpect(jsonPath("$.partyName").value("Family 2026 Budget"))
+                .andExpect(jsonPath("$.inviter").value(true));
 
             verify(invitationService).sendInvitation(any(SendInvitationCommand.class));
         }
@@ -284,7 +290,7 @@ class InvitationControllerTest {
             UUID invitationId = UUID.randomUUID();
 
             when(invitationService.acceptInvitation(any(AcceptInvitationCommand.class)))
-                .thenReturn(invitationSummary(invitationId, partyId, ACCEPTED));
+                .thenReturn(invitationSummary(invitationId, partyId, ACCEPTED, false));
 
             mockMvc.perform(post("/api/parties/" + partyId + "/invitations/" + invitationId + "/accept")
                     .with(jwt().jwt(jwt)))
@@ -302,7 +308,8 @@ class InvitationControllerTest {
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andExpect(jsonPath("$.expiresAt").exists())
                 .andExpect(jsonPath("$.partyId").value(partyId.toString()))
-                .andExpect(jsonPath("$.partyName").value("Family 2026 Budget"));
+                .andExpect(jsonPath("$.partyName").value("Family 2026 Budget"))
+                .andExpect(jsonPath("$.inviter").value(false));
 
             verify(invitationService).acceptInvitation(any(AcceptInvitationCommand.class));
         }
@@ -341,7 +348,7 @@ class InvitationControllerTest {
             UUID invitationId = UUID.randomUUID();
 
             when(invitationService.rejectInvitation(any(RejectInvitationCommand.class)))
-                .thenReturn(invitationSummary(invitationId, partyId, REJECTED));
+                .thenReturn(invitationSummary(invitationId, partyId, REJECTED, false));
 
             mockMvc.perform(post("/api/parties/" + partyId + "/invitations/" + invitationId + "/reject")
                     .with(jwt().jwt(jwt)))
@@ -359,7 +366,8 @@ class InvitationControllerTest {
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andExpect(jsonPath("$.expiresAt").exists())
                 .andExpect(jsonPath("$.partyId").value(partyId.toString()))
-                .andExpect(jsonPath("$.partyName").value("Family 2026 Budget"));
+                .andExpect(jsonPath("$.partyName").value("Family 2026 Budget"))
+                .andExpect(jsonPath("$.inviter").value(false));
 
             verify(invitationService).rejectInvitation(any(RejectInvitationCommand.class));
         }

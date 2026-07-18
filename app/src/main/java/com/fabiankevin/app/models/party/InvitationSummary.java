@@ -21,8 +21,9 @@ public record InvitationSummary(
         InvitationStatus status,
         Instant createdAt,
         Instant expiresAt,
-        UUID sharedSpaceId,
-        String sharedSpaceName
+        UUID partyId,
+        String partyName,
+        boolean inviter
 ) {
     public InvitationSummary {
         Objects.requireNonNull(status, "status");

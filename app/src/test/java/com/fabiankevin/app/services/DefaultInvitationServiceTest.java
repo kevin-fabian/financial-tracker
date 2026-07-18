@@ -107,7 +107,8 @@ class DefaultInvitationServiceTest {
 
             InvitationSummary result = service.sendInvitation(command);
 
-            assertEquals(partyId, result.sharedSpaceId());
+            assertEquals(partyId, result.partyId());
+            assertTrue(result.inviter());
             assertEquals(InvitationStatus.PENDING, result.status());
             assertEquals(SharingMode.EVEN_SHARE.getName(), result.proposedSharingModeName());
             assertEquals("John Doe", result.inviterName());
@@ -329,7 +330,8 @@ class DefaultInvitationServiceTest {
             assertEquals(inviteeUserId, invitationCaptor.getValue().inviteePlayerId());
             assertNotNull(result);
             assertEquals(InvitationStatus.ACCEPTED, result.status());
-            assertEquals(partyId, result.sharedSpaceId());
+            assertEquals(partyId, result.partyId());
+            assertFalse(result.inviter());
             ArgumentCaptor<Party> spaceCaptor = ArgumentCaptor.forClass(Party.class);
             verify(spaceRepository).save(spaceCaptor.capture());
             Party savedSpace = spaceCaptor.getValue();
@@ -521,6 +523,12 @@ class DefaultInvitationServiceTest {
             List<InvitationSummary> result = service.getInvitationsByUserId(userId);
 
             assertEquals(2, result.size());
+            InvitationSummary sentSummary = result.getFirst();
+            assertEquals(partyId, sentSummary.partyId());
+            assertTrue(sentSummary.inviter());
+            InvitationSummary receivedSummary = result.get(1);
+            assertEquals(partyId, receivedSummary.partyId());
+            assertFalse(receivedSummary.inviter());
             verify(invitationRepository).findByInviterUserIdOrInviteeUserId(userId);
             verify(userClient).getUsersByIds(List.of(userId, inviteeUserId, inviterId));
             verify(spaceRepository).findAllById(List.of(partyId));
@@ -578,7 +586,8 @@ class DefaultInvitationServiceTest {
             verify(invitationRepository).save(captor.capture());
             assertEquals(InvitationStatus.REJECTED, captor.getValue().status());
             assertEquals(InvitationStatus.REJECTED, result.status());
-            assertEquals(partyId, result.sharedSpaceId());
+            assertEquals(partyId, result.partyId());
+            assertFalse(result.inviter());
             assertEquals("John Doe", result.inviterName());
             assertEquals("Jane Smith", result.inviteeName());
             verify(spaceRepository, never()).save(any());

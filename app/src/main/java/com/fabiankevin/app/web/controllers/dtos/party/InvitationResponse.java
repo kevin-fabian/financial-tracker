@@ -51,7 +51,10 @@ public record InvitationResponse(
     UUID partyId,
 
     @Schema(description = "Display name of the party", example = "Family 2026 Budget")
-    String partyName
+    String partyName,
+
+    @Schema(description = "Whether the authenticated user is the inviter", example = "true")
+    boolean inviter
 ) {
     public static InvitationResponse from(InvitationSummary invitation) {
         return InvitationResponse.builder()
@@ -67,8 +70,9 @@ public record InvitationResponse(
             .status(invitation.status())
             .createdAt(invitation.createdAt())
             .expiresAt(invitation.expiresAt())
-            .partyId(invitation.sharedSpaceId())
-            .partyName(invitation.sharedSpaceName())
+            .partyId(invitation.partyId())
+            .partyName(invitation.partyName())
+            .inviter(invitation.inviter())
             .build();
     }
 }
