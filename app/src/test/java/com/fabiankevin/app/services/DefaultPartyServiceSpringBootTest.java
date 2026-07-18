@@ -5,7 +5,7 @@ import com.fabiankevin.app.models.*;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.enums.party.SharingMode;
-import com.fabiankevin.app.models.party.Invitation;
+import com.fabiankevin.app.models.party.InvitationSummary;
 import com.fabiankevin.app.models.party.PartySummary;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
@@ -91,7 +91,7 @@ public class DefaultPartyServiceSpringBootTest {
         // Step 2: Invite a partner in a space
         when(userClient.getUserByEmail(partnerEmail))
                 .thenReturn(User.builder().id(partnerUserid).firstName("Partner").lastName("User").build());
-        Invitation invitation = invitationService.sendInvitation(SendInvitationCommand.builder()
+        InvitationSummary invitation = invitationService.sendInvitation(SendInvitationCommand.builder()
                 .partyId(spaceId)
                 .inviterPlayerId(ownerUserId)
                 .inviteeEmail(partnerEmail)
@@ -140,7 +140,7 @@ public class DefaultPartyServiceSpringBootTest {
         // Step 2: Invite a partner in a space
         when(userClient.getUserByEmail(partnerEmail))
                 .thenReturn(User.builder().id(partnerUserid).firstName("Partner").lastName("User").build());
-        Invitation invitation = invitationService.sendInvitation(SendInvitationCommand.builder()
+        InvitationSummary invitation = invitationService.sendInvitation(SendInvitationCommand.builder()
                 .partyId(spaceId)
                 .inviterPlayerId(ownerUserId)
                 .inviteeEmail(partnerEmail)

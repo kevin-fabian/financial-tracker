@@ -4,6 +4,7 @@ import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.exceptions.party.InvitationNotFoundException;
 import com.fabiankevin.app.exceptions.party.NotPartyLeaderException;
 import com.fabiankevin.app.models.enums.party.AccessLevel;
+import com.fabiankevin.app.models.enums.party.InvitationStatus;
 import com.fabiankevin.app.models.enums.party.SharingMode;
 import com.fabiankevin.app.models.party.InvitationSummary;
 import com.fabiankevin.app.services.InvitationService;
@@ -29,7 +30,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import static com.fabiankevin.app.models.enums.party.InvitationStatus.PENDING;
+import static com.fabiankevin.app.models.enums.party.InvitationStatus.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -68,6 +69,25 @@ class InvitationControllerTest {
             .claim("role", "USER")
             .issuedAt(Instant.now())
             .expiresAt(Instant.now().plusSeconds(3600))
+            .build();
+    }
+
+    private InvitationSummary invitationSummary(UUID invitationId, UUID sharedSpaceId, InvitationStatus status) {
+        return InvitationSummary.builder()
+            .id(invitationId)
+            .inviterName("John Doe")
+            .inviterInitial("JD")
+            .inviteeName("Jane Smith")
+            .inviteeInitial("JS")
+            .proposedSharingModeName(SharingMode.EVEN_SHARE.getName())
+            .proposedSharingModeDescription(SharingMode.EVEN_SHARE.getDescription())
+            .proposedRoleName(AccessLevel.READ_WRITE.getName())
+            .proposedRoleDescription(AccessLevel.READ_WRITE.getDescription())
+            .status(status)
+            .createdAt(Instant.now())
+            .expiresAt(Instant.now().plusSeconds(86_400))
+            .sharedSpaceId(sharedSpaceId)
+            .sharedSpaceName("Family 2026 Budget")
             .build();
     }
 
@@ -190,17 +210,35 @@ class InvitationControllerTest {
         }
 
         @Test
-        void givenValidRequest_thenReturnsNoContent() throws Exception {
+        void givenValidRequest_thenReturnsInvitation() throws Exception {
             UUID partyId = UUID.randomUUID();
+            UUID invitationId = UUID.randomUUID();
             SendInvitationRequest request = SendInvitationRequest.builder()
                 .email("jane@example.com")
                 .build();
+
+            when(invitationService.sendInvitation(any(SendInvitationCommand.class)))
+                .thenReturn(invitationSummary(invitationId, partyId, PENDING));
 
             mockMvc.perform(post("/api/parties/" + partyId + "/invitations")
                     .with(jwt().jwt(jwt))
                     .contentType("application/json")
                     .content(jsonMapper.writeValueAsString(request)))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(invitationId.toString()))
+                .andExpect(jsonPath("$.inviterName").value("John Doe"))
+                .andExpect(jsonPath("$.inviterInitial").value("JD"))
+                .andExpect(jsonPath("$.inviteeName").value("Jane Smith"))
+                .andExpect(jsonPath("$.inviteeInitial").value("JS"))
+                .andExpect(jsonPath("$.proposedSharingModeName").value("Even Share"))
+                .andExpect(jsonPath("$.proposedSharingModeDescription").value(SharingMode.EVEN_SHARE.getDescription()))
+                .andExpect(jsonPath("$.proposedRoleName").value("Read & Write"))
+                .andExpect(jsonPath("$.proposedRoleDescription").value(AccessLevel.READ_WRITE.getDescription()))
+                .andExpect(jsonPath("$.status").value("PENDING"))
+                .andExpect(jsonPath("$.createdAt").exists())
+                .andExpect(jsonPath("$.expiresAt").exists())
+                .andExpect(jsonPath("$.partyId").value(partyId.toString()))
+                .andExpect(jsonPath("$.partyName").value("Family 2026 Budget"));
 
             verify(invitationService).sendInvitation(any(SendInvitationCommand.class));
         }
@@ -241,13 +279,30 @@ class InvitationControllerTest {
     class AcceptInvitation {
 
         @Test
-        void givenPending_thenReturnsNoContent() throws Exception {
+        void givenPending_thenReturnsInvitation() throws Exception {
             UUID partyId = UUID.randomUUID();
             UUID invitationId = UUID.randomUUID();
 
+            when(invitationService.acceptInvitation(any(AcceptInvitationCommand.class)))
+                .thenReturn(invitationSummary(invitationId, partyId, ACCEPTED));
+
             mockMvc.perform(post("/api/parties/" + partyId + "/invitations/" + invitationId + "/accept")
                     .with(jwt().jwt(jwt)))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(invitationId.toString()))
+                .andExpect(jsonPath("$.inviterName").value("John Doe"))
+                .andExpect(jsonPath("$.inviterInitial").value("JD"))
+                .andExpect(jsonPath("$.inviteeName").value("Jane Smith"))
+                .andExpect(jsonPath("$.inviteeInitial").value("JS"))
+                .andExpect(jsonPath("$.proposedSharingModeName").value("Even Share"))
+                .andExpect(jsonPath("$.proposedSharingModeDescription").value(SharingMode.EVEN_SHARE.getDescription()))
+                .andExpect(jsonPath("$.proposedRoleName").value("Read & Write"))
+                .andExpect(jsonPath("$.proposedRoleDescription").value(AccessLevel.READ_WRITE.getDescription()))
+                .andExpect(jsonPath("$.status").value("ACCEPTED"))
+                .andExpect(jsonPath("$.createdAt").exists())
+                .andExpect(jsonPath("$.expiresAt").exists())
+                .andExpect(jsonPath("$.partyId").value(partyId.toString()))
+                .andExpect(jsonPath("$.partyName").value("Family 2026 Budget"));
 
             verify(invitationService).acceptInvitation(any(AcceptInvitationCommand.class));
         }
@@ -281,13 +336,30 @@ class InvitationControllerTest {
     class RejectInvitation {
 
         @Test
-        void givenInvitee_thenReturnsNoContent() throws Exception {
+        void givenInvitee_thenReturnsInvitation() throws Exception {
             UUID partyId = UUID.randomUUID();
             UUID invitationId = UUID.randomUUID();
 
+            when(invitationService.rejectInvitation(any(RejectInvitationCommand.class)))
+                .thenReturn(invitationSummary(invitationId, partyId, REJECTED));
+
             mockMvc.perform(post("/api/parties/" + partyId + "/invitations/" + invitationId + "/reject")
                     .with(jwt().jwt(jwt)))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(invitationId.toString()))
+                .andExpect(jsonPath("$.inviterName").value("John Doe"))
+                .andExpect(jsonPath("$.inviterInitial").value("JD"))
+                .andExpect(jsonPath("$.inviteeName").value("Jane Smith"))
+                .andExpect(jsonPath("$.inviteeInitial").value("JS"))
+                .andExpect(jsonPath("$.proposedSharingModeName").value("Even Share"))
+                .andExpect(jsonPath("$.proposedSharingModeDescription").value(SharingMode.EVEN_SHARE.getDescription()))
+                .andExpect(jsonPath("$.proposedRoleName").value("Read & Write"))
+                .andExpect(jsonPath("$.proposedRoleDescription").value(AccessLevel.READ_WRITE.getDescription()))
+                .andExpect(jsonPath("$.status").value("REJECTED"))
+                .andExpect(jsonPath("$.createdAt").exists())
+                .andExpect(jsonPath("$.expiresAt").exists())
+                .andExpect(jsonPath("$.partyId").value(partyId.toString()))
+                .andExpect(jsonPath("$.partyName").value("Family 2026 Budget"));
 
             verify(invitationService).rejectInvitation(any(RejectInvitationCommand.class));
         }

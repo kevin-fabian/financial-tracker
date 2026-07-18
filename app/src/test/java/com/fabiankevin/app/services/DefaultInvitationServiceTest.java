@@ -96,16 +96,22 @@ class DefaultInvitationServiceTest {
             when(spaceRepository.findById(partyId)).thenReturn(Optional.of(existingSpace));
             when(userClient.getUserByEmail(inviteeEmail))
                     .thenReturn(User.builder().id(inviteeUserId).firstName("Jane").lastName("Doe").build());
+            when(userClient.getUsersByIds(List.of(inviterUserId, inviteeUserId)))
+                    .thenReturn(List.of(
+                            User.builder().id(inviterUserId).firstName("John").lastName("Doe").build(),
+                            User.builder().id(inviteeUserId).firstName("Jane").lastName("Doe").build()
+                    ));
             when(invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(partyId, inviterUserId, inviteeUserId))
                     .thenReturn(Optional.empty());
             when(invitationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-            Invitation result = service.sendInvitation(command);
+            InvitationSummary result = service.sendInvitation(command);
 
             assertEquals(partyId, result.sharedSpaceId());
-            assertEquals(inviteeUserId, result.inviteePlayerId());
-            assertEquals(SharingMode.EVEN_SHARE, result.proposedSharingMode());
             assertEquals(InvitationStatus.PENDING, result.status());
+            assertEquals(SharingMode.EVEN_SHARE.getName(), result.proposedSharingModeName());
+            assertEquals("John Doe", result.inviterName());
+            assertEquals("Jane Doe", result.inviteeName());
             verify(spaceRepository, never()).save(any(Party.class));
             verify(invitationRepository).save(any(Invitation.class));
         }
@@ -156,10 +162,15 @@ class DefaultInvitationServiceTest {
             when(spaceRepository.findById(partyId)).thenReturn(Optional.of(existingSpace));
             when(userClient.getUserByEmail(inviteeEmail))
                     .thenReturn(User.builder().id(inviteeUserId).firstName("Jane").lastName("Doe").build());
+            when(userClient.getUsersByIds(List.of(inviterUserId, inviteeUserId)))
+                    .thenReturn(List.of(
+                            User.builder().id(inviterUserId).firstName("John").lastName("Doe").build(),
+                            User.builder().id(inviteeUserId).firstName("Jane").lastName("Doe").build()
+                    ));
             when(invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(partyId, inviterUserId, inviteeUserId))
                     .thenReturn(Optional.of(existingInvitation));
 
-            Invitation result = service.sendInvitation(command);
+            InvitationSummary result = service.sendInvitation(command);
 
             assertEquals(existingInvitation.id(), result.id());
             verify(invitationRepository, never()).save(any(Invitation.class));
@@ -302,18 +313,28 @@ class DefaultInvitationServiceTest {
             when(invitationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
             when(spaceRepository.findById(partyId)).thenReturn(Optional.of(space));
             when(spaceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(userClient.getUsersByIds(List.of(inviterUserId, inviteeUserId)))
+                    .thenReturn(List.of(
+                            User.builder().id(inviterUserId).firstName("John").lastName("Doe").build(),
+                            User.builder().id(inviteeUserId).firstName("Jane").lastName("Smith").build()
+                    ));
 
             AcceptInvitationCommand command = new AcceptInvitationCommand(invitationId, inviteeUserId);
 
-            Party result = service.acceptInvitation(command);
+            InvitationSummary result = service.acceptInvitation(command);
 
             ArgumentCaptor<Invitation> invitationCaptor = ArgumentCaptor.forClass(Invitation.class);
             verify(invitationRepository).save(invitationCaptor.capture());
             assertEquals(InvitationStatus.ACCEPTED, invitationCaptor.getValue().status());
             assertEquals(inviteeUserId, invitationCaptor.getValue().inviteePlayerId());
             assertNotNull(result);
-            assertEquals(2, result.partyMembers().size());
-            PartyMember addedParticipant = result.partyMembers().stream()
+            assertEquals(InvitationStatus.ACCEPTED, result.status());
+            assertEquals(partyId, result.sharedSpaceId());
+            ArgumentCaptor<Party> spaceCaptor = ArgumentCaptor.forClass(Party.class);
+            verify(spaceRepository).save(spaceCaptor.capture());
+            Party savedSpace = spaceCaptor.getValue();
+            assertEquals(2, savedSpace.partyMembers().size());
+            PartyMember addedParticipant = savedSpace.partyMembers().stream()
                     .filter(p -> p.playerId().equals(inviteeUserId))
                     .findFirst()
                     .orElseThrow(() -> new AssertionError("Invitee should be added as participant"));
@@ -542,18 +563,24 @@ class DefaultInvitationServiceTest {
 
             when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
             when(invitationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(userClient.getUsersByIds(List.of(inviterUserId, inviteeUserId)))
+                    .thenReturn(List.of(
+                            User.builder().id(inviterUserId).firstName("John").lastName("Doe").build(),
+                            User.builder().id(inviteeUserId).firstName("Jane").lastName("Smith").build()
+                    ));
+            when(spaceRepository.findById(partyId)).thenReturn(Optional.empty());
 
             RejectInvitationCommand command = new RejectInvitationCommand(invitationId, inviteeUserId);
 
-            Invitation result = service.rejectInvitation(command);
+            InvitationSummary result = service.rejectInvitation(command);
 
             ArgumentCaptor<Invitation> captor = ArgumentCaptor.forClass(Invitation.class);
             verify(invitationRepository).save(captor.capture());
             assertEquals(InvitationStatus.REJECTED, captor.getValue().status());
             assertEquals(InvitationStatus.REJECTED, result.status());
-            assertEquals(inviteeUserId, result.inviteePlayerId());
-            assertEquals(inviterUserId, result.inviterPlayerId());
             assertEquals(partyId, result.sharedSpaceId());
+            assertEquals("John Doe", result.inviterName());
+            assertEquals("Jane Smith", result.inviteeName());
             verify(spaceRepository, never()).save(any());
         }
 

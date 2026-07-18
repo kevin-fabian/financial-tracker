@@ -37,7 +37,7 @@ public class DefaultInvitationService implements InvitationService {
 
     @Transactional
     @Override
-    public Invitation sendInvitation(SendInvitationCommand command) {
+    public InvitationSummary sendInvitation(SendInvitationCommand command) {
         Party space = findSpaceOrThrow(command.partyId());
         if (!space.partyLeaderId().equals(command.inviterPlayerId())) {
             throw new NotPartyLeaderException();
@@ -49,9 +49,9 @@ public class DefaultInvitationService implements InvitationService {
             throw new PartyMemberAlreadyExistsException();
         }
 
-        return invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(command.partyId(), command.inviterPlayerId(), invitee.id())
+        Invitation invitation = invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(command.partyId(), command.inviterPlayerId(), invitee.id())
                 .orElseGet(() -> {
-                    Invitation invitation = Invitation.builder()
+                    Invitation newInvitation = Invitation.builder()
                             .inviterPlayerId(command.inviterPlayerId())
                             .inviteePlayerId(invitee.id())
                             .proposedSharingMode(space.sharingMode())
@@ -64,13 +64,15 @@ public class DefaultInvitationService implements InvitationService {
 
                     // TODO notify the recipient
 
-                    return invitationRepository.save(invitation);
+                    return invitationRepository.save(newInvitation);
                 });
+
+        return toSummary(invitation);
     }
 
     @Transactional
     @Override
-    public Party acceptInvitation(AcceptInvitationCommand command) {
+    public InvitationSummary acceptInvitation(AcceptInvitationCommand command) {
         Invitation invitation = findInvitationOrThrow(command.invitationId());
         validateInvitationActive(invitation);
 
@@ -112,12 +114,14 @@ public class DefaultInvitationService implements InvitationService {
                 .updatedAt(Instant.now())
                 .build();
 
-        return spaceRepository.save(updatedSpace);
+        spaceRepository.save(updatedSpace);
+
+        return toSummary(updatedInvitation);
     }
 
     @Transactional
     @Override
-    public Invitation rejectInvitation(RejectInvitationCommand command) {
+    public InvitationSummary rejectInvitation(RejectInvitationCommand command) {
         Invitation invitation = findInvitationOrThrow(command.invitationId());
 
         if (!invitation.inviteePlayerId().equals(command.inviteeUserId())) {
@@ -140,7 +144,9 @@ public class DefaultInvitationService implements InvitationService {
                 .sharedSpaceId(invitation.sharedSpaceId())
                 .build();
 
-        return invitationRepository.save(updatedInvitation);
+        invitationRepository.save(updatedInvitation);
+
+        return toSummary(updatedInvitation);
     }
 
     @Override
@@ -218,6 +224,17 @@ public class DefaultInvitationService implements InvitationService {
                 .sharedSpaceId(invitation.sharedSpaceId())
                 .sharedSpaceName(space != null ? space.name() : null)
                 .build();
+    }
+
+    private InvitationSummary toSummary(Invitation invitation) {
+        List<UUID> userIds = List.of(invitation.inviterPlayerId(), invitation.inviteePlayerId());
+        Map<UUID, User> usersById = userClient.getUsersByIds(userIds).stream()
+                .collect(Collectors.toMap(User::id, Function.identity()));
+        Party space = spaceRepository.findById(invitation.sharedSpaceId()).orElse(null);
+        Map<UUID, Party> spacesById = space != null
+                ? Map.of(space.id(), space)
+                : Map.of();
+        return toSummary(invitation, usersById, spacesById);
     }
 
     private String deriveInitial(User user) {
