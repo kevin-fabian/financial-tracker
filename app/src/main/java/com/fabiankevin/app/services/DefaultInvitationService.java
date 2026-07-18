@@ -49,6 +49,10 @@ public class DefaultInvitationService implements InvitationService {
             throw new PartyMemberAlreadyExistsException();
         }
 
+        if (partyRepository.findByPlayerId(invitee.id()).isPresent()) {
+            throw new PartyMemberAlreadyExistsException();
+        }
+
         Invitation invitation = invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(command.partyId(), command.inviterPlayerId(), invitee.id())
                 .orElseGet(() -> {
                     Invitation newInvitation = Invitation.builder()

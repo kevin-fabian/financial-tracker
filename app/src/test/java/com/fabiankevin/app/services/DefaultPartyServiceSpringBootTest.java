@@ -367,6 +367,42 @@ public class DefaultPartyServiceSpringBootTest {
         }
 
         @DisplayName("""
+            Party leader creates a party, invites a party leader who already belongs to a party: should throw
+            """)
+        @Test
+        void partyLeaderInvitesExistingPartyLeader_thenShouldThrow() {
+            UUID leader1Id = UUID.randomUUID();
+            UUID leader2Id = UUID.randomUUID();
+            String leader2Email = "leader2@example.com";
+
+            // Step 1: Leader 1 creates a party
+            PartySummary leader1Party = partyService.organize(OrganizePartyCommand.builder()
+                    .partyName("Leader 1 Party")
+                    .partyLeaderId(leader1Id)
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .build());
+            UUID party1Id = leader1Party.id();
+
+            // Step 2: Leader 2 creates a party
+            partyService.organize(OrganizePartyCommand.builder()
+                    .partyName("Leader 2 Party")
+                    .partyLeaderId(leader2Id)
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .build());
+
+            // Step 3: Leader 1 tries to invite leader 2 who already belongs to a party
+            when(userClient.getUserByEmail(leader2Email))
+                    .thenReturn(User.builder().id(leader2Id).firstName("Leader").lastName("Two").build());
+
+            assertThrows(PartyMemberAlreadyExistsException.class, () ->
+                    invitationService.sendInvitation(SendInvitationCommand.builder()
+                            .partyId(party1Id)
+                            .inviterPlayerId(leader1Id)
+                            .inviteeEmail(leader2Email)
+                            .build()));
+        }
+
+        @DisplayName("""
             Party leader creates a party, invites a party member who rejects: party should contain only the leader
             """)
         @Test
