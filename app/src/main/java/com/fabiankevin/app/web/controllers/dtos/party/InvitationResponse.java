@@ -47,11 +47,11 @@ public record InvitationResponse(
     @Schema(description = "Timestamp when the invitation expires")
     Instant expiresAt,
 
-    @Schema(description = "Shared space identifier", example = "a1b2c3d4-...")
-    UUID sharedSpaceId,
+    @Schema(description = "Party identifier", example = "a1b2c3d4-...")
+    UUID partyId,
 
-    @Schema(description = "Display name of the shared space", example = "Family 2026 Budget")
-    String sharedSpaceName
+    @Schema(description = "Display name of the party", example = "Family 2026 Budget")
+    String partyName
 ) {
     public static InvitationResponse from(InvitationSummary invitation) {
         return InvitationResponse.builder()
@@ -67,8 +67,8 @@ public record InvitationResponse(
             .status(invitation.status())
             .createdAt(invitation.createdAt())
             .expiresAt(invitation.expiresAt())
-            .sharedSpaceId(invitation.sharedSpaceId())
-            .sharedSpaceName(invitation.sharedSpaceName())
+            .partyId(invitation.sharedSpaceId())
+            .partyName(invitation.sharedSpaceName())
             .build();
     }
 }

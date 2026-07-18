@@ -130,8 +130,8 @@ class InvitationControllerTest {
                 .andExpect(jsonPath("$[0].status").value("PENDING"))
                 .andExpect(jsonPath("$[0].createdAt").exists())
                 .andExpect(jsonPath("$[0].expiresAt").exists())
-                .andExpect(jsonPath("$[0].sharedSpaceId").value(partyId.toString()))
-                .andExpect(jsonPath("$[0].sharedSpaceName").value("Family 2026 Budget"))
+                .andExpect(jsonPath("$[0].partyId").value(partyId.toString()))
+                .andExpect(jsonPath("$[0].partyName").value("Family 2026 Budget"))
                 .andExpect(jsonPath("$[1].id").value(receivedId.toString()))
                 .andExpect(jsonPath("$[1].inviterName").value("Bob Jones"))
                 .andExpect(jsonPath("$[1].inviterInitial").value("BJ"))
@@ -144,8 +144,8 @@ class InvitationControllerTest {
                 .andExpect(jsonPath("$[1].status").value("PENDING"))
                 .andExpect(jsonPath("$[1].createdAt").exists())
                 .andExpect(jsonPath("$[1].expiresAt").exists())
-                .andExpect(jsonPath("$[1].sharedSpaceId").value(partyId.toString()))
-                .andExpect(jsonPath("$[1].sharedSpaceName").value("Trip Expenses"));
+                .andExpect(jsonPath("$[1].partyId").value(partyId.toString()))
+                .andExpect(jsonPath("$[1].partyName").value("Trip Expenses"));
 
             verify(invitationService).getInvitationsByUserId(userId);
         }
