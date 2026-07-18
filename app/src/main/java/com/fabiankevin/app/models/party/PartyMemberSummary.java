@@ -11,6 +11,7 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 public record PartyMemberSummary(
         UUID id,
+        UUID playerId,
         String name,
         String initial,
         boolean partyLeader,

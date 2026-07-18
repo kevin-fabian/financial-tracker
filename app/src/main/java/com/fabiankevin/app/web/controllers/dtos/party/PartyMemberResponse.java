@@ -40,7 +40,7 @@ public record PartyMemberResponse(
     public static PartyMemberResponse from(PartyMemberSummary partyMember) {
         return PartyMemberResponse.builder()
                 .id(partyMember.id())
-                .playerId(partyMember.id())
+                .playerId(partyMember.playerId())
                 .name(partyMember.name())
                 .partyMember(partyMember.partyMember())
                 .partyLeader(partyMember.partyLeader())

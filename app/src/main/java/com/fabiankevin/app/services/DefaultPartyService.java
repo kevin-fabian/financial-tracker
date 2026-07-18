@@ -28,6 +28,8 @@ public class DefaultPartyService implements PartyService {
     private final PartyRepository partyRepository;
     private final UserClient userClient;
 
+    private static final String DEFAULT_PARTY_NAME = "New Party";
+
     @Transactional
     @Override
     public PartySummary organize(OrganizePartyCommand command) {
@@ -56,13 +58,13 @@ public class DefaultPartyService implements PartyService {
                 .items(List.of())
                 .build());
         sharedItems.add(SharedItem.builder()
-                .type(ResourceType.BUDGET)
+                .type(ResourceType.CHECKLIST)
                 .sharedAt(Instant.now())
                 .items(List.of())
                 .build());
 
         Party newParty = Party.builder()
-                .name(command.partyName() != null ? command.partyName() : "New Party")
+                .name(command.partyName() != null ? command.partyName() : DEFAULT_PARTY_NAME)
                 .partyLeaderId(command.partyLeaderId())
                 .partyMembers(initialPartyMembers)
                 .sharingMode(command.sharingMode())
@@ -81,10 +83,10 @@ public class DefaultPartyService implements PartyService {
     public void kickPartyMember(UUID partyId, UUID partyMemberId, UUID requesterId) {
         Party party = findPartyOrThrow(partyId);
 
-        boolean isOwner = party.partyLeaderId().equals(requesterId);
+        boolean partyLeader = party.partyLeaderId().equals(requesterId);
         boolean isSelf = partyMemberId.equals(requesterId);
 
-        if (!isOwner && !isSelf) {
+        if (!partyLeader && !isSelf) {
             throw new ForbiddenException("Only the owner or the participant themselves can remove a participant");
         }
 
@@ -94,7 +96,7 @@ public class DefaultPartyService implements PartyService {
 
         List<PartyMember> updatedParticipants = party.partyMembers().stream()
                 .filter(p -> !p.playerId().equals(partyMemberId))
-                .collect(Collectors.toList());
+                .toList();
 
         Party updatedParty = party.toBuilder()
                 .partyMembers(updatedParticipants)
@@ -177,6 +179,7 @@ public class DefaultPartyService implements PartyService {
                     boolean leader = party.partyLeaderId().equals(partyMember.playerId());
                     return PartyMemberSummary.builder()
                             .id(partyMember.id())
+                            .playerId(partyMember.playerId())
                             .name(name)
                             .initial(initial)
                             .partyLeader(leader)

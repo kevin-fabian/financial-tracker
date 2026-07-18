@@ -79,7 +79,7 @@ class DefaultPartyServiceTest {
             assertEquals(3, result.sharedItems().size());
             assertEquals(ResourceType.TRANSACTION, result.sharedItems().get(0).type());
             assertEquals(ResourceType.BUDGET, result.sharedItems().get(1).type());
-            assertEquals(ResourceType.BUDGET, result.sharedItems().get(2).type());
+            assertEquals(ResourceType.CHECKLIST, result.sharedItems().get(2).type());
 
             verify(partyRepository).save(any(Party.class));
         }
