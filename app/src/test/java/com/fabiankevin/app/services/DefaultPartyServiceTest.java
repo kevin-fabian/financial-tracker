@@ -4,6 +4,7 @@ import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.party.CannotRemoveOwnerException;
 import com.fabiankevin.app.exceptions.party.NotPartyLeaderException;
 import com.fabiankevin.app.exceptions.party.PartyNotFoundException;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.party.AccessLevel;
 import com.fabiankevin.app.models.enums.party.PartyMemberStatus;
 import com.fabiankevin.app.models.enums.party.ResourceType;
@@ -109,6 +110,100 @@ class DefaultPartyServiceTest {
                     "My Party",
                     SharingMode.EVEN_SHARE
             ));
+            verify(partyRepository, never()).save(any());
+        }
+
+        @Test
+        void givenPartyLeaderAlreadyBelongsToParty_thenReturnsExistingParty() {
+            UUID partyLeaderId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
+            Party existingParty = Party.builder()
+                    .id(partyId)
+                    .name("Family Budget")
+                    .partyLeaderId(partyLeaderId)
+                    .partyMembers(new ArrayList<>(List.of(
+                            PartyMember.builder()
+                                    .playerId(partyLeaderId)
+                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .status(PartyMemberStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build()
+                    )))
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .sharedItems(new ArrayList<>())
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(partyRepository.findByPlayerId(partyLeaderId)).thenReturn(Optional.of(existingParty));
+            when(userClient.getUsersByIds(any())).thenReturn(List.of(
+                    User.builder().id(partyLeaderId).firstName("Ada").lastName("Lovelace").build()
+            ));
+
+            OrganizePartyCommand command = new OrganizePartyCommand(
+                    partyLeaderId,
+                    "Trip Budget",
+                    SharingMode.EVEN_SHARE
+            );
+            PartySummary result = service.organize(command);
+
+            assertNotNull(result);
+            assertEquals(partyId, result.id());
+            assertEquals("Family Budget", result.name());
+            assertEquals(partyLeaderId, result.partyLeaderId());
+            assertEquals(SharingMode.EVEN_SHARE, result.sharingMode());
+            verify(partyRepository, never()).save(any());
+        }
+
+        @Test
+        void givenPartyMemberAlreadyBelongsToParty_thenReturnsExistingParty() {
+            UUID partyLeaderId = UUID.randomUUID();
+            UUID memberId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
+            Party existingParty = Party.builder()
+                    .id(partyId)
+                    .name("Family Budget")
+                    .partyLeaderId(partyLeaderId)
+                    .partyMembers(new ArrayList<>(List.of(
+                            PartyMember.builder()
+                                    .playerId(partyLeaderId)
+                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .status(PartyMemberStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build(),
+                            PartyMember.builder()
+                                    .playerId(memberId)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
+                                    .status(PartyMemberStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build()
+                    )))
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .sharedItems(new ArrayList<>())
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(partyRepository.findByPlayerId(memberId)).thenReturn(Optional.of(existingParty));
+            when(userClient.getUsersByIds(any())).thenReturn(List.of(
+                    User.builder().id(partyLeaderId).firstName("Ada").lastName("Lovelace").build(),
+                    User.builder().id(memberId).firstName("Alan").lastName("Turing").build()
+            ));
+
+            OrganizePartyCommand command = new OrganizePartyCommand(
+                    memberId,
+                    "Trip Budget",
+                    SharingMode.EVEN_SHARE
+            );
+            PartySummary result = service.organize(command);
+
+            assertNotNull(result);
+            assertEquals(partyId, result.id());
+            assertEquals("Family Budget", result.name());
+            assertEquals(partyLeaderId, result.partyLeaderId());
+            assertEquals(SharingMode.EVEN_SHARE, result.sharingMode());
             verify(partyRepository, never()).save(any());
         }
     }

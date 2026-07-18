@@ -31,6 +31,11 @@ public class DefaultPartyService implements PartyService {
     @Transactional
     @Override
     public PartySummary organize(OrganizePartyCommand command) {
+        Optional<Party> existingParty = partyRepository.findByPlayerId(command.partyLeaderId());
+        if (existingParty.isPresent()) {
+            return toSummaryWithUsers(existingParty.get());
+        }
+
         List<PartyMember> initialPartyMembers = new ArrayList<>();
         initialPartyMembers.add(PartyMember.builder()
                 .playerId(command.partyLeaderId())
