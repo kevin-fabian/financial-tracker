@@ -81,7 +81,7 @@ class DefaultInvitationRepositoryTest {
     }
 
     @Test
-    void save_givenAcceptedInvitationWithResultingSpace_shouldPersistAllFields() {
+    void save_givenAcceptedInvitationWithPartyId_shouldPersistAllFields() {
         UUID resultingSpaceId = UUID.randomUUID();
         UUID inviteeUserId = UUID.randomUUID();
 
