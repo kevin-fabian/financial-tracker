@@ -7,8 +7,9 @@ import lombok.Getter;
 @Getter
 public enum SharingMode {
     EVEN_SHARE("Even Share", """
-            Even Share enables bidirectional synchronization of all
-            selected financial records between all invited players
+            Splits everything equally! All party members share
+            full access to view, co-manage, and update your
+            selected shared elements in real time.
             """);
 
     private final String name;

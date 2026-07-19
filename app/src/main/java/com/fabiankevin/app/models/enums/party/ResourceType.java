@@ -6,9 +6,17 @@ import lombok.Getter;
 @AllArgsConstructor
 @Getter
 public enum ResourceType {
-    TRANSACTION("Transaction", "Track and manage collective income and expenses"),
-    BUDGET("Budget Goals", "Set and monitor shared financial milestones"),
-    CHECKLIST("Shopping Checklist", "Collaborate on active tasks and shopping lists");
+    TRANSACTION("Party Loot(Transactions)", """
+        All shared loot! Every piece of income and expense is visible to the party, keeping your total balance and monthly stats perfectly mirrored.
+        """),
+
+    BUDGET("Bounty Quests(Budget Goals)", """
+        Shared hunting limits! All party members can view and track active category limits to ensure the group stays under budget.
+        """),
+
+    CHECKLIST("Quest Log(Shopping Lists)", """
+        Private by default. The creator of the gathering list controls exactly who gets to see or help complete these specific tasks.
+        """);
 
     private final String name;
     private final String description;
