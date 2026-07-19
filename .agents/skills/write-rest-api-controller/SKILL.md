@@ -1,5 +1,5 @@
 ---
-name: write-rest-api
+name: write-rest-api-controller
 description: Workflow and best practices for writing Spring REST APIs with thin controllers, validated web DTOs, service-command/query mapping, and focused web-layer tests.
 ---
 
