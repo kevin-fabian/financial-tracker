@@ -78,40 +78,40 @@ class DefaultPartyRepositoryTest {
     }
 
     @Test
-    void save_givenNewSharedSpace_shouldPersistAndRetrieveAllFields() {
+    void save_givenNewParty_shouldPersistAndRetrieveAllFields() {
         Party saved = partyRepository.save(party);
 
         Optional<Party> optRetrievedSharedSpace = partyRepository.findById(saved.id());
 
         Assertions.assertThat(optRetrievedSharedSpace).isPresent();
-        Party retrievedsharedSpace = optRetrievedSharedSpace.get();
-        Assertions.assertThat(retrievedsharedSpace.id()).as("generated id should be present").isNotNull();
-        Assertions.assertThat(retrievedsharedSpace.name()).isEqualTo("Family 2026 Budget");
-        Assertions.assertThat(retrievedsharedSpace.partyLeaderId()).isEqualTo(party.partyLeaderId());
-        Assertions.assertThat(retrievedsharedSpace.sharingMode()).isEqualTo(SharingMode.EVEN_SHARE);
-        Assertions.assertThat(retrievedsharedSpace.active()).isTrue();
-        Assertions.assertThat(retrievedsharedSpace.createdAt()).isEqualTo(party.createdAt());
-        Assertions.assertThat(retrievedsharedSpace.updatedAt()).isEqualTo(party.updatedAt());
+        Party retrievedParty = optRetrievedSharedSpace.get();
+        Assertions.assertThat(retrievedParty.id()).as("generated id should be present").isNotNull();
+        Assertions.assertThat(retrievedParty.name()).isEqualTo("Family 2026 Budget");
+        Assertions.assertThat(retrievedParty.partyLeaderId()).isEqualTo(party.partyLeaderId());
+        Assertions.assertThat(retrievedParty.sharingMode()).isEqualTo(SharingMode.EVEN_SHARE);
+        Assertions.assertThat(retrievedParty.active()).isTrue();
+        Assertions.assertThat(retrievedParty.createdAt()).isEqualTo(party.createdAt());
+        Assertions.assertThat(retrievedParty.updatedAt()).isEqualTo(party.updatedAt());
 
-        Assertions.assertThat(retrievedsharedSpace.partyMembers())
+        Assertions.assertThat(retrievedParty.partyMembers())
                 .as("partyMembers should be persisted and retrieved")
                 .hasSize(1);
-        PartyMember retrievedParticipant = retrievedsharedSpace.partyMembers().getFirst();
-        Assertions.assertThat(retrievedParticipant.id()).as("participant id should be generated").isNotNull();
-        Assertions.assertThat(retrievedParticipant.playerId())
+        PartyMember retrievePartyMember = retrievedParty.partyMembers().getFirst();
+        Assertions.assertThat(retrievePartyMember.id()).as("participant id should be generated").isNotNull();
+        Assertions.assertThat(retrievePartyMember.playerId())
                 .isEqualTo(party.partyMembers().getFirst().playerId());
-        Assertions.assertThat(retrievedParticipant.accessLevel()).isEqualTo(AccessLevel.READ_WRITE);
-        Assertions.assertThat(retrievedParticipant.status()).isEqualTo(PartyMemberStatus.ACTIVE);
-        Assertions.assertThat(retrievedParticipant.joinedAt())
+        Assertions.assertThat(retrievePartyMember.accessLevel()).isEqualTo(AccessLevel.READ_WRITE);
+        Assertions.assertThat(retrievePartyMember.status()).isEqualTo(PartyMemberStatus.ACTIVE);
+        Assertions.assertThat(retrievePartyMember.joinedAt())
                 .isEqualTo(party.partyMembers().getFirst().joinedAt());
-        Assertions.assertThat(retrievedsharedSpace.sharedItems())
+        Assertions.assertThat(retrievedParty.sharedItems())
                 .as("shared resources should be persisted and retrieved")
                 .hasSize(1);
-        SharedItem retrievedSharedItem = retrievedsharedSpace.sharedItems().getFirst();
-        Assertions.assertThat(retrievedSharedItem.id()).as("resource id should be generated").isNotNull();
-        Assertions.assertThat(retrievedSharedItem.type()).isEqualTo(ResourceType.TRANSACTION);
-        Assertions.assertThat(retrievedSharedItem.items()).containsExactly("txn-001", "txn-002");
-        Assertions.assertThat(retrievedSharedItem.sharedAt())
+        SharedItem retrievedshareditem = retrievedParty.sharedItems().getFirst();
+        Assertions.assertThat(retrievedshareditem.id()).as("resource id should be generated").isNotNull();
+        Assertions.assertThat(retrievedshareditem.type()).isEqualTo(ResourceType.TRANSACTION);
+        Assertions.assertThat(retrievedshareditem.items()).containsExactly("txn-001", "txn-002");
+        Assertions.assertThat(retrievedshareditem.sharedAt())
                 .isEqualTo(party.sharedItems().getFirst().sharedAt());
 
         verify(jpaPartyRepository, times(1)).save(any());
@@ -119,7 +119,7 @@ class DefaultPartyRepositoryTest {
     }
 
     @Test
-    void save_givenSharedSpaceWithParticipants_shouldCascadePersist() {
+    void save_givenPartyWithPartyMember_shouldCascadePersist() {
         Party saved = partyRepository.save(party);
 
         Optional<Party> found = partyRepository.findById(saved.id());
@@ -135,7 +135,7 @@ class DefaultPartyRepositoryTest {
     }
 
     @Test
-    void save_givenSharedSpaceWithSharedResources_shouldCascadePersist() {
+    void save_givenPartyWithSharedResources_shouldCascadePersist() {
         Party saved = partyRepository.save(party);
 
         Optional<Party> found = partyRepository.findById(saved.id());
@@ -152,7 +152,7 @@ class DefaultPartyRepositoryTest {
     }
 
     @Test
-    void save_givenSharedSpaceWithNullLists_shouldPersistWithEmptyLists() {
+    void save_givenPartyWithNullLists_shouldPersistWithEmptyLists() {
         Party minimal = Party.builder()
                 .name("Empty Space")
                 .partyLeaderId(UUID.randomUUID())
@@ -172,7 +172,7 @@ class DefaultPartyRepositoryTest {
     }
 
     @Test
-    void findById_givenExistingSharedSpace_shouldReturnSharedSpace() {
+    void findById_givenExistingParty_shouldReturnExistingParty() {
         Party saved = partyRepository.save(party);
 
         Optional<Party> found = partyRepository.findById(saved.id());
@@ -185,14 +185,14 @@ class DefaultPartyRepositoryTest {
     }
 
     @Test
-    void findById_givenNonExisting_shouldReturnEmptyOptional() {
+    void findById_givenNonExistingParty_shouldReturnEmptyOptional() {
         Optional<Party> found = partyRepository.findById(UUID.randomUUID());
 
         Assertions.assertThat(found).as("non existing id returns empty optional").isEmpty();
     }
 
     @Test
-    void findByUserId_givenPlayerIsOwner_shouldReturnSharedSpace() {
+    void findByUserId_givenPlayerIsOwner_shouldReturnParty() {
         Party saved = partyRepository.save(party);
 
         Optional<Party> found = partyRepository.findByPlayerId(saved.partyLeaderId());
@@ -204,7 +204,7 @@ class DefaultPartyRepositoryTest {
     }
 
     @Test
-    void findByUserId_givenPlayerIsParticipant_shouldReturnSharedSpace() {
+    void findByUserId_givenPlayerIsPartyMember_shouldReturnParty() {
         Party saved = partyRepository.save(party);
         UUID participantUserId = saved.partyMembers().getFirst().playerId();
 
@@ -217,7 +217,7 @@ class DefaultPartyRepositoryTest {
     }
 
     @Test
-    void findByUserId_givenPlayerIsNotOwnerOrParticipant_shouldReturnEmpty() {
+    void findByUserId_givenPlayerIsNotOwnerOrPartyMember_shouldReturnEmpty() {
         Optional<Party> found = partyRepository.findByPlayerId(UUID.randomUUID());
 
         Assertions.assertThat(found).isEmpty();
