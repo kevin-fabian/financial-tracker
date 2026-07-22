@@ -196,6 +196,89 @@ If embedding the same type multiple times, use `@AttributeOverrides` to keep col
 
 ---
 
+## Practical: Storing `List<String>` as JSON column
+
+Use Hibernate 6's `@JdbcTypeCode(SqlTypes.JSON)` to persist a collection of simple values (e.g. `List<String>`, `List<UUID>`, or any JSON-serializable object) into a single database JSON column, without creating a separate table.
+
+### When to use
+
+- The collection holds scalar values, not entities (no lifecycle, no FK, no queries by individual elements needed).
+- The data is read and written always as a whole (atomic with the parent row).
+- You still want an atomic, column-based representation rather than a normalized child table.
+
+### Entity mapping
+
+```java
+@Entity
+@Table(name = "shared_items")
+public class SharedItemEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "resource_type")
+    private ResourceType type;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "item_id", columnDefinition = "json")
+    private List<String> itemIds;
+
+    @Column(name = "shared_at")
+    private Instant sharedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "party_id")
+    private PartyEntity party;
+}
+```
+
+### Rules
+
+- Import `org.hibernate.annotations.JdbcTypeCode` and `org.hibernate.type.SqlTypes`.
+- `columnDefinition = "json"` tells the DDL generator (`hbm2ddl`/Liquibase generated from entities) to use the database-native JSON type. On PostgreSQL this maps to `json`; adjust per dialect if needed (e.g. `jsonb` would use `columnDefinition = "jsonb"`).
+- The field type can be `List<String>`, `List<UUID>`, a single POJO, or a `Map<String, Object>` — any type Jackson / Hibernate's JSON serializer can handle.
+- The JPA provider serializes the entire collection to a JSON string on write and deserializes it back on read. You do **not** use `@ElementCollection`, `@OneToMany`, or `@ManyToMany` for this — those create separate tables.
+- Treat the field as immutable in practice; the whole value is rewritten on every update. Do **not** JPQL-join or predicate on nested JSON elements — if you need that, model it as a `@OneToMany` child table instead.
+- Initialize the field in the domain model to avoid `null` on read (see domain `SharedItem` compact constructor: `items = Optional.ofNullable(items).orElse(new ArrayList<>())`). The entity mirror does not require a default — Hibernate overwrites the column on load.
+
+### Conversion
+
+```java
+public static SharedItemEntity from(SharedItem resource) {
+    if (resource == null) return null;
+    return SharedItemEntity.builder()
+            .id(resource.id())
+        .type(resource.type())
+        .itemIds(resource.items())   // List<String> passed straight through
+        .sharedAt(resource.sharedAt())
+        .build();
+}
+
+public SharedItem toModel() {
+    return SharedItem.builder()
+        .id(this.id)
+        .type(this.type)
+        .items(this.itemIds)
+        .sharedAt(this.sharedAt)
+        .build();
+}
+```
+
+### Liquibase
+
+When using Liquibase (rather than `hbm2ddl`), declare the column as `json` (or `jsonb`) in the changeset:
+
+```xml
+<column name="item_id" type="json">
+    <constraints nullable="true"/>
+</column>
+```
+
+### Testing
+
+A `@DataJpaTest` round-trip (save → flush → findById) is sufficient — assert the returned list has the exact elements and order. See test conventions in `.agents/skills/write-jpa-domain-repositories/SKILL.md`.
+
 ## Practical: `Instant` vs `LocalDate`
 
 Use `Instant` for audit/timestamp fields and `LocalDate` for business dates like birthday.
@@ -261,4 +344,5 @@ public User toModel() {
 - relationship owning side is explicitly chosen and `@JoinColumn` is only on owning side
 - default fetch is `LAZY`; `EAGER` used only for bounded, always-needed references
 - value objects use `@Embeddable` + `@Embedded` when identity is not required
+- scalar collections stored as JSON use `@JdbcTypeCode(SqlTypes.JSON)` + `@Column(columnDefinition = "json")` (not `@ElementCollection`)
 - entity↔domain conversion methods (`from(...)`, `toModel()`) are present and complete
