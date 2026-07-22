@@ -581,8 +581,10 @@ class DefaultInvitationServiceTest {
 
             InvitationSummary result = service.rejectInvitation(command);
 
-            verify(invitationRepository).delete(invitationId);
-            verify(invitationRepository, never()).save(any());
+            ArgumentCaptor<Invitation> captor = ArgumentCaptor.forClass(Invitation.class);
+            verify(invitationRepository).save(captor.capture());
+            verify(invitationRepository, never()).delete(any());
+            assertEquals(InvitationStatus.CANCELLED, captor.getValue().status());
             assertEquals(partyId, result.partyId());
             assertFalse(result.inviter());
             assertEquals("John Doe", result.inviterName());
@@ -612,7 +614,7 @@ class DefaultInvitationServiceTest {
             RejectInvitationCommand command = new RejectInvitationCommand(invitationId, otherUserId);
 
             assertThrows(ForbiddenException.class, () -> service.rejectInvitation(command));
-            verify(invitationRepository, never()).delete(any());
+            verify(invitationRepository, never()).save(any());
         }
 
         @Test
@@ -645,8 +647,10 @@ class DefaultInvitationServiceTest {
 
             InvitationSummary result = service.rejectInvitation(command);
 
-            verify(invitationRepository).delete(invitationId);
-            verify(invitationRepository, never()).save(any());
+            ArgumentCaptor<Invitation> captor = ArgumentCaptor.forClass(Invitation.class);
+            verify(invitationRepository).save(captor.capture());
+            verify(invitationRepository, never()).delete(any());
+            assertEquals(InvitationStatus.CANCELLED, captor.getValue().status());
             assertEquals(partyId, result.partyId());
             assertTrue(result.inviter());
             verify(spaceRepository, never()).save(any());
@@ -673,7 +677,7 @@ class DefaultInvitationServiceTest {
             RejectInvitationCommand command = new RejectInvitationCommand(invitationId, inviteeUserId);
 
             assertThrows(InvitationAlreadyHandledException.class, () -> service.rejectInvitation(command));
-            verify(invitationRepository, never()).delete(any());
+            verify(invitationRepository, never()).save(any());
         }
     }
 }

@@ -510,10 +510,10 @@ public class DefaultPartyServiceSpringBootTest {
         }
 
         @DisplayName("""
-            Party leader invites a party member, then leader cancels the invitation: invitation should be deleted
+            Party leader invites a party member, then leader cancels the invitation: invitation should be cancelled
             """)
         @Test
-        void partyLeaderCancelsInvitation_thenInvitationShouldBeDeleted() {
+        void partyLeaderCancelsInvitation_thenInvitationShouldBeCancelled() {
             UUID ownerUserId = UUID.randomUUID();
             UUID partnerUserId = UUID.randomUUID();
             String partnerEmail = "partner@example.com";
@@ -546,8 +546,9 @@ public class DefaultPartyServiceSpringBootTest {
             // Step 3: Leader cancels the invitation
             invitationService.rejectInvitation(new RejectInvitationCommand(invitation.id(), ownerUserId));
 
-            assertTrue(invitationRepository.findById(invitation.id()).isEmpty(),
-                    "invitation should be deleted after leader cancels it");
+            Invitation cancelledInvitation = invitationRepository.findById(invitation.id()).orElseThrow();
+            assertEquals(InvitationStatus.CANCELLED, cancelledInvitation.status(),
+                    "invitation should have cancelled status after leader cancels it");
         }
 
         @DisplayName("""

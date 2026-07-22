@@ -139,9 +139,12 @@ public class DefaultInvitationService implements InvitationService {
             throw new InvitationAlreadyHandledException();
         }
 
-        invitationRepository.delete(invitation.id());
+        Invitation cancelled = invitation.toBuilder()
+                .status(InvitationStatus.CANCELLED)
+                .build();
+        invitationRepository.save(cancelled);
 
-        return toSummary(invitation, command.rejectingUserId());
+        return toSummary(cancelled, command.rejectingUserId());
     }
 
     @Override

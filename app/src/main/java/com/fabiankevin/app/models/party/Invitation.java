@@ -11,7 +11,7 @@ import java.util.UUID;
 
 import static com.fabiankevin.app.models.enums.party.InvitationStatus.PENDING;
 
-@Builder
+@Builder(toBuilder = true)
 public record Invitation(
         UUID id,
         UUID inviterPlayerId,
