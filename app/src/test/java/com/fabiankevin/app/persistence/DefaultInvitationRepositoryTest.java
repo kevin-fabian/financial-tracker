@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -129,6 +130,65 @@ class DefaultInvitationRepositoryTest {
     }
 
     @Nested
+    class FindByInviteeUserIdTest {
+
+        @Test
+        void givenPendingInvitationsWhereUserIsInvitee_shouldReturnIncomingInvites() {
+            UUID userId = UUID.randomUUID();
+            Invitation incoming = Invitation.builder()
+                    .inviterPlayerId(UUID.randomUUID())
+                    .inviteePlayerId(userId)
+                    .proposedSharingMode(SharingMode.EVEN_SHARE)
+                    .proposedRole(AccessLevel.READ_WRITE)
+                    .status(InvitationStatus.PENDING)
+                    .createdAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(86400))
+                    .sharedSpaceId(null)
+                    .build();
+            Invitation outgoing = Invitation.builder()
+                    .inviterPlayerId(userId)
+                    .inviteePlayerId(UUID.randomUUID())
+                    .proposedSharingMode(SharingMode.EVEN_SHARE)
+                    .proposedRole(AccessLevel.READ_WRITE)
+                    .status(InvitationStatus.PENDING)
+                    .createdAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(86400))
+                    .sharedSpaceId(null)
+                    .build();
+            Invitation savedIncoming = invitationRepository.save(incoming);
+            invitationRepository.save(outgoing);
+
+            List<Invitation> found = invitationRepository.findByInviteeUserId(userId);
+
+            Assertions.assertThat(found).hasSize(1);
+            Assertions.assertThat(found).extracting(Invitation::id).containsExactly(savedIncoming.id());
+
+            verify(jpaInvitationRepository, times(1)).findByInviteeUserId(
+                    userId, InvitationStatus.PENDING, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        }
+
+        @Test
+        void givenNonPendingInvitations_shouldExcludeFromResults() {
+            UUID userId = UUID.randomUUID();
+            Invitation accepted = Invitation.builder()
+                    .inviterPlayerId(UUID.randomUUID())
+                    .inviteePlayerId(userId)
+                    .proposedSharingMode(SharingMode.EVEN_SHARE)
+                    .proposedRole(AccessLevel.READ_WRITE)
+                    .status(InvitationStatus.ACCEPTED)
+                    .createdAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(86400))
+                    .sharedSpaceId(UUID.randomUUID())
+                    .build();
+            invitationRepository.save(accepted);
+
+            List<Invitation> found = invitationRepository.findByInviteeUserId(userId);
+
+            Assertions.assertThat(found).isEmpty();
+        }
+    }
+
+    @Nested
     class FindPendingBySpaceIdAndInviterAndInviteeTest {
 
         @Test
@@ -146,7 +206,7 @@ class DefaultInvitationRepositoryTest {
                     .build();
             Invitation saved = invitationRepository.save(pending);
 
-            Optional<Invitation> found = invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(
+            Optional<Invitation> found = invitationRepository.findPendingByPartyIdAndInviterAndInvitee(
                     spaceId, saved.inviterPlayerId(), saved.inviteePlayerId());
 
             Assertions.assertThat(found).isPresent();
@@ -170,7 +230,7 @@ class DefaultInvitationRepositoryTest {
                     .build();
             Invitation saved = invitationRepository.save(pending);
 
-            Optional<Invitation> found = invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(
+            Optional<Invitation> found = invitationRepository.findPendingByPartyIdAndInviterAndInvitee(
                     UUID.randomUUID(), saved.inviterPlayerId(), saved.inviteePlayerId());
 
             Assertions.assertThat(found).isEmpty();
@@ -191,7 +251,7 @@ class DefaultInvitationRepositoryTest {
                     .build();
             Invitation saved = invitationRepository.save(accepted);
 
-            Optional<Invitation> found = invitationRepository.findPendingBySpaceIdAndInviterAndInvitee(
+            Optional<Invitation> found = invitationRepository.findPendingByPartyIdAndInviterAndInvitee(
                     spaceId, saved.inviterPlayerId(), saved.inviteePlayerId());
 
             Assertions.assertThat(found).isEmpty();

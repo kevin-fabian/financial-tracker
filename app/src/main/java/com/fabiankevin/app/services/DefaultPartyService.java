@@ -7,9 +7,11 @@ import com.fabiankevin.app.exceptions.party.NotPartyLeaderException;
 import com.fabiankevin.app.exceptions.party.PartyNotFoundException;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.party.AccessLevel;
+import com.fabiankevin.app.models.enums.party.InvitationStatus;
 import com.fabiankevin.app.models.enums.party.PartyMemberStatus;
 import com.fabiankevin.app.models.enums.party.ResourceType;
 import com.fabiankevin.app.models.party.*;
+import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.PartyRepository;
 import com.fabiankevin.app.services.commands.party.OrganizePartyCommand;
 import com.fabiankevin.app.services.commands.party.PatchPartyCommand;
@@ -26,6 +28,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DefaultPartyService implements PartyService {
     private final PartyRepository partyRepository;
+    private final InvitationRepository invitationRepository;
     private final UserClient userClient;
 
     private static final String DEFAULT_PARTY_NAME = "New Party";
@@ -62,6 +65,8 @@ public class DefaultPartyService implements PartyService {
                 .sharedAt(Instant.now())
                 .items(List.of())
                 .build());
+
+        cancelActiveIncomingInvitations(command.partyLeaderId());
 
         Party newParty = Party.builder()
                 .name(command.partyName() != null ? command.partyName() : DEFAULT_PARTY_NAME)
@@ -149,6 +154,22 @@ public class DefaultPartyService implements PartyService {
                 .ifPresent(builder::sharingMode);
 
         return partyRepository.save(builder.build());
+    }
+
+    private void cancelActiveIncomingInvitations(UUID userId) {
+        invitationRepository.findByInviteeUserId(userId).stream()
+                .map(invitation -> Invitation.builder()
+                        .id(invitation.id())
+                        .inviterPlayerId(invitation.inviterPlayerId())
+                        .inviteePlayerId(invitation.inviteePlayerId())
+                        .proposedSharingMode(invitation.proposedSharingMode())
+                        .proposedRole(invitation.proposedRole())
+                        .status(InvitationStatus.CANCELLED)
+                        .createdAt(invitation.createdAt())
+                        .expiresAt(invitation.expiresAt())
+                        .sharedSpaceId(invitation.sharedSpaceId())
+                        .build())
+                .forEach(invitationRepository::save);
     }
 
     private Party findPartyOrThrow(UUID partyId) {

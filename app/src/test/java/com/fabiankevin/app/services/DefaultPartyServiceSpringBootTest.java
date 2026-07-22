@@ -7,7 +7,9 @@ import com.fabiankevin.app.exceptions.party.PartyMemberAlreadyExistsException;
 import com.fabiankevin.app.models.*;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
+import com.fabiankevin.app.models.enums.party.InvitationStatus;
 import com.fabiankevin.app.models.enums.party.SharingMode;
+import com.fabiankevin.app.models.party.Invitation;
 import com.fabiankevin.app.models.party.InvitationSummary;
 import com.fabiankevin.app.models.party.PartySummary;
 import com.fabiankevin.app.persistence.AccountRepository;
@@ -319,6 +321,70 @@ public class DefaultPartyServiceSpringBootTest {
 
             // Step 4: Member tries to kick the leader
             assertThrows(ForbiddenException.class, () -> partyService.kickPartyMember(partyId, ownerUserId, partnerUserid));
+        }
+
+        @DisplayName("""
+            User with incoming invitations creates a party: all incoming invitations should be cancelled
+            """)
+        @Test
+        void userWithIncomingInvitationsCreatesParty_thenIncomingInvitationsShouldBeCancelled() {
+            UUID leader1Id = UUID.randomUUID();
+            UUID leader2Id = UUID.randomUUID();
+            UUID recipientId = UUID.randomUUID();
+            String recipientEmail = "recipient@example.com";
+
+            // Step 1: Two leaders create parties and both invite the recipient
+            PartySummary leader1Party = partyService.organize(OrganizePartyCommand.builder()
+                    .partyName("Leader 1 Party")
+                    .partyLeaderId(leader1Id)
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .build());
+
+            PartySummary leader2Party = partyService.organize(OrganizePartyCommand.builder()
+                    .partyName("Leader 2 Party")
+                    .partyLeaderId(leader2Id)
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .build());
+
+            when(userClient.getUserByEmail(recipientEmail))
+                    .thenReturn(User.builder().id(recipientId).firstName("Recipient").lastName("User").build());
+            when(userClient.getUsersByIds(List.of(leader1Id, recipientId)))
+                    .thenReturn(List.of(
+                            User.builder().id(leader1Id).firstName("Leader").lastName("One").build(),
+                            User.builder().id(recipientId).firstName("Recipient").lastName("User").build()
+                    ));
+            when(userClient.getUsersByIds(List.of(leader2Id, recipientId)))
+                    .thenReturn(List.of(
+                            User.builder().id(leader2Id).firstName("Leader").lastName("Two").build(),
+                            User.builder().id(recipientId).firstName("Recipient").lastName("User").build()
+                    ));
+
+            invitationService.sendInvitation(SendInvitationCommand.builder()
+                    .partyId(leader1Party.id())
+                    .inviterPlayerId(leader1Id)
+                    .inviteeEmail(recipientEmail)
+                    .build());
+            invitationService.sendInvitation(SendInvitationCommand.builder()
+                    .partyId(leader2Party.id())
+                    .inviterPlayerId(leader2Id)
+                    .inviteeEmail(recipientEmail)
+                    .build());
+
+            List<Invitation> incomingBefore = invitationRepository.findByInviteeUserId(recipientId);
+            assertEquals(2, incomingBefore.size(), "recipient should have 2 incoming invitations");
+            assertTrue(incomingBefore.stream().allMatch(i -> i.status() == InvitationStatus.PENDING),
+                    "all incoming invitations should be pending before party creation");
+
+            // Step 2: Recipient creates their own party
+            partyService.organize(OrganizePartyCommand.builder()
+                    .partyName("Recipient Party")
+                    .partyLeaderId(recipientId)
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .build());
+
+            List<Invitation> incomingAfter = invitationRepository.findByInviteeUserId(recipientId);
+            assertTrue(incomingAfter.stream().allMatch(i -> i.status() == InvitationStatus.CANCELLED),
+                    "all incoming invitations should be cancelled after the recipient creates a party");
         }
     }
 

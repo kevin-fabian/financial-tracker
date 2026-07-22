@@ -6,14 +6,9 @@ import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.exceptions.party.NotPartyLeaderException;
 import com.fabiankevin.app.exceptions.party.PartyNotFoundException;
 import com.fabiankevin.app.models.User;
-import com.fabiankevin.app.models.enums.party.AccessLevel;
-import com.fabiankevin.app.models.enums.party.PartyMemberStatus;
-import com.fabiankevin.app.models.enums.party.ResourceType;
-import com.fabiankevin.app.models.enums.party.SharingMode;
-import com.fabiankevin.app.models.party.Party;
-import com.fabiankevin.app.models.party.PartyMember;
-import com.fabiankevin.app.models.party.PartyMemberSummary;
-import com.fabiankevin.app.models.party.PartySummary;
+import com.fabiankevin.app.models.enums.party.*;
+import com.fabiankevin.app.models.party.*;
+import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.PartyRepository;
 import com.fabiankevin.app.services.commands.party.OrganizePartyCommand;
 import com.fabiankevin.app.services.commands.party.PatchPartyCommand;
@@ -39,6 +34,9 @@ import static org.mockito.Mockito.*;
 class DefaultPartyServiceTest {
     @Mock
     private PartyRepository partyRepository;
+
+    @Mock
+    private InvitationRepository invitationRepository;
 
     @Mock
     private UserClient userClient;
@@ -154,6 +152,54 @@ class DefaultPartyServiceTest {
             assertEquals(partyLeaderId, result.partyLeaderId());
             assertEquals(SharingMode.EVEN_SHARE, result.sharingMode());
             verify(partyRepository, never()).save(any());
+        }
+
+        @Test
+        void givenIncomingPendingInvitations_thenCancelsAllBeforeCreatingParty() {
+            UUID partyLeaderId = UUID.randomUUID();
+            OrganizePartyCommand command = new OrganizePartyCommand(
+                    partyLeaderId,
+                    "Trip Budget",
+                    SharingMode.EVEN_SHARE
+            );
+
+            Invitation incoming1 = Invitation.builder()
+                    .id(UUID.randomUUID())
+                    .inviterPlayerId(UUID.randomUUID())
+                    .inviteePlayerId(partyLeaderId)
+                    .proposedSharingMode(SharingMode.EVEN_SHARE)
+                    .proposedRole(AccessLevel.READ_WRITE)
+                    .status(InvitationStatus.PENDING)
+                    .createdAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(86400))
+                    .sharedSpaceId(null)
+                    .build();
+            Invitation incoming2 = Invitation.builder()
+                    .id(UUID.randomUUID())
+                    .inviterPlayerId(UUID.randomUUID())
+                    .inviteePlayerId(partyLeaderId)
+                    .proposedSharingMode(SharingMode.EVEN_SHARE)
+                    .proposedRole(AccessLevel.READ_WRITE)
+                    .status(InvitationStatus.PENDING)
+                    .createdAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(86400))
+                    .sharedSpaceId(null)
+                    .build();
+
+            when(invitationRepository.findByInviteeUserId(partyLeaderId)).thenReturn(List.of(incoming1, incoming2));
+            ArgumentCaptor<Party> captor = ArgumentCaptor.forClass(Party.class);
+            when(partyRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(userClient.getUsersByIds(any())).thenReturn(List.of());
+
+            service.organize(command);
+
+            ArgumentCaptor<Invitation> invitationCaptor = ArgumentCaptor.forClass(Invitation.class);
+            verify(invitationRepository, times(2)).save(invitationCaptor.capture());
+            List<Invitation> cancelled = invitationCaptor.getAllValues();
+            assertEquals(2, cancelled.size());
+            assertTrue(cancelled.stream().allMatch(i -> i.status() == InvitationStatus.CANCELLED));
+
+            verify(partyRepository).save(any(Party.class));
         }
 
         @Test
