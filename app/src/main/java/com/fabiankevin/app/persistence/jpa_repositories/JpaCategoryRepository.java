@@ -23,6 +23,7 @@ public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUI
     Page<CategoryEntity> findAllByUserId(UUID userId, Pageable pageable);
     Page<CategoryEntity> findAllByUserIdAndTransactionType(UUID userId, TransactionType type, Pageable pageable);
     Optional<CategoryEntity> findFirstByActiveFalseAndNameAndTransactionTypeAndUserId(String name, TransactionType type, UUID userId);
+    Optional<CategoryEntity> findFirstByNameAndTransactionTypeAndUserId(String name, TransactionType type, UUID userId);
 
     List<CategoryEntity> findAllByNameIn(List<String> names);
     @Query("""

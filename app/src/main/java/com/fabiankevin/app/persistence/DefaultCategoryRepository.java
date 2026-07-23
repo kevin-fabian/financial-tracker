@@ -46,6 +46,12 @@ public class DefaultCategoryRepository implements CategoryRepository {
     }
 
     @Override
+    public Optional<Category> findByNameAndTypeAndUserId(String name, TransactionType type, UUID userId) {
+        return jpaCategoryRepository.findFirstByNameAndTransactionTypeAndUserId(name, type, userId)
+                .map(CategoryEntity::toModel);
+    }
+
+    @Override
     public Category save(Category category) {
         CategoryEntity saved = jpaCategoryRepository.save(CategoryEntity.from(category));
         return saved.toModel();
