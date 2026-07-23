@@ -195,7 +195,7 @@ public class DefaultPartyService implements PartyService {
         List<PartyMemberSummary> partyMemberSummaries = party.partyMembers().stream()
                 .map(partyMember -> {
                     User user = playerIds.get(partyMember.playerId());
-                    String name = user != null ? user.firstName() + " " + user.lastName() : null;
+                    String name = user != null ? user.fullName() : null;
                     String initial = deriveInitial(user);
                     boolean leader = party.partyLeaderId().equals(partyMember.playerId());
                     return PartyMemberSummary.builder()

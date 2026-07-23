@@ -9,4 +9,8 @@ public record User(
         UUID id,
         String firstName,
         String lastName) {
+
+    public String fullName() {
+         return String.format("%s %s", firstName, lastName);
+    }
 }

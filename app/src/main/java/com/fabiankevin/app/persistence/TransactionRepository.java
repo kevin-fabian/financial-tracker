@@ -29,5 +29,5 @@ public interface TransactionRepository {
     double sumBalance(Set<UUID> userIds);
     Page<Transaction> getTransactionsByPageAndUserId(PageQuery query, Set<UUID> userIds);
     Page<Transaction> getTransactionsByPageAndUserIdAndType(PageQuery query, Set<UUID> userIds, TransactionType type);
-    List<SummaryPoint> getDailyAveragePastWeek(Set<UUID> userIds, LocalDate startDate);
+    List<SummaryPoint> getDailyAveragePastWeek(Set<UUID> userIds);
 }

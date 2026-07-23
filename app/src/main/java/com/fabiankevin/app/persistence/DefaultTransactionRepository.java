@@ -120,7 +120,8 @@ public class DefaultTransactionRepository implements TransactionRepository {
     }
 
     @Override
-    public List<SummaryPoint> getDailyAveragePastWeek(Set<UUID> userIds, LocalDate startDate) {
+    public List<SummaryPoint> getDailyAveragePastWeek(Set<UUID> userIds) {
+        LocalDate startDate = LocalDate.now().minusDays(7);
         return jpaTransactionRepository.getDailyAveragePastWeek(userIds, startDate)
                 .map(SummaryPointProjection::toModel)
                 .toList();

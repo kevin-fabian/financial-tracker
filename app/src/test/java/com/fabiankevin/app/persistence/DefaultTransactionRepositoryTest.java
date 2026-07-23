@@ -952,7 +952,7 @@ class DefaultTransactionRepositoryTest {
 
         LocalDate startDate = today.minusDays(7);
 
-        List<SummaryPoint> result = transactionRepository.getDailyAveragePastWeek(Set.of(userId), startDate);
+        List<SummaryPoint> result = transactionRepository.getDailyAveragePastWeek(Set.of(userId));
 
         Assertions.assertThat(result).hasSize(1);
         SummaryPoint summaryPoint = result.getFirst();
@@ -965,13 +965,12 @@ class DefaultTransactionRepositoryTest {
     @Test
     void getDailyAveragePastWeek_givenNoTransactionsInRange_shouldReturnEmptyList() {
         UUID otherUserId = UUID.randomUUID();
-        LocalDate startDate = LocalDate.now().minusDays(7);
 
-        List<SummaryPoint> result = transactionRepository.getDailyAveragePastWeek(Set.of(otherUserId), startDate);
+        List<SummaryPoint> result = transactionRepository.getDailyAveragePastWeek(Set.of(otherUserId));
 
         Assertions.assertThat(result).isEmpty();
 
-        verify(jpaTransactionRepository, times(1)).getDailyAveragePastWeek(Set.of(otherUserId), startDate);
+        verify(jpaTransactionRepository, times(1)).getDailyAveragePastWeek(Set.of(otherUserId), LocalDate.now().minusDays(7));
     }
 
     private CategoryEntity createCategory(String categoryName) {
