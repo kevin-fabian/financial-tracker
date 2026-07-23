@@ -103,7 +103,6 @@ class DefaultCategoryServiceTest {
                 .userId(userId)
                 .icon(existingIcon)
                 .active(false)
-                .system(false)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -147,7 +146,6 @@ class DefaultCategoryServiceTest {
                 .userId(userId)
                 .icon(oldIcon)
                 .active(false)
-                .system(false)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();

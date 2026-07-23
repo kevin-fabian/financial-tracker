@@ -885,7 +885,6 @@ public class DefaultPartyServiceSpringBootTest {
                     .userId(userId)
                     .icon("salary")
                     .active(true)
-                    .system(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build());
@@ -905,7 +904,6 @@ public class DefaultPartyServiceSpringBootTest {
                     .userId(userId)
                     .icon("food")
                     .active(true)
-                    .system(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build());
@@ -927,7 +925,6 @@ public class DefaultPartyServiceSpringBootTest {
                     .userId(userId)
                     .currency(Currency.getInstance("PHP"))
                     .active(true)
-                    .system(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build());

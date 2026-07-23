@@ -53,7 +53,6 @@ public class CategoryEntity {
                 .icon(category.icon())
                 .userId(category.userId())
                 .active(category.active())
-                .system(category.system())
                 .createdAt(category.createdAt())
                 .updatedAt(category.updatedAt())
                 .build();
@@ -67,7 +66,6 @@ public class CategoryEntity {
                 .icon(this.icon)
                 .userId(this.userId)
                 .active(this.active)
-                .system(this.system)
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)
                 .build();

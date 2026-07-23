@@ -17,8 +17,6 @@ public record Category(
         UUID userId,
         String icon,
         boolean active,
-        // This flag will be used for pre-added categories
-        boolean system,
         Instant createdAt,
         Instant updatedAt
 ) {

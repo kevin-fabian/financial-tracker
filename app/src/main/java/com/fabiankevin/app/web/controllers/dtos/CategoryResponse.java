@@ -19,6 +19,8 @@ public record CategoryResponse(
         TransactionType type,
         @Schema(description = "Icon for the category")
         String icon,
+        @Schema(description = "Whether the category is active", example = "true")
+        boolean active,
         @Schema(description = "Timestamp when the category was created")
         Instant createdAt,
         @Schema(description = "Timestamp when the category was last updated")
@@ -31,6 +33,7 @@ public record CategoryResponse(
                 .name(category.name())
                 .type(category.type())
                 .icon(icon)
+                .active(category.active())
                 .createdAt(category.createdAt())
                 .updatedAt(category.updatedAt())
                 .build();

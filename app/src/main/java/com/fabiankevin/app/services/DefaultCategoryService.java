@@ -48,7 +48,6 @@ public class DefaultCategoryService implements CategoryService {
                 .icon(command.icon())
                 .userId(command.userId())
                 .active(true)
-                .system(false)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();

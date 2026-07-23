@@ -76,6 +76,7 @@ class CategoryControllerTest {
                     .type(command.type() != null ? command.type() : TransactionType.EXPENSE)
                     .userId(userId)
                     .icon(command.icon())
+                    .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -90,7 +91,8 @@ class CategoryControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNotEmpty())
                 .andExpect(jsonPath("$.name").value("FOOD"))
-                .andExpect(jsonPath("$.icon").doesNotExist());
+                .andExpect(jsonPath("$.icon").doesNotExist())
+                .andExpect(jsonPath("$.active").value(true));
 
         verify(categoryService, times(1)).createCategory(any());
     }
@@ -113,6 +115,7 @@ class CategoryControllerTest {
                     .type(command.type() != null ? command.type() : TransactionType.EXPENSE)
                     .userId(userId)
                     .icon(command.icon())
+                    .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -126,7 +129,8 @@ class CategoryControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNotEmpty())
                 .andExpect(jsonPath("$.name").value("FOOD"))
-                .andExpect(jsonPath("$.icon").value("food"));
+                .andExpect(jsonPath("$.icon").value("food"))
+                .andExpect(jsonPath("$.active").value(true));
 
         verify(categoryService, times(1)).createCategory(any());
     }
@@ -156,6 +160,7 @@ class CategoryControllerTest {
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .icon(null)
+                .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build());
@@ -165,7 +170,8 @@ class CategoryControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.name").value("FOOD"))
-                .andExpect(jsonPath("$.icon").doesNotExist());
+                .andExpect(jsonPath("$.icon").doesNotExist())
+                .andExpect(jsonPath("$.active").value(true));
 
         verify(categoryService, times(1)).getCategoryById(id, userId);
     }
@@ -181,6 +187,7 @@ class CategoryControllerTest {
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .icon("food")
+                .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build());
@@ -190,7 +197,8 @@ class CategoryControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.name").value("FOOD"))
-                .andExpect(jsonPath("$.icon").value("food"));
+                .andExpect(jsonPath("$.icon").value("food"))
+                .andExpect(jsonPath("$.active").value(true));
 
         verify(categoryService, times(1)).getCategoryById(id, userId);
     }
@@ -239,6 +247,7 @@ class CategoryControllerTest {
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .icon(null)
+                .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -249,6 +258,7 @@ class CategoryControllerTest {
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .icon(null)
+                .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -261,6 +271,8 @@ class CategoryControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].active").value(true))
+                .andExpect(jsonPath("$.content[1].active").value(true))
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(2))
                 .andExpect(jsonPath("$.totalElements").value(2))
@@ -281,6 +293,7 @@ class CategoryControllerTest {
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .icon("food")
+                .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -291,6 +304,7 @@ class CategoryControllerTest {
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .icon("house")
+                .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -305,6 +319,8 @@ class CategoryControllerTest {
                 .andExpect(jsonPath("$.content.length()").value(2))
                 .andExpect(jsonPath("$.content[0].icon").value("food"))
                 .andExpect(jsonPath("$.content[1].icon").value("house"))
+                .andExpect(jsonPath("$.content[0].active").value(true))
+                .andExpect(jsonPath("$.content[1].active").value(true))
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(2))
                 .andExpect(jsonPath("$.totalElements").value(2))
@@ -325,6 +341,7 @@ class CategoryControllerTest {
                 .type(TransactionType.INCOME)
                 .userId(userId)
                 .icon(null)
+                .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -338,7 +355,8 @@ class CategoryControllerTest {
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.content[0].name").value("SALARY"))
-                .andExpect(jsonPath("$.content[0].icon").doesNotExist());
+                .andExpect(jsonPath("$.content[0].icon").doesNotExist())
+                .andExpect(jsonPath("$.content[0].active").value(true));
 
         verify(categoryService, times(1)).getCategoriesByPageQuery(query, userId, type);
     }
@@ -355,6 +373,7 @@ class CategoryControllerTest {
                 .type(TransactionType.INCOME)
                 .userId(userId)
                 .icon("money")
+                .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -368,7 +387,8 @@ class CategoryControllerTest {
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.content[0].name").value("SALARY"))
-                .andExpect(jsonPath("$.content[0].icon").value("money"));
+                .andExpect(jsonPath("$.content[0].icon").value("money"))
+                .andExpect(jsonPath("$.content[0].active").value(true));
 
         verify(categoryService, times(1)).getCategoriesByPageQuery(query, userId, type);
     }
@@ -385,6 +405,7 @@ class CategoryControllerTest {
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .icon(null)
+                .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -395,6 +416,7 @@ class CategoryControllerTest {
                 .type(TransactionType.INCOME)
                 .userId(userId)
                 .icon(null)
+                .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -408,7 +430,9 @@ class CategoryControllerTest {
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content.length()").value(2))
                 .andExpect(jsonPath("$.content[0].icon").doesNotExist())
-                .andExpect(jsonPath("$.content[1].icon").doesNotExist());
+                .andExpect(jsonPath("$.content[1].icon").doesNotExist())
+                .andExpect(jsonPath("$.content[0].active").value(true))
+                .andExpect(jsonPath("$.content[1].active").value(true));
 
         verify(categoryService, times(1)).getCategoriesByPageQuery(query, userId, null);
     }
@@ -424,6 +448,7 @@ class CategoryControllerTest {
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .icon("food")
+                .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -434,6 +459,7 @@ class CategoryControllerTest {
                 .type(TransactionType.INCOME)
                 .userId(userId)
                 .icon("money")
+                .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -447,7 +473,9 @@ class CategoryControllerTest {
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.content.length()").value(2))
                 .andExpect(jsonPath("$.content[0].icon").value("food"))
-                .andExpect(jsonPath("$.content[1].icon").value("money"));
+                .andExpect(jsonPath("$.content[1].icon").value("money"))
+                .andExpect(jsonPath("$.content[0].active").value(true))
+                .andExpect(jsonPath("$.content[1].active").value(true));
 
         verify(categoryService, times(1)).getCategoriesByPageQuery(query, userId, null);
     }
@@ -502,6 +530,7 @@ class CategoryControllerTest {
                     .type(cmd.type() != null ? cmd.type() : TransactionType.EXPENSE)
                     .userId(userId)
                     .icon(cmd.icon())
+                    .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -514,7 +543,8 @@ class CategoryControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.name").value("GROCERIES"))
-                .andExpect(jsonPath("$.icon").doesNotExist());
+                .andExpect(jsonPath("$.icon").doesNotExist())
+                .andExpect(jsonPath("$.active").value(true));
 
         verify(categoryService, times(1)).patchCategory(any());
     }
@@ -538,6 +568,7 @@ class CategoryControllerTest {
                     .type(cmd.type() != null ? cmd.type() : TransactionType.EXPENSE)
                     .userId(userId)
                     .icon(cmd.icon())
+                    .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -550,7 +581,8 @@ class CategoryControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.name").value("GROCERIES"))
-                .andExpect(jsonPath("$.icon").value("groceries"));
+                .andExpect(jsonPath("$.icon").value("groceries"))
+                .andExpect(jsonPath("$.active").value(true));
 
         verify(categoryService, times(1)).patchCategory(any());
     }
@@ -609,6 +641,7 @@ class CategoryControllerTest {
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .icon("food")
+                .active(true)
                 .totalAmount(150.75)
                 .percentage(25.5)
                 .totalTransactions(10)
@@ -620,6 +653,7 @@ class CategoryControllerTest {
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .icon("house")
+                .active(true)
                 .totalAmount(1200.00)
                 .percentage(50.0)
                 .totalTransactions(2)
@@ -641,6 +675,8 @@ class CategoryControllerTest {
                 .andExpect(jsonPath("$.content[1].totalAmount").value(1200.0))
                 .andExpect(jsonPath("$.content[1].percentage").value(50.0))
                 .andExpect(jsonPath("$.content[1].totalTransactions").value(2))
+                .andExpect(jsonPath("$.content[0].active").value(true))
+                .andExpect(jsonPath("$.content[1].active").value(true))
                 .andExpect(jsonPath("$.page").value(0))
                 .andExpect(jsonPath("$.size").value(2))
                 .andExpect(jsonPath("$.totalElements").value(2))
