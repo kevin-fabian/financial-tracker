@@ -5,11 +5,13 @@ import com.fabiankevin.app.exceptions.party.CannotRemoveOwnerException;
 import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.exceptions.party.NotPartyLeaderException;
 import com.fabiankevin.app.exceptions.party.PartyNotFoundException;
+import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.party.*;
 import com.fabiankevin.app.models.party.*;
 import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.PartyRepository;
+import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.party.OrganizePartyCommand;
 import com.fabiankevin.app.services.commands.party.PatchPartyCommand;
 import org.junit.jupiter.api.Nested;
@@ -21,10 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -37,6 +36,9 @@ class DefaultPartyServiceTest {
 
     @Mock
     private InvitationRepository invitationRepository;
+
+    @Mock
+    private TransactionRepository transactionRepository;
 
     @Mock
     private UserClient userClient;
@@ -283,6 +285,97 @@ class DefaultPartyServiceTest {
             assertNotNull(result);
             assertTrue(result.isEmpty(), "result should be an empty list");
             verify(partyRepository).findPartyMembersPlayerIdsByPlayerId(userId);
+        }
+    }
+
+    @Nested
+    class RetrieveByUserId {
+
+        @Test
+        void givenPartyWithMembers_thenMapsPartyMemberSummariesWithDailyAverage() {
+            UUID userId = UUID.randomUUID();
+            UUID partyLeaderId = UUID.randomUUID();
+            UUID memberId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
+            Party party = Party.builder()
+                    .id(partyId)
+                    .name("Family Budget")
+                    .partyLeaderId(partyLeaderId)
+                    .partyMembers(new ArrayList<>(List.of(
+                            PartyMember.builder()
+                                    .playerId(partyLeaderId)
+                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .status(PartyMemberStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build(),
+                            PartyMember.builder()
+                                    .playerId(memberId)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
+                                    .status(PartyMemberStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build()
+                    )))
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .sharedItems(new ArrayList<>())
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(partyRepository.retrieveByPlayerId(userId)).thenReturn(List.of(party));
+            when(userClient.getUsersByIds(any())).thenReturn(List.of(
+                    User.builder().id(partyLeaderId).firstName("Ada").lastName("Lovelace").build(),
+                    User.builder().id(memberId).firstName("Alan").lastName("Turing").build()
+            ));
+            when(transactionRepository.getDailyAveragePastWeek(any())).thenReturn(List.of(
+                    new SummaryPoint(partyLeaderId.toString(), 3.5),
+                    new SummaryPoint(memberId.toString(), 1.0)
+            ));
+
+            List<PartySummary> result = service.retrieveByUserId(userId);
+
+            assertNotNull(result);
+            assertEquals(1, result.size());
+            PartySummary summary = result.getFirst();
+            assertEquals(partyId, summary.id());
+            assertEquals(2, summary.partyMembers().size());
+
+            PartyMemberSummary leaderSummary = summary.partyMembers().stream()
+                    .filter(PartyMemberSummary::partyLeader)
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals(partyLeaderId, leaderSummary.playerId());
+            assertEquals("Ada Lovelace", leaderSummary.name());
+            assertEquals("AL", leaderSummary.initial());
+            assertEquals(3.5, leaderSummary.pastWeekDailyAverageTransactionCount());
+
+            PartyMemberSummary memberSummary = summary.partyMembers().stream()
+                    .filter(s -> !s.partyLeader())
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals(memberId, memberSummary.playerId());
+            assertEquals("Alan Turing", memberSummary.name());
+            assertEquals("AT", memberSummary.initial());
+            assertEquals(1.0, memberSummary.pastWeekDailyAverageTransactionCount());
+
+            verify(partyRepository).retrieveByPlayerId(userId);
+            verify(userClient).getUsersByIds(List.of(partyLeaderId, memberId));
+            verify(transactionRepository).getDailyAveragePastWeek(Set.of(partyLeaderId, memberId));
+        }
+
+        @Test
+        void givenNoParties_thenReturnsEmptyList() {
+            UUID userId = UUID.randomUUID();
+
+            when(partyRepository.retrieveByPlayerId(userId)).thenReturn(List.of());
+
+            List<PartySummary> result = service.retrieveByUserId(userId);
+
+            assertNotNull(result);
+            assertTrue(result.isEmpty());
+
+            verify(partyRepository).retrieveByPlayerId(userId);
+            verify(transactionRepository, never()).getDailyAveragePastWeek(any());
         }
     }
 

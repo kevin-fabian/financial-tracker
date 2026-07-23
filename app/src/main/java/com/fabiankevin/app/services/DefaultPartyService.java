@@ -5,6 +5,7 @@ import com.fabiankevin.app.exceptions.party.CannotRemoveOwnerException;
 import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.exceptions.party.NotPartyLeaderException;
 import com.fabiankevin.app.exceptions.party.PartyNotFoundException;
+import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.party.AccessLevel;
 import com.fabiankevin.app.models.enums.party.InvitationStatus;
@@ -13,6 +14,7 @@ import com.fabiankevin.app.models.enums.party.ResourceType;
 import com.fabiankevin.app.models.party.*;
 import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.PartyRepository;
+import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.party.OrganizePartyCommand;
 import com.fabiankevin.app.services.commands.party.PatchPartyCommand;
 import jakarta.transaction.Transactional;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 public class DefaultPartyService implements PartyService {
     private final PartyRepository partyRepository;
     private final InvitationRepository invitationRepository;
+    private final TransactionRepository transactionRepository;
     private final UserClient userClient;
 
     private static final String DEFAULT_PARTY_NAME = "New Party";
@@ -188,10 +191,15 @@ public class DefaultPartyService implements PartyService {
                 : userClient.getUsersByIds(partyMemberIds).stream()
                 .collect(Collectors.toMap(User::id, Function.identity()));
 
-        return toSummary(party, usersById);
+        Map<UUID, Double> dailyAverageByUserId = partyMemberIds.isEmpty()
+                ? Map.of()
+                : transactionRepository.getDailyAveragePastWeek(new HashSet<>(partyMemberIds)).stream()
+                .collect(Collectors.toMap(sp -> UUID.fromString(sp.label()), SummaryPoint::total));
+
+        return toSummary(party, usersById, dailyAverageByUserId);
     }
 
-    private PartySummary toSummary(Party party, Map<UUID, User> playerIds) {
+    private PartySummary toSummary(Party party, Map<UUID, User> playerIds, Map<UUID, Double> dailyAverageByUserId) {
         List<PartyMemberSummary> partyMemberSummaries = party.partyMembers().stream()
                 .map(partyMember -> {
                     User user = playerIds.get(partyMember.playerId());
@@ -208,6 +216,7 @@ public class DefaultPartyService implements PartyService {
                             .accessLevel(partyMember.accessLevel())
                             .status(partyMember.status())
                             .joinedAt(partyMember.joinedAt())
+                            .pastWeekDailyAverageTransactionCount(dailyAverageByUserId.getOrDefault(partyMember.playerId(), 0.0))
                             .activeShoppingListCount(0)
                             .activeBudgetCount(0)
                             .build();
