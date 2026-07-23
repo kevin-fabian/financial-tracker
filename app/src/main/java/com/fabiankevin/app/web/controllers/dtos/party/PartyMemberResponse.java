@@ -34,6 +34,15 @@ public record PartyMemberResponse(
         @Schema(description = "Status of the participant", example = "ACTIVE")
         String status,
 
+        @Schema(description = "Average number of transactions per day over the past week")
+        double pastWeekDailyAverageTransactionCount,
+
+        @Schema(description = "Number of active budgets the participant owns")
+        int activeBudgetCount,
+
+        @Schema(description = "Number of active shopping lists the participant owns")
+        int activeShoppingListCount,
+
         @Schema(description = "Timestamp when the participant joined")
         Instant joinedAt
 ) {
@@ -48,6 +57,9 @@ public record PartyMemberResponse(
                 .accessLevelName(partyMember.accessLevel() != null ? partyMember.accessLevel().getName() : null)
                 .accessLevelDescription(partyMember.accessLevel() != null ? partyMember.accessLevel().getDescription() : null)
                 .status(partyMember.status() != null ? partyMember.status().name() : null)
+                .pastWeekDailyAverageTransactionCount(partyMember.pastWeekDailyAverageTransactionCount())
+                .activeBudgetCount(partyMember.activeBudgetCount())
+                .activeShoppingListCount(partyMember.activeShoppingListCount())
                 .joinedAt(partyMember.joinedAt())
                 .build();
     }

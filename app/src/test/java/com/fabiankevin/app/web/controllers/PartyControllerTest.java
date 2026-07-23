@@ -98,6 +98,9 @@ class PartyControllerTest {
                 .partyMember(true)
                 .accessLevel(AccessLevel.READ_WRITE)
                 .status(PartyMemberStatus.ACTIVE)
+                .pastWeekDailyAverageTransactionCount(2.5)
+                .activeBudgetCount(1)
+                .activeShoppingListCount(3)
                 .joinedAt(Instant.now())
                 .build();
     }
@@ -112,6 +115,9 @@ class PartyControllerTest {
                 .partyMember(false)
                 .accessLevel(AccessLevel.READ_WRITE)
                 .status(PartyMemberStatus.ACTIVE)
+                .pastWeekDailyAverageTransactionCount(4.0)
+                .activeBudgetCount(2)
+                .activeShoppingListCount(1)
                 .joinedAt(Instant.now())
                 .build();
     }
@@ -263,6 +269,9 @@ class PartyControllerTest {
                     .andExpect(jsonPath("$[0].partyMembers[0].accessLevelName").value("Full Co-op"))
                     .andExpect(jsonPath("$[0].partyMembers[0].accessLevelDescription").value(READ_WRITE.getDescription()))
                     .andExpect(jsonPath("$[0].partyMembers[0].status").value("ACTIVE"))
+                    .andExpect(jsonPath("$[0].partyMembers[0].pastWeekDailyAverageTransactionCount").value(4.0))
+                    .andExpect(jsonPath("$[0].partyMembers[0].activeBudgetCount").value(2))
+                    .andExpect(jsonPath("$[0].partyMembers[0].activeShoppingListCount").value(1))
                     .andExpect(jsonPath("$[0].partyMembers[0].joinedAt").exists())
                     .andExpect(jsonPath("$[0].partyMembers[1].id").exists())
                     .andExpect(jsonPath("$[0].partyMembers[1].playerId").value(partyMemberId.toString()))
@@ -273,6 +282,9 @@ class PartyControllerTest {
                     .andExpect(jsonPath("$[0].partyMembers[1].accessLevelName").value("Full Co-op"))
                     .andExpect(jsonPath("$[0].partyMembers[1].accessLevelDescription").value(READ_WRITE.getDescription()))
                     .andExpect(jsonPath("$[0].partyMembers[1].status").value("ACTIVE"))
+                    .andExpect(jsonPath("$[0].partyMembers[1].pastWeekDailyAverageTransactionCount").value(2.5))
+                    .andExpect(jsonPath("$[0].partyMembers[1].activeBudgetCount").value(1))
+                    .andExpect(jsonPath("$[0].partyMembers[1].activeShoppingListCount").value(3))
                     .andExpect(jsonPath("$[0].partyMembers[1].joinedAt").exists())
                     .andExpect(jsonPath("$[0].sharedLoots.length()").value(1))
                     .andExpect(jsonPath("$[0].sharedLoots[0].id").value(resourceId.toString()))

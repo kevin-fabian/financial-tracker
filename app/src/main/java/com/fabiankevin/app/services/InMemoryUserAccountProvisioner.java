@@ -7,11 +7,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 @Component
 @RequiredArgsConstructor
 public class InMemoryUserAccountProvisioner implements UserAccountProvisioner {
     private final AccountService accountService;
+    private static final Set<String> DEFAULT_ACCOUNTS = Set.of("cash_wallet");
 
     @Transactional
     @Override
@@ -25,13 +27,18 @@ public class InMemoryUserAccountProvisioner implements UserAccountProvisioner {
         }
 
         accountService.deleteAllByUserId(userId);
-        accountInterests.stream()
+        Stream.concat(DEFAULT_ACCOUNTS.stream(), accountInterests.stream())
                 .filter(ACCOUNT_INTERESTS_MAPPING::containsKey)
                 .flatMap(interest -> ACCOUNT_INTERESTS_MAPPING.get(interest).stream())
                 .forEach(command -> accountService.createAccount(command.toBuilder().userId(userId).build()));
     }
 
     private static final Map<String, List<CreateAccountCommand>> ACCOUNT_INTERESTS_MAPPING = Map.ofEntries(
+            Map.entry("cash_wallet", List.of(CreateAccountCommand.builder()
+                    .name("Cash Wallet")
+                    .currency(Currency.getInstance("PHP"))
+                    .type(AccountType.CASH)
+                    .build())),
             Map.entry("gcash", List.of(CreateAccountCommand.builder()
                     .name("GCash")
                     .currency(Currency.getInstance("PHP"))

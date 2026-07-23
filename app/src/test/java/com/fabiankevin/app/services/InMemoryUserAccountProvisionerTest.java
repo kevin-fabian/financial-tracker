@@ -60,7 +60,7 @@ class InMemoryUserAccountProvisionerTest {
 
             provider.provision(interests, testUserId);
 
-            verify(accountService, times(2)).createAccount(any(CreateAccountCommand.class));
+            verify(accountService, times(3)).createAccount(any(CreateAccountCommand.class));
             verify(accountService).createAccount(eq(CreateAccountCommand.builder()
                     .name("GCash")
                     .currency(Currency.getInstance("PHP"))
@@ -76,12 +76,13 @@ class InMemoryUserAccountProvisionerTest {
         }
 
         @Test
-        void provide_unknownInterests_doesNotCallService() {
+        void provide_unknownInterests_shouldProvisionDefaultAccounts() {
             Set<String> interests = Set.of("unknown_interest");
 
             provider.provision(interests, testUserId);
 
-            verify(accountService, never()).createAccount(any());
+            verify(accountService, times(1))
+                    .createAccount(argThat(acc -> "Cash Wallet".equalsIgnoreCase(acc.name())));
         }
 
         @Test
