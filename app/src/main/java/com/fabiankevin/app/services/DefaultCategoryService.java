@@ -33,7 +33,7 @@ public class DefaultCategoryService implements CategoryService {
     @Override
     public Category createCategory(CreateCategoryCommand command) {
         return categoryRepository.findInactiveByNameAndTypeAndUserId(command.name(), command.type(), command.userId())
-                .map(inactiveCategory -> reactivateCategory(inactiveCategory, command))
+                .map(this::reactivateCategory)
                 .orElseGet(() -> createNewCategory(command));
     }
 
@@ -55,10 +55,9 @@ public class DefaultCategoryService implements CategoryService {
         return categoryRepository.save(newCategory);
     }
 
-    private Category reactivateCategory(Category inactiveCategory, CreateCategoryCommand command) {
+    private Category reactivateCategory(Category inactiveCategory) {
         return categoryRepository.save(inactiveCategory.toBuilder()
                 .active(true)
-                .icon(command.icon())
                 .updatedAt(Instant.now())
                 .build());
     }

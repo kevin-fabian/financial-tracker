@@ -11,6 +11,7 @@ import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchCategoryRequest;
 import com.github.fabiankevin.lemon.web.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -59,94 +60,117 @@ class CategoryControllerTest {
                 .build();
     }
 
-    @Test
-    void createCategory_givenValidRequest_thenShouldCreateCategory() throws Exception {
-        CreateCategoryRequest request = CreateCategoryRequest.builder()
-                .name("FOOD")
-                .type(TransactionType.EXPENSE)
-                .build();
-
-        when(categoryService.createCategory(any())).thenAnswer(invocation -> {
-            UUID id = UUID.randomUUID();
-            com.fabiankevin.app.services.commands.CreateCategoryCommand command = invocation.getArgument(0);
-            UUID userId = command.userId() != null ? command.userId() : UUID.randomUUID();
-            return Category.builder()
-                    .id(id)
-                    .name(command.name())
-                    .type(command.type() != null ? command.type() : TransactionType.EXPENSE)
-                    .userId(userId)
-                    .icon(command.icon())
-                    .active(true)
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
+    @Nested
+    class CreateCategory {
+        @Test
+        void givenValidRequest_thenShouldReturnCreated() throws Exception {
+            CreateCategoryRequest request = CreateCategoryRequest.builder()
+                    .name("FOOD")
+                    .type(TransactionType.EXPENSE)
                     .build();
 
-        });
+            when(categoryService.createCategory(any())).thenAnswer(invocation -> {
+                UUID id = UUID.randomUUID();
+                com.fabiankevin.app.services.commands.CreateCategoryCommand command = invocation.getArgument(0);
+                UUID userId = command.userId() != null ? command.userId() : UUID.randomUUID();
+                return Category.builder()
+                        .id(id)
+                        .name(command.name())
+                        .type(command.type() != null ? command.type() : TransactionType.EXPENSE)
+                        .userId(userId)
+                        .icon(command.icon())
+                        .active(true)
+                        .createdAt(Instant.now())
+                        .updatedAt(Instant.now())
+                        .build();
 
-        mockMvc.perform(post("/api/categories")
-                        .with(jwt().jwt(jwt))
-                        .contentType("application/json")
-                        .content(jsonMapper.writeValueAsString(request)))
-                .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/categories/[-a-f0-9]{36}")))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").isNotEmpty())
-                .andExpect(jsonPath("$.name").value("FOOD"))
-                .andExpect(jsonPath("$.icon").doesNotExist())
-                .andExpect(jsonPath("$.active").value(true));
+            });
 
-        verify(categoryService, times(1)).createCategory(any());
-    }
+            mockMvc.perform(post("/api/categories")
+                            .with(jwt().jwt(jwt))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/categories/[-a-f0-9]{36}")))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").isNotEmpty())
+                    .andExpect(jsonPath("$.name").value("FOOD"))
+                    .andExpect(jsonPath("$.icon").doesNotExist())
+                    .andExpect(jsonPath("$.active").value(true));
 
-    @Test
-    void createCategory_givenValidRequestWithIcon_thenShouldCreateCategoryWithIcon() throws Exception {
-        CreateCategoryRequest request = CreateCategoryRequest.builder()
-                .name("FOOD")
-                .type(TransactionType.EXPENSE)
-                .icon("food")
-                .build();
+            verify(categoryService, times(1)).createCategory(any());
+        }
 
-        when(categoryService.createCategory(any())).thenAnswer(invocation -> {
-            UUID id = UUID.randomUUID();
-            com.fabiankevin.app.services.commands.CreateCategoryCommand command = invocation.getArgument(0);
-            UUID userId = command.userId() != null ? command.userId() : UUID.randomUUID();
-            return Category.builder()
-                    .id(id)
-                    .name(command.name())
-                    .type(command.type() != null ? command.type() : TransactionType.EXPENSE)
-                    .userId(userId)
-                    .icon(command.icon())
-                    .active(true)
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
+        @Test
+        void givenValidRequestWithIcon_thenShouldCreateCategoryWithIcon() throws Exception {
+            CreateCategoryRequest request = CreateCategoryRequest.builder()
+                    .name("FOOD")
+                    .type(TransactionType.EXPENSE)
+                    .icon("food")
                     .build();
-        });
 
-        mockMvc.perform(post("/api/categories")
-                        .with(jwt().jwt(jwt))
-                        .contentType("application/json")
-                        .content(jsonMapper.writeValueAsString(request)))
-                .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/categories/[-a-f0-9]{36}")))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").isNotEmpty())
-                .andExpect(jsonPath("$.name").value("FOOD"))
-                .andExpect(jsonPath("$.icon").value("food"))
-                .andExpect(jsonPath("$.active").value(true));
+            when(categoryService.createCategory(any())).thenAnswer(invocation -> {
+                UUID id = UUID.randomUUID();
+                com.fabiankevin.app.services.commands.CreateCategoryCommand command = invocation.getArgument(0);
+                UUID userId = command.userId() != null ? command.userId() : UUID.randomUUID();
+                return Category.builder()
+                        .id(id)
+                        .name(command.name())
+                        .type(command.type() != null ? command.type() : TransactionType.EXPENSE)
+                        .userId(userId)
+                        .icon(command.icon())
+                        .active(true)
+                        .createdAt(Instant.now())
+                        .updatedAt(Instant.now())
+                        .build();
+            });
 
-        verify(categoryService, times(1)).createCategory(any());
-    }
+            mockMvc.perform(post("/api/categories")
+                            .with(jwt().jwt(jwt))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/categories/[-a-f0-9]{36}")))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").isNotEmpty())
+                    .andExpect(jsonPath("$.name").value("FOOD"))
+                    .andExpect(jsonPath("$.icon").value("food"))
+                    .andExpect(jsonPath("$.active").value(true));
 
-    @Test
-    void createCategory_givenNoJwt_thenShouldReturnForbidden() throws Exception {
-        CreateCategoryRequest request = CreateCategoryRequest.builder()
-                .name("FOOD")
-                .build();
+            verify(categoryService, times(1)).createCategory(any());
+        }
 
-        mockMvc.perform(post("/api/categories")
-                        .contentType("application/json")
-                        .content(jsonMapper.writeValueAsString(request)))
-                .andExpect(status().isForbidden());
+        @Test
+        void givenNoJwt_thenShouldReturnForbidden() throws Exception {
+            CreateCategoryRequest request = CreateCategoryRequest.builder()
+                    .name("FOOD")
+                    .build();
 
-        verifyNoInteractions(categoryService);
+            mockMvc.perform(post("/api/categories")
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isForbidden());
+
+            verifyNoInteractions(categoryService);
+        }
+
+        @Test
+        void givenDuplicateName_shouldReturnConflict() throws Exception {
+            CreateCategoryRequest request = CreateCategoryRequest.builder()
+                    .name("FOOD")
+                    .type(TransactionType.EXPENSE)
+                    .build();
+
+            doThrow(new com.fabiankevin.app.exceptions.CategoryAlreadyExistException(
+                    "Category with the same name and type already exists for the user"))
+                    .when(categoryService).createCategory(any());
+
+            mockMvc.perform(post("/api/categories")
+                            .with(jwt().jwt(jwt))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isConflict());
+
+            verify(categoryService, times(1)).createCategory(any());
+        }
     }
 
     @Test

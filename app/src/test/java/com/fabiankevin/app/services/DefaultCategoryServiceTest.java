@@ -126,14 +126,14 @@ class DefaultCategoryServiceTest {
         assertEquals("FOOD", created.name());
         assertEquals(TransactionType.EXPENSE, created.type());
         assertTrue(created.active(), "category should be reactivated");
-        assertNull(created.icon(), "should preserve existing icon when command has no icon");
+        assertEquals(existingIcon, created.icon(), "should preserve existing icon when command has no icon");
         verify(categoryRepository, times(1)).findInactiveByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId);
         verify(categoryRepository, times(1)).save(any());
         verify(categoryRepository, never()).existsByNameAndTypeAndUserId(any(), any(), any());
     }
 
     @Test
-    void createCategory_givenInactiveCategoryWithNewIcon_shouldReactivateAndReplaceIcon() {
+    void createCategory_givenInactiveCategoryWithNewIcon_shouldReactivateAndPreserveExistingIcon() {
         UUID userId = UUID.randomUUID();
         UUID categoryId = UUID.randomUUID();
         String oldIcon = "restaurant";
@@ -168,8 +168,85 @@ class DefaultCategoryServiceTest {
 
         assertEquals(categoryId, created.id(), "should return existing category id");
         assertTrue(created.active(), "category should be reactivated");
-        assertEquals(newIcon, created.icon(), "icon should be replaced with new icon");
+        assertEquals(oldIcon, created.icon(), "existing icon should be preserved and not overwritten by command");
         verify(categoryRepository, times(1)).findInactiveByNameAndTypeAndUserId("RENT", TransactionType.EXPENSE, userId);
+        verify(categoryRepository, never()).existsByNameAndTypeAndUserId(any(), any(), any());
+    }
+
+    @Test
+    void createCategory_givenInactiveCategory_shouldPreserveCreatedAtAndUpdateUpdatedAt() {
+        UUID userId = UUID.randomUUID();
+        UUID categoryId = UUID.randomUUID();
+        Instant originalCreatedAt = Instant.parse("2025-01-01T00:00:00Z");
+        Instant originalUpdatedAt = Instant.parse("2025-02-01T00:00:00Z");
+
+        Category inactiveCategory = Category.builder()
+                .id(categoryId)
+                .name("FOOD")
+                .type(TransactionType.EXPENSE)
+                .userId(userId)
+                .icon("restaurant")
+                .active(false)
+                .createdAt(originalCreatedAt)
+                .updatedAt(originalUpdatedAt)
+                .build();
+
+        CreateCategoryCommand command = CreateCategoryCommand.builder()
+                .name("FOOD")
+                .type(TransactionType.EXPENSE)
+                .userId(userId)
+                .build();
+
+        when(categoryRepository.findInactiveByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId))
+                .thenReturn(Optional.of(inactiveCategory));
+        when(categoryRepository.save(any())).thenAnswer(invocation -> {
+            Category c = invocation.getArgument(0);
+            return c.toBuilder().id(categoryId).build();
+        });
+
+        Category created = categoryService.createCategory(command);
+
+        assertTrue(created.active(), "category should be reactivated");
+        assertEquals(originalCreatedAt, created.createdAt(), "createdAt should be preserved on reactivation");
+        assertTrue(created.updatedAt().isAfter(originalUpdatedAt), "updatedAt should be refreshed on reactivation");
+        verify(categoryRepository, times(1)).save(any());
+    }
+
+    @Test
+    void createCategory_givenInactiveCategoryWithNullIcon_shouldReactivateAndKeepNullIcon() {
+        UUID userId = UUID.randomUUID();
+        UUID categoryId = UUID.randomUUID();
+
+        Category inactiveCategory = Category.builder()
+                .id(categoryId)
+                .name("FOOD")
+                .type(TransactionType.EXPENSE)
+                .userId(userId)
+                .icon(null)
+                .active(false)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        CreateCategoryCommand command = CreateCategoryCommand.builder()
+                .name("FOOD")
+                .type(TransactionType.EXPENSE)
+                .userId(userId)
+                .icon("new_icon")
+                .build();
+
+        when(categoryRepository.findInactiveByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId))
+                .thenReturn(Optional.of(inactiveCategory));
+        when(categoryRepository.save(any())).thenAnswer(invocation -> {
+            Category c = invocation.getArgument(0);
+            return c.toBuilder().id(categoryId).build();
+        });
+
+        Category created = categoryService.createCategory(command);
+
+        assertTrue(created.active(), "category should be reactivated");
+        assertNull(created.icon(), "null icon should be preserved even when command provides an icon");
+        verify(categoryRepository, times(1)).save(any());
         verify(categoryRepository, never()).existsByNameAndTypeAndUserId(any(), any(), any());
     }
 
