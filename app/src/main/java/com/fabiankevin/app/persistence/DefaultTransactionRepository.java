@@ -120,6 +120,13 @@ public class DefaultTransactionRepository implements TransactionRepository {
     }
 
     @Override
+    public List<SummaryPoint> getDailyAveragePastWeek(Set<UUID> userIds, LocalDate startDate) {
+        return jpaTransactionRepository.getDailyAveragePastWeek(userIds, startDate)
+                .map(SummaryPointProjection::toModel)
+                .toList();
+    }
+
+    @Override
     public com.fabiankevin.app.models.Page<Transaction> getTransactionsByPageAndUserIdAndType(PageQuery query, Set<UUID> userIds, TransactionType type) {
         var pageable = PageRequest.of(
                 query.page(),

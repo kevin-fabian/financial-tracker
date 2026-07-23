@@ -137,4 +137,16 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             WHERE t.account.userId IN :userIds
             """)
     double sumBalance(@Param("userIds") Set<UUID> userIds);
+
+    @Query("""
+            SELECT CAST(t.account.userId AS string) AS label,
+                   COUNT(t) / 7.0 AS total
+            FROM TransactionEntity t
+            WHERE t.account.userId IN :userIds
+              AND t.transactionDate >= :startDate
+            GROUP BY t.account.userId
+            """)
+    Streamable<SummaryPointProjection> getDailyAveragePastWeek(
+            @Param("userIds") Set<UUID> userIds,
+            @Param("startDate") LocalDate startDate);
 }

@@ -208,6 +208,8 @@ public class DefaultPartyService implements PartyService {
                             .accessLevel(partyMember.accessLevel())
                             .status(partyMember.status())
                             .joinedAt(partyMember.joinedAt())
+                            .activeShoppingListCount(0)
+                            .activeBudgetCount(0)
                             .build();
                 })
                 .toList();

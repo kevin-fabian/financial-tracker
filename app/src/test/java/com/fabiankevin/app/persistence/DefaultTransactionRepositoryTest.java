@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.offset;
 import static org.mockito.Mockito.*;
 
 @DataJpaTest
@@ -931,6 +932,46 @@ class DefaultTransactionRepositoryTest {
         Assertions.assertThat(result).extracting(SummaryPoint::total).containsExactly(600.0);
 
         verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRangeByCategory(eq(Set.of(userId)), eq(from), eq(to), eq(food.getId()));
+    }
+
+    @Test
+    void getDailyAveragePastWeek_givenTransactionsWithinPastWeek_shouldReturnDailyAverage() {
+        CategoryEntity food = createCategory("Food & Drinks");
+        AccountEntity cash = createAccount("Cash Wallet");
+
+        LocalDate today = LocalDate.now();
+        List.of(
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(today.minusDays(1)).description("t1").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(today.minusDays(2)).description("t2").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(300, Currency.getInstance("PHP"))).transactionDate(today.minusDays(3)).description("t3").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(400, Currency.getInstance("PHP"))).transactionDate(today.minusDays(4)).description("t4").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(500, Currency.getInstance("PHP"))).transactionDate(today.minusDays(5)).description("t5").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(600, Currency.getInstance("PHP"))).transactionDate(today.minusDays(6)).description("t6").build(),
+                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(700, Currency.getInstance("PHP"))).transactionDate(today.minusDays(7)).description("t7").build()
+        ).forEach(transactionService::addTransaction);
+
+        LocalDate startDate = today.minusDays(7);
+
+        List<SummaryPoint> result = transactionRepository.getDailyAveragePastWeek(Set.of(userId), startDate);
+
+        Assertions.assertThat(result).hasSize(1);
+        SummaryPoint summaryPoint = result.getFirst();
+        Assertions.assertThat(summaryPoint.label()).isEqualTo(userId.toString());
+        Assertions.assertThat(summaryPoint.total()).isCloseTo(1.0, offset(0.01));
+
+        verify(jpaTransactionRepository, times(1)).getDailyAveragePastWeek(Set.of(userId), startDate);
+    }
+
+    @Test
+    void getDailyAveragePastWeek_givenNoTransactionsInRange_shouldReturnEmptyList() {
+        UUID otherUserId = UUID.randomUUID();
+        LocalDate startDate = LocalDate.now().minusDays(7);
+
+        List<SummaryPoint> result = transactionRepository.getDailyAveragePastWeek(Set.of(otherUserId), startDate);
+
+        Assertions.assertThat(result).isEmpty();
+
+        verify(jpaTransactionRepository, times(1)).getDailyAveragePastWeek(Set.of(otherUserId), startDate);
     }
 
     private CategoryEntity createCategory(String categoryName) {

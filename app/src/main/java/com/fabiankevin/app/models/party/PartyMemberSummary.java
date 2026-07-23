@@ -18,6 +18,9 @@ public record PartyMemberSummary(
         boolean partyMember,
         AccessLevel accessLevel,
         PartyMemberStatus status,
+        double pastWeekDailyAverageTransactionCount,
+        int activeBudgetCount,
+        int activeShoppingListCount,
         Instant joinedAt) {
     public PartyMemberSummary {
         Objects.requireNonNull(accessLevel, "accessLevel");
