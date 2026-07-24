@@ -71,6 +71,7 @@ class DefaultCategoryServiceTest {
             UUID userId = UUID.randomUUID();
             UUID categoryId = UUID.randomUUID();
             String existingIcon = "restaurant";
+            String newIcon = "utensils";
 
             Category inactiveCategory = Category.builder()
                     .id(categoryId)
@@ -86,6 +87,7 @@ class DefaultCategoryServiceTest {
             CreateCategoryCommand command = CreateCategoryCommand.builder()
                     .name("FOOD")
                     .type(TransactionType.EXPENSE)
+                    .icon(newIcon)
                     .userId(userId)
                     .build();
 
@@ -102,7 +104,7 @@ class DefaultCategoryServiceTest {
             assertEquals("FOOD", created.name());
             assertEquals(TransactionType.EXPENSE, created.type());
             assertTrue(created.active(), "category should be reactivated");
-            assertEquals(existingIcon, created.icon(), "should preserve existing icon when command has no icon");
+            assertEquals(newIcon, created.icon(), "should use the icon provided in the command");
             verify(categoryRepository, times(1)).findByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId);
             verify(categoryRepository, times(1)).save(any());
             verify(categoryRepository, never()).existsByNameAndTypeAndUserId(any(), any(), any());
@@ -129,6 +131,7 @@ class DefaultCategoryServiceTest {
             CreateCategoryCommand command = CreateCategoryCommand.builder()
                     .name("FOOD")
                     .type(TransactionType.EXPENSE)
+                    .icon("utensils")
                     .userId(userId)
                     .build();
 
@@ -144,6 +147,7 @@ class DefaultCategoryServiceTest {
             assertTrue(created.active(), "category should be reactivated");
             assertEquals(originalCreatedAt, created.createdAt(), "createdAt should be preserved on reactivation");
             assertTrue(created.updatedAt().isAfter(originalUpdatedAt), "updatedAt should be refreshed on reactivation");
+            assertEquals("utensils", created.icon(), "should use the icon provided in the command");
             verify(categoryRepository, times(1)).save(any());
         }
 

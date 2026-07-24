@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -41,7 +42,7 @@ public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUI
     Page<CategorySummaryProjection> findAllByUserIdAndTransactionTypeWithSummary(
             @Param("userId") UUID userId,
             @Param("type") TransactionType type,
-            @Param("monthStart") java.time.LocalDate monthStart,
-            @Param("monthEnd") java.time.LocalDate monthEnd,
+            @Param("monthStart") LocalDate monthStart,
+            @Param("monthEnd") LocalDate monthEnd,
             Pageable pageable);
 }

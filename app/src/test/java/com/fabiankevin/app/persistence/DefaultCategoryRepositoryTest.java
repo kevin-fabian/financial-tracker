@@ -531,6 +531,78 @@ class DefaultCategoryRepositoryTest {
         }
 
         @Test
+        void givenIncomeCategoriesWithTransactions_shouldReturnPagedSummariesWithPercentages() {
+            UUID userId = UUID.randomUUID();
+
+            CategoryEntity salary = CategoryEntity.builder()
+                    .name("SALARY")
+                    .transactionType(TransactionType.INCOME)
+                    .userId(userId)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            CategoryEntity freelance = CategoryEntity.builder()
+                    .name("FREELANCE")
+                    .transactionType(TransactionType.INCOME)
+                    .userId(userId)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            jpaCategoryRepository.saveAll(List.of(salary, freelance));
+            jpaCategoryRepository.flush();
+
+            var account = AccountEntity.builder()
+                    .userId(userId)
+                    .name("CASH")
+                    .currency("PHP")
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            account = jpaAccountRepository.saveAndFlush(account);
+
+            var salaryTx = TransactionEntity.builder()
+                    .account(account)
+                    .category(salary)
+                    .amount(5000.0)
+                    .currency("PHP")
+                    .transactionDate(LocalDate.of(2026, 7, 1))
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            var freelanceTx = TransactionEntity.builder()
+                    .account(account)
+                    .category(freelance)
+                    .amount(3000.0)
+                    .currency("PHP")
+                    .transactionDate(LocalDate.of(2026, 7, 1))
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            jpaTransactionRepository.saveAndFlush(salaryTx);
+            jpaTransactionRepository.saveAndFlush(freelanceTx);
+
+            Page<CategorySummary> page = categoryRepository.findAllByPageQueryWithSummary(
+                    new PageQuery(0, 10, "name", "ASC"), userId, TransactionType.INCOME);
+
+            Assertions.assertThat(page.content()).hasSize(2);
+
+            var salarySummary = page.content().stream().filter(c -> "SALARY".equals(c.name())).findFirst().orElseThrow();
+            Assertions.assertThat(salarySummary.totalAmount()).isEqualTo(5000.0);
+            Assertions.assertThat(salarySummary.totalTransactions()).isEqualTo(1);
+            Assertions.assertThat(salarySummary.percentage()).isCloseTo(62.5, Assertions.within(0.01));
+
+            var freelanceSummary = page.content().stream().filter(c -> "FREELANCE".equals(c.name())).findFirst().orElseThrow();
+            Assertions.assertThat(freelanceSummary.totalAmount()).isEqualTo(3000.0);
+            Assertions.assertThat(freelanceSummary.totalTransactions()).isEqualTo(1);
+            Assertions.assertThat(freelanceSummary.percentage()).isCloseTo(37.5, Assertions.within(0.01));
+
+            Assertions.assertThat(page.totalElements()).isEqualTo(2);
+            Assertions.assertThat(page.totalPages()).isEqualTo(1);
+        }
+
+        @Test
         void givenCategoriesWithTransactionsAndTypeFilter_shouldReturnFilteredSummaries() {
             UUID userId = UUID.randomUUID();
 

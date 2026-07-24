@@ -12,6 +12,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -87,7 +88,7 @@ public class DefaultCategoryRepository implements CategoryRepository {
 
     @Override
     public com.fabiankevin.app.models.Page<CategorySummary> findAllByPageQueryWithSummary(PageQuery query, UUID userId, TransactionType type) {
-        var now = java.time.LocalDate.now();
+        var now = LocalDate.now();
         var monthStart = now.withDayOfMonth(1);
         var monthEnd = now.withDayOfMonth(now.lengthOfMonth());
 
@@ -99,15 +100,18 @@ public class DefaultCategoryRepository implements CategoryRepository {
         var entityPage = jpaCategoryRepository.findAllByUserIdAndTransactionTypeWithSummary(userId, type, monthStart, monthEnd, pageable);
 
         // Calculate percentages for each category
-        double totalAmount = entityPage.getContent().stream()
+        double expenseTotalAmount = entityPage.getContent().stream()
+                .filter(category -> category.type() == TransactionType.EXPENSE)
+                .mapToDouble(CategorySummaryProjection::amount)
+                .sum();
+        double incomeTotalAmount = entityPage.getContent().stream()
+                .filter(category -> category.type() == TransactionType.INCOME)
                 .mapToDouble(CategorySummaryProjection::amount)
                 .sum();
 
         List<CategorySummary> content = entityPage.getContent().stream()
                 .map(projection -> {
-                    double percentage = (totalAmount != 0 && projection.amount() != 0)
-                            ? (projection.amount() / totalAmount) * 100.0
-                            : 0.0;
+                    double percentage = getPercentage(projection, projection.type() == TransactionType.EXPENSE ? expenseTotalAmount : incomeTotalAmount);
                     return CategorySummary.builder()
                             .id(projection.id())
                             .name(projection.name())
@@ -131,6 +135,12 @@ public class DefaultCategoryRepository implements CategoryRepository {
                 entityPage.isLast(),
                 entityPage.isFirst()
         );
+    }
+
+    private static double getPercentage(CategorySummaryProjection projection, double expenseTotalAmount) {
+        return (expenseTotalAmount != 0 && projection.amount() != 0)
+                ? (projection.amount() / expenseTotalAmount) * 100.0
+                : 0.0;
     }
 
     @Override

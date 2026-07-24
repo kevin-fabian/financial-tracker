@@ -33,7 +33,7 @@ public class DefaultCategoryService implements CategoryService {
     @Override
     public Category createCategory(CreateCategoryCommand command) {
         return categoryRepository.findByNameAndTypeAndUserId(command.name(), command.type(), command.userId())
-                .map(this::reactivateCategory)
+                .map(existing -> reactivateCategory(existing, command))
                 .orElseGet(() -> createNewCategory(command));
     }
 
@@ -51,14 +51,15 @@ public class DefaultCategoryService implements CategoryService {
         return categoryRepository.save(newCategory);
     }
 
-    private Category reactivateCategory(Category existingCategory) {
+    private Category reactivateCategory(Category existingCategory, CreateCategoryCommand command) {
         if (existingCategory.active()) {
             throw new CategoryAlreadyExistException("Category with the same name and type already exists for the user");
         }
-        return categoryRepository.save(existingCategory.toBuilder()
+        Category.CategoryBuilder builder = existingCategory.toBuilder()
                 .active(true)
-                .updatedAt(Instant.now())
-                .build());
+                .updatedAt(Instant.now());
+        Optional.ofNullable(command.icon()).ifPresent(builder::icon);
+        return categoryRepository.save(builder.build());
     }
 
     @Transactional
