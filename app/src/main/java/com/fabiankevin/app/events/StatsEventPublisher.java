@@ -21,11 +21,11 @@ public class StatsEventPublisher implements EventPublisher<Transaction> {
 
     @Override
     public void publish(UUID sharedId, ItemEvent<Transaction> event) {
-        StatsSummary statsSummary = statsService.getStatsSummary(event.usedId(), StatsQuery.builder().build());
-        template.convertAndSend(String.format("/topic/spaces/%s/stats",
+        StatsSummary statsSummary = statsService.getStatsSummary(event.userId(), StatsQuery.builder().build());
+        template.convertAndSend(String.format("/topic/parties/%s/stats",
                         sharedId),
                 jsonMapper.writeValueAsString(new ItemEvent<>(
-                        event.usedId(),
+                        event.userId(),
                         event.action(),
                         statsSummary
                 )));

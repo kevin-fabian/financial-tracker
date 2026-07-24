@@ -5,6 +5,6 @@ import com.fabiankevin.app.models.enums.EventAction;
 import java.util.UUID;
 
 public record ItemEvent<T>(
-    UUID usedId,
+    UUID userId,
     EventAction action,
     T data) {}

@@ -25,7 +25,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @RestController
 @RequestMapping(value = "/api/accounts", version = "v1")
-public class AccountController {
+public class  AccountController {
     private final AccountService accountService;
 
     @Operation(

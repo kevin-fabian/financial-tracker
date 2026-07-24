@@ -93,8 +93,8 @@ public class DefaultTransactionService implements TransactionService {
 
         Transaction savedTransaction = transactionRepository.save(transaction);
 
-        partyRepository.findByPlayerId(userId).ifPresent(sharedSpace -> {
-            compositeEventPublisher.publish(sharedSpace.id(), new ItemEvent<>(
+        partyRepository.findByPlayerId(userId).ifPresent(party -> {
+            compositeEventPublisher.publish(party.id(), new ItemEvent<>(
                     userId,
                     EventAction.ADDED,
                     transaction
