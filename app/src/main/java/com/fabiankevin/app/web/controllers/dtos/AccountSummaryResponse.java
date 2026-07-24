@@ -18,6 +18,8 @@ public record AccountSummaryResponse(
         String currency,
         @Schema(description = "Type of the account", example = "E_WALLET")
         AccountType type,
+        @Schema(description = "Whether the account is active", example = "true")
+        boolean active,
         @Schema(description = "Total balance for this account", example = "5000.00")
         double totalBalance,
         @Schema(description = "Total number of transactions for this account", example = "25")
@@ -29,6 +31,7 @@ public record AccountSummaryResponse(
                 .name(accountSummary.name())
                 .currency(accountSummary.currency().getCurrencyCode())
                 .type(accountSummary.type())
+                .active(accountSummary.active())
                 .totalBalance(accountSummary.totalBalance())
                 .totalTransactions(accountSummary.totalTransactions())
                 .build();

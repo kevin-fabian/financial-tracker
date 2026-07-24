@@ -1,5 +1,6 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.exceptions.AccountAlreadyExistException;
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.AccountSummary;
@@ -33,8 +34,15 @@ public class DefaultAccountService implements AccountService {
     @Transactional
     @Override
     public Account createAccount(CreateAccountCommand command) {
+        return accountRepository.findByNameAndTypeAndUserId(command.name(), command.type(), command.userId())
+                .map(this::reactivateAccount)
+                .orElseGet(() -> createNewAccount(command));
+    }
+
+    private Account createNewAccount(CreateAccountCommand command) {
         Account account = Account.builder()
                 .name(command.name())
+                .active(true)
                 .userId(command.userId())
                 .currency(command.currency())
                 .type(command.type())
@@ -43,6 +51,16 @@ public class DefaultAccountService implements AccountService {
                 .build();
 
         return accountRepository.save(account);
+    }
+
+    private Account reactivateAccount(Account existingAccount) {
+        if (existingAccount.active()) {
+            throw new AccountAlreadyExistException("Account with the same name and type already exists for the user");
+        }
+        return accountRepository.save(existingAccount.toBuilder()
+                .active(true)
+                .updatedAt(Instant.now())
+                .build());
     }
 
     @Transactional

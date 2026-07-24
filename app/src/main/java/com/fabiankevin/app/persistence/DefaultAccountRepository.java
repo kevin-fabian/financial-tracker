@@ -79,7 +79,6 @@ public class DefaultAccountRepository implements AccountRepository {
                         .currency(Currency.getInstance(projection.currency()))
                         .type(AccountType.valueOf(projection.type()))
                         .active(projection.active())
-                        .system(projection.system())
                         .totalBalance(projection.totalBalance())
                         .totalTransactions(projection.totalTransactions())
                         .build())
@@ -94,6 +93,12 @@ public class DefaultAccountRepository implements AccountRepository {
                 entityPage.isLast(),
                 entityPage.isFirst()
         );
+    }
+
+    @Override
+    public Optional<Account> findByNameAndTypeAndUserId(String name, AccountType type, UUID userId) {
+        return jpaAccountRepository.findByNameAndTypeAndUserId(name, type.name(), userId)
+                .map(AccountEntity::toModel);
     }
 
     @Override

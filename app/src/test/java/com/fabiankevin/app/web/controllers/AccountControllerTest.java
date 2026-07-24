@@ -11,6 +11,7 @@ import com.fabiankevin.app.web.controllers.dtos.CreateAccountRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchAccountRequest;
 import com.github.fabiankevin.lemon.web.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
@@ -305,123 +306,129 @@ class AccountControllerTest {
         verifyNoInteractions(accountService);
     }
 
-    @Test
-    void disableAccount_givenExistingId_thenShouldDisableAccount() throws Exception {
-        UUID id = UUID.randomUUID();
-        UUID userId = UUID.fromString(jwt.getSubject());
+    @Nested
+    class DisableAccount {
+        @Test
+        void givenExistingId_thenShouldDisableAccount() throws Exception {
+            UUID id = UUID.randomUUID();
+            UUID userId = UUID.fromString(jwt.getSubject());
 
-        mockMvc.perform(patch("/api/accounts/" + id + "/disable")
-                        .with(jwt().jwt(jwt)))
-                .andExpect(status().isOk());
+            mockMvc.perform(post("/api/accounts/" + id + "/disable")
+                            .with(jwt().jwt(jwt)))
+                    .andExpect(status().isOk());
 
-        verify(accountService, times(1)).disableAccount(id, userId);
+            verify(accountService, times(1)).disableAccount(id, userId);
+        }
+
+        @Test
+        void givenNoJwt_thenShouldReturnForbidden() throws Exception {
+            UUID id = UUID.randomUUID();
+
+            mockMvc.perform(post("/api/accounts/" + id + "/disable"))
+                    .andExpect(status().isForbidden());
+
+            verifyNoInteractions(accountService);
+        }
+
+        @Test
+        void givenAccountNotFound_thenReturnNotFound() throws Exception {
+            UUID id = UUID.randomUUID();
+            UUID userId = UUID.fromString(jwt.getSubject());
+
+            doThrow(new AccountNotFoundException()).when(accountService).disableAccount(id, userId);
+
+            mockMvc.perform(post("/api/accounts/" + id + "/disable")
+                            .with(jwt().jwt(jwt)))
+                    .andExpect(status().isNotFound());
+
+            verify(accountService, times(1)).disableAccount(id, userId);
+        }
     }
 
-    @Test
-    void disableAccount_givenNoJwt_thenShouldReturnForbidden() throws Exception {
-        UUID id = UUID.randomUUID();
+    @Nested
+    class GetPaginatedAccountSummaries {
+        @Test
+        void givenValidParams_thenShouldReturnPagedSummaryResponse() throws Exception {
+            UUID userId = UUID.fromString(jwt.getSubject());
+            PageQuery query = new PageQuery(0, 2, "name", "ASC");
 
-        mockMvc.perform(patch("/api/accounts/" + id + "/disable"))
-                .andExpect(status().isForbidden());
+            AccountSummary s1 = AccountSummary.builder()
+                    .id(UUID.randomUUID())
+                    .name("GCASH")
+                    .userIds(List.of(userId))
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .active(true)
+                    .totalBalance(5000.00)
+                    .totalTransactions(25)
+                    .build();
 
-        verifyNoInteractions(accountService);
-    }
+            AccountSummary s2 = AccountSummary.builder()
+                    .id(UUID.randomUUID())
+                    .name("BDO")
+                    .userIds(List.of(userId))
+                    .currency(Currency.getInstance("PHP"))
+                    .type(com.fabiankevin.app.models.enums.AccountType.BANK_ACCOUNT)
+                    .active(true)
+                    .totalBalance(9000.00)
+                    .totalTransactions(15)
+                    .build();
 
-    @Test
-    void disableAccount_givenAccountNotFound_thenReturnNotFound() throws Exception {
-        UUID id = UUID.randomUUID();
-        UUID userId = UUID.fromString(jwt.getSubject());
+            when(accountService.getAccountSummariesByPageQuery(query, userId))
+                    .thenReturn(new Page<>(List.of(s1, s2), 0, 2, 2L, 1, true, true));
 
-        doThrow(new AccountNotFoundException()).when(accountService).disableAccount(id, userId);
+            mockMvc.perform(get("/api/accounts/summaries?page=0&size=2&sort=name&direction=ASC")
+                            .with(jwt().jwt(jwt)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content").isArray())
+                    .andExpect(jsonPath("$.content.length()").value(2))
+                    .andExpect(jsonPath("$.content[0].name").value("GCASH"))
+                    .andExpect(jsonPath("$.content[0].active").value(true))
+                    .andExpect(jsonPath("$.content[0].totalBalance").value(5000.0))
+                    .andExpect(jsonPath("$.content[0].totalTransactions").value(25))
+                    .andExpect(jsonPath("$.content[1].name").value("BDO"))
+                    .andExpect(jsonPath("$.content[1].active").value(true))
+                    .andExpect(jsonPath("$.content[1].totalBalance").value(9000.0))
+                    .andExpect(jsonPath("$.content[1].totalTransactions").value(15))
+                    .andExpect(jsonPath("$.page").value(0))
+                    .andExpect(jsonPath("$.size").value(2))
+                    .andExpect(jsonPath("$.totalElements").value(2))
+                    .andExpect(jsonPath("$.totalPages").value(1));
 
-        mockMvc.perform(patch("/api/accounts/" + id + "/disable")
-                        .with(jwt().jwt(jwt)))
-                .andExpect(status().isNotFound());
+            verify(accountService, times(1)).getAccountSummariesByPageQuery(query, userId);
+        }
 
-        verify(accountService, times(1)).disableAccount(id, userId);
-    }
+        @Test
+        void givenNoJwt_thenShouldReturnUnauthorized() throws Exception {
+            mockMvc.perform(get("/api/accounts/summaries?page=0&size=10&sort=name&direction=ASC"))
+                    .andExpect(status().isUnauthorized());
 
-    @Test
-    void getAccountSummaries_givenValidParams_thenShouldReturnPagedSummaryResponse() throws Exception {
-        UUID userId = UUID.fromString(jwt.getSubject());
-        PageQuery query = new PageQuery(0, 2, "name", "ASC");
+            verifyNoInteractions(accountService);
+        }
 
-        AccountSummary s1 = AccountSummary.builder()
-                .id(UUID.randomUUID())
-                .name("GCASH")
-                .userIds(List.of(userId))
-                .currency(Currency.getInstance("PHP"))
-                .type(E_WALLET)
-                .active(true)
-                .system(false)
-                .totalBalance(5000.00)
-                .totalTransactions(25)
-                .build();
+        @Test
+        void givenNoContent_thenShouldReturnEmptyPage() throws Exception {
+            UUID userId = UUID.fromString(jwt.getSubject());
 
-        AccountSummary s2 = AccountSummary.builder()
-                .id(UUID.randomUUID())
-                .name("BDO")
-                .userIds(List.of(userId))
-                .currency(Currency.getInstance("PHP"))
-                .type(com.fabiankevin.app.models.enums.AccountType.BANK_ACCOUNT)
-                .active(true)
-                .system(false)
-                .totalBalance(9000.00)
-                .totalTransactions(15)
-                .build();
+            when(accountService.getAccountSummariesByPageQuery(any(PageQuery.class), eq(userId)))
+                    .thenReturn(new Page<>(List.of(), 0, 10, 0L, 0, false, true));
 
-        when(accountService.getAccountSummariesByPageQuery(query, userId))
-                .thenReturn(new Page<>(List.of(s1, s2), 0, 2, 2L, 1, true, true));
+            mockMvc.perform(get("/api/accounts/summaries?page=0&size=10&sort=name&direction=ASC")
+                            .with(jwt().jwt(jwt)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content").isArray())
+                    .andExpect(jsonPath("$.content.length()").value(0))
+                    .andExpect(jsonPath("$.page").value(0))
+                    .andExpect(jsonPath("$.size").value(10))
+                    .andExpect(jsonPath("$.totalElements").value(0))
+                    .andExpect(jsonPath("$.totalPages").value(0));
 
-        mockMvc.perform(get("/api/accounts/summaries?page=0&size=2&sort=name&direction=ASC")
-                        .with(jwt().jwt(jwt)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content.length()").value(2))
-                .andExpect(jsonPath("$.content[0].name").value("GCASH"))
-                .andExpect(jsonPath("$.content[0].totalBalance").value(5000.0))
-                .andExpect(jsonPath("$.content[0].totalTransactions").value(25))
-                .andExpect(jsonPath("$.content[1].name").value("BDO"))
-                .andExpect(jsonPath("$.content[1].totalBalance").value(9000.0))
-                .andExpect(jsonPath("$.content[1].totalTransactions").value(15))
-                .andExpect(jsonPath("$.page").value(0))
-                .andExpect(jsonPath("$.size").value(2))
-                .andExpect(jsonPath("$.totalElements").value(2))
-                .andExpect(jsonPath("$.totalPages").value(1));
-
-        verify(accountService, times(1)).getAccountSummariesByPageQuery(query, userId);
-    }
-
-    @Test
-    void getAccountSummaries_givenNoJwt_thenShouldReturnUnauthorized() throws Exception {
-        mockMvc.perform(get("/api/accounts/summaries?page=0&size=10&sort=name&direction=ASC"))
-                .andExpect(status().isUnauthorized());
-
-        verifyNoInteractions(accountService);
-    }
-
-    @Test
-    void getAccountSummaries_givenNoContent_thenShouldReturnEmptyPage() throws Exception {
-        UUID userId = UUID.fromString(jwt.getSubject());
-
-        when(accountService.getAccountSummariesByPageQuery(any(PageQuery.class), eq(userId)))
-                .thenReturn(new Page<>(List.of(), 0, 10, 0L, 0, false, true));
-
-        mockMvc.perform(get("/api/accounts/summaries?page=0&size=10&sort=name&direction=ASC")
-                        .with(jwt().jwt(jwt)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content.length()").value(0))
-                .andExpect(jsonPath("$.page").value(0))
-                .andExpect(jsonPath("$.size").value(10))
-                .andExpect(jsonPath("$.totalElements").value(0))
-                .andExpect(jsonPath("$.totalPages").value(0));
-
-        verify(accountService, times(1)).getAccountSummariesByPageQuery(argThat(
-                pageQuery -> pageQuery.page() == 0
-                        && pageQuery.size() == 10
-                        && pageQuery.sort().equals("name")
-                        && pageQuery.direction().equals("ASC")
-        ), eq(userId));
+            verify(accountService, times(1)).getAccountSummariesByPageQuery(argThat(
+                    pageQuery -> pageQuery.page() == 0
+                            && pageQuery.size() == 10
+                            && pageQuery.sort().equals("name")
+                            && pageQuery.direction().equals("ASC")
+            ), eq(userId));
+        }
     }
 }

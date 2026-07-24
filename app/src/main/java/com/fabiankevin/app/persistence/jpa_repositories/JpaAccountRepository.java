@@ -9,12 +9,15 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface JpaAccountRepository extends JpaRepository<AccountEntity, UUID> {
     Page<AccountEntity> findAllByUserId(UUID userId, Pageable pageable);
 
     List<AccountEntity> findAllByNameIn(List<String> accountNames);
+
+    Optional<AccountEntity> findByNameAndTypeAndUserId(String name, String type, UUID userId);
 
     int deleteByIdAndUserId(UUID accountId, UUID userId);
 

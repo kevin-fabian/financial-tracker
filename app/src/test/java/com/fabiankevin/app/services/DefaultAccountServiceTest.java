@@ -43,6 +43,8 @@ class DefaultAccountServiceTest {
                 .userId(userId)
                 .build();
 
+        when(accountRepository.findByNameAndTypeAndUserId(command.name(), command.type(), command.userId()))
+                .thenReturn(Optional.empty());
         when(accountRepository.save(any())).thenAnswer(invocation -> {
             Account a = invocation.getArgument(0);
             return a.toBuilder().id(UUID.randomUUID()).build();
@@ -52,7 +54,73 @@ class DefaultAccountServiceTest {
 
         assertEquals("GCASH", created.name());
         assertEquals(userId, created.userId());
+        assertTrue(created.active());
         verify(accountRepository, times(1)).save(any());
+    }
+
+    @Test
+    void createAccount_givenInactiveAccountWithSameNameAndType_thenShouldReactivate() {
+        UUID userId = UUID.randomUUID();
+        UUID existingId = UUID.randomUUID();
+        CreateAccountCommand command = CreateAccountCommand.builder()
+                .name("GCASH")
+                .currency(Currency.getInstance("PHP"))
+                .type(E_WALLET)
+                .userId(userId)
+                .build();
+
+        Account inactive = Account.builder()
+                .id(existingId)
+                .name("GCASH")
+                .userId(userId)
+                .currency(Currency.getInstance("PHP"))
+                .type(E_WALLET)
+                .active(false)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(accountRepository.findByNameAndTypeAndUserId(command.name(), command.type(), command.userId()))
+                .thenReturn(Optional.of(inactive));
+        when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Account created = accountService.createAccount(command);
+
+        assertEquals(existingId, created.id());
+        assertTrue(created.active());
+        verify(accountRepository, times(1)).save(any());
+        ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
+        verify(accountRepository).save(captor.capture());
+        assertTrue(captor.getValue().active(), "account should be reactivated");
+    }
+
+    @Test
+    void createAccount_givenActiveAccountWithSameNameAndType_thenShouldThrow() {
+        UUID userId = UUID.randomUUID();
+        CreateAccountCommand command = CreateAccountCommand.builder()
+                .name("GCASH")
+                .currency(Currency.getInstance("PHP"))
+                .type(E_WALLET)
+                .userId(userId)
+                .build();
+
+        Account active = Account.builder()
+                .id(UUID.randomUUID())
+                .name("GCASH")
+                .userId(userId)
+                .currency(Currency.getInstance("PHP"))
+                .type(E_WALLET)
+                .active(true)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+
+        when(accountRepository.findByNameAndTypeAndUserId(command.name(), command.type(), command.userId()))
+                .thenReturn(Optional.of(active));
+
+        assertThrows(com.fabiankevin.app.exceptions.AccountAlreadyExistException.class,
+                () -> accountService.createAccount(command));
+        verify(accountRepository, never()).save(any());
     }
 
     @Test

@@ -170,7 +170,7 @@ public class  AccountController {
                     @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
             }
     )
-    @PatchMapping("/{accountId}/disable")
+    @PostMapping("/{accountId}/disable")
     public ResponseEntity<Void> disableAccount(@PathVariable UUID accountId, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         accountService.disableAccount(accountId, userId);

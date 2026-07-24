@@ -3,6 +3,7 @@ package com.fabiankevin.app.persistence;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.AccountSummary;
 import com.fabiankevin.app.models.Page;
+import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.services.queries.PageQuery;
 
 import java.util.List;
@@ -21,6 +22,8 @@ public interface AccountRepository {
     Page<AccountSummary> findAllByPageQueryWithSummary(PageQuery query, UUID userId);
 
     List<Account> findAllByNamesIn(List<String> accountNames);
+
+    Optional<Account> findByNameAndTypeAndUserId(String name, AccountType type, UUID userId);
 
     long deleteAllByUserId(UUID userId);
 }
