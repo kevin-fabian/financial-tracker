@@ -3,6 +3,7 @@ package com.fabiankevin.app.web.controllers;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Amount;
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
@@ -15,6 +16,7 @@ import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.budgets.CreateBudgetCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateBudgetRequest;
+import com.fabiankevin.app.web.controllers.dtos.PatchBudgetRequest;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,8 +37,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -105,6 +106,20 @@ class BudgetControllerSpringBootTest {
                     .andExpect(jsonPath("$[0].allocated").value(500.0))
                     .andExpect(jsonPath("$[0].spent").value(200.0))
                     .andExpect(jsonPath("$[0].spentPercentage").value(40.0));
+        }
+
+        @Test
+        void givenJwtWithNoAuthorities_thenShouldReturnForbidden() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            mockMvc.perform(get("/api/budgets")
+                            .with(jwt()
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isForbidden());
         }
     }
 
@@ -179,6 +194,149 @@ class BudgetControllerSpringBootTest {
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isForbidden());
         }
+
+        @Test
+        void givenJwtWithNoAuthorities_thenShouldReturnForbidden() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            CreateBudgetRequest request = CreateBudgetRequest.builder()
+                    .period(BudgetPeriod.MONTHLY)
+                    .categoryId(UUID.randomUUID())
+                    .allocated(500.0)
+                    .build();
+
+            mockMvc.perform(post("/api/budgets")
+                            .with(jwt()
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    @Nested
+    class PatchBudget {
+        @Test
+        void givenValidRequest_thenShouldReturnUpdatedBudget() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Budget budget = createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+
+            PatchBudgetRequest request = PatchBudgetRequest.builder()
+                    .period(BudgetPeriod.YEARLY)
+                    .allocated(1000.0)
+                    .build();
+
+            mockMvc.perform(patch("/api/budgets/" + budget.id())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(budget.id().toString()))
+                    .andExpect(jsonPath("$.period").value("YEARLY"))
+                    .andExpect(jsonPath("$.categoryId").value(category.id().toString()))
+                    .andExpect(jsonPath("$.categoryName").value("GROCERIES"))
+                    .andExpect(jsonPath("$.categoryIcon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$.allocated").value(1000.0))
+                    .andExpect(jsonPath("$.createdAt").exists())
+                    .andExpect(jsonPath("$.updatedAt").exists());
+        }
+
+        @Test
+        void givenBudgetNotFound_thenShouldReturnNotFound() throws Exception {
+            UUID userId = UUID.randomUUID();
+            UUID id = UUID.randomUUID();
+
+            PatchBudgetRequest request = PatchBudgetRequest.builder()
+                    .allocated(1000.0)
+                    .build();
+
+            mockMvc.perform(patch("/api/budgets/" + id)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void givenJwtWithNoAuthorities_thenShouldReturnForbidden() throws Exception {
+            UUID userId = UUID.randomUUID();
+            UUID id = UUID.randomUUID();
+
+            PatchBudgetRequest request = PatchBudgetRequest.builder()
+                    .allocated(1000.0)
+                    .build();
+
+            mockMvc.perform(patch("/api/budgets/" + id)
+                            .with(jwt()
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    @Nested
+    class DeleteBudget {
+        @Test
+        void givenExistingBudget_thenShouldReturnNoContent() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Budget budget = createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+
+            mockMvc.perform(delete("/api/budgets/" + budget.id())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isNoContent());
+        }
+
+        @Test
+        void givenNoJwt_thenShouldReturnForbidden() throws Exception {
+            UUID id = UUID.randomUUID();
+
+            mockMvc.perform(delete("/api/budgets/" + id))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void givenJwtWithNoAuthorities_thenShouldReturnForbidden() throws Exception {
+            UUID userId = UUID.randomUUID();
+            UUID id = UUID.randomUUID();
+
+            mockMvc.perform(delete("/api/budgets/" + id)
+                            .with(jwt()
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isForbidden());
+        }
     }
 
     private Category createCategory(UUID userId, String name, TransactionType type, String icon) {
@@ -209,8 +367,8 @@ class BudgetControllerSpringBootTest {
                 .build());
     }
 
-    private void createBudget(UUID userId, Category category, BudgetPeriod period, double allocated) {
-        budgetService.createBudget(CreateBudgetCommand.builder()
+    private Budget createBudget(UUID userId, Category category, BudgetPeriod period, double allocated) {
+        return budgetService.createBudget(CreateBudgetCommand.builder()
                 .userId(userId)
                 .period(period)
                 .categoryId(category.id())

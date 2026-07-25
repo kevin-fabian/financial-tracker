@@ -79,6 +79,7 @@ public class DefaultBudgetService implements BudgetService {
         return budgetRepository.save(builder.build());
     }
 
+    @Transactional
     @Override
     public void deleteBudgetById(UUID id, UUID userId) {
         budgetRepository.deleteByIdAndUserId(id, userId);

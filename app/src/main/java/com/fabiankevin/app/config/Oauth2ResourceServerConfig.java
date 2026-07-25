@@ -37,7 +37,7 @@ public class Oauth2ResourceServerConfig {
                                 "/api/categories", "/api/categories/**",
                                 "/api/stats", "/api/stats*",
                                 "/api/parties", "/api/party/**",
-                                "/api/budgets").hasAnyAuthority(USER_ROLE)
+                                "/api/budgets", "/api/budgets/**").hasAnyAuthority(USER_ROLE)
                         .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus**").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/**").hasAnyAuthority("user:provision")
