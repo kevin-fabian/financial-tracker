@@ -39,9 +39,6 @@ public class BudgetEntity {
     @JoinColumn(name = "category_id")
     private CategoryEntity category;
 
-    @Column(name = "icon", length = 128)
-    private String icon;
-
     @Column(nullable = false)
     private double allocated;
 
@@ -59,7 +56,6 @@ public class BudgetEntity {
                 .lastUpdatedBy(budget.lastUpdatedBy())
                 .period(budget.period())
                 .category(CategoryEntity.from(budget.category()))
-                .icon(budget.icon())
                 .allocated(budget.allocated())
                 .createdAt(budget.createdAt())
                 .updatedAt(budget.updatedAt())
@@ -73,7 +69,6 @@ public class BudgetEntity {
                 this.lastUpdatedBy,
                 this.period,
                 this.category != null ? this.category.toModel() : null,
-                this.icon,
                 this.allocated,
                 this.createdAt,
                 this.updatedAt

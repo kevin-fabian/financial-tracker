@@ -1,11 +1,15 @@
 package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.budgets.Budget;
+import com.fabiankevin.app.models.budgets.BudgetPeriod;
+import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.persistence.entities.BudgetEntity;
+import com.fabiankevin.app.persistence.entities.projections.BudgetSummaryProjection;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaBudgetRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,5 +26,32 @@ public class DefaultBudgetRepository implements BudgetRepository {
     @Override
     public Optional<Budget> findById(UUID id) {
         return jpaBudgetRepository.findById(id).map(BudgetEntity::toModel);
+    }
+
+    @Override
+    public List<BudgetSummary> findAllBudgetSummaryByUserId(List<UUID> usersId) {
+        return jpaBudgetRepository.findAllBudgetSummaryByUserIds(usersId)
+                .stream()
+                .map(this::toSummary)
+                .toList();
+    }
+
+    private BudgetSummary toSummary(BudgetSummaryProjection projection) {
+        double spent = projection.spent();
+        double allocated = projection.allocated();
+        double spentPercentage = allocated > 0 ? (spent / allocated) * 100.0 : 0.0;
+
+        return BudgetSummary.builder()
+                .id(projection.id())
+                .userId(projection.userId())
+                .lastUpdatedBy(projection.lastUpdatedBy())
+                .period(BudgetPeriod.valueOf(projection.period()))
+                .allocated(allocated)
+                .categoryId(projection.categoryId())
+                .categoryName(projection.categoryName())
+                .categoryIcon(projection.categoryIcon())
+                .spent(spent)
+                .spentPercentage(spentPercentage)
+                .build();
     }
 }

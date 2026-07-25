@@ -3,8 +3,14 @@ package com.fabiankevin.app.persistence;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetPeriod;
+import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.models.enums.TransactionType;
+import com.fabiankevin.app.persistence.entities.BudgetEntity;
+import com.fabiankevin.app.persistence.entities.CategoryEntity;
+import com.fabiankevin.app.persistence.entities.TransactionEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaBudgetRepository;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -16,6 +22,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -31,6 +39,12 @@ class DefaultBudgetRepositoryTest {
 
     @MockitoSpyBean
     private JpaBudgetRepository jpaBudgetRepository;
+
+    @Autowired
+    private JpaCategoryRepository jpaCategoryRepository;
+
+    @Autowired
+    private JpaTransactionRepository jpaTransactionRepository;
 
     @Autowired
     private BudgetRepository budgetRepository;
@@ -54,7 +68,6 @@ class DefaultBudgetRepositoryTest {
                 .lastUpdatedBy(userId)
                 .period(BudgetPeriod.MONTHLY)
                 .category(category)
-                .icon("savings")
                 .allocated(500.0)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -74,7 +87,7 @@ class DefaultBudgetRepositoryTest {
             assertEquals(budget.allocated(), saved.allocated(), "allocated should match");
             assertEquals(budget.userId(), saved.userId(), "userId should match");
             assertEquals(budget.lastUpdatedBy(), saved.lastUpdatedBy(), "lastUpdatedBy should match");
-            assertEquals(budget.icon(), saved.icon(), "icon should match");
+            assertEquals(budget.category().icon(), saved.category().icon(), "categoryIcon should match");
             assertNotNull(saved.createdAt(), "createdAt should not be null");
             assertNotNull(saved.updatedAt(), "updatedAt should not be null");
             assertNotNull(saved.category(), "category should not be null");
@@ -120,6 +133,97 @@ class DefaultBudgetRepositoryTest {
                     .isEmpty();
 
             verify(jpaBudgetRepository, times(1)).findById(any());
+        }
+    }
+
+    @Nested
+    class FindAllBudgetSummaryByUserId {
+        @Test
+        void givenBudgetsWithTransactions_returnsSummariesWithSpentAndPercentage() {
+            UUID userId = UUID.randomUUID();
+            Instant now = Instant.now();
+            CategoryEntity category = jpaCategoryRepository.saveAndFlush(CategoryEntity.builder()
+                    .name("GROCERIES")
+                    .transactionType(TransactionType.EXPENSE)
+                    .userId(userId)
+                    .icon("local_grocery_store")
+                    .active(true)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+            jpaBudgetRepository.saveAndFlush(BudgetEntity.builder()
+                    .userId(userId)
+                    .lastUpdatedBy(userId)
+                    .period(BudgetPeriod.MONTHLY)
+                    .category(category)
+                    .allocated(500.0)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+            jpaTransactionRepository.saveAndFlush(TransactionEntity.builder()
+                    .category(category)
+                    .amount(150.0)
+                    .currency("USD")
+                    .transactionDate(LocalDate.now())
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+            jpaTransactionRepository.saveAndFlush(TransactionEntity.builder()
+                    .category(category)
+                    .amount(50.0)
+                    .currency("USD")
+                    .transactionDate(LocalDate.now())
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+
+            List<BudgetSummary> results = budgetRepository.findAllBudgetSummaryByUserId(List.of(userId));
+
+            Assertions.assertThat(results)
+                    .as("should return one budget summary")
+                    .hasSize(1);
+            BudgetSummary summary = results.getFirst();
+            assertEquals(userId, summary.userId(), "userId should match");
+            assertEquals(BudgetPeriod.MONTHLY, summary.period(), "period should match");
+            assertEquals(500.0, summary.allocated(), "allocated should match");
+            assertEquals(200.0, summary.spent(), "spent should be sum of transactions");
+            assertEquals(40.0, summary.spentPercentage(), "spentPercentage should be spent/allocated*100");
+            assertNotNull(summary.id(), "category should not be null");
+            assertEquals("GROCERIES", summary.categoryName(), "category name should match");
+        }
+
+        @Test
+        void givenBudgetsWithNoTransactions_returnsSummariesWithZeroSpent() {
+            UUID userId = UUID.randomUUID();
+            Instant now = Instant.now();
+            CategoryEntity category = jpaCategoryRepository.saveAndFlush(CategoryEntity.builder()
+                    .name("RENT")
+                    .transactionType(TransactionType.EXPENSE)
+                    .userId(userId)
+                    .icon("home")
+                    .active(true)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+            jpaBudgetRepository.saveAndFlush(BudgetEntity.builder()
+                    .userId(userId)
+                    .lastUpdatedBy(userId)
+                    .period(BudgetPeriod.MONTHLY)
+                    .category(category)
+                    .allocated(1000.0)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+
+            List<BudgetSummary> results = budgetRepository.findAllBudgetSummaryByUserId(List.of(userId));
+
+            Assertions.assertThat(results)
+                    .as("should return one budget summary")
+                    .hasSize(1);
+            BudgetSummary summary = results.get(0);
+            assertEquals(1000.0, summary.allocated(), "allocated should match");
+            assertEquals(0.0, summary.spent(), "spent should be zero with no transactions");
+            assertEquals(0.0, summary.spentPercentage(), "spentPercentage should be zero with no spent");
         }
     }
 }

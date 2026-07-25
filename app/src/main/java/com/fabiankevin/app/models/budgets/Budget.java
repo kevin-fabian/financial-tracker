@@ -13,7 +13,6 @@ public record Budget(
         UUID lastUpdatedBy,
         BudgetPeriod period,
         Category category,
-        String icon,
         double allocated,
         Instant createdAt,
         Instant updatedAt) {

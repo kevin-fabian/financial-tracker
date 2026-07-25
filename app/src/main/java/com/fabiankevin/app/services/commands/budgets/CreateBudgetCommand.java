@@ -10,6 +10,5 @@ public record CreateBudgetCommand(
         UUID userId,
         BudgetPeriod period,
         UUID categoryId,
-        String icon,
         double allocated) {
 }

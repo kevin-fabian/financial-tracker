@@ -54,7 +54,6 @@ class DefaultBudgetServiceTest {
                     .userId(userId)
                     .period(BudgetPeriod.MONTHLY)
                     .categoryId(categoryId)
-                    .icon("savings")
                     .allocated(500.0)
                     .build();
 
@@ -71,7 +70,7 @@ class DefaultBudgetServiceTest {
             assertEquals(userId, created.lastUpdatedBy(), "lastUpdatedBy should be set to userId");
             assertEquals(BudgetPeriod.MONTHLY, created.period(), "period should match command");
             assertEquals(category, created.category(), "category should be resolved from service");
-            assertEquals("savings", created.icon(), "icon should match command");
+            assertEquals("local_grocery_store", created.category().icon(), "categoryIcon should match command");
             assertEquals(500.0, created.allocated(), "allocated should match command");
             assertNotNull(created.createdAt(), "createdAt should not be null");
             assertNotNull(created.updatedAt(), "updatedAt should not be null");
@@ -89,7 +88,6 @@ class DefaultBudgetServiceTest {
                     .userId(userId)
                     .period(BudgetPeriod.MONTHLY)
                     .categoryId(categoryId)
-                    .icon("savings")
                     .allocated(500.0)
                     .build();
 

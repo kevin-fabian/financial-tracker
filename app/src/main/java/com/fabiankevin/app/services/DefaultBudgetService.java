@@ -27,7 +27,6 @@ public class DefaultBudgetService implements BudgetService {
                 .lastUpdatedBy(command.userId())
                 .period(command.period())
                 .category(category)
-                .icon(command.icon())
                 .allocated(command.allocated())
                 .createdAt(now)
                 .updatedAt(now)

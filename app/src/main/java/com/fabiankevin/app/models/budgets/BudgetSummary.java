@@ -1,6 +1,5 @@
 package com.fabiankevin.app.models.budgets;
 
-import com.fabiankevin.app.models.Category;
 import lombok.Builder;
 
 import java.time.Instant;
@@ -12,8 +11,9 @@ public record BudgetSummary(
         UUID userId,
         UUID lastUpdatedBy,
         BudgetPeriod period,
-        Category category,
-        String icon,
+        UUID categoryId,
+        String categoryName,
+        String categoryIcon,
         double allocated,
         double spent,
         double spentPercentage,
