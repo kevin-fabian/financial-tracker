@@ -2,7 +2,6 @@ package com.fabiankevin.app.models.budgets;
 
 import lombok.Builder;
 
-import java.time.Instant;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
@@ -16,7 +15,5 @@ public record BudgetSummary(
         String categoryIcon,
         double allocated,
         double spent,
-        double spentPercentage,
-        Instant createdAt,
-        Instant updatedAt) {
+        double spentPercentage) {
 }

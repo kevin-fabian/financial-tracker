@@ -5,7 +5,6 @@ import com.fabiankevin.app.models.budgets.BudgetSummary;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
-import java.time.Instant;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
@@ -26,11 +25,7 @@ public record BudgetSummaryResponse(
         @Schema(description = "Amount spent against the budget", example = "200.0")
         double spent,
         @Schema(description = "Percentage of allocation spent", example = "40.0")
-        double spentPercentage,
-        @Schema(description = "Timestamp when the budget was created")
-        Instant createdAt,
-        @Schema(description = "Timestamp when the budget was last updated")
-        Instant updatedAt
+        double spentPercentage
 ) {
     public static BudgetSummaryResponse from(BudgetSummary summary) {
         return BudgetSummaryResponse.builder()
@@ -42,8 +37,6 @@ public record BudgetSummaryResponse(
                 .allocated(summary.allocated())
                 .spent(summary.spent())
                 .spentPercentage(summary.spentPercentage())
-                .createdAt(summary.createdAt())
-                .updatedAt(summary.updatedAt())
                 .build();
     }
 }

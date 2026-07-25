@@ -148,8 +148,6 @@ class DefaultBudgetServiceTest {
                     .allocated(500.0)
                     .spent(200.0)
                     .spentPercentage(40.0)
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
                     .build();
 
             when(budgetRepository.findAllBudgetSummaryByUserId(List.of(userId))).thenReturn(List.of(summary));

@@ -167,8 +167,6 @@ class BudgetControllerTest {
                             .allocated(500.0)
                             .spent(200.0)
                             .spentPercentage(40.0)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
                             .build()));
 
             mockMvc.perform(get("/api/budgets")
@@ -182,9 +180,7 @@ class BudgetControllerTest {
                     .andExpect(jsonPath("$[0].categoryIcon").value("local_grocery_store"))
                     .andExpect(jsonPath("$[0].allocated").value(500.0))
                     .andExpect(jsonPath("$[0].spent").value(200.0))
-                    .andExpect(jsonPath("$[0].spentPercentage").value(40.0))
-                    .andExpect(jsonPath("$[0].createdAt").exists())
-                    .andExpect(jsonPath("$[0].updatedAt").exists());
+                    .andExpect(jsonPath("$[0].spentPercentage").value(40.0));
 
             verify(budgetService, times(1)).getBudgetsByUserId(userId);
         }
