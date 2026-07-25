@@ -12,6 +12,7 @@ public record BudgetSummary(
         UUID userId,
         UUID lastUpdatedBy,
         String name,
+        BudgetPeriod period,
         Category category,
         String icon,
         double allocated,
