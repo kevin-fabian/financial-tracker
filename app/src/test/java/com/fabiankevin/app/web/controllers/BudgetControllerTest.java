@@ -5,7 +5,9 @@ import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.services.BudgetService;
 import com.fabiankevin.app.services.commands.budgets.CreateBudgetCommand;
+import com.fabiankevin.app.services.commands.budgets.PatchBudgetCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateBudgetRequest;
+import com.fabiankevin.app.web.controllers.dtos.PatchBudgetRequest;
 import com.github.fabiankevin.lemon.web.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -26,8 +28,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ActiveProfiles("test")
@@ -111,6 +112,26 @@ class BudgetControllerTest {
         }
 
         @Test
+        void givenCategoryNotFound_thenShouldReturnNotFound() throws Exception {
+            CreateBudgetRequest request = CreateBudgetRequest.builder()
+                    .period(BudgetPeriod.MONTHLY)
+                    .categoryId(UUID.randomUUID())
+                    .allocated(500.0)
+                    .build();
+
+            doThrow(new com.fabiankevin.app.exceptions.CategoryNotFoundException())
+                    .when(budgetService).createBudget(any());
+
+            mockMvc.perform(post("/api/budgets")
+                            .with(jwt().jwt(jwt))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound());
+
+            verify(budgetService, times(1)).createBudget(any());
+        }
+
+        @Test
         void givenNoJwt_thenShouldReturnForbidden() throws Exception {
             CreateBudgetRequest request = CreateBudgetRequest.builder()
                     .period(BudgetPeriod.MONTHLY)
@@ -174,6 +195,80 @@ class BudgetControllerTest {
                     .andExpect(status().isUnauthorized());
 
             verifyNoInteractions(budgetService);
+        }
+    }
+
+    @Nested
+    class PatchBudget {
+        @Test
+        void givenValidRequest_thenShouldReturnUpdatedBudget() throws Exception {
+            UUID id = UUID.randomUUID();
+            UUID userId = UUID.fromString(jwt.getSubject());
+            UUID categoryId = UUID.randomUUID();
+
+            PatchBudgetRequest request = PatchBudgetRequest.builder()
+                    .period(BudgetPeriod.YEARLY)
+                    .allocated(1000.0)
+                    .build();
+
+            when(budgetService.patchBudget(any())).thenAnswer(invocation -> {
+                PatchBudgetCommand command = invocation.getArgument(0);
+                return Budget.builder()
+                        .id(command.id())
+                        .userId(userId)
+                        .lastUpdatedBy(userId)
+                        .period(command.period())
+                        .category(com.fabiankevin.app.models.Category.builder()
+                                .id(categoryId)
+                                .name("GROCERIES")
+                                .type(com.fabiankevin.app.models.enums.TransactionType.EXPENSE)
+                                .userId(userId)
+                                .icon("local_grocery_store")
+                                .active(true)
+                                .createdAt(Instant.now())
+                                .updatedAt(Instant.now())
+                                .build())
+                        .allocated(command.allocated())
+                        .createdAt(Instant.now())
+                        .updatedAt(Instant.now())
+                        .build();
+            });
+
+            mockMvc.perform(patch("/api/budgets/" + id)
+                            .with(jwt().jwt(jwt))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(id.toString()))
+                    .andExpect(jsonPath("$.period").value("YEARLY"))
+                    .andExpect(jsonPath("$.categoryId").value(categoryId.toString()))
+                    .andExpect(jsonPath("$.categoryName").value("GROCERIES"))
+                    .andExpect(jsonPath("$.categoryIcon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$.allocated").value(1000.0))
+                    .andExpect(jsonPath("$.createdAt").exists())
+                    .andExpect(jsonPath("$.updatedAt").exists());
+
+            verify(budgetService, times(1)).patchBudget(any());
+        }
+
+        @Test
+        void givenBudgetNotFound_thenShouldReturnNotFound() throws Exception {
+            UUID id = UUID.randomUUID();
+
+            PatchBudgetRequest request = PatchBudgetRequest.builder()
+                    .allocated(1000.0)
+                    .build();
+
+            doThrow(new com.fabiankevin.app.exceptions.BudgetNotFoundException())
+                    .when(budgetService).patchBudget(any());
+
+            mockMvc.perform(patch("/api/budgets/" + id)
+                            .with(jwt().jwt(jwt))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound());
+
+            verify(budgetService, times(1)).patchBudget(any());
         }
     }
 }

@@ -29,6 +29,16 @@ public class DefaultBudgetRepository implements BudgetRepository {
     }
 
     @Override
+    public Optional<Budget> findByIdAndUserId(UUID id, UUID userId) {
+        return jpaBudgetRepository.findByIdAndUserId(id, userId).map(BudgetEntity::toModel);
+    }
+
+    @Override
+    public boolean existsByCategoryIdAndUserId(UUID categoryId, UUID userId) {
+        return jpaBudgetRepository.existsByCategoryIdAndUserId(categoryId, userId);
+    }
+
+    @Override
     public List<BudgetSummary> findAllBudgetSummaryByUserId(List<UUID> usersId) {
         return jpaBudgetRepository.findAllBudgetSummaryByUserIds(usersId)
                 .stream()

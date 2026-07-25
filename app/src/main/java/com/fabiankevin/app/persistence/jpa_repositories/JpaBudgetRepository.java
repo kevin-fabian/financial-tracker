@@ -8,9 +8,14 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.util.Streamable;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface JpaBudgetRepository extends JpaRepository<BudgetEntity, UUID> {
+
+    Optional<BudgetEntity> findByIdAndUserId(UUID id, UUID userId);
+
+    boolean existsByCategoryIdAndUserId(UUID categoryId, UUID userId);
 
     @Query("""
                 SELECT b.id, b.userId, b.lastUpdatedBy, STR(b.period), b.allocated as allocated,

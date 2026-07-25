@@ -12,5 +12,9 @@ public interface BudgetRepository {
 
     Optional<Budget> findById(UUID id);
 
+    Optional<Budget> findByIdAndUserId(UUID id, UUID userId);
+
+    boolean existsByCategoryIdAndUserId(UUID categoryId, UUID userId);
+
     List<BudgetSummary> findAllBudgetSummaryByUserId(List<UUID> usersId);
 }
