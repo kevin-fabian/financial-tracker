@@ -16,5 +16,7 @@ public interface BudgetRepository {
 
     boolean existsByCategoryIdAndUserId(UUID categoryId, UUID userId);
 
+    int deleteByIdAndUserId(UUID id, UUID userId);
+
     List<BudgetSummary> findAllBudgetSummaryByUserId(List<UUID> usersId);
 }

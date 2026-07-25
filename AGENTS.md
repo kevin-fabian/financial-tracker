@@ -66,7 +66,7 @@ Enums (`models/enums/`): `SummaryType`, `TransactionType`, `AccountType`, `Accou
 ## Security & API
 
 - API versioning via `spring.mvc.apiversion` with `X-API-VERSION` header; default `v1`.
-- `ResourceServerConfig` maps JWT `scope` → raw authority (e.g. `WRITE`) and JWT `roles` → raw authority (e.g. `USER`, `ADMIN`). No auto-`ROLE_` prefix — token claim values are used verbatim.
+- `Oauth2ResourceServerConfig` maps JWT `scope` → raw authority (e.g. `WRITE`) and JWT `roles` → raw authority (e.g. `USER`, `ADMIN`). No auto-`ROLE_` prefix — token claim values are used verbatim.
 - Role hierarchy: `ADMIN > USER`.
 - Protected endpoints require `USER`: `/api/accounts/**`, `/api/categories/**`, `/api/stats`, `/api/stats*`.
 - User provisioning (`POST /api/users/**`) requires authority `user:provision`.

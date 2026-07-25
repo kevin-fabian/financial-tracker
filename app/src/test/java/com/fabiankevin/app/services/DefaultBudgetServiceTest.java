@@ -301,4 +301,31 @@ class DefaultBudgetServiceTest {
             verify(budgetRepository, never()).save(any());
         }
     }
+
+    @Nested
+    class DeleteBudgetById {
+        @Test
+        void givenExistingBudget_thenDeletesBudget() {
+            UUID userId = UUID.randomUUID();
+            UUID id = UUID.randomUUID();
+
+            when(budgetRepository.deleteByIdAndUserId(id, userId)).thenReturn(1);
+
+            budgetService.deleteBudgetById(id, userId);
+
+            verify(budgetRepository, times(1)).deleteByIdAndUserId(id, userId);
+        }
+
+        @Test
+        void givenNonExistingBudget_thenReturnsWithoutError() {
+            UUID userId = UUID.randomUUID();
+            UUID id = UUID.randomUUID();
+
+            when(budgetRepository.deleteByIdAndUserId(id, userId)).thenReturn(0);
+
+            budgetService.deleteBudgetById(id, userId);
+
+            verify(budgetRepository, times(1)).deleteByIdAndUserId(id, userId);
+        }
+    }
 }

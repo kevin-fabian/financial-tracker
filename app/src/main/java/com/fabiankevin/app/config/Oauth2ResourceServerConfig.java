@@ -20,7 +20,7 @@ import java.util.Optional;
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
-public class ResourceServerConfig {
+public class Oauth2ResourceServerConfig {
     private static final String USER_ROLE = "USER";
 
     @Bean
@@ -36,7 +36,8 @@ public class ResourceServerConfig {
                                 "/api/accounts", "/api/accounts/**",
                                 "/api/categories", "/api/categories/**",
                                 "/api/stats", "/api/stats*",
-                                "/api/parties", "/api/party/**").hasAnyAuthority(USER_ROLE)
+                                "/api/parties", "/api/party/**",
+                                "/api/budgets").hasAnyAuthority(USER_ROLE)
                         .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus**").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/**").hasAnyAuthority("user:provision")

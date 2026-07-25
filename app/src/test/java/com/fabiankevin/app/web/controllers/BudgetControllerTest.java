@@ -271,4 +271,31 @@ class BudgetControllerTest {
             verify(budgetService, times(1)).patchBudget(any());
         }
     }
+
+    @Nested
+    class DeleteBudget {
+        @Test
+        void givenExistingBudget_thenShouldReturnNoContent() throws Exception {
+            UUID id = UUID.randomUUID();
+            UUID userId = UUID.fromString(jwt.getSubject());
+
+            doNothing().when(budgetService).deleteBudgetById(id, userId);
+
+            mockMvc.perform(delete("/api/budgets/" + id)
+                            .with(jwt().jwt(jwt)))
+                    .andExpect(status().isNoContent());
+
+            verify(budgetService, times(1)).deleteBudgetById(id, userId);
+        }
+
+        @Test
+        void givenNoJwt_thenShouldReturnForbidden() throws Exception {
+            UUID id = UUID.randomUUID();
+
+            mockMvc.perform(delete("/api/budgets/" + id))
+                    .andExpect(status().isForbidden());
+
+            verifyNoInteractions(budgetService);
+        }
+    }
 }

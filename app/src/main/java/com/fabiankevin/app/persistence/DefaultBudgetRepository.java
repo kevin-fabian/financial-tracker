@@ -39,6 +39,11 @@ public class DefaultBudgetRepository implements BudgetRepository {
     }
 
     @Override
+    public int deleteByIdAndUserId(UUID id, UUID userId) {
+        return jpaBudgetRepository.deleteByIdAndUserId(id, userId);
+    }
+
+    @Override
     public List<BudgetSummary> findAllBudgetSummaryByUserId(List<UUID> usersId) {
         return jpaBudgetRepository.findAllBudgetSummaryByUserIds(usersId)
                 .stream()

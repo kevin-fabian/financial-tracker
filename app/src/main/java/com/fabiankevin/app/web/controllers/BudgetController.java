@@ -76,6 +76,24 @@ public class BudgetController {
     }
 
     @Operation(
+            summary = "Delete a budget",
+            description = "Deletes a budget by id. Returns 204 on success.",
+            responses = {
+                    @ApiResponse(responseCode = "204", description = "No Content - Budget deleted successfully"),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteBudget(
+            @PathVariable UUID id,
+            JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        budgetService.deleteBudgetById(id, userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
             summary = "Retrieve budgets",
             description = "Retrieves a list of budget summaries with aggregated spending for the authenticated user",
             responses = {
