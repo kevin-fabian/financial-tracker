@@ -14,6 +14,7 @@ import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.budgets.CreateBudgetCommand;
+import com.fabiankevin.app.web.controllers.dtos.CreateBudgetRequest;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDate;
 import java.util.Currency;
@@ -34,8 +36,8 @@ import java.util.UUID;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -57,7 +59,8 @@ class BudgetControllerSpringBootTest {
     private TransactionService transactionService;
     @Autowired
     private BudgetService budgetService;
-
+    @Autowired
+    private JsonMapper jsonMapper;
 
     @Nested
     class GetBudgets {
@@ -105,6 +108,78 @@ class BudgetControllerSpringBootTest {
         }
     }
 
+    @Nested
+    class CreateBudget {
+        @Test
+        void givenValidRequest_thenShouldReturnCreated() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+
+            CreateBudgetRequest request = CreateBudgetRequest.builder()
+                    .period(BudgetPeriod.MONTHLY)
+                    .categoryId(category.id())
+                    .allocated(500.0)
+                    .build();
+
+            mockMvc.perform(post("/api/budgets")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/budgets/[-a-f0-9]{36}")))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").isNotEmpty())
+                    .andExpect(jsonPath("$.period").value("MONTHLY"))
+                    .andExpect(jsonPath("$.categoryId").value(category.id().toString()))
+                    .andExpect(jsonPath("$.categoryName").value("GROCERIES"))
+                    .andExpect(jsonPath("$.categoryIcon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$.allocated").value(500.0))
+                    .andExpect(jsonPath("$.createdAt").exists())
+                    .andExpect(jsonPath("$.updatedAt").exists());
+        }
+
+        @Test
+        void givenCategoryNotFound_thenShouldReturnNotFound() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            CreateBudgetRequest request = CreateBudgetRequest.builder()
+                    .period(BudgetPeriod.MONTHLY)
+                    .categoryId(UUID.randomUUID())
+                    .allocated(500.0)
+                    .build();
+
+            mockMvc.perform(post("/api/budgets")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void givenNoJwt_thenShouldReturnForbidden() throws Exception {
+            CreateBudgetRequest request = CreateBudgetRequest.builder()
+                    .period(BudgetPeriod.MONTHLY)
+                    .categoryId(UUID.randomUUID())
+                    .allocated(500.0)
+                    .build();
+
+            mockMvc.perform(post("/api/budgets")
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isForbidden());
+        }
+    }
 
     private Category createCategory(UUID userId, String name, TransactionType type, String icon) {
         return categoryService.createCategory(CreateCategoryCommand.builder()
