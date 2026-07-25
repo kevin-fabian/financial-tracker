@@ -52,7 +52,6 @@ class DefaultBudgetRepositoryTest {
         budget = Budget.builder()
                 .userId(userId)
                 .lastUpdatedBy(userId)
-                .name("Monthly Groceries")
                 .period(BudgetPeriod.MONTHLY)
                 .category(category)
                 .icon("savings")
@@ -71,7 +70,6 @@ class DefaultBudgetRepositoryTest {
             Budget saved = budgetRepository.save(budget);
 
             assertNotNull(saved.id(), "budget id should have been generated");
-            assertEquals(budget.name(), saved.name(), "name should match");
             assertEquals(budget.period(), saved.period(), "period should match");
             assertEquals(budget.allocated(), saved.allocated(), "allocated should match");
             assertEquals(budget.userId(), saved.userId(), "userId should match");

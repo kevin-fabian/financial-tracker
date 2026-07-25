@@ -31,9 +31,6 @@ public class BudgetEntity {
     @Column(name = "last_updated_by")
     private UUID lastUpdatedBy;
 
-    @Column(nullable = false, length = 128)
-    private String name;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private BudgetPeriod period;
@@ -60,7 +57,6 @@ public class BudgetEntity {
                 .id(budget.id())
                 .userId(budget.userId())
                 .lastUpdatedBy(budget.lastUpdatedBy())
-                .name(budget.name())
                 .period(budget.period())
                 .category(CategoryEntity.from(budget.category()))
                 .icon(budget.icon())
@@ -75,7 +71,6 @@ public class BudgetEntity {
                 this.id,
                 this.userId,
                 this.lastUpdatedBy,
-                this.name,
                 this.period,
                 this.category != null ? this.category.toModel() : null,
                 this.icon,

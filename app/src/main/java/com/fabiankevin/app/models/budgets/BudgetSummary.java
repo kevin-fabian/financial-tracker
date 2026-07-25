@@ -11,12 +11,12 @@ public record BudgetSummary(
         UUID id,
         UUID userId,
         UUID lastUpdatedBy,
-        String name,
         BudgetPeriod period,
         Category category,
         String icon,
         double allocated,
         double spent,
+        double spentPercentage,
         Instant createdAt,
         Instant updatedAt) {
 }

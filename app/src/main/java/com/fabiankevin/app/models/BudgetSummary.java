@@ -8,7 +8,6 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 public record BudgetSummary(
         UUID id,
-        String name,
         Category category,
         String icon,
         String colorPalette,
