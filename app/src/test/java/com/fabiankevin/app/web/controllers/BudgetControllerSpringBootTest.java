@@ -1,5 +1,7 @@
 package com.fabiankevin.app.web.controllers;
 
+import com.fabiankevin.app.services.AccountService;
+import com.fabiankevin.app.services.CategoryService;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -35,6 +37,10 @@ class BudgetControllerSpringBootTest {
     private ClientRegistrationRepository clientRegistrationRepository;
     @MockitoBean
     private OAuth2AuthorizedClientRepository oAuth2AuthorizedClientRepository;
+    @Autowired
+    private CategoryService categoryService;
+    @Autowired
+    private AccountService accountService;
 
     @Nested
     class GetBudgets {
