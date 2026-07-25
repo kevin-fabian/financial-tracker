@@ -39,12 +39,14 @@ class InMemoryUserCategoryProvisionerTest {
         void provision_nullInterests_doesNotCallService() {
             provisioner.provision(null, testUserId);
             verify(categoryService, never()).createCategory(any());
+            verify(categoryService, never()).deleteAllByUserId(any());
         }
 
         @Test
         void provision_emptyInterests_doesNotCallService() {
             provisioner.provision(Set.of(), testUserId);
             verify(categoryService, never()).createCategory(any());
+            verify(categoryService, never()).deleteAllByUserId(any());
         }
 
         @Test
@@ -55,12 +57,14 @@ class InMemoryUserCategoryProvisionerTest {
         }
 
         @Test
-        void provision_knownInterests_callsServiceWithCorrectCommands() {
+        void provision_knownInterests_callsServiceWithCorrectCommandsAndDefaults() {
             Set<String> interests = Set.of("groceries", "bills");
 
             provisioner.provision(interests, testUserId);
 
-            verify(categoryService, times(3)).createCategory(any(CreateCategoryCommand.class));
+            // default (3) + groceries (1) + bills (2) = 6
+            verify(categoryService, times(6)).createCategory(any(CreateCategoryCommand.class));
+            verify(categoryService).deleteAllByUserId(testUserId);
             verify(categoryService).createCategory(eq(CreateCategoryCommand.builder()
                     .name("Groceries")
                     .type(EXPENSE)
@@ -68,9 +72,9 @@ class InMemoryUserCategoryProvisionerTest {
                     .userId(testUserId)
                     .build()));
             verify(categoryService).createCategory(eq(CreateCategoryCommand.builder()
-                    .name("Utilities")
+                    .name("Utilities & Bills")
                     .type(EXPENSE)
-                    .icon("bolt")
+                    .icon("receipt_long")
                     .userId(testUserId)
                     .build()));
             verify(categoryService).createCategory(eq(CreateCategoryCommand.builder()
@@ -82,32 +86,56 @@ class InMemoryUserCategoryProvisionerTest {
         }
 
         @Test
-        void provision_unknownInterests_doesNotCallService() {
+        void provision_unknownInterests_createsDefaultCategories() {
             Set<String> interests = Set.of("unknown_category");
 
             provisioner.provision(interests, testUserId);
 
-            verify(categoryService, never()).createCategory(any());
+            // default (3) categories are always created
+            verify(categoryService, times(3)).createCategory(any(CreateCategoryCommand.class));
+            verify(categoryService).deleteAllByUserId(testUserId);
+            verify(categoryService).createCategory(eq(CreateCategoryCommand.builder()
+                    .name("Food & Dining")
+                    .type(EXPENSE)
+                    .icon("restaurant")
+                    .userId(testUserId)
+                    .build()));
+            verify(categoryService).createCategory(eq(CreateCategoryCommand.builder()
+                    .name("Transportation")
+                    .type(EXPENSE)
+                    .icon("directions_bus")
+                    .userId(testUserId)
+                    .build()));
+            verify(categoryService).createCategory(eq(CreateCategoryCommand.builder()
+                    .name("Side Hustle")
+                    .type(INCOME)
+                    .icon("attach_money")
+                    .userId(testUserId)
+                    .build()));
         }
 
         @Test
-        void provision_mixedInterests_callsServiceOnlyForKnown() {
+        void provision_mixedInterests_callsServiceForKnownAndDefault() {
             Set<String> interests = Set.of("groceries", "unknown", "rent");
 
             provisioner.provision(interests, testUserId);
 
-            verify(categoryService, times(3)).createCategory(any(CreateCategoryCommand.class));
+            // default (3) + groceries (1) + rent (2) = 6
+            verify(categoryService, times(6)).createCategory(any(CreateCategoryCommand.class));
+            verify(categoryService).deleteAllByUserId(testUserId);
         }
 
         @Test
-        void provision_incomeInterests_callsServiceWithIncomeCategories() {
+        void provision_incomeInterests_callsServiceWithIncomeCategoriesAndDefaults() {
             Set<String> interests = Set.of("salary_active", "passive_investments");
 
             provisioner.provision(interests, testUserId);
 
-            verify(categoryService, times(2)).createCategory(any(CreateCategoryCommand.class));
+            // default (3) + salary_active (1) + passive_investments (1) = 5
+            verify(categoryService, times(5)).createCategory(any(CreateCategoryCommand.class));
+            verify(categoryService).deleteAllByUserId(testUserId);
             verify(categoryService).createCategory(eq(CreateCategoryCommand.builder()
-                    .name("Salary")
+                    .name("Salary & Wage")
                     .type(INCOME)
                     .icon("payments")
                     .userId(testUserId)
@@ -121,12 +149,14 @@ class InMemoryUserCategoryProvisionerTest {
         }
 
         @Test
-        void provision_multiCategoryInterests_callsServiceForAllSubCategories() {
+        void provision_multiCategoryInterests_callsServiceForAllSubCategoriesAndDefaults() {
             Set<String> interests = Set.of("shopping", "health_fitness");
 
             provisioner.provision(interests, testUserId);
 
-            verify(categoryService, times(4)).createCategory(any(CreateCategoryCommand.class));
+            // default (3) + shopping (3) + health_fitness (2) = 8
+            verify(categoryService, times(8)).createCategory(any(CreateCategoryCommand.class));
+            verify(categoryService).deleteAllByUserId(testUserId);
         }
 
         @Test
@@ -139,7 +169,10 @@ class InMemoryUserCategoryProvisionerTest {
 
             provisioner.provision(interests, testUserId);
 
-            verify(categoryService, times(19)).createCategory(any(CreateCategoryCommand.class));
+            // default (3) + groceries (1) + bills (2) + rent (2) + entertainment (2) + savings (1) +
+            // shopping (3) + health_fitness (2) + family_pets (3) + debt_loans (2) +
+            // salary_active (1) + business_sales (1) + passive_investments (1) + allowances_gifts (2) = 26
+            verify(categoryService, times(26)).createCategory(any(CreateCategoryCommand.class));
             verify(categoryService, times(1)).deleteAllByUserId(testUserId);
         }
     }
