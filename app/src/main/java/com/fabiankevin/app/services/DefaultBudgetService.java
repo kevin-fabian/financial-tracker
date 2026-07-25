@@ -2,6 +2,7 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.budgets.Budget;
+import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.persistence.BudgetRepository;
 import com.fabiankevin.app.services.commands.budgets.CreateBudgetCommand;
 import jakarta.transaction.Transactional;
@@ -9,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -33,5 +36,10 @@ public class DefaultBudgetService implements BudgetService {
                 .build();
 
         return budgetRepository.save(budget);
+    }
+
+    @Override
+    public List<BudgetSummary> getBudgetsByUserId(UUID userId) {
+        return budgetRepository.findAllBudgetSummaryByUserId(List.of(userId));
     }
 }
