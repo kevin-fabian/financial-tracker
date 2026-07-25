@@ -1,10 +1,21 @@
 package com.fabiankevin.app.web.controllers;
 
+import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.Amount;
+import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.budgets.BudgetPeriod;
+import com.fabiankevin.app.models.enums.AccountType;
+import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.AccountService;
+import com.fabiankevin.app.services.BudgetService;
 import com.fabiankevin.app.services.CategoryService;
+import com.fabiankevin.app.services.TransactionService;
+import com.fabiankevin.app.services.commands.AddTransactionCommand;
+import com.fabiankevin.app.services.commands.CreateAccountCommand;
+import com.fabiankevin.app.services.commands.CreateCategoryCommand;
+import com.fabiankevin.app.services.commands.budgets.CreateBudgetCommand;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -16,18 +27,19 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDate;
+import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class BudgetControllerSpringBootTest {
     @Autowired
     private MockMvc mockMvc;
@@ -41,6 +53,11 @@ class BudgetControllerSpringBootTest {
     private CategoryService categoryService;
     @Autowired
     private AccountService accountService;
+    @Autowired
+    private TransactionService transactionService;
+    @Autowired
+    private BudgetService budgetService;
+
 
     @Nested
     class GetBudgets {
@@ -51,12 +68,78 @@ class BudgetControllerSpringBootTest {
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
-                                    .audience(List.of("zeny-app-password"))
-                                    .claim("sub", userId)
-                                    .claim("scope", List.of())
-                            )))
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
                     .andExpect(status().isOk())
-                    .andExpect(content().string("[]"));
+                    .andExpect(jsonPath("$.length()").value(0));
         }
+
+        @Test
+        void givenBudgetWithTransactions_thenShouldReturnSummaryWithSpent() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Account account = createAccount(userId, "Cash Wallet");
+            createTransaction(account, category, 150.0);
+            createTransaction(account, category, 50.0);
+            createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+
+            mockMvc.perform(get("/api/budgets")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].period").value("MONTHLY"))
+                    .andExpect(jsonPath("$[0].categoryId").value(category.id().toString()))
+                    .andExpect(jsonPath("$[0].categoryName").value("GROCERIES"))
+                    .andExpect(jsonPath("$[0].categoryIcon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$[0].allocated").value(500.0))
+                    .andExpect(jsonPath("$[0].spent").value(200.0))
+                    .andExpect(jsonPath("$[0].spentPercentage").value(40.0));
+        }
+    }
+
+
+    private Category createCategory(UUID userId, String name, TransactionType type, String icon) {
+        return categoryService.createCategory(CreateCategoryCommand.builder()
+                .name(name)
+                .type(type)
+                .icon(icon)
+                .userId(userId)
+                .build());
+    }
+
+    private Account createAccount(UUID userId, String name) {
+        return accountService.createAccount(CreateAccountCommand.builder()
+                .name(name)
+                .currency(Currency.getInstance("USD"))
+                .type(AccountType.CASH)
+                .userId(userId)
+                .build());
+    }
+
+    private void createTransaction(Account account, Category category, double amount) {
+        transactionService.addTransaction(AddTransactionCommand.builder()
+                .amount(Amount.of(amount, "USD"))
+                .transactionDate(LocalDate.now())
+                .categoryId(category.id())
+                .accountId(account.id())
+                .userId(account.userId())
+                .build());
+    }
+
+    private void createBudget(UUID userId, Category category, BudgetPeriod period, double allocated) {
+        budgetService.createBudget(CreateBudgetCommand.builder()
+                .userId(userId)
+                .period(period)
+                .categoryId(category.id())
+                .allocated(allocated)
+                .build());
     }
 }
