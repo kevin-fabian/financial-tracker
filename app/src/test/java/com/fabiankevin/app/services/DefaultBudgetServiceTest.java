@@ -11,6 +11,7 @@ import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.BudgetRepository;
+import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.budgets.CreateBudgetCommand;
 import com.fabiankevin.app.services.commands.budgets.PatchBudgetCommand;
 import org.junit.jupiter.api.Nested;
@@ -37,6 +38,9 @@ import static org.mockito.Mockito.*;
 class DefaultBudgetServiceTest {
     @Mock
     private BudgetRepository budgetRepository;
+
+    @Mock
+    private TransactionRepository transactionRepository;
 
     @Mock
     private CategoryService categoryService;

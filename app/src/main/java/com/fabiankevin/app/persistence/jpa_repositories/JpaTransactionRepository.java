@@ -149,4 +149,12 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
     Streamable<SummaryPointProjection> getDailyAveragePastWeek(
             @Param("userIds") Set<UUID> userIds,
             @Param("startDate") LocalDate startDate);
+
+    @Query("""
+            SELECT COALESCE(SUM(t.amount), 0.0)
+            FROM TransactionEntity t
+            WHERE t.category.id = :categoryId
+              AND t.account.userId = :userId
+            """)
+    double sumSpentByCategoryIdAndUserId(@Param("categoryId") UUID categoryId, @Param("userId") UUID userId);
 }

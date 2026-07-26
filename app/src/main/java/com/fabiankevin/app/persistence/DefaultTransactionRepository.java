@@ -148,4 +148,9 @@ public class DefaultTransactionRepository implements TransactionRepository {
                 page.isFirst()
         );
     }
+
+    @Override
+    public double sumSpentByCategoryIdAndUserId(UUID categoryId, UUID userId) {
+        return jpaTransactionRepository.sumSpentByCategoryIdAndUserId(categoryId, userId);
+    }
 }

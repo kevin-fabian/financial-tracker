@@ -184,6 +184,48 @@ class BudgetControllerSpringBootTest {
         }
 
         @Test
+        void givenCategoryWithExistingTransactions_thenShouldReturnSummaryWithSpent() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Account account = createAccount(userId, "Cash Wallet");
+            createTransaction(account, category, 150.0);
+            createTransaction(account, category, 50.0);
+
+            CreateBudgetRequest request = CreateBudgetRequest.builder()
+                    .period(BudgetPeriod.MONTHLY)
+                    .categoryId(category.id())
+                    .allocated(500.0)
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(post("/api/budgets")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/budgets/[-a-f0-9]{36}")))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").isNotEmpty())
+                    .andExpect(jsonPath("$.lastUpdatedByName").value("John Doe"))
+                    .andExpect(jsonPath("$.updatedAt").exists())
+                    .andExpect(jsonPath("$.createdAt").exists())
+                    .andExpect(jsonPath("$.period").value("MONTHLY"))
+                    .andExpect(jsonPath("$.categoryId").value(category.id().toString()))
+                    .andExpect(jsonPath("$.categoryName").value("GROCERIES"))
+                    .andExpect(jsonPath("$.categoryIcon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$.allocated").value(500.0))
+                    .andExpect(jsonPath("$.spent").value(200.0))
+                    .andExpect(jsonPath("$.spentPercentage").value(40.0));
+        }
+
+        @Test
         void givenExistingBudgetFromLastMonth_thenCreatingNewBudgetForSameCategoryShouldBeAllowed() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");

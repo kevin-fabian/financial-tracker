@@ -8,6 +8,7 @@ import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.persistence.BudgetRepository;
+import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.budgets.CreateBudgetCommand;
 import com.fabiankevin.app.services.commands.budgets.PatchBudgetCommand;
 import jakarta.transaction.Transactional;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DefaultBudgetService implements BudgetService {
     private final BudgetRepository budgetRepository;
+    private final TransactionRepository transactionRepository;
     private final CategoryService categoryService;
     private final UserClient userClient;
 
@@ -50,12 +52,15 @@ public class DefaultBudgetService implements BudgetService {
                 .build();
 
         Budget saved = budgetRepository.save(budget);
-        return toSummary(saved);
+        double spent = transactionRepository.sumSpentByCategoryIdAndUserId(saved.category().id(), saved.userId());
+        return toSummary(saved, spent);
     }
 
-    private BudgetSummary toSummary(Budget budget) {
+    private BudgetSummary toSummary(Budget budget, double spent) {
         User user = userClient.getUsersByIds(List.of(budget.userId())).stream().findFirst().orElse(null);
         String lastUpdatedByName = user != null ? user.fullName() : null;
+        double allocated = budget.allocated();
+        double spentPercentage = allocated > 0 ? (spent / allocated) * 100.0 : 0.0;
 
         return BudgetSummary.builder()
                 .id(budget.id())
@@ -69,9 +74,9 @@ public class DefaultBudgetService implements BudgetService {
                 .categoryName(budget.category().name())
                 .categoryIcon(budget.category().icon())
                 .members(List.of())
-                .allocated(budget.allocated())
-                .spent(0.0)
-                .spentPercentage(0.0)
+                .allocated(allocated)
+                .spent(spent)
+                .spentPercentage(spentPercentage)
                 .build();
     }
 
@@ -148,7 +153,7 @@ public class DefaultBudgetService implements BudgetService {
                 .ifPresent(builder::allocated);
 
         Budget saved = budgetRepository.save(builder.build());
-        return toSummary(saved);
+        return toSummary(saved, 0.0);
     }
 
     @Transactional
