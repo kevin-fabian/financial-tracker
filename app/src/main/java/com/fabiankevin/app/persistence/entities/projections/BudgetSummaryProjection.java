@@ -11,6 +11,7 @@ public record BudgetSummaryProjection(
         UUID userId,
         UUID lastUpdatedBy,
         Instant updatedAt,
+        Instant createdAt,
         String period,
         double allocated,
         UUID categoryId,

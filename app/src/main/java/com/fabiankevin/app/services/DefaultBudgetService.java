@@ -63,6 +63,7 @@ public class DefaultBudgetService implements BudgetService {
                 .lastUpdatedBy(budget.lastUpdatedBy())
                 .lastUpdatedByName(lastUpdatedByName)
                 .updatedAt(budget.updatedAt())
+                .createdAt(budget.createdAt())
                 .period(budget.period())
                 .categoryId(budget.category().id())
                 .categoryName(budget.category().name())

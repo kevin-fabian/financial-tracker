@@ -75,6 +75,7 @@ public class DefaultBudgetRepository implements BudgetRepository {
                 .userId(projection.userId())
                 .lastUpdatedBy(projection.lastUpdatedBy())
                 .updatedAt(projection.updatedAt())
+                .createdAt(projection.createdAt())
                 .period(BudgetPeriod.valueOf(projection.period()))
                 .allocated(allocated)
                 .categoryId(projection.categoryId())
