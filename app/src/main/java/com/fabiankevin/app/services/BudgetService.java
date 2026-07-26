@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface BudgetService {
-    Budget createBudget(CreateBudgetCommand command);
+    BudgetSummary createBudget(CreateBudgetCommand command);
 
     List<BudgetSummary> getBudgetsByUserId(UUID userId);
 

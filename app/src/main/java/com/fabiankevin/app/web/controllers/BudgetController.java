@@ -35,18 +35,18 @@ public class BudgetController {
             description = "Creates a new budget for the authenticated user and returns the created object",
             responses = {
                     @ApiResponse(responseCode = "201", description = "Created - Budget created successfully",
-                            content = @Content(schema = @Schema(implementation = BudgetResponse.class))),
+                            content = @Content(schema = @Schema(implementation = BudgetSummaryResponse.class))),
                     @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
                     @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
             }
     )
     @PostMapping
-    public ResponseEntity<BudgetResponse> createBudget(
+    public ResponseEntity<BudgetSummaryResponse> createBudget(
             @Valid @RequestBody CreateBudgetRequest request,
             JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        Budget created = budgetService.createBudget(request.toCommand(userId));
-        BudgetResponse response = BudgetResponse.from(created);
+        BudgetSummary created = budgetService.createBudget(request.toCommand(userId));
+        BudgetSummaryResponse response = BudgetSummaryResponse.from(created);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(response.id())

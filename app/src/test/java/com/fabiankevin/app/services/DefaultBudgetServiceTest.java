@@ -49,7 +49,7 @@ class DefaultBudgetServiceTest {
     @Nested
     class CreateBudget {
         @Test
-        void givenValidCommand_thenCreatesAndReturnsBudget() {
+        void givenValidCommand_thenCreatesAndReturnsBudgetSummary() {
             UUID userId = UUID.randomUUID();
             UUID categoryId = UUID.randomUUID();
             Category category = Category.builder()
@@ -69,26 +69,33 @@ class DefaultBudgetServiceTest {
                     .allocated(500.0)
                     .build();
 
+            UUID generatedId = UUID.randomUUID();
             when(categoryService.getCategoryById(categoryId, userId)).thenReturn(category);
             when(budgetRepository.save(any())).thenAnswer(invocation -> {
                 Budget b = invocation.getArgument(0);
-                return b.toBuilder().id(UUID.randomUUID()).build();
+                return b.toBuilder().id(generatedId).build();
             });
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
 
-            Budget created = budgetService.createBudget(command);
+            BudgetSummary created = budgetService.createBudget(command);
 
-            assertNotNull(created.id(), "budget id should have been generated");
+            assertEquals(generatedId, created.id(), "budget id should have been generated");
             assertEquals(userId, created.userId(), "userId should match command");
             assertEquals(userId, created.lastUpdatedBy(), "lastUpdatedBy should be set to userId");
-            assertEquals(BudgetPeriod.MONTHLY, created.period(), "period should match command");
-            assertEquals(category, created.category(), "category should be resolved from service");
-            assertEquals("local_grocery_store", created.category().icon(), "categoryIcon should match command");
-            assertEquals(500.0, created.allocated(), "allocated should match command");
-            assertNotNull(created.createdAt(), "createdAt should not be null");
+            assertEquals("John Doe", created.lastUpdatedByName(), "lastUpdatedByName should be enriched from UserClient");
             assertNotNull(created.updatedAt(), "updatedAt should not be null");
+            assertEquals(BudgetPeriod.MONTHLY, created.period(), "period should match command");
+            assertEquals(categoryId, created.categoryId(), "categoryId should be resolved from category");
+            assertEquals("GROCERIES", created.categoryName(), "categoryName should be resolved from category");
+            assertEquals("local_grocery_store", created.categoryIcon(), "categoryIcon should be resolved from category");
+            assertEquals(500.0, created.allocated(), "allocated should match command");
+            assertEquals(0.0, created.spent(), "spent should be zero for a newly created budget");
+            assertEquals(0.0, created.spentPercentage(), "spentPercentage should be zero for a newly created budget");
 
             verify(categoryService, times(1)).getCategoryById(categoryId, userId);
             verify(budgetRepository, times(1)).save(any());
+            verify(userClient, times(1)).getUsersByIds(List.of(userId));
         }
 
         @Test

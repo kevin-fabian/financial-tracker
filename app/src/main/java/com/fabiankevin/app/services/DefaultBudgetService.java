@@ -15,10 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -31,7 +28,7 @@ public class DefaultBudgetService implements BudgetService {
 
     @Transactional
     @Override
-    public Budget createBudget(CreateBudgetCommand command) {
+    public BudgetSummary createBudget(CreateBudgetCommand command) {
         if (budgetRepository.existsByCategoryIdAndUserId(command.categoryId(), command.userId())) {
             throw new BudgetAlreadyExistException("A budget already exists for this category");
         }
@@ -49,7 +46,26 @@ public class DefaultBudgetService implements BudgetService {
                 .updatedAt(now)
                 .build();
 
-        return budgetRepository.save(budget);
+        Budget saved = budgetRepository.save(budget);
+
+        User user = userClient.getUsersByIds(List.of(saved.userId())).stream().findFirst().orElse(null);
+        String lastUpdatedByName = user != null ? user.fullName() : null;
+
+        return BudgetSummary.builder()
+                .id(saved.id())
+                .userId(saved.userId())
+                .lastUpdatedBy(saved.lastUpdatedBy())
+                .lastUpdatedByName(lastUpdatedByName)
+                .updatedAt(saved.updatedAt())
+                .period(saved.period())
+                .categoryId(saved.category().id())
+                .categoryName(saved.category().name())
+                .categoryIcon(saved.category().icon())
+                .members(List.of())
+                .allocated(saved.allocated())
+                .spent(0.0)
+                .spentPercentage(0.0)
+                .build();
     }
 
     @Override
@@ -59,14 +75,13 @@ public class DefaultBudgetService implements BudgetService {
     }
 
     private List<BudgetSummary> enrichWithLastUpdatedByName(List<BudgetSummary> summaries) {
-        List<UUID> lastUpdatedByIds = summaries.stream()
+        Set<UUID> lastUpdatedByIds = summaries.stream()
                 .map(BudgetSummary::lastUpdatedBy)
-                .distinct()
-                .toList();
+                .collect(Collectors.toSet());
 
         Map<UUID, User> usersById = lastUpdatedByIds.isEmpty()
                 ? Map.of()
-                : userClient.getUsersByIds(lastUpdatedByIds).stream()
+                : userClient.getUsersByIds(new ArrayList<>(lastUpdatedByIds)).stream()
                 .collect(Collectors.toMap(User::id, Function.identity()));
 
         return summaries.stream()

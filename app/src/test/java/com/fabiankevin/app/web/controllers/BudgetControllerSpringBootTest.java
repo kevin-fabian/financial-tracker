@@ -5,8 +5,8 @@ import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Amount;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
-import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetPeriod;
+import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.AccountService;
@@ -146,6 +146,9 @@ class BudgetControllerSpringBootTest {
                     .allocated(500.0)
                     .build();
 
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
             mockMvc.perform(post("/api/budgets")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -159,13 +162,15 @@ class BudgetControllerSpringBootTest {
                     .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/budgets/[-a-f0-9]{36}")))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.id").isNotEmpty())
+                    .andExpect(jsonPath("$.lastUpdatedByName").value("John Doe"))
+                    .andExpect(jsonPath("$.updatedAt").exists())
                     .andExpect(jsonPath("$.period").value("MONTHLY"))
                     .andExpect(jsonPath("$.categoryId").value(category.id().toString()))
                     .andExpect(jsonPath("$.categoryName").value("GROCERIES"))
                     .andExpect(jsonPath("$.categoryIcon").value("local_grocery_store"))
                     .andExpect(jsonPath("$.allocated").value(500.0))
-                    .andExpect(jsonPath("$.createdAt").exists())
-                    .andExpect(jsonPath("$.updatedAt").exists());
+                    .andExpect(jsonPath("$.spent").value(0.0))
+                    .andExpect(jsonPath("$.spentPercentage").value(0.0));
         }
 
         @Test
@@ -234,7 +239,7 @@ class BudgetControllerSpringBootTest {
         void givenValidRequest_thenShouldReturnUpdatedBudget() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-            Budget budget = createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+            BudgetSummary budget = createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
 
             PatchBudgetRequest request = PatchBudgetRequest.builder()
                     .period(BudgetPeriod.YEARLY)
@@ -312,7 +317,7 @@ class BudgetControllerSpringBootTest {
         void givenExistingBudget_thenShouldReturnNoContent() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-            Budget budget = createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+            BudgetSummary budget = createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
 
             mockMvc.perform(delete("/api/budgets/" + budget.id())
                             .with(jwt()
@@ -377,7 +382,7 @@ class BudgetControllerSpringBootTest {
                 .build());
     }
 
-    private Budget createBudget(UUID userId, Category category, BudgetPeriod period, double allocated) {
+    private BudgetSummary createBudget(UUID userId, Category category, BudgetPeriod period, double allocated) {
         return budgetService.createBudget(CreateBudgetCommand.builder()
                 .userId(userId)
                 .period(period)
