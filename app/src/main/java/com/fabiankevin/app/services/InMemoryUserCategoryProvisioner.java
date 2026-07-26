@@ -18,15 +18,11 @@ public class InMemoryUserCategoryProvisioner implements UserCategoryProvisioner 
     @Transactional
     @Override
     public void provision(Set<String> categoryInterests, UUID userId) {
-        if (categoryInterests == null || categoryInterests.isEmpty()) {
-            return;
-        }
-
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
 
-        Set<String> categoryInterestWithDefault = new HashSet<>(categoryInterests);
+        Set<String> categoryInterestWithDefault = new HashSet<>(Optional.ofNullable(categoryInterests).orElse(Set.of()));
         categoryInterestWithDefault.add("default");
 
         categoryService.deleteAllByUserId(userId);

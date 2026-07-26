@@ -7,34 +7,31 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
-import java.util.stream.Stream;
 
 @Component
 @RequiredArgsConstructor
 public class InMemoryUserAccountProvisioner implements UserAccountProvisioner {
     private final AccountService accountService;
-    private static final Set<String> DEFAULT_ACCOUNTS = Set.of("cash_wallet");
 
     @Transactional
     @Override
     public void provision(Set<String> accountInterests, UUID userId) {
-        if (accountInterests == null || accountInterests.isEmpty()) {
-            return;
-        }
-
         if (userId == null) {
             throw new IllegalArgumentException("User ID cannot be null");
         }
 
+        Set<String> accountInterestsWithDefault = new HashSet<>(Optional.ofNullable(accountInterests).orElse(Set.of()));
+        accountInterestsWithDefault.add("default");
+
         accountService.deleteAllByUserId(userId);
-        Stream.concat(DEFAULT_ACCOUNTS.stream(), accountInterests.stream())
+        accountInterestsWithDefault.stream()
                 .filter(ACCOUNT_INTERESTS_MAPPING::containsKey)
                 .flatMap(interest -> ACCOUNT_INTERESTS_MAPPING.get(interest).stream())
                 .forEach(command -> accountService.createAccount(command.toBuilder().userId(userId).build()));
     }
 
     private static final Map<String, List<CreateAccountCommand>> ACCOUNT_INTERESTS_MAPPING = Map.ofEntries(
-            Map.entry("cash_wallet", List.of(CreateAccountCommand.builder()
+            Map.entry("default", List.of(CreateAccountCommand.builder()
                     .name("Cash Wallet")
                     .currency(Currency.getInstance("PHP"))
                     .type(AccountType.CASH)
