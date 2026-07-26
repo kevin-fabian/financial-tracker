@@ -77,6 +77,28 @@ public class DefaultBudgetService implements BudgetService {
         return enrichWithLastUpdatedByName(summaries);
     }
 
+    @Transactional
+    @Override
+    public List<BudgetSummary> recreateBudgetsFromLastMonth(UUID userId) {
+        ZonedDateTime now = ZonedDateTime.now(ZoneOffset.UTC);
+        Instant lastMonthStart = now.minusMonths(1).withDayOfMonth(1).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant currentMonthStart = now.withDayOfMonth(1).toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant();
+
+        List<Budget> lastMonthBudgets = budgetRepository.findAllByUserIdAndCreatedAtBetween(userId, lastMonthStart, currentMonthStart);
+
+        return lastMonthBudgets.stream()
+                .map(budget -> {
+                    CreateBudgetCommand command = CreateBudgetCommand.builder()
+                            .userId(userId)
+                            .categoryId(budget.category().id())
+                            .period(budget.period())
+                            .allocated(budget.allocated())
+                            .build();
+                    return createBudget(command);
+                })
+                .toList();
+    }
+
     private List<BudgetSummary> enrichWithLastUpdatedByName(List<BudgetSummary> summaries) {
         Set<UUID> lastUpdatedByIds = summaries.stream()
                 .map(BudgetSummary::lastUpdatedBy)

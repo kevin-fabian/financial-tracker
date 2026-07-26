@@ -23,6 +23,16 @@ public interface JpaBudgetRepository extends JpaRepository<BudgetEntity, UUID> {
     int deleteByIdAndUserId(UUID id, UUID userId);
 
     @Query("""
+                SELECT b FROM BudgetEntity b
+                WHERE b.userId = :userId
+                  AND b.createdAt >= :startInclusive
+                  AND b.createdAt < :endExclusive
+            """)
+    List<BudgetEntity> findAllByUserIdAndCreatedAtBetween(@Param("userId") UUID userId,
+                                                          @Param("startInclusive") Instant startInclusive,
+                                                          @Param("endExclusive") Instant endExclusive);
+
+    @Query("""
                 SELECT b.id, b.userId, b.lastUpdatedBy, b.updatedAt, STR(b.period), b.allocated as allocated,
                        c.id as categoryId, c.name as categoryName, c.icon as categoryIcon,
                        COALESCE(SUM(t.amount), 0) AS spent

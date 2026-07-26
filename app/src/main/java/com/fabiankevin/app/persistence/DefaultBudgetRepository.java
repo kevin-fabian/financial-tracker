@@ -50,6 +50,14 @@ public class DefaultBudgetRepository implements BudgetRepository {
     }
 
     @Override
+    public List<Budget> findAllByUserIdAndCreatedAtBetween(UUID userId, Instant startInclusive, Instant endExclusive) {
+        return jpaBudgetRepository.findAllByUserIdAndCreatedAtBetween(userId, startInclusive, endExclusive)
+                .stream()
+                .map(BudgetEntity::toModel)
+                .toList();
+    }
+
+    @Override
     public List<BudgetSummary> findAllBudgetSummaryByUserId(List<UUID> usersId) {
         return jpaBudgetRepository.findAllBudgetSummaryByUserIds(usersId)
                 .stream()

@@ -21,5 +21,7 @@ public interface BudgetRepository {
 
     int deleteByIdAndUserId(UUID id, UUID userId);
 
+    List<Budget> findAllByUserIdAndCreatedAtBetween(UUID userId, Instant startInclusive, Instant endExclusive);
+
     List<BudgetSummary> findAllBudgetSummaryByUserId(List<UUID> usersId);
 }

@@ -13,6 +13,8 @@ public interface BudgetService {
 
     List<BudgetSummary> getBudgetsByUserId(UUID userId);
 
+    List<BudgetSummary> recreateBudgetsFromLastMonth(UUID userId);
+
     Budget patchBudget(PatchBudgetCommand command);
 
     void deleteBudgetById(UUID id, UUID userId);

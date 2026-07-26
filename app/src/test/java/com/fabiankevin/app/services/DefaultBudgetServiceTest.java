@@ -21,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -196,6 +197,72 @@ class DefaultBudgetServiceTest {
             assertThat(results).isEmpty();
             verify(budgetRepository, times(1)).findAllBudgetSummaryByUserId(List.of(userId));
             verify(userClient, never()).getUsersByIds(any());
+        }
+    }
+
+    @Nested
+    class RecreateBudgetsFromLastMonth {
+        @Test
+        void givenLastMonthHasBudgets_thenRecreatesSameCountForCurrentMonth() {
+            UUID userId = UUID.randomUUID();
+            UUID categoryId = UUID.randomUUID();
+            Category category = Category.builder()
+                    .id(categoryId)
+                    .name("GROCERIES")
+                    .type(TransactionType.EXPENSE)
+                    .userId(userId)
+                    .icon("local_grocery_store")
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            Instant lastMonth = Instant.now().atZone(ZoneOffset.UTC).minusMonths(1).toInstant();
+            Budget lastMonthBudget = Budget.builder()
+                    .id(UUID.randomUUID())
+                    .userId(userId)
+                    .lastUpdatedBy(userId)
+                    .period(BudgetPeriod.MONTHLY)
+                    .category(category)
+                    .allocated(500.0)
+                    .createdAt(lastMonth)
+                    .updatedAt(lastMonth)
+                    .build();
+
+            when(budgetRepository.findAllByUserIdAndCreatedAtBetween(eq(userId), any(Instant.class), any(Instant.class)))
+                    .thenReturn(List.of(lastMonthBudget));
+            when(budgetRepository.existsByCategoryIdAndUserIdAndCreatedAtBetween(eq(categoryId), eq(userId), any(Instant.class), any(Instant.class)))
+                    .thenReturn(false);
+            when(categoryService.getCategoryById(categoryId, userId)).thenReturn(category);
+            when(budgetRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            List<BudgetSummary> results = budgetService.recreateBudgetsFromLastMonth(userId);
+
+            assertThat(results).hasSize(1);
+            BudgetSummary recreated = results.getFirst();
+            assertEquals(categoryId, recreated.categoryId());
+            assertEquals(BudgetPeriod.MONTHLY, recreated.period());
+            assertEquals(500.0, recreated.allocated());
+            assertEquals(0.0, recreated.spent());
+            assertEquals("John Doe", recreated.lastUpdatedByName());
+            verify(budgetRepository, times(1)).findAllByUserIdAndCreatedAtBetween(eq(userId), any(Instant.class), any(Instant.class));
+            verify(budgetRepository, times(1)).save(any());
+        }
+
+        @Test
+        void givenLastMonthHasNoBudgets_thenReturnsEmptyList() {
+            UUID userId = UUID.randomUUID();
+
+            when(budgetRepository.findAllByUserIdAndCreatedAtBetween(eq(userId), any(Instant.class), any(Instant.class)))
+                    .thenReturn(List.of());
+
+            List<BudgetSummary> results = budgetService.recreateBudgetsFromLastMonth(userId);
+
+            assertThat(results).isEmpty();
+            verify(budgetRepository, times(1)).findAllByUserIdAndCreatedAtBetween(eq(userId), any(Instant.class), any(Instant.class));
+            verify(budgetRepository, never()).save(any());
+            verify(categoryService, never()).getCategoryById(any(), any());
         }
     }
 
