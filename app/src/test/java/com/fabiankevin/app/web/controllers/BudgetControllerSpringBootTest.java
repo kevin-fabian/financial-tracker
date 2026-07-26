@@ -127,6 +127,42 @@ class BudgetControllerSpringBootTest {
         }
 
         @Test
+        void givenTransactionsFromLastMonth_thenShouldNotIncludeInSpent() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Account account = createAccount(userId, "Cash Wallet");
+            LocalDate lastMonth = LocalDate.now().minusMonths(1);
+            createTransaction(account, category, 150.0, lastMonth);
+            createTransaction(account, category, 50.0, lastMonth);
+            createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(get("/api/budgets")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].lastUpdatedBy").value(userId.toString()))
+                    .andExpect(jsonPath("$[0].lastUpdatedByName").value("John Doe"))
+                    .andExpect(jsonPath("$[0].createdAt").exists())
+                    .andExpect(jsonPath("$[0].updatedAt").exists())
+                    .andExpect(jsonPath("$[0].period").value("MONTHLY"))
+                    .andExpect(jsonPath("$[0].categoryId").value(category.id().toString()))
+                    .andExpect(jsonPath("$[0].categoryName").value("GROCERIES"))
+                    .andExpect(jsonPath("$[0].categoryIcon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$[0].allocated").value(500.0))
+                    .andExpect(jsonPath("$[0].spent").value(0.0))
+                    .andExpect(jsonPath("$[0].spentPercentage").value(0.0));
+        }
+
+        @Test
         void givenJwtWithNoAuthorities_thenShouldReturnForbidden() throws Exception {
             UUID userId = UUID.randomUUID();
 
@@ -470,9 +506,13 @@ class BudgetControllerSpringBootTest {
     }
 
     private void createTransaction(Account account, Category category, double amount) {
+        createTransaction(account, category, amount, LocalDate.now());
+    }
+
+    private void createTransaction(Account account, Category category, double amount, LocalDate date) {
         transactionService.addTransaction(AddTransactionCommand.builder()
                 .amount(Amount.of(amount, "USD"))
-                .transactionDate(LocalDate.now())
+                .transactionDate(date)
                 .categoryId(category.id())
                 .accountId(account.id())
                 .userId(account.userId())
