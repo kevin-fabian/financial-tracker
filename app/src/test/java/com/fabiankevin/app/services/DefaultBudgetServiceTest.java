@@ -120,7 +120,7 @@ class DefaultBudgetServiceTest {
         }
 
         @Test
-        void givenCategoryAlreadyHasBudget_thenThrowsBudgetAlreadyExistException() {
+        void givenCategoryAlreadyHasBudgetThisMonth_thenThrowsBudgetAlreadyExistException() {
             UUID userId = UUID.randomUUID();
             UUID categoryId = UUID.randomUUID();
 
@@ -131,12 +131,13 @@ class DefaultBudgetServiceTest {
                     .allocated(500.0)
                     .build();
 
-            when(budgetRepository.existsByCategoryIdAndUserId(categoryId, userId)).thenReturn(true);
+            when(budgetRepository.existsByCategoryIdAndUserIdAndCreatedAtBetween(eq(categoryId), eq(userId), any(Instant.class), any(Instant.class)))
+                    .thenReturn(true);
 
             assertThatThrownBy(() -> budgetService.createBudget(command))
                     .isInstanceOf(BudgetAlreadyExistException.class);
 
-            verify(budgetRepository, times(1)).existsByCategoryIdAndUserId(categoryId, userId);
+            verify(budgetRepository, times(1)).existsByCategoryIdAndUserIdAndCreatedAtBetween(eq(categoryId), eq(userId), any(Instant.class), any(Instant.class));
             verify(categoryService, never()).getCategoryById(any(), any());
             verify(budgetRepository, never()).save(any());
         }

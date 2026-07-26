@@ -9,6 +9,7 @@ import com.fabiankevin.app.persistence.jpa_repositories.JpaBudgetRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,6 +37,11 @@ public class DefaultBudgetRepository implements BudgetRepository {
     @Override
     public boolean existsByCategoryIdAndUserId(UUID categoryId, UUID userId) {
         return jpaBudgetRepository.existsByCategoryIdAndUserId(categoryId, userId);
+    }
+
+    @Override
+    public boolean existsByCategoryIdAndUserIdAndCreatedAtBetween(UUID categoryId, UUID userId, Instant startInclusive, Instant endExclusive) {
+        return jpaBudgetRepository.existsByCategoryIdAndUserIdAndCreatedAtBetween(categoryId, userId, startInclusive, endExclusive);
     }
 
     @Override

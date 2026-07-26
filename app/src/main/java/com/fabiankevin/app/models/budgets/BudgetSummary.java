@@ -14,6 +14,7 @@ public record BudgetSummary(
         UUID lastUpdatedBy,
         String lastUpdatedByName,
         Instant updatedAt,
+        String budgetMonth,
         BudgetPeriod period,
         UUID categoryId,
         String categoryName,

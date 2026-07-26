@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.util.Streamable;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -16,6 +17,8 @@ public interface JpaBudgetRepository extends JpaRepository<BudgetEntity, UUID> {
     Optional<BudgetEntity> findByIdAndUserId(UUID id, UUID userId);
 
     boolean existsByCategoryIdAndUserId(UUID categoryId, UUID userId);
+
+    boolean existsByCategoryIdAndUserIdAndCreatedAtBetween(UUID categoryId, UUID userId, Instant startInclusive, Instant endExclusive);
 
     int deleteByIdAndUserId(UUID id, UUID userId);
 

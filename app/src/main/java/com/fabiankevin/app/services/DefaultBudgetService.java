@@ -15,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -29,13 +31,14 @@ public class DefaultBudgetService implements BudgetService {
     @Transactional
     @Override
     public BudgetSummary createBudget(CreateBudgetCommand command) {
-        if (budgetRepository.existsByCategoryIdAndUserId(command.categoryId(), command.userId())) {
-            throw new BudgetAlreadyExistException("A budget already exists for this category");
+        Instant now = Instant.now();
+        ZonedDateTime monthStart = now.atZone(ZoneOffset.UTC).withDayOfMonth(1).toLocalDate().atStartOfDay(ZoneOffset.UTC);
+        if (budgetRepository.existsByCategoryIdAndUserIdAndCreatedAtBetween(
+                command.categoryId(), command.userId(), monthStart.toInstant(), monthStart.plusMonths(1).toInstant())) {
+            throw new BudgetAlreadyExistException("A budget already exists for this category this month");
         }
 
         Category category = categoryService.getCategoryById(command.categoryId(), command.userId());
-
-        Instant now = Instant.now();
         Budget budget = Budget.builder()
                 .userId(command.userId())
                 .lastUpdatedBy(command.userId())

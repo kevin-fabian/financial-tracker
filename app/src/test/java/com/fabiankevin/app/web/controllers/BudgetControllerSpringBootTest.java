@@ -5,10 +5,12 @@ import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Amount;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
+import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
+import com.fabiankevin.app.persistence.BudgetRepository;
 import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.BudgetService;
 import com.fabiankevin.app.services.CategoryService;
@@ -33,7 +35,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
@@ -65,6 +69,8 @@ class BudgetControllerSpringBootTest {
     private TransactionService transactionService;
     @Autowired
     private BudgetService budgetService;
+    @Autowired
+    private BudgetRepository budgetRepository;
     @Autowired
     private JsonMapper jsonMapper;
 
@@ -171,6 +177,45 @@ class BudgetControllerSpringBootTest {
                     .andExpect(jsonPath("$.allocated").value(500.0))
                     .andExpect(jsonPath("$.spent").value(0.0))
                     .andExpect(jsonPath("$.spentPercentage").value(0.0));
+        }
+
+        @Test
+        void givenExistingBudgetFromLastMonth_thenCreatingNewBudgetForSameCategoryShouldBeAllowed() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+
+            Instant lastMonth = Instant.now().atZone(ZoneOffset.UTC).minusMonths(1).toInstant();
+            Budget backdatedBudget = Budget.builder()
+                    .userId(userId)
+                    .lastUpdatedBy(userId)
+                    .period(BudgetPeriod.MONTHLY)
+                    .category(category)
+                    .allocated(300.0)
+                    .createdAt(lastMonth)
+                    .updatedAt(lastMonth)
+                    .build();
+            budgetRepository.save(backdatedBudget);
+
+            CreateBudgetRequest request = CreateBudgetRequest.builder()
+                    .period(BudgetPeriod.MONTHLY)
+                    .categoryId(category.id())
+                    .allocated(500.0)
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(post("/api/budgets")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated());
         }
 
         @Test
