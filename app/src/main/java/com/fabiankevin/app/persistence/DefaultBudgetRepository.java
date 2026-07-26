@@ -60,6 +60,7 @@ public class DefaultBudgetRepository implements BudgetRepository {
                 .id(projection.id())
                 .userId(projection.userId())
                 .lastUpdatedBy(projection.lastUpdatedBy())
+                .updatedAt(projection.updatedAt())
                 .period(BudgetPeriod.valueOf(projection.period()))
                 .allocated(allocated)
                 .categoryId(projection.categoryId())

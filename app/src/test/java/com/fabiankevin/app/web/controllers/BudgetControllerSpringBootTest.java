@@ -108,6 +108,7 @@ class BudgetControllerSpringBootTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(1))
                     .andExpect(jsonPath("$[0].lastUpdatedByName").value("John Doe"))
+                    .andExpect(jsonPath("$[0].updatedAt").exists())
                     .andExpect(jsonPath("$[0].period").value("MONTHLY"))
                     .andExpect(jsonPath("$[0].categoryId").value(category.id().toString()))
                     .andExpect(jsonPath("$[0].categoryName").value("GROCERIES"))

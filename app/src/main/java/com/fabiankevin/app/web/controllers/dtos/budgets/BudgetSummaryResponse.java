@@ -5,6 +5,7 @@ import com.fabiankevin.app.models.budgets.BudgetSummary;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
@@ -14,6 +15,8 @@ public record BudgetSummaryResponse(
         UUID id,
         @Schema(description = "Full name of the user who last updated the budget", example = "John Doe")
         String lastUpdatedByName,
+        @Schema(description = "Timestamp of the last update", example = "2026-07-26T09:00:00Z")
+        Instant updatedAt,
         @Schema(description = "Budget period", example = "MONTHLY")
         BudgetPeriod period,
         @Schema(description = "Category identifier", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
@@ -33,6 +36,7 @@ public record BudgetSummaryResponse(
         return BudgetSummaryResponse.builder()
                 .id(summary.id())
                 .lastUpdatedByName(summary.lastUpdatedByName())
+                .updatedAt(summary.updatedAt())
                 .period(summary.period())
                 .categoryId(summary.categoryId())
                 .categoryName(summary.categoryName())

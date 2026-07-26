@@ -3,6 +3,7 @@ package com.fabiankevin.app.models.budgets;
 import com.fabiankevin.app.models.User;
 import lombok.Builder;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -12,6 +13,7 @@ public record BudgetSummary(
         UUID userId,
         UUID lastUpdatedBy,
         String lastUpdatedByName,
+        Instant updatedAt,
         BudgetPeriod period,
         UUID categoryId,
         String categoryName,
