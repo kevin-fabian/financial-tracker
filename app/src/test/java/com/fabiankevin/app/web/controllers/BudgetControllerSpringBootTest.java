@@ -291,6 +291,9 @@ class BudgetControllerSpringBootTest {
                     .allocated(1000.0)
                     .build();
 
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
             mockMvc.perform(patch("/api/budgets/" + budget.id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -303,13 +306,15 @@ class BudgetControllerSpringBootTest {
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(budget.id().toString()))
+                    .andExpect(jsonPath("$.lastUpdatedByName").value("John Doe"))
+                    .andExpect(jsonPath("$.updatedAt").exists())
                     .andExpect(jsonPath("$.period").value("YEARLY"))
                     .andExpect(jsonPath("$.categoryId").value(category.id().toString()))
                     .andExpect(jsonPath("$.categoryName").value("GROCERIES"))
                     .andExpect(jsonPath("$.categoryIcon").value("local_grocery_store"))
                     .andExpect(jsonPath("$.allocated").value(1000.0))
-                    .andExpect(jsonPath("$.createdAt").exists())
-                    .andExpect(jsonPath("$.updatedAt").exists());
+                    .andExpect(jsonPath("$.spent").value(0.0))
+                    .andExpect(jsonPath("$.spentPercentage").value(0.0));
         }
 
         @Test

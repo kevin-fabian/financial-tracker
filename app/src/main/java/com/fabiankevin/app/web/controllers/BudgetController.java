@@ -1,9 +1,7 @@
 package com.fabiankevin.app.web.controllers;
 
-import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.services.BudgetService;
-import com.fabiankevin.app.web.controllers.dtos.budgets.BudgetResponse;
 import com.fabiankevin.app.web.controllers.dtos.budgets.BudgetSummaryResponse;
 import com.fabiankevin.app.web.controllers.dtos.budgets.CreateBudgetRequest;
 import com.fabiankevin.app.web.controllers.dtos.budgets.PatchBudgetRequest;
@@ -59,20 +57,20 @@ public class BudgetController {
             description = "Updates provided fields of a budget and returns the updated object",
             responses = {
                     @ApiResponse(responseCode = "200", description = "OK - Budget updated successfully",
-                            content = @Content(schema = @Schema(implementation = BudgetResponse.class))),
+                            content = @Content(schema = @Schema(implementation = BudgetSummaryResponse.class))),
                     @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
                     @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
                     @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
             }
     )
     @PatchMapping("/{id}")
-    public BudgetResponse patchBudget(
+    public BudgetSummaryResponse patchBudget(
             @PathVariable UUID id,
             @RequestBody PatchBudgetRequest request,
             JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        Budget updated = budgetService.patchBudget(request.toCommand(id, userId));
-        return BudgetResponse.from(updated);
+        BudgetSummary updated = budgetService.patchBudget(request.toCommand(id, userId));
+        return BudgetSummaryResponse.from(updated);
     }
 
     @Operation(

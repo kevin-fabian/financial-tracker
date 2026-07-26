@@ -1,6 +1,5 @@
 package com.fabiankevin.app.services;
 
-import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.services.commands.budgets.CreateBudgetCommand;
 import com.fabiankevin.app.services.commands.budgets.PatchBudgetCommand;
@@ -15,7 +14,7 @@ public interface BudgetService {
 
     List<BudgetSummary> recreateBudgetsFromLastMonth(UUID userId);
 
-    Budget patchBudget(PatchBudgetCommand command);
+    BudgetSummary patchBudget(PatchBudgetCommand command);
 
     void deleteBudgetById(UUID id, UUID userId);
 }

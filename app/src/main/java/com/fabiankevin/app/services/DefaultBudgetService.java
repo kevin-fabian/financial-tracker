@@ -50,22 +50,25 @@ public class DefaultBudgetService implements BudgetService {
                 .build();
 
         Budget saved = budgetRepository.save(budget);
+        return toSummary(saved);
+    }
 
-        User user = userClient.getUsersByIds(List.of(saved.userId())).stream().findFirst().orElse(null);
+    private BudgetSummary toSummary(Budget budget) {
+        User user = userClient.getUsersByIds(List.of(budget.userId())).stream().findFirst().orElse(null);
         String lastUpdatedByName = user != null ? user.fullName() : null;
 
         return BudgetSummary.builder()
-                .id(saved.id())
-                .userId(saved.userId())
-                .lastUpdatedBy(saved.lastUpdatedBy())
+                .id(budget.id())
+                .userId(budget.userId())
+                .lastUpdatedBy(budget.lastUpdatedBy())
                 .lastUpdatedByName(lastUpdatedByName)
-                .updatedAt(saved.updatedAt())
-                .period(saved.period())
-                .categoryId(saved.category().id())
-                .categoryName(saved.category().name())
-                .categoryIcon(saved.category().icon())
+                .updatedAt(budget.updatedAt())
+                .period(budget.period())
+                .categoryId(budget.category().id())
+                .categoryName(budget.category().name())
+                .categoryIcon(budget.category().icon())
                 .members(List.of())
-                .allocated(saved.allocated())
+                .allocated(budget.allocated())
                 .spent(0.0)
                 .spentPercentage(0.0)
                 .build();
@@ -120,7 +123,7 @@ public class DefaultBudgetService implements BudgetService {
 
     @Transactional
     @Override
-    public Budget patchBudget(PatchBudgetCommand command) {
+    public BudgetSummary patchBudget(PatchBudgetCommand command) {
         UUID id = command.id();
         UUID userId = command.userId();
 
@@ -143,7 +146,8 @@ public class DefaultBudgetService implements BudgetService {
         Optional.ofNullable(command.allocated())
                 .ifPresent(builder::allocated);
 
-        return budgetRepository.save(builder.build());
+        Budget saved = budgetRepository.save(builder.build());
+        return toSummary(saved);
     }
 
     @Transactional

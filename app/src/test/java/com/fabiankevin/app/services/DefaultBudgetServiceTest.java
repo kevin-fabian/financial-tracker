@@ -313,20 +313,28 @@ class DefaultBudgetServiceTest {
             when(budgetRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(existing));
             when(categoryService.getCategoryById(newCategoryId, userId)).thenReturn(newCategory);
             when(budgetRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
 
-            Budget updated = budgetService.patchBudget(command);
+            BudgetSummary updated = budgetService.patchBudget(command);
 
             assertEquals(id, updated.id(), "id should be preserved");
             assertEquals(userId, updated.userId(), "userId should be preserved");
             assertEquals(userId, updated.lastUpdatedBy(), "lastUpdatedBy should be set to userId");
-            assertEquals(BudgetPeriod.YEARLY, updated.period(), "period should be updated");
-            assertEquals(newCategory, updated.category(), "category should be updated");
-            assertEquals(1000.0, updated.allocated(), "allocated should be updated");
+            assertEquals("John Doe", updated.lastUpdatedByName(), "lastUpdatedByName should be enriched from UserClient");
             assertNotNull(updated.updatedAt(), "updatedAt should not be null");
+            assertEquals(BudgetPeriod.YEARLY, updated.period(), "period should be updated");
+            assertEquals(newCategoryId, updated.categoryId(), "categoryId should be updated");
+            assertEquals("RENT", updated.categoryName(), "categoryName should be updated");
+            assertEquals("home", updated.categoryIcon(), "categoryIcon should be updated");
+            assertEquals(1000.0, updated.allocated(), "allocated should be updated");
+            assertEquals(0.0, updated.spent(), "spent should be zero for a patched budget");
+            assertEquals(0.0, updated.spentPercentage(), "spentPercentage should be zero for a patched budget");
 
             verify(budgetRepository, times(1)).findByIdAndUserId(id, userId);
             verify(categoryService, times(1)).getCategoryById(newCategoryId, userId);
             verify(budgetRepository, times(1)).save(any());
+            verify(userClient, times(1)).getUsersByIds(List.of(userId));
         }
 
         @Test
