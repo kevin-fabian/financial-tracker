@@ -1,9 +1,11 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.BudgetAlreadyExistException;
 import com.fabiankevin.app.exceptions.BudgetNotFoundException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
@@ -37,6 +39,9 @@ class DefaultBudgetServiceTest {
 
     @Mock
     private CategoryService categoryService;
+
+    @Mock
+    private UserClient userClient;
 
     @InjectMocks
     private DefaultBudgetService budgetService;
@@ -133,7 +138,7 @@ class DefaultBudgetServiceTest {
     @Nested
     class GetBudgetsByUserId {
         @Test
-        void givenExistingBudgets_thenReturnsSummaries() {
+        void givenExistingBudgets_thenReturnsSummariesEnrichedWithLastUpdatedByName() {
             UUID userId = UUID.randomUUID();
             UUID categoryId = UUID.randomUUID();
 
@@ -150,17 +155,30 @@ class DefaultBudgetServiceTest {
                     .spentPercentage(40.0)
                     .build();
 
+            User user = User.builder()
+                    .id(userId)
+                    .firstName("John")
+                    .lastName("Doe")
+                    .build();
+
             when(budgetRepository.findAllBudgetSummaryByUserId(List.of(userId))).thenReturn(List.of(summary));
+            when(userClient.getUsersByIds(List.of(userId))).thenReturn(List.of(user));
 
             List<BudgetSummary> results = budgetService.getBudgetsByUserId(userId);
 
             assertThat(results).hasSize(1);
-            assertEquals(summary, results.getFirst(), "returned summary should match");
+            BudgetSummary result = results.getFirst();
+            assertEquals(summary.id(), result.id());
+            assertEquals(summary.userId(), result.userId());
+            assertEquals(summary.lastUpdatedBy(), result.lastUpdatedBy());
+            assertEquals("John Doe", result.lastUpdatedByName(), "lastUpdatedByName should be enriched from UserClient");
+            assertEquals(summary.allocated(), result.allocated());
             verify(budgetRepository, times(1)).findAllBudgetSummaryByUserId(List.of(userId));
+            verify(userClient, times(1)).getUsersByIds(List.of(userId));
         }
 
         @Test
-        void givenNoBudgets_thenReturnsEmptyList() {
+        void givenNoBudgets_thenReturnsEmptyListAndDoesNotCallUserClient() {
             UUID userId = UUID.randomUUID();
 
             when(budgetRepository.findAllBudgetSummaryByUserId(List.of(userId))).thenReturn(List.of());
@@ -169,6 +187,7 @@ class DefaultBudgetServiceTest {
 
             assertThat(results).isEmpty();
             verify(budgetRepository, times(1)).findAllBudgetSummaryByUserId(List.of(userId));
+            verify(userClient, never()).getUsersByIds(any());
         }
     }
 

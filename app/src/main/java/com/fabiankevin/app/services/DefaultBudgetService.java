@@ -1,8 +1,10 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.BudgetAlreadyExistException;
 import com.fabiankevin.app.exceptions.BudgetNotFoundException;
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.persistence.BudgetRepository;
@@ -14,14 +16,18 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class DefaultBudgetService implements BudgetService {
     private final BudgetRepository budgetRepository;
     private final CategoryService categoryService;
+    private final UserClient userClient;
 
     @Transactional
     @Override
@@ -48,7 +54,28 @@ public class DefaultBudgetService implements BudgetService {
 
     @Override
     public List<BudgetSummary> getBudgetsByUserId(UUID userId) {
-        return budgetRepository.findAllBudgetSummaryByUserId(List.of(userId));
+        List<BudgetSummary> summaries = budgetRepository.findAllBudgetSummaryByUserId(List.of(userId));
+        return enrichWithLastUpdatedByName(summaries);
+    }
+
+    private List<BudgetSummary> enrichWithLastUpdatedByName(List<BudgetSummary> summaries) {
+        List<UUID> lastUpdatedByIds = summaries.stream()
+                .map(BudgetSummary::lastUpdatedBy)
+                .distinct()
+                .toList();
+
+        Map<UUID, User> usersById = lastUpdatedByIds.isEmpty()
+                ? Map.of()
+                : userClient.getUsersByIds(lastUpdatedByIds).stream()
+                .collect(Collectors.toMap(User::id, Function.identity()));
+
+        return summaries.stream()
+                .map(summary -> {
+                    User user = usersById.get(summary.lastUpdatedBy());
+                    String name = user != null ? user.fullName() : null;
+                    return summary.toBuilder().lastUpdatedByName(name).build();
+                })
+                .toList();
     }
 
     @Transactional

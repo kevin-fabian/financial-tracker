@@ -12,6 +12,8 @@ import java.util.UUID;
 public record BudgetSummaryResponse(
         @Schema(description = "Unique identifier of the budget", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
         UUID id,
+        @Schema(description = "Full name of the user who last updated the budget", example = "John Doe")
+        String lastUpdatedByName,
         @Schema(description = "Budget period", example = "MONTHLY")
         BudgetPeriod period,
         @Schema(description = "Category identifier", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
@@ -30,6 +32,7 @@ public record BudgetSummaryResponse(
     public static BudgetSummaryResponse from(BudgetSummary summary) {
         return BudgetSummaryResponse.builder()
                 .id(summary.id())
+                .lastUpdatedByName(summary.lastUpdatedByName())
                 .period(summary.period())
                 .categoryId(summary.categoryId())
                 .categoryName(summary.categoryName())

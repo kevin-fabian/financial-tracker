@@ -1,8 +1,10 @@
 package com.fabiankevin.app.web.controllers;
 
+import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Amount;
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.enums.AccountType;
@@ -36,6 +38,7 @@ import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
 
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -52,6 +55,8 @@ class BudgetControllerSpringBootTest {
     private ClientRegistrationRepository clientRegistrationRepository;
     @MockitoBean
     private OAuth2AuthorizedClientRepository oAuth2AuthorizedClientRepository;
+    @MockitoBean
+    private UserClient userClient;
     @Autowired
     private CategoryService categoryService;
     @Autowired
@@ -89,6 +94,9 @@ class BudgetControllerSpringBootTest {
             createTransaction(account, category, 50.0);
             createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
 
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
             mockMvc.perform(get("/api/budgets")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -99,6 +107,7 @@ class BudgetControllerSpringBootTest {
                                     )))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].lastUpdatedByName").value("John Doe"))
                     .andExpect(jsonPath("$[0].period").value("MONTHLY"))
                     .andExpect(jsonPath("$[0].categoryId").value(category.id().toString()))
                     .andExpect(jsonPath("$[0].categoryName").value("GROCERIES"))
