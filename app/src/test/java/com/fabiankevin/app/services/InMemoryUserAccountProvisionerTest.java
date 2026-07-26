@@ -36,15 +36,21 @@ class InMemoryUserAccountProvisionerTest {
     class Provision {
 
         @Test
-        void provide_nullInterests_doesNotCallService() {
+        void provide_nullInterests_provisionsDefaultAccount() {
             provider.provision(null, testUserId);
-            verify(accountService, never()).createAccount(any());
+
+            verify(accountService, times(1)).createAccount(any(CreateAccountCommand.class));
+            verify(accountService).createAccount(argThat(acc -> "Cash Wallet".equalsIgnoreCase(acc.name())));
+            verify(accountService, times(1)).deleteAllByUserId(testUserId);
         }
 
         @Test
-        void provide_emptyInterests_doesNotCallService() {
+        void provide_emptyInterests_provisionsDefaultAccount() {
             provider.provision(Set.of(), testUserId);
-            verify(accountService, never()).createAccount(any());
+
+            verify(accountService, times(1)).createAccount(any(CreateAccountCommand.class));
+            verify(accountService).createAccount(argThat(acc -> "Cash Wallet".equalsIgnoreCase(acc.name())));
+            verify(accountService, times(1)).deleteAllByUserId(testUserId);
         }
 
         @Test

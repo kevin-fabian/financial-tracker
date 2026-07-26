@@ -15,7 +15,8 @@ import static com.fabiankevin.app.models.enums.TransactionType.EXPENSE;
 import static com.fabiankevin.app.models.enums.TransactionType.INCOME;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class InMemoryUserCategoryProvisionerTest {
@@ -36,17 +37,55 @@ class InMemoryUserCategoryProvisionerTest {
     class Provision {
 
         @Test
-        void provision_nullInterests_doesNotCallService() {
+        void provision_nullInterests_provisionsDefaultCategories() {
             provisioner.provision(null, testUserId);
-            verify(categoryService, never()).createCategory(any());
-            verify(categoryService, never()).deleteAllByUserId(any());
+
+            verify(categoryService, times(3)).createCategory(any(CreateCategoryCommand.class));
+            verify(categoryService).deleteAllByUserId(testUserId);
+            verify(categoryService).createCategory(eq(CreateCategoryCommand.builder()
+                    .name("Food & Dining")
+                    .type(EXPENSE)
+                    .icon("restaurant")
+                    .userId(testUserId)
+                    .build()));
+            verify(categoryService).createCategory(eq(CreateCategoryCommand.builder()
+                    .name("Transportation")
+                    .type(EXPENSE)
+                    .icon("directions_bus")
+                    .userId(testUserId)
+                    .build()));
+            verify(categoryService).createCategory(eq(CreateCategoryCommand.builder()
+                    .name("Side Hustle")
+                    .type(INCOME)
+                    .icon("attach_money")
+                    .userId(testUserId)
+                    .build()));
         }
 
         @Test
-        void provision_emptyInterests_doesNotCallService() {
+        void provision_emptyInterests_provisionsDefaultCategories() {
             provisioner.provision(Set.of(), testUserId);
-            verify(categoryService, never()).createCategory(any());
-            verify(categoryService, never()).deleteAllByUserId(any());
+
+            verify(categoryService, times(3)).createCategory(any(CreateCategoryCommand.class));
+            verify(categoryService).deleteAllByUserId(testUserId);
+            verify(categoryService).createCategory(eq(CreateCategoryCommand.builder()
+                    .name("Food & Dining")
+                    .type(EXPENSE)
+                    .icon("restaurant")
+                    .userId(testUserId)
+                    .build()));
+            verify(categoryService).createCategory(eq(CreateCategoryCommand.builder()
+                    .name("Transportation")
+                    .type(EXPENSE)
+                    .icon("directions_bus")
+                    .userId(testUserId)
+                    .build()));
+            verify(categoryService).createCategory(eq(CreateCategoryCommand.builder()
+                    .name("Side Hustle")
+                    .type(INCOME)
+                    .icon("attach_money")
+                    .userId(testUserId)
+                    .build()));
         }
 
         @Test
