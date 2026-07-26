@@ -1,4 +1,4 @@
-package com.fabiankevin.app.web.controllers.dtos;
+package com.fabiankevin.app.web.controllers.dtos.budgets;
 
 import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetPeriod;
