@@ -174,7 +174,8 @@ class DefaultBudgetServiceTest {
                     .lastName("Doe")
                     .build();
 
-            when(budgetRepository.findAllBudgetSummaryByUserId(List.of(userId))).thenReturn(List.of(summary));
+            when(budgetRepository.findAllBudgetSummaryByUserId(eq(List.of(userId)), any(Instant.class), any(Instant.class)))
+                    .thenReturn(List.of(summary));
             when(userClient.getUsersByIds(List.of(userId))).thenReturn(List.of(user));
 
             List<BudgetSummary> results = budgetService.getBudgetsByUserId(userId);
@@ -186,7 +187,7 @@ class DefaultBudgetServiceTest {
             assertEquals(summary.lastUpdatedBy(), result.lastUpdatedBy());
             assertEquals("John Doe", result.lastUpdatedByName(), "lastUpdatedByName should be enriched from UserClient");
             assertEquals(summary.allocated(), result.allocated());
-            verify(budgetRepository, times(1)).findAllBudgetSummaryByUserId(List.of(userId));
+            verify(budgetRepository, times(1)).findAllBudgetSummaryByUserId(eq(List.of(userId)), any(Instant.class), any(Instant.class));
             verify(userClient, times(1)).getUsersByIds(List.of(userId));
         }
 
@@ -194,12 +195,13 @@ class DefaultBudgetServiceTest {
         void givenNoBudgets_thenReturnsEmptyListAndDoesNotCallUserClient() {
             UUID userId = UUID.randomUUID();
 
-            when(budgetRepository.findAllBudgetSummaryByUserId(List.of(userId))).thenReturn(List.of());
+            when(budgetRepository.findAllBudgetSummaryByUserId(eq(List.of(userId)), any(Instant.class), any(Instant.class)))
+                    .thenReturn(List.of());
 
             List<BudgetSummary> results = budgetService.getBudgetsByUserId(userId);
 
             assertThat(results).isEmpty();
-            verify(budgetRepository, times(1)).findAllBudgetSummaryByUserId(List.of(userId));
+            verify(budgetRepository, times(1)).findAllBudgetSummaryByUserId(eq(List.of(userId)), any(Instant.class), any(Instant.class));
             verify(userClient, never()).getUsersByIds(any());
         }
     }

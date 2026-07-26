@@ -127,6 +127,41 @@ class BudgetControllerSpringBootTest {
         }
 
         @Test
+        void givenBudgetFromLastMonth_thenShouldOnlyRetrieveCurrentMonthBudget() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+
+            Instant lastMonth = Instant.now().atZone(ZoneOffset.UTC).minusMonths(1).toInstant();
+            Budget lastMonthBudget = Budget.builder()
+                    .userId(userId)
+                    .lastUpdatedBy(userId)
+                    .period(BudgetPeriod.MONTHLY)
+                    .category(category)
+                    .allocated(300.0)
+                    .createdAt(lastMonth)
+                    .updatedAt(lastMonth)
+                    .build();
+            budgetRepository.save(lastMonthBudget);
+
+            createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(get("/api/budgets")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].allocated").value(500.0));
+        }
+
+        @Test
         void givenTransactionsFromLastMonth_thenShouldNotIncludeInSpent() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");

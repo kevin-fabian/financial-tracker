@@ -42,7 +42,11 @@ public interface JpaBudgetRepository extends JpaRepository<BudgetEntity, UUID> {
                     AND YEAR(t.transactionDate) = YEAR(b.createdAt)
                     AND MONTH(t.transactionDate) = MONTH(b.createdAt)
                 WHERE b.userId IN :userIds
+                  AND b.createdAt >= :startInclusive
+                  AND b.createdAt < :endExclusive
                 GROUP BY b.id, c.id
             """)
-    Streamable<BudgetSummaryProjection> findAllBudgetSummaryByUserIds(@Param("userIds") List<UUID> userIds);
+    Streamable<BudgetSummaryProjection> findAllBudgetSummaryByUserIds(@Param("userIds") List<UUID> userIds,
+                                                                       @Param("startInclusive") Instant startInclusive,
+                                                                       @Param("endExclusive") Instant endExclusive);
 }

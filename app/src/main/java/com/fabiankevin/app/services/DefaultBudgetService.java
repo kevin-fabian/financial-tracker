@@ -82,7 +82,10 @@ public class DefaultBudgetService implements BudgetService {
 
     @Override
     public List<BudgetSummary> getBudgetsByUserId(UUID userId) {
-        List<BudgetSummary> summaries = budgetRepository.findAllBudgetSummaryByUserId(List.of(userId));
+        Instant now = Instant.now();
+        ZonedDateTime monthStart = now.atZone(ZoneOffset.UTC).withDayOfMonth(1).toLocalDate().atStartOfDay(ZoneOffset.UTC);
+        List<BudgetSummary> summaries = budgetRepository.findAllBudgetSummaryByUserId(
+                List.of(userId), monthStart.toInstant(), monthStart.plusMonths(1).toInstant());
         return enrichWithLastUpdatedByName(summaries);
     }
 

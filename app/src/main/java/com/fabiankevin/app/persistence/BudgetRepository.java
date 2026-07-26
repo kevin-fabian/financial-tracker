@@ -23,5 +23,5 @@ public interface BudgetRepository {
 
     List<Budget> findAllByUserIdAndCreatedAtBetween(UUID userId, Instant startInclusive, Instant endExclusive);
 
-    List<BudgetSummary> findAllBudgetSummaryByUserId(List<UUID> usersId);
+    List<BudgetSummary> findAllBudgetSummaryByUserId(List<UUID> usersId, Instant startInclusive, Instant endExclusive);
 }

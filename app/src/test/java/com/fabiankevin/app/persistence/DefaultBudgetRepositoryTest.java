@@ -23,6 +23,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -177,7 +179,8 @@ class DefaultBudgetRepositoryTest {
                     .updatedAt(now)
                     .build());
 
-            List<BudgetSummary> results = budgetRepository.findAllBudgetSummaryByUserId(List.of(userId));
+            ZonedDateTime monthStart = Instant.now().atZone(ZoneOffset.UTC).withDayOfMonth(1).toLocalDate().atStartOfDay(ZoneOffset.UTC);
+            List<BudgetSummary> results = budgetRepository.findAllBudgetSummaryByUserId(List.of(userId), monthStart.toInstant(), monthStart.plusMonths(1).toInstant());
 
             Assertions.assertThat(results)
                     .as("should return one budget summary")
@@ -215,7 +218,8 @@ class DefaultBudgetRepositoryTest {
                     .updatedAt(now)
                     .build());
 
-            List<BudgetSummary> results = budgetRepository.findAllBudgetSummaryByUserId(List.of(userId));
+            ZonedDateTime monthStart = Instant.now().atZone(ZoneOffset.UTC).withDayOfMonth(1).toLocalDate().atStartOfDay(ZoneOffset.UTC);
+            List<BudgetSummary> results = budgetRepository.findAllBudgetSummaryByUserId(List.of(userId), monthStart.toInstant(), monthStart.plusMonths(1).toInstant());
 
             Assertions.assertThat(results)
                     .as("should return one budget summary")

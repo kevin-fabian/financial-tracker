@@ -58,8 +58,8 @@ public class DefaultBudgetRepository implements BudgetRepository {
     }
 
     @Override
-    public List<BudgetSummary> findAllBudgetSummaryByUserId(List<UUID> usersId) {
-        return jpaBudgetRepository.findAllBudgetSummaryByUserIds(usersId)
+    public List<BudgetSummary> findAllBudgetSummaryByUserId(List<UUID> usersId, Instant startInclusive, Instant endExclusive) {
+        return jpaBudgetRepository.findAllBudgetSummaryByUserIds(usersId, startInclusive, endExclusive)
                 .stream()
                 .map(this::toSummary)
                 .toList();
