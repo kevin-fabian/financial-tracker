@@ -142,7 +142,7 @@ class DefaultRecurringTransactionServiceTest {
         void givenNonExistentAccount_thenThrowsAccountNotFoundException() {
             when(accountRepository.findById(account.id())).thenReturn(Optional.empty());
 
-            org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.create(command))
+            assertThatThrownBy(() -> service.create(command))
                     .as("should throw AccountNotFoundException when account does not exist")
                     .isInstanceOf(AccountNotFoundException.class);
 
