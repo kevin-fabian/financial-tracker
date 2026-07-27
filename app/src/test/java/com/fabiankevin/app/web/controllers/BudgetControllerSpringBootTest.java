@@ -436,6 +436,46 @@ class BudgetControllerSpringBootTest {
         }
 
         @Test
+        void givenBudgetWithTransactions_thenShouldReturnSummaryWithSpent() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Account account = createAccount(userId, "Cash Wallet");
+            createTransaction(account, category, 150.0);
+            createTransaction(account, category, 50.0);
+            BudgetSummary budget = createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+
+            PatchBudgetRequest request = PatchBudgetRequest.builder()
+                    .allocated(1000.0)
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(patch("/api/budgets/" + budget.id())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(budget.id().toString()))
+                    .andExpect(jsonPath("$.lastUpdatedByName").value("John Doe"))
+                    .andExpect(jsonPath("$.updatedAt").exists())
+                    .andExpect(jsonPath("$.createdAt").exists())
+                    .andExpect(jsonPath("$.period").value("MONTHLY"))
+                    .andExpect(jsonPath("$.categoryId").value(category.id().toString()))
+                    .andExpect(jsonPath("$.categoryName").value("GROCERIES"))
+                    .andExpect(jsonPath("$.categoryIcon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$.allocated").value(1000.0))
+                    .andExpect(jsonPath("$.spent").value(200.0))
+                    .andExpect(jsonPath("$.spentPercentage").value(20.0));
+        }
+
+        @Test
         void givenBudgetNotFound_thenShouldReturnNotFound() throws Exception {
             UUID userId = UUID.randomUUID();
             UUID id = UUID.randomUUID();

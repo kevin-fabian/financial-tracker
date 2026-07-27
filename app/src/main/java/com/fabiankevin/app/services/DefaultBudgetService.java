@@ -156,7 +156,8 @@ public class DefaultBudgetService implements BudgetService {
                 .ifPresent(builder::allocated);
 
         Budget saved = budgetRepository.save(builder.build());
-        return toSummary(saved, 0.0);
+        double spent = transactionRepository.sumSpentByCategoryIdAndUserId(saved.category().id(), saved.userId());
+        return toSummary(saved, spent);
     }
 
     @Transactional
