@@ -13,5 +13,6 @@ public record AddTransactionCommand(
         LocalDate transactionDate,
         UUID categoryId,
         UUID accountId,
-        UUID userId) {
+        UUID userId,
+        UUID recurringTransactionId) {
 }

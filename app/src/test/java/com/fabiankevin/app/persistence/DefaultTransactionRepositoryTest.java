@@ -513,9 +513,10 @@ class DefaultTransactionRepositoryTest {
             CategoryEntity food = createCategory("FOOD", TransactionType.EXPENSE);
             CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
             AccountEntity cash = createAccount("CASH");
+            UUID recurringTransactionId = UUID.randomUUID();
 
             List.of(
-                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 1)).description("expense1").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 1)).description("expense1").recurringTransactionId(recurringTransactionId).build(),
                     AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 2)).description("income1").build(),
                     AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 3)).description("expense2").build()
             ).forEach(transactionService::addTransaction);
@@ -529,6 +530,8 @@ class DefaultTransactionRepositoryTest {
             Assertions.assertThat(page.totalElements()).isEqualTo(2);
             Assertions.assertThat(page.content()).allMatch(t -> t.type() == TransactionType.EXPENSE);
             Assertions.assertThat(page.content()).extracting(Transaction::description).containsExactly("expense1", "expense2");
+            Assertions.assertThat(page.content().get(0).recurringTransactionId()).isEqualTo(recurringTransactionId);
+            Assertions.assertThat(page.content().get(1).recurringTransactionId()).isNull();
 
             verify(jpaTransactionRepository, times(1)).findAllByUserIdsAndType(eq(Set.of(userId)), eq(TransactionType.EXPENSE), any(Pageable.class));
         }

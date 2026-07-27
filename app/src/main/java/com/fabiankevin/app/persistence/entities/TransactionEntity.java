@@ -40,6 +40,7 @@ public class TransactionEntity {
     private String currency;
     private String description;
     private LocalDate transactionDate;
+    private UUID recurringTransactionId;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -53,6 +54,7 @@ public class TransactionEntity {
                 .currency(transaction.amount().currency().getCurrencyCode())
                 .description(transaction.description())
                 .transactionDate(transaction.transactionDate())
+                .recurringTransactionId(transaction.recurringTransactionId())
                 .createdAt(transaction.createdAt())
                 .updatedAt(transaction.updatedAt())
                 .build();
@@ -70,6 +72,7 @@ public class TransactionEntity {
                 ))
                 .description(this.description)
                 .transactionDate(this.transactionDate)
+                .recurringTransactionId(this.recurringTransactionId)
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)
                 .build();

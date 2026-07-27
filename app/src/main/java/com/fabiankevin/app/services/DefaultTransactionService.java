@@ -87,6 +87,7 @@ public class DefaultTransactionService implements TransactionService {
                 .amount(command.amount())
                 .type(category.type())
                 .transactionDate(command.transactionDate())
+                .recurringTransactionId(command.recurringTransactionId())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();

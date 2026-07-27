@@ -17,6 +17,7 @@ public record Transaction(
         Amount amount,
         String description,
         LocalDate transactionDate,
+        UUID recurringTransactionId,
         Instant createdAt,
         Instant updatedAt
 ) {
