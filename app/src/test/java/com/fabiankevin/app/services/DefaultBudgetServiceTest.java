@@ -29,8 +29,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -80,26 +79,45 @@ class DefaultBudgetServiceTest {
                 Budget b = invocation.getArgument(0);
                 return b.toBuilder().id(generatedId).build();
             });
+            when(transactionRepository.sumSpentByCategoryIdAndUserId(eq(categoryId), eq(userId))).thenReturn(200.0);
             when(userClient.getUsersByIds(List.of(userId)))
                     .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
 
             BudgetSummary created = budgetService.createBudget(command);
 
+            // identity & ownership fields
             assertEquals(generatedId, created.id(), "budget id should have been generated");
             assertEquals(userId, created.userId(), "userId should match command");
             assertEquals(userId, created.lastUpdatedBy(), "lastUpdatedBy should be set to userId");
+
+            // user fields enriched from UserClient
             assertEquals("John Doe", created.lastUpdatedByName(), "lastUpdatedByName should be enriched from UserClient");
+            assertEquals("John", created.firstName(), "firstName should be enriched from UserClient");
+            assertEquals("Doe", created.lastName(), "lastName should be enriched from UserClient");
+            assertEquals("JD", created.initial(), "initial should be enriched from UserClient");
+
+            // timestamps
+            assertNotNull(created.createdAt(), "createdAt should not be null");
             assertNotNull(created.updatedAt(), "updatedAt should not be null");
+            assertNull(created.budgetMonth(), "budgetMonth should not be set");
+
+            // period & category fields
             assertEquals(BudgetPeriod.MONTHLY, created.period(), "period should match command");
             assertEquals(categoryId, created.categoryId(), "categoryId should be resolved from category");
             assertEquals("GROCERIES", created.categoryName(), "categoryName should be resolved from category");
             assertEquals("local_grocery_store", created.categoryIcon(), "categoryIcon should be resolved from category");
+
+            // members
+            assertEquals(List.of(), created.members(), "members should be empty");
+
+            // amount fields
             assertEquals(500.0, created.allocated(), "allocated should match command");
-            assertEquals(0.0, created.spent(), "spent should be zero for a newly created budget");
-            assertEquals(0.0, created.spentPercentage(), "spentPercentage should be zero for a newly created budget");
+            assertEquals(200.0, created.spent(), "spent should reflect summed transactions for the category");
+            assertEquals(40.0, created.spentPercentage(), "spentPercentage should be spent/allocated*100");
 
             verify(categoryService, times(1)).getCategoryById(categoryId, userId);
             verify(budgetRepository, times(1)).save(any());
+            verify(transactionRepository, times(1)).sumSpentByCategoryIdAndUserId(eq(categoryId), eq(userId));
             verify(userClient, times(1)).getUsersByIds(List.of(userId));
         }
 
@@ -182,11 +200,37 @@ class DefaultBudgetServiceTest {
 
             assertThat(results).hasSize(1);
             BudgetSummary result = results.getFirst();
-            assertEquals(summary.id(), result.id());
-            assertEquals(summary.userId(), result.userId());
-            assertEquals(summary.lastUpdatedBy(), result.lastUpdatedBy());
+
+            // identity & ownership fields preserved from source summary
+            assertEquals(summary.id(), result.id(), "id should be preserved");
+            assertEquals(summary.userId(), result.userId(), "userId should be preserved");
+            assertEquals(summary.lastUpdatedBy(), result.lastUpdatedBy(), "lastUpdatedBy should be preserved");
+
+            // user fields enriched from UserClient
             assertEquals("John Doe", result.lastUpdatedByName(), "lastUpdatedByName should be enriched from UserClient");
-            assertEquals(summary.allocated(), result.allocated());
+            assertEquals("John", result.firstName(), "firstName should be enriched from UserClient");
+            assertEquals("Doe", result.lastName(), "lastName should be enriched from UserClient");
+            assertEquals("JD", result.initial(), "initial should be enriched from UserClient");
+
+            // timestamps & period preserved from source summary
+            assertNull(result.updatedAt(), "updatedAt should be preserved from source summary");
+            assertNull(result.createdAt(), "createdAt should be preserved from source summary");
+            assertNull(result.budgetMonth(), "budgetMonth should be preserved from source summary");
+            assertEquals(BudgetPeriod.MONTHLY, result.period(), "period should be preserved");
+
+            // category fields preserved from source summary
+            assertEquals(categoryId, result.categoryId(), "categoryId should be preserved");
+            assertEquals("GROCERIES", result.categoryName(), "categoryName should be preserved");
+            assertEquals("local_grocery_store", result.categoryIcon(), "categoryIcon should be preserved");
+
+            // members preserved from source summary
+            assertNull(result.members(), "members should be preserved from source summary");
+
+            // amount fields preserved from source summary
+            assertEquals(500.0, result.allocated(), "allocated should be preserved");
+            assertEquals(200.0, result.spent(), "spent should be preserved");
+            assertEquals(40.0, result.spentPercentage(), "spentPercentage should be preserved");
+
             verify(budgetRepository, times(1)).findAllBudgetSummaryByUserId(eq(List.of(userId)), any(Instant.class), any(Instant.class));
             verify(userClient, times(1)).getUsersByIds(List.of(userId));
         }
@@ -319,27 +363,46 @@ class DefaultBudgetServiceTest {
             when(budgetRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(existing));
             when(categoryService.getCategoryById(newCategoryId, userId)).thenReturn(newCategory);
             when(budgetRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(transactionRepository.sumSpentByCategoryIdAndUserId(eq(newCategoryId), eq(userId))).thenReturn(200.0);
             when(userClient.getUsersByIds(List.of(userId)))
                     .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
 
             BudgetSummary updated = budgetService.patchBudget(command);
 
+            // identity & ownership fields
             assertEquals(id, updated.id(), "id should be preserved");
             assertEquals(userId, updated.userId(), "userId should be preserved");
             assertEquals(userId, updated.lastUpdatedBy(), "lastUpdatedBy should be set to userId");
+
+            // user fields enriched from UserClient
             assertEquals("John Doe", updated.lastUpdatedByName(), "lastUpdatedByName should be enriched from UserClient");
+            assertEquals("John", updated.firstName(), "firstName should be enriched from UserClient");
+            assertEquals("Doe", updated.lastName(), "lastName should be enriched from UserClient");
+            assertEquals("JD", updated.initial(), "initial should be enriched from UserClient");
+
+            // timestamps
+            assertNotNull(updated.createdAt(), "createdAt should be preserved from existing budget");
             assertNotNull(updated.updatedAt(), "updatedAt should not be null");
+            assertNull(updated.budgetMonth(), "budgetMonth should not be set");
+
+            // period & category fields
             assertEquals(BudgetPeriod.YEARLY, updated.period(), "period should be updated");
             assertEquals(newCategoryId, updated.categoryId(), "categoryId should be updated");
             assertEquals("RENT", updated.categoryName(), "categoryName should be updated");
             assertEquals("home", updated.categoryIcon(), "categoryIcon should be updated");
+
+            // members
+            assertEquals(List.of(), updated.members(), "members should be empty");
+
+            // amount fields
             assertEquals(1000.0, updated.allocated(), "allocated should be updated");
-            assertEquals(0.0, updated.spent(), "spent should be zero for a patched budget");
-            assertEquals(0.0, updated.spentPercentage(), "spentPercentage should be zero for a patched budget");
+            assertEquals(200.0, updated.spent(), "spent should reflect summed transactions for the category");
+            assertEquals(20.0, updated.spentPercentage(), "spentPercentage should be spent/allocated*100");
 
             verify(budgetRepository, times(1)).findByIdAndUserId(id, userId);
             verify(categoryService, times(1)).getCategoryById(newCategoryId, userId);
             verify(budgetRepository, times(1)).save(any());
+            verify(transactionRepository, times(1)).sumSpentByCategoryIdAndUserId(eq(newCategoryId), eq(userId));
             verify(userClient, times(1)).getUsersByIds(List.of(userId));
         }
 
