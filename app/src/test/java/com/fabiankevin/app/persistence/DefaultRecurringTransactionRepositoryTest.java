@@ -137,8 +137,9 @@ class DefaultRecurringTransactionRepositoryTest {
 
     @Nested
     class FindSummaries {
+
         @Test
-        void givenUserIdWithRecurringTransactions_shouldReturnSummariesWithDerivedStatus() {
+        void givenUserIdWithPaidRecurringTransaction_thenReturnsSummaryWithPaidStatus() {
             RecurringTransaction saved = recurringTransactionRepository.save(recurringTransaction);
             UUID userId = saved.userId();
             Instant now = Instant.now();
@@ -168,27 +169,71 @@ class DefaultRecurringTransactionRepositoryTest {
 
             Assertions.assertThat(summaries).hasSize(1);
             RecurringTransactionSummary summary = summaries.getFirst();
-            assertEquals(saved.id(), summary.id());
-            assertEquals(userId, summary.userId());
-            assertEquals("Monthly subscription", summary.description());
-            assertEquals(15.99, summary.amount());
-            assertEquals(TransactionType.EXPENSE, summary.transactionType());
-            assertEquals(15, summary.dayOfMonth());
-            assertEquals(TransactionStatus.PAID, summary.transactionStatus());
-            assertEquals(RecurringTransactionStatus.ACTIVE, summary.status());
-            assertEquals(saved.nextOccurrenceDate().toInstant(), summary.nextOccurrenceDate().toInstant());
-            assertEquals(saved.startDate().toInstant(), summary.startDate().toInstant());
-            assertEquals(saved.endDate(), summary.endDate());
-            assertNotNull(summary.category());
-            assertEquals(category.id(), summary.category().id());
-            assertNotNull(summary.account());
-            assertEquals(account.id(), summary.account().id());
+            assertEquals(saved.id(), summary.id(), "summary id should match saved recurring transaction id");
+            assertEquals(userId, summary.userId(), "summary userId should match the query userId");
+            assertEquals("Monthly subscription", summary.description(), "description should match");
+            assertEquals(15.99, summary.amount(), "amount should match");
+            assertEquals(TransactionType.EXPENSE, summary.transactionType(), "transactionType should match");
+            assertEquals(15, summary.dayOfMonth(), "dayOfMonth should match");
+            assertEquals(TransactionStatus.PAID, summary.transactionStatus(), "status should be PAID when transaction exists and nextOccurrenceDate is in the past");
+            assertEquals(RecurringTransactionStatus.ACTIVE, summary.status(), "recurring transaction status should match");
+            assertEquals(saved.nextOccurrenceDate().toInstant(), summary.nextOccurrenceDate().toInstant(), "nextOccurrenceDate should match");
+            assertEquals(saved.startDate().toInstant(), summary.startDate().toInstant(), "startDate should match");
+            assertEquals(saved.endDate(), summary.endDate(), "endDate should match");
+            assertNotNull(summary.category(), "category should not be null");
+            assertEquals(category.id(), summary.category().id(), "category id should match");
+            assertNotNull(summary.account(), "account should not be null");
+            assertEquals(account.id(), summary.account().id(), "account id should match");
 
             verify(jpaRecurringTransactionRepository, times(1)).findAllSummariesByUserId(userId, referenceNow);
         }
 
         @Test
-        void givenUserIdWithNoRecurringTransactions_shouldReturnEmptyList() {
+        void givenOverdueRecurringTransactionWithNoLinkedTransaction_thenReturnsSummaryWithOverdueStatus() {
+            RecurringTransaction saved = recurringTransactionRepository.save(recurringTransaction);
+            UUID userId = saved.userId();
+
+            ZonedDateTime referenceNow = ZonedDateTime.of(2026, 9, 1, 0, 0, 0, 0, ZoneId.of("UTC"));
+
+            List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserId(userId, referenceNow);
+
+            Assertions.assertThat(summaries).hasSize(1);
+            assertEquals(TransactionStatus.OVERDUE, summaries.getFirst().transactionStatus(),
+                    "status should be OVERDUE when no linked transaction exists and nextOccurrenceDate is in the past");
+
+            verify(jpaRecurringTransactionRepository, times(1)).findAllSummariesByUserId(userId, referenceNow);
+        }
+
+        @Test
+        void givenUpcomingRecurringTransaction_thenReturnsSummaryWithUpcomingStatus() {
+            RecurringTransaction saved = recurringTransactionRepository.save(recurringTransaction);
+            UUID userId = saved.userId();
+
+            ZonedDateTime referenceNow = ZonedDateTime.of(2026, 8, 1, 0, 0, 0, 0, ZoneId.of("UTC"));
+
+            List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserId(userId, referenceNow);
+
+            Assertions.assertThat(summaries).hasSize(1);
+            assertEquals(TransactionStatus.UPCOMING, summaries.getFirst().transactionStatus(),
+                    "status should be UPCOMING when nextOccurrenceDate is in the future");
+
+            verify(jpaRecurringTransactionRepository, times(1)).findAllSummariesByUserId(userId, referenceNow);
+        }
+
+        @Test
+        void givenRecurringTransactionOwnedByOtherUser_thenReturnsEmptyList() {
+            recurringTransactionRepository.save(recurringTransaction);
+            UUID otherUserId = UUID.randomUUID();
+
+            List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserId(otherUserId, ZonedDateTime.now());
+
+            Assertions.assertThat(summaries).isEmpty();
+
+            verify(jpaRecurringTransactionRepository, times(1)).findAllSummariesByUserId(eq(otherUserId), any());
+        }
+
+        @Test
+        void givenUserIdWithNoRecurringTransactions_thenReturnsEmptyList() {
             UUID userId = UUID.randomUUID();
 
             List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserId(userId, ZonedDateTime.now());
