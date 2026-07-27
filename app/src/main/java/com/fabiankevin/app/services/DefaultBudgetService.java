@@ -57,11 +57,11 @@ public class DefaultBudgetService implements BudgetService {
     }
 
     private BudgetSummary toSummary(Budget budget, double spent) {
-        User user = userClient.getUsersByIds(List.of(budget.userId())).stream().findFirst().orElse(null);
-        String lastUpdatedByName = user != null ? user.fullName() : null;
-        String firstName = user != null ? user.firstName() : null;
-        String lastName = user != null ? user.lastName() : null;
-        String initial = user != null ? user.initial() : null;
+        Optional<User> user = userClient.getUsersByIds(List.of(budget.userId())).stream().findFirst();
+        String lastUpdatedByName = user.map(User::fullName).orElse(null);
+        String firstName = user.map(User::firstName).orElse(null);
+        String lastName = user.map(User::lastName).orElse(null);
+        String initial = user.map(User::initial).orElse(null);
         double allocated = budget.allocated();
         double spentPercentage = allocated > 0 ? (spent / allocated) * 100.0 : 0.0;
 
@@ -129,11 +129,11 @@ public class DefaultBudgetService implements BudgetService {
 
         return summaries.stream()
                 .map(summary -> {
-                    User user = usersById.get(summary.lastUpdatedBy());
-                    String name = user != null ? user.fullName() : null;
-                    String firstName = user != null ? user.firstName() : null;
-                    String lastName = user != null ? user.lastName() : null;
-                    String initial = user != null ? user.initial() : null;
+                    Optional<User> user = Optional.ofNullable(usersById.get(summary.lastUpdatedBy()));
+                    String name = user.map(User::fullName).orElse(null);
+                    String firstName = user.map(User::firstName).orElse(null);
+                    String lastName = user.map(User::lastName).orElse(null);
+                    String initial = user.map(User::initial).orElse(null);
                     return summary.toBuilder()
                             .lastUpdatedByName(name)
                             .firstName(firstName)
