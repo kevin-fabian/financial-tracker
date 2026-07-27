@@ -1,14 +1,20 @@
 package com.fabiankevin.app.persistence;
 
+import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransaction;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus;
+import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionSummary;
+import com.fabiankevin.app.models.recurring_transactions.TransactionStatus;
 import com.fabiankevin.app.persistence.entities.AccountEntity;
 import com.fabiankevin.app.persistence.entities.CategoryEntity;
+import com.fabiankevin.app.persistence.entities.TransactionEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaRecurringTransactionRepository;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -21,13 +27,16 @@ import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -43,6 +52,9 @@ class DefaultRecurringTransactionRepositoryTest {
 
     @Autowired
     private JpaCategoryRepository jpaCategoryRepository;
+
+    @Autowired
+    private JpaTransactionRepository jpaTransactionRepository;
 
     @Autowired
     private RecurringTransactionRepository recurringTransactionRepository;
@@ -72,6 +84,7 @@ class DefaultRecurringTransactionRepositoryTest {
                 .build());
 
         recurringTransaction = RecurringTransaction.builder()
+                .userId(userId)
                 .description("Monthly subscription")
                 .amount(15.99)
                 .transactionType(TransactionType.EXPENSE)
@@ -119,6 +132,70 @@ class DefaultRecurringTransactionRepositoryTest {
                     .isInstanceOf(InvalidDataAccessApiUsageException.class);
 
             verify(jpaRecurringTransactionRepository, times(1)).save(any());
+        }
+    }
+
+    @Nested
+    class FindSummaries {
+        @Test
+        void givenUserIdWithRecurringTransactions_shouldReturnSummariesWithDerivedStatus() {
+            RecurringTransaction saved = recurringTransactionRepository.save(recurringTransaction);
+            UUID userId = saved.userId();
+            Instant now = Instant.now();
+
+            Account account = saved.account();
+            Category category = saved.category();
+
+            jpaTransactionRepository.saveAndFlush(TransactionEntity.builder()
+                    .account(AccountEntity.builder().id(account.id()).name(account.name()).userId(account.userId())
+                            .currency(account.currency().getCurrencyCode()).type(account.type().name())
+                            .active(account.active()).createdAt(now).updatedAt(now).build())
+                    .category(CategoryEntity.builder().id(category.id()).name(category.name())
+                            .transactionType(category.type()).userId(category.userId()).icon(category.icon())
+                            .active(category.active()).createdAt(now).updatedAt(now).build())
+                    .amount(15.99)
+                    .currency("USD")
+                    .description("Monthly subscription")
+                    .transactionDate(LocalDate.of(2026, 1, 15))
+                    .recurringTransactionId(saved.id())
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+
+            ZonedDateTime referenceNow = ZonedDateTime.of(2026, 9, 1, 0, 0, 0, 0, ZoneId.of("UTC"));
+
+            List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserId(userId, referenceNow);
+
+            Assertions.assertThat(summaries).hasSize(1);
+            RecurringTransactionSummary summary = summaries.getFirst();
+            assertEquals(saved.id(), summary.id());
+            assertEquals(userId, summary.userId());
+            assertEquals("Monthly subscription", summary.description());
+            assertEquals(15.99, summary.amount());
+            assertEquals(TransactionType.EXPENSE, summary.transactionType());
+            assertEquals(15, summary.dayOfMonth());
+            assertEquals(TransactionStatus.PAID, summary.transactionStatus());
+            assertEquals(RecurringTransactionStatus.ACTIVE, summary.status());
+            assertEquals(saved.nextOccurrenceDate().toInstant(), summary.nextOccurrenceDate().toInstant());
+            assertEquals(saved.startDate().toInstant(), summary.startDate().toInstant());
+            assertEquals(saved.endDate(), summary.endDate());
+            assertNotNull(summary.category());
+            assertEquals(category.id(), summary.category().id());
+            assertNotNull(summary.account());
+            assertEquals(account.id(), summary.account().id());
+
+            verify(jpaRecurringTransactionRepository, times(1)).findAllSummariesByUserId(userId, referenceNow);
+        }
+
+        @Test
+        void givenUserIdWithNoRecurringTransactions_shouldReturnEmptyList() {
+            UUID userId = UUID.randomUUID();
+
+            List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserId(userId, ZonedDateTime.now());
+
+            Assertions.assertThat(summaries).isEmpty();
+
+            verify(jpaRecurringTransactionRepository, times(1)).findAllSummariesByUserId(eq(userId), any());
         }
     }
 }

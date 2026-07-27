@@ -12,6 +12,7 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 public record RecurringTransactionSummary(
         UUID id,
+        UUID userId,
         String description,
         double amount,
         TransactionType transactionType,

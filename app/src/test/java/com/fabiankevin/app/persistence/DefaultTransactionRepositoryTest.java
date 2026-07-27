@@ -20,11 +20,11 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.util.Streamable;
 import org.springframework.test.context.ActiveProfiles;
@@ -40,8 +40,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.offset;
 import static org.mockito.Mockito.*;
 
+@Import(DefaultTransactionRepositoryTest.TestContextConfiguration.class)
 @DataJpaTest
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @ActiveProfiles("test")
 class DefaultTransactionRepositoryTest {
     @MockitoSpyBean
@@ -57,7 +57,7 @@ class DefaultTransactionRepositoryTest {
     private final UUID userId = UUID.randomUUID();
 
     @TestConfiguration
-    public static class ContextConfiguration {
+    public static class TestContextConfiguration {
         @Bean
         public TransactionRepository transactionRepository(JpaTransactionRepository jpaTransactionRepository) {
             return new DefaultTransactionRepository(jpaTransactionRepository);
@@ -102,68 +102,71 @@ class DefaultTransactionRepositoryTest {
 
         clearInvocations(jpaTransactionRepository);
     }
+    
+    @Nested
+    class GetSummaryByYearAndUserIdGroupedByCategory {
+        @Test
+        void givenTwoCategoriesWithSameYear_shouldReturnTwoCategoriesSummaryPoints() {
+            int year = 2026;
+            CategoryEntity food = createCategory("FOOD");
+            CategoryEntity rent = createCategory("RENT");
+            AccountEntity cash = createAccount("CASH");
 
-    @Test
-    void getSummaryByYearAndUserIdGroupedByCategory_givenTwoCategoriesWithSameYear_shouldReturnTwoCategoriesSummaryPoints() {
-        int year = 2026;
-        CategoryEntity food = createCategory("FOOD");
-        CategoryEntity rent = createCategory("RENT");
-        AccountEntity cash = createAccount("CASH");
+            List.of(AddTransactionCommand.builder()
+                            .userId(userId)
+                            .categoryId(rent.getId())
+                            .accountId(cash.getId())
+                            .amount(Amount.of(8000, Currency.getInstance("PHP")))
+                            .transactionDate(LocalDate.of(2026, 3, 1))
+                            .description("Rent payment")
+                            .build(),
+                    AddTransactionCommand.builder()
+                            .userId(userId)
+                            .categoryId(food.getId())
+                            .accountId(cash.getId())
+                            .amount(Amount.of(50, Currency.getInstance("PHP")))
+                            .transactionDate(LocalDate.of(2026, 5, 15))
+                            .description("Food purchase")
+                            .build(),
+                    AddTransactionCommand.builder()
+                            .userId(userId)
+                            .categoryId(food.getId())
+                            .accountId(cash.getId())
+                            .amount(Amount.of(200, Currency.getInstance("PHP")))
+                            .transactionDate(LocalDate.of(2026, 7, 15))
+                            .description("Yogurt")
+                            .build()).forEach(transactionService::addTransaction);
 
-        List.of(AddTransactionCommand.builder()
-                        .userId(userId)
-                        .categoryId(rent.getId())
-                        .accountId(cash.getId())
-                        .amount(Amount.of(8000, Currency.getInstance("PHP")))
-                        .transactionDate(LocalDate.of(2026, 3, 1))
-                        .description("Rent payment")
-                        .build(),
-                AddTransactionCommand.builder()
-                        .userId(userId)
-                        .categoryId(food.getId())
-                        .accountId(cash.getId())
-                        .amount(Amount.of(50, Currency.getInstance("PHP")))
-                        .transactionDate(LocalDate.of(2026, 5, 15))
-                        .description("Food purchase")
-                        .build(),
-                AddTransactionCommand.builder()
-                        .userId(userId)
-                        .categoryId(food.getId())
-                        .accountId(cash.getId())
-                        .amount(Amount.of(200, Currency.getInstance("PHP")))
-                        .transactionDate(LocalDate.of(2026, 7, 15))
-                        .description("Yogurt")
-                        .build()).forEach(transactionService::addTransaction);
+            LocalDate from = LocalDate.of(year, 1, 1);
+            LocalDate to = LocalDate.of(year, 12, 31);
 
-        LocalDate from = LocalDate.of(year, 1, 1);
-        LocalDate to = LocalDate.of(year, 12, 31);
+            List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, Set.of(userId), TransactionType.EXPENSE);
+            Assertions.assertThat(result).hasSize(2);
+            Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("FOOD", "RENT");
+            Assertions.assertThat(result).extracting(SummaryPoint::total)
+                    .as("totals should match")
+                    .containsExactlyInAnyOrder(250.0, 8000.0);
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, Set.of(userId), TransactionType.EXPENSE);
-        Assertions.assertThat(result).hasSize(2);
-        Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactlyInAnyOrder("FOOD", "RENT");
-        Assertions.assertThat(result).extracting(SummaryPoint::total)
-                .as("totals should match")
-                .containsExactlyInAnyOrder(250.0, 8000.0);
+            verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, Set.of(userId), TransactionType.EXPENSE);
+        }
 
-        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, Set.of(userId), TransactionType.EXPENSE);
-    }
+        @Test
+        void givenEmptyStreamable_shouldReturnEmptyList() {
+            int year = 2025;
+            UUID otherUserId = UUID.randomUUID();
 
-    @Test
-    void getSummaryByYearAndUserIdGroupedByCategory_givenEmptyStreamable_shouldReturnEmptyList() {
-        int year = 2025;
-        UUID otherUserId = UUID.randomUUID();
+            LocalDate from = LocalDate.of(year, 1, 1);
+            LocalDate to = LocalDate.of(year, 12, 31);
 
-        LocalDate from = LocalDate.of(year, 1, 1);
-        LocalDate to = LocalDate.of(year, 12, 31);
+            when(jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, Set.of(otherUserId), TransactionType.EXPENSE))
+                    .thenReturn(Streamable.empty());
 
-        when(jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, Set.of(otherUserId), TransactionType.EXPENSE))
-                .thenReturn(Streamable.empty());
+            List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, Set.of(otherUserId), TransactionType.EXPENSE);
 
-        List<SummaryPoint> result = transactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, Set.of(otherUserId), TransactionType.EXPENSE);
+            Assertions.assertThat(result).isEmpty();
 
-        Assertions.assertThat(result).isEmpty();
-
-        verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, Set.of(otherUserId), TransactionType.EXPENSE);
+            verify(jpaTransactionRepository, times(1)).getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, Set.of(otherUserId), TransactionType.EXPENSE);
+        }
     }
 
     @Test
@@ -459,51 +462,54 @@ class DefaultTransactionRepositoryTest {
         }
     }
 
-    @Test
-    void givenExistingTransactionAndMatchingUserId_shouldDeleteAndReturnOne() {
-        CategoryEntity food = createCategory("FOOD");
-        AccountEntity cash = createAccount("CASH");
+    @Nested
+    class DeleteByIdAndUserId {
+        @Test
+        void givenExistingTransactionAndMatchingUserId_shouldDeleteAndReturnOne() {
+            CategoryEntity food = createCategory("FOOD");
+            AccountEntity cash = createAccount("CASH");
 
-        AddTransactionCommand command = AddTransactionCommand.builder()
-                .userId(userId)
-                .categoryId(food.getId())
-                .accountId(cash.getId())
-                .amount(Amount.of(500, Currency.getInstance("PHP")))
-                .transactionDate(LocalDate.of(2026, 5, 1))
-                .description("Test transaction")
-                .build();
-        Transaction saved = transactionService.addTransaction(command);
+            AddTransactionCommand command = AddTransactionCommand.builder()
+                    .userId(userId)
+                    .categoryId(food.getId())
+                    .accountId(cash.getId())
+                    .amount(Amount.of(500, Currency.getInstance("PHP")))
+                    .transactionDate(LocalDate.of(2026, 5, 1))
+                    .description("Test transaction")
+                    .build();
+            Transaction saved = transactionService.addTransaction(command);
 
-        int deleted = transactionRepository.deleteByIdAndUserId(saved.id(), userId);
+            int deleted = transactionRepository.deleteByIdAndUserId(saved.id(), userId);
 
-        Assertions.assertThat(deleted).isEqualTo(1);
-        Assertions.assertThat(transactionRepository.findById(saved.id())).isEmpty();
-        verify(jpaTransactionRepository, times(1)).deleteByIdAndAccountUserId(saved.id(), userId);
-    }
+            Assertions.assertThat(deleted).isEqualTo(1);
+            Assertions.assertThat(transactionRepository.findById(saved.id())).isEmpty();
+            verify(jpaTransactionRepository, times(1)).deleteByIdAndAccountUserId(saved.id(), userId);
+        }
 
-    @Test
-    void givenExistingTransactionWithDifferentUserId_shouldNotDeleteAndReturnZero() {
-        CategoryEntity food = createCategory("FOOD");
-        AccountEntity cash = createAccount("CASH");
+        @Test
+        void givenExistingTransactionWithDifferentUserId_shouldNotDeleteAndReturnZero() {
+            CategoryEntity food = createCategory("FOOD");
+            AccountEntity cash = createAccount("CASH");
 
-        AddTransactionCommand command = AddTransactionCommand.builder()
-                .userId(userId)
-                .categoryId(food.getId())
-                .accountId(cash.getId())
-                .amount(Amount.of(500, Currency.getInstance("PHP")))
-                .transactionDate(LocalDate.of(2026, 5, 1))
-                .description("Test transaction")
-                .build();
-        Transaction saved = transactionService.addTransaction(command);
+            AddTransactionCommand command = AddTransactionCommand.builder()
+                    .userId(userId)
+                    .categoryId(food.getId())
+                    .accountId(cash.getId())
+                    .amount(Amount.of(500, Currency.getInstance("PHP")))
+                    .transactionDate(LocalDate.of(2026, 5, 1))
+                    .description("Test transaction")
+                    .build();
+            Transaction saved = transactionService.addTransaction(command);
 
-        UUID differentUserId = UUID.randomUUID();
+            UUID differentUserId = UUID.randomUUID();
 
-        int deleted = transactionRepository.deleteByIdAndUserId(saved.id(), differentUserId);
+            int deleted = transactionRepository.deleteByIdAndUserId(saved.id(), differentUserId);
 
-        Assertions.assertThat(deleted).isEqualTo(0);
-        Assertions.assertThat(transactionRepository.findById(saved.id())).isPresent();
+            Assertions.assertThat(deleted).isEqualTo(0);
+            Assertions.assertThat(transactionRepository.findById(saved.id())).isPresent();
 
-        verify(jpaTransactionRepository, times(1)).deleteByIdAndAccountUserId(saved.id(), differentUserId);
+            verify(jpaTransactionRepository, times(1)).deleteByIdAndAccountUserId(saved.id(), differentUserId);
+        }
     }
 
     @Nested
@@ -894,56 +900,58 @@ class DefaultTransactionRepositoryTest {
         }
     }
 
+    @Nested
+    class SumBalance {
+        @Test
+        void givenIncomeAndExpenses_shouldReturnNetBalance() {
+            AccountEntity cash = createAccount("CASH");
+            CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
+            CategoryEntity food = createCategory("FOOD");
 
-    @Test
-    void givenIncomeAndExpenses_shouldReturnNetBalance() {
-        AccountEntity cash = createAccount("CASH");
-        CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
-        CategoryEntity food = createCategory("FOOD");
+            List.of(
+                    AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 1)).description("salary").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(500, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 5)).description("food1").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(300, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 15)).description("food2").build()
+            ).forEach(transactionService::addTransaction);
 
-        List.of(
-                AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 1)).description("salary").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(500, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 5)).description("food1").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(300, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 15)).description("food2").build()
-        ).forEach(transactionService::addTransaction);
+            double result = transactionRepository.sumBalance(Set.of(userId));
 
-        double result = transactionRepository.sumBalance(Set.of(userId));
+            Assertions.assertThat(result).isEqualTo(4200.0);
 
-        Assertions.assertThat(result).isEqualTo(4200.0);
+            verify(jpaTransactionRepository, times(1)).sumBalance(eq(Set.of(userId)));
+        }
 
-        verify(jpaTransactionRepository, times(1)).sumBalance(eq(Set.of(userId)));
-    }
+        @Test
+        void givenTransactionsAcrossMultipleAccounts_shouldSumAll() {
+            AccountEntity cash = createAccount("CASH");
+            AccountEntity savings = createAccount("SAVINGS");
+            CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
+            CategoryEntity food = createCategory("FOOD");
 
-    @Test
-    void givenTransactionsAcrossMultipleAccounts_shouldSumAll() {
-        AccountEntity cash = createAccount("CASH");
-        AccountEntity savings = createAccount("SAVINGS");
-        CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
-        CategoryEntity food = createCategory("FOOD");
+            List.of(
+                    AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 1)).description("salary to cash").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(savings.getId()).amount(Amount.of(3000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 1)).description("salary to savings").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(500, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 5)).description("food from cash").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(savings.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 10)).description("food from savings").build()
+            ).forEach(transactionService::addTransaction);
 
-        List.of(
-                AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 1)).description("salary to cash").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(savings.getId()).amount(Amount.of(3000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 1)).description("salary to savings").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(500, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 5)).description("food from cash").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(savings.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 10)).description("food from savings").build()
-        ).forEach(transactionService::addTransaction);
+            double result = transactionRepository.sumBalance(Set.of(userId));
 
-        double result = transactionRepository.sumBalance(Set.of(userId));
+            Assertions.assertThat(result).isEqualTo(7300.0);
 
-        Assertions.assertThat(result).isEqualTo(7300.0);
+            verify(jpaTransactionRepository, times(1)).sumBalance(eq(Set.of(userId)));
+        }
 
-        verify(jpaTransactionRepository, times(1)).sumBalance(eq(Set.of(userId)));
-    }
+        @Test
+        void givenNoMatchingTransactions_shouldReturnZero() {
+            doReturn(0.0).when(jpaTransactionRepository).sumBalance(Set.of(userId));
 
-    @Test
-    void givenNoMatchingTransactions_shouldReturnZero() {
-        doReturn(0.0).when(jpaTransactionRepository).sumBalance(Set.of(userId));
+            double result = transactionRepository.sumBalance(Set.of(userId));
 
-        double result = transactionRepository.sumBalance(Set.of(userId));
+            Assertions.assertThat(result).isEqualTo(0.0);
 
-        Assertions.assertThat(result).isEqualTo(0.0);
-
-        verify(jpaTransactionRepository, times(1)).sumBalance(eq(Set.of(userId)));
+            verify(jpaTransactionRepository, times(1)).sumBalance(eq(Set.of(userId)));
+        }
     }
 
     @Nested
