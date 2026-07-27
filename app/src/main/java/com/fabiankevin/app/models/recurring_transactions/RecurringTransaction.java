@@ -2,7 +2,6 @@ package com.fabiankevin.app.models.recurring_transactions;
 
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Category;
-import com.fabiankevin.app.models.enums.TransactionType;
 import lombok.Builder;
 
 import java.time.Instant;
@@ -15,7 +14,6 @@ public record RecurringTransaction(
         UUID userId,
         String description,
         double amount,
-        TransactionType transactionType,
         Category category,
         Account account,
         int dayOfMonth,

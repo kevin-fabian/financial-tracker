@@ -112,7 +112,6 @@ class DefaultRecurringTransactionServiceTest {
             assertEquals(command.userId(), summary.userId(), "userId should match command");
             assertEquals("Monthly subscription", summary.description(), "description should match command");
             assertEquals(15.99, summary.amount(), "amount should match command");
-            assertEquals(TransactionType.EXPENSE, summary.transactionType(), "transactionType should be derived from category");
             assertEquals(15, summary.dayOfMonth(), "dayOfMonth should match command");
             ZonedDateTime expectedNextOccurrenceDate = now.getDayOfMonth() < command.dayOfMonth()
                     ? now.withDayOfMonth(command.dayOfMonth())
@@ -135,7 +134,6 @@ class DefaultRecurringTransactionServiceTest {
             RecurringTransaction saved = captor.getValue();
             assertEquals(command.userId(), saved.userId(), "saved userId should match command");
             assertEquals(RecurringTransactionStatus.ACTIVE, saved.status(), "saved status should be ACTIVE");
-            assertEquals(TransactionType.EXPENSE, saved.transactionType(), "saved transactionType should be derived from category");
         }
 
         @Test

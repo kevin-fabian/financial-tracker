@@ -13,7 +13,7 @@ import java.util.UUID;
 public interface JpaRecurringTransactionRepository extends JpaRepository<RecurringTransactionEntity, UUID> {
     @Query("""
             SELECT rt.id AS id, rt.userId AS userId, rt.description AS description, rt.amount AS amount,
-                STR(rt.transactionType) AS transactionType, rt.dayOfMonth AS dayOfMonth,
+                rt.dayOfMonth AS dayOfMonth,
                 rt.nextOccurrenceDate AS nextOccurrenceDate, rt.startDate AS startDate, rt.endDate AS endDate,
                 CASE
                     WHEN rt.nextOccurrenceDate > :now THEN 'UPCOMING'

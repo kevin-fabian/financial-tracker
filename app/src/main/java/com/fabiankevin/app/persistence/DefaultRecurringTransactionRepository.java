@@ -42,7 +42,6 @@ public class DefaultRecurringTransactionRepository implements RecurringTransacti
                 .userId(p.userId())
                 .description(p.description())
                 .amount(p.amount())
-                .transactionType(TransactionType.valueOf(p.transactionType()))
                 .category(Category.builder()
                         .id(p.categoryId())
                         .name(p.categoryName())

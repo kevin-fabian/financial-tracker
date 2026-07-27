@@ -12,7 +12,6 @@ public record RecurringTransactionSummaryProjection(
         UUID userId,
         String description,
         double amount,
-        String transactionType,
         int dayOfMonth,
         ZonedDateTime nextOccurrenceDate,
         ZonedDateTime startDate,

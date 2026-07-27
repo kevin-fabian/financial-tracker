@@ -1,6 +1,5 @@
 package com.fabiankevin.app.persistence.entities;
 
-import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransaction;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus;
 import jakarta.persistence.*;
@@ -35,10 +34,6 @@ public class RecurringTransactionEntity {
 
     @Column(nullable = false)
     private double amount;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "transaction_type", nullable = false, length = 32)
-    private TransactionType transactionType;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id")
@@ -77,7 +72,6 @@ public class RecurringTransactionEntity {
                 .userId(recurringTransaction.userId())
                 .description(recurringTransaction.description())
                 .amount(recurringTransaction.amount())
-                .transactionType(recurringTransaction.transactionType())
                 .category(CategoryEntity.from(recurringTransaction.category()))
                 .account(AccountEntity.from(recurringTransaction.account()))
                 .dayOfMonth(recurringTransaction.dayOfMonth())
@@ -96,7 +90,6 @@ public class RecurringTransactionEntity {
                 .userId(this.userId)
                 .description(this.description)
                 .amount(this.amount)
-                .transactionType(this.transactionType)
                 .category(this.category != null ? this.category.toModel() : null)
                 .account(this.account != null ? this.account.toModel() : null)
                 .dayOfMonth(this.dayOfMonth)

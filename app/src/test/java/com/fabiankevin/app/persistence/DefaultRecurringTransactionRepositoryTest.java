@@ -87,7 +87,6 @@ class DefaultRecurringTransactionRepositoryTest {
                 .userId(userId)
                 .description("Monthly subscription")
                 .amount(15.99)
-                .transactionType(TransactionType.EXPENSE)
                 .category(category.toModel())
                 .account(account.toModel())
                 .dayOfMonth(15)
@@ -111,7 +110,6 @@ class DefaultRecurringTransactionRepositoryTest {
             assertNotNull(saved.id(), "recurring transaction id should have been generated");
             assertEquals(recurringTransaction.description(), saved.description(), "description should match");
             assertEquals(recurringTransaction.amount(), saved.amount(), "amount should match");
-            assertEquals(recurringTransaction.transactionType(), saved.transactionType(), "transactionType should match");
             assertEquals(recurringTransaction.dayOfMonth(), saved.dayOfMonth(), "dayOfMonth should match");
             assertEquals(recurringTransaction.status(), saved.status(), "status should match");
             assertEquals(recurringTransaction.category().id(), saved.category().id(), "category should match");
@@ -173,7 +171,6 @@ class DefaultRecurringTransactionRepositoryTest {
             assertEquals(userId, summary.userId(), "summary userId should match the query userId");
             assertEquals("Monthly subscription", summary.description(), "description should match");
             assertEquals(15.99, summary.amount(), "amount should match");
-            assertEquals(TransactionType.EXPENSE, summary.transactionType(), "transactionType should match");
             assertEquals(15, summary.dayOfMonth(), "dayOfMonth should match");
             assertEquals(TransactionStatus.PAID, summary.transactionStatus(), "status should be PAID when transaction exists and nextOccurrenceDate is in the past");
             assertEquals(RecurringTransactionStatus.ACTIVE, summary.status(), "recurring transaction status should match");
