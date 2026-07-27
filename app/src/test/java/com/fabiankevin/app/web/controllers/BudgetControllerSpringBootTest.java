@@ -76,20 +76,6 @@ class BudgetControllerSpringBootTest {
 
     @Nested
     class GetBudgets {
-        @Test
-        void givenNoBudgets_thenShouldReturnEmpty() throws Exception {
-            UUID userId = UUID.randomUUID();
-            mockMvc.perform(get("/api/budgets")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("zeny-app-password"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    )))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.length()").value(0));
-        }
 
         @Test
         void givenBudgetWithTransactions_thenShouldReturnSummaryWithSpent() throws Exception {
@@ -124,6 +110,21 @@ class BudgetControllerSpringBootTest {
                     .andExpect(jsonPath("$[0].allocated").value(500.0))
                     .andExpect(jsonPath("$[0].spent").value(200.0))
                     .andExpect(jsonPath("$[0].spentPercentage").value(40.0));
+        }
+
+        @Test
+        void givenNoBudgets_thenShouldReturnEmpty() throws Exception {
+            UUID userId = UUID.randomUUID();
+            mockMvc.perform(get("/api/budgets")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(0));
         }
 
         @Test
