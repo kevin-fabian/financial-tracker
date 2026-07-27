@@ -17,6 +17,7 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
@@ -115,7 +116,7 @@ class DefaultRecurringTransactionRepositoryTest {
         void givenNull_shouldThrowInvalidDataAccessApiUsageException() {
             Assertions.assertThatThrownBy(() -> recurringTransactionRepository.save(null))
                     .as("saving null should throw InvalidDataAccessApiUsageException")
-                    .isInstanceOf(org.springframework.dao.InvalidDataAccessApiUsageException.class);
+                    .isInstanceOf(InvalidDataAccessApiUsageException.class);
 
             verify(jpaRecurringTransactionRepository, times(1)).save(any());
         }

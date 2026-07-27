@@ -460,7 +460,7 @@ class DefaultTransactionRepositoryTest {
     }
 
     @Test
-    void deleteByIdAndUserId_givenExistingTransactionAndMatchingUserId_shouldDeleteAndReturnOne() {
+    void givenExistingTransactionAndMatchingUserId_shouldDeleteAndReturnOne() {
         CategoryEntity food = createCategory("FOOD");
         AccountEntity cash = createAccount("CASH");
 
@@ -478,12 +478,11 @@ class DefaultTransactionRepositoryTest {
 
         Assertions.assertThat(deleted).isEqualTo(1);
         Assertions.assertThat(transactionRepository.findById(saved.id())).isEmpty();
-
         verify(jpaTransactionRepository, times(1)).deleteByIdAndAccountUserId(saved.id(), userId);
     }
 
     @Test
-    void deleteByIdAndUserId_givenExistingTransactionWithDifferentUserId_shouldNotDeleteAndReturnZero() {
+    void givenExistingTransactionWithDifferentUserId_shouldNotDeleteAndReturnZero() {
         CategoryEntity food = createCategory("FOOD");
         AccountEntity cash = createAccount("CASH");
 
@@ -507,271 +506,394 @@ class DefaultTransactionRepositoryTest {
         verify(jpaTransactionRepository, times(1)).deleteByIdAndAccountUserId(saved.id(), differentUserId);
     }
 
-    @Test
-    void getTransactionsByPageAndUserId_givenMultipleTransactions_thenShouldReturnPagedResults() {
-        CategoryEntity food = createCategory("FOOD");
-        AccountEntity cash = createAccount("CASH");
+    @Nested
+    class GetTransactionsByPageAndUserIdAndType {
+        @Test
+        void givenExpenseTypeFilter_thenShouldReturnOnlyExpenses() {
+            CategoryEntity food = createCategory("FOOD", TransactionType.EXPENSE);
+            CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
+            AccountEntity cash = createAccount("CASH");
 
-        // create 3 transactions
-        List.of(
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 1)).description("t1").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 2)).description("t2").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(300, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 3)).description("t3").build()
-        ).forEach(transactionService::addTransaction);
+            List.of(
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 1)).description("expense1").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 2)).description("income1").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 3)).description("expense2").build()
+            ).forEach(transactionService::addTransaction);
 
-        com.fabiankevin.app.services.queries.PageQuery query = new com.fabiankevin.app.services.queries.PageQuery(0, 2, "transactionDate", "ASC");
+            PageQuery query = new PageQuery(0, 10, "transactionDate", "ASC");
 
-        com.fabiankevin.app.models.Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserId(query, Set.of(userId));
+            Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, Set.of(userId), TransactionType.EXPENSE);
 
-        Assertions.assertThat(page).isNotNull();
-        Assertions.assertThat(page.content()).hasSize(2);
-        Assertions.assertThat(page.page()).isEqualTo(0);
-        Assertions.assertThat(page.size()).isEqualTo(2);
-        Assertions.assertThat(page.totalElements()).isEqualTo(3);
-        Assertions.assertThat(page.totalPages()).isEqualTo(2);
+            Assertions.assertThat(page).isNotNull();
+            Assertions.assertThat(page.content()).hasSize(2);
+            Assertions.assertThat(page.totalElements()).isEqualTo(2);
+            Assertions.assertThat(page.content()).allMatch(t -> t.type() == TransactionType.EXPENSE);
+            Assertions.assertThat(page.content()).extracting(Transaction::description).containsExactly("expense1", "expense2");
+
+            verify(jpaTransactionRepository, times(1)).findAllByUserIdsAndType(eq(Set.of(userId)), eq(TransactionType.EXPENSE), any(Pageable.class));
+        }
+
+        @Test
+        void givenIncomeTypeFilter_thenShouldReturnOnlyIncomes() {
+            CategoryEntity food = createCategory("FOOD", TransactionType.EXPENSE);
+            CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
+            AccountEntity cash = createAccount("CASH");
+
+            List.of(
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 1)).description("expense1").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 2)).description("income1").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(3000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 3)).description("income2").build()
+            ).forEach(transactionService::addTransaction);
+
+            com.fabiankevin.app.services.queries.PageQuery query = new com.fabiankevin.app.services.queries.PageQuery(0, 10, "transactionDate", "ASC");
+
+            com.fabiankevin.app.models.Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, Set.of(userId), TransactionType.INCOME);
+
+            Assertions.assertThat(page).isNotNull();
+            Assertions.assertThat(page.content()).hasSize(2);
+            Assertions.assertThat(page.totalElements()).isEqualTo(2);
+            Assertions.assertThat(page.content()).allMatch(t -> t.type() == TransactionType.INCOME);
+            Assertions.assertThat(page.content()).extracting(Transaction::description).containsExactly("income1", "income2");
+
+            verify(jpaTransactionRepository, times(1)).findAllByUserIdsAndType(eq(Set.of(userId)), eq(TransactionType.INCOME), any(Pageable.class));
+        }
+
+        @Test
+        void givenNullType_thenShouldReturnAllTransactions() {
+            CategoryEntity food = createCategory("FOOD");
+            CategoryEntity salary = createCategory("SALARY");
+            AccountEntity cash = createAccount("CASH");
+
+            List.of(
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 1)).description("expense1").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 2)).description("income1").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 3)).description("expense2").build()
+            ).forEach(transactionService::addTransaction);
+
+            com.fabiankevin.app.services.queries.PageQuery query = new com.fabiankevin.app.services.queries.PageQuery(0, 10, "transactionDate", "ASC");
+
+            com.fabiankevin.app.models.Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, Set.of(userId), null);
+
+            Assertions.assertThat(page).isNotNull();
+            Assertions.assertThat(page.content()).hasSize(3);
+            Assertions.assertThat(page.totalElements()).isEqualTo(3);
+            Assertions.assertThat(page.content()).extracting(Transaction::description).containsExactly("expense1", "income1", "expense2");
+
+            verify(jpaTransactionRepository, times(1)).findAllByUserIdsAndType(eq(Set.of(userId)), eq(null), any(Pageable.class));
+        }
+
+        @Test
+        void givenNonMatchingType_thenShouldReturnEmptyPage() {
+            CategoryEntity food = createCategory("FOOD");
+            AccountEntity cash = createAccount("CASH");
+
+            List.of(
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 1)).description("expense1").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 2)).description("expense2").build()
+            ).forEach(transactionService::addTransaction);
+
+            PageQuery query = new PageQuery(0, 10, "transactionDate", "ASC");
+
+            Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, Set.of(userId), TransactionType.INCOME);
+
+            Assertions.assertThat(page).isNotNull();
+            Assertions.assertThat(page.content()).isEmpty();
+            Assertions.assertThat(page.totalElements()).isEqualTo(0);
+            Assertions.assertThat(page.totalPages()).isEqualTo(0);
+
+            verify(jpaTransactionRepository, times(1)).findAllByUserIdsAndType(eq(Set.of(userId)), eq(TransactionType.INCOME), any(Pageable.class));
+        }
+
+        @Test
+        void givenWrongUserId_thenShouldReturnEmptyPage() {
+            CategoryEntity food = createCategory("FOOD");
+            AccountEntity cash = createAccount("CASH");
+
+            AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 1)).description("expense1").build();
+            transactionService.addTransaction(AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 1)).description("expense1").build());
+
+            UUID differentUserId = UUID.randomUUID();
+            PageQuery query = new PageQuery(0, 10, "transactionDate", "ASC");
+
+            com.fabiankevin.app.models.Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, Set.of(differentUserId), TransactionType.EXPENSE);
+
+            Assertions.assertThat(page).isNotNull();
+            Assertions.assertThat(page.content()).isEmpty();
+            Assertions.assertThat(page.totalElements()).isEqualTo(0);
+
+            verify(jpaTransactionRepository, times(1)).findAllByUserIdsAndType(eq(Set.of(differentUserId)), eq(TransactionType.EXPENSE), any(Pageable.class));
+        }
     }
 
-    @Test
-    void getTransactionsByPageAndUserIdAndType_givenExpenseTypeFilter_thenShouldReturnOnlyExpenses() {
-        CategoryEntity food = createCategory("FOOD", TransactionType.EXPENSE);
-        CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
-        AccountEntity cash = createAccount("CASH");
+    @Nested
+    class GetTransactionsByPageAndUserId {
+        @Test
+        void givenMultipleTransactions_thenShouldReturnPagedResults() {
+            CategoryEntity food = createCategory("FOOD");
+            AccountEntity cash = createAccount("CASH");
 
-        List.of(
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 1)).description("expense1").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 2)).description("income1").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 3)).description("expense2").build()
-        ).forEach(transactionService::addTransaction);
+            // create 3 transactions
+            List.of(
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 1)).description("t1").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 2)).description("t2").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(300, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 3)).description("t3").build()
+            ).forEach(transactionService::addTransaction);
 
-        PageQuery query = new PageQuery(0, 10, "transactionDate", "ASC");
+            com.fabiankevin.app.services.queries.PageQuery query = new com.fabiankevin.app.services.queries.PageQuery(0, 2, "transactionDate", "ASC");
 
-        Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, Set.of(userId), TransactionType.EXPENSE);
+            com.fabiankevin.app.models.Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserId(query, Set.of(userId));
 
-        Assertions.assertThat(page).isNotNull();
-        Assertions.assertThat(page.content()).hasSize(2);
-        Assertions.assertThat(page.totalElements()).isEqualTo(2);
-        Assertions.assertThat(page.content()).allMatch(t -> t.type() == TransactionType.EXPENSE);
-        Assertions.assertThat(page.content()).extracting(Transaction::description).containsExactly("expense1", "expense2");
-
-        verify(jpaTransactionRepository, times(1)).findAllByUserIdsAndType(eq(Set.of(userId)), eq(TransactionType.EXPENSE), any(Pageable.class));
+            Assertions.assertThat(page).isNotNull();
+            Assertions.assertThat(page.content()).hasSize(2);
+            Assertions.assertThat(page.page()).isEqualTo(0);
+            Assertions.assertThat(page.size()).isEqualTo(2);
+            Assertions.assertThat(page.totalElements()).isEqualTo(3);
+            Assertions.assertThat(page.totalPages()).isEqualTo(2);
+        }
     }
 
-    @Test
-    void getTransactionsByPageAndUserIdAndType_givenIncomeTypeFilter_thenShouldReturnOnlyIncomes() {
-        CategoryEntity food = createCategory("FOOD", TransactionType.EXPENSE);
-        CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
-        AccountEntity cash = createAccount("CASH");
+    @Nested
+    class SumByTypeAndUserId {
+        @Test
+        void givenExpensesWithAllFilters_shouldReturnCorrectSum() {
+            CategoryEntity food = createCategory("FOOD");
+            AccountEntity cash = createAccount("CASH");
 
-        List.of(
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 1)).description("expense1").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 2)).description("income1").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(3000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 3)).description("income2").build()
-        ).forEach(transactionService::addTransaction);
+            List.of(
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 1)).description("t1").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 15)).description("t2").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(300, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 25)).description("t3").build()
+            ).forEach(transactionService::addTransaction);
 
-        com.fabiankevin.app.services.queries.PageQuery query = new com.fabiankevin.app.services.queries.PageQuery(0, 10, "transactionDate", "ASC");
+            LocalDate from = LocalDate.of(2026, 3, 1);
+            LocalDate to = LocalDate.of(2026, 3, 31);
 
-        com.fabiankevin.app.models.Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, Set.of(userId), TransactionType.INCOME);
+            var result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, cash.getId(), food.getId());
 
-        Assertions.assertThat(page).isNotNull();
-        Assertions.assertThat(page.content()).hasSize(2);
-        Assertions.assertThat(page.totalElements()).isEqualTo(2);
-        Assertions.assertThat(page.content()).allMatch(t -> t.type() == TransactionType.INCOME);
-        Assertions.assertThat(page.content()).extracting(Transaction::description).containsExactly("income1", "income2");
+            double expenseTotal = result.stream()
+                    .filter(p -> p.label().equals("EXPENSE"))
+                    .mapToDouble(SummaryPoint::total)
+                    .sum();
+            double incomeTotal = result.stream()
+                    .filter(p -> p.label().equals("INCOME"))
+                    .mapToDouble(SummaryPoint::total)
+                    .sum();
 
-        verify(jpaTransactionRepository, times(1)).findAllByUserIdsAndType(eq(Set.of(userId)), eq(TransactionType.INCOME), any(Pageable.class));
+            Assertions.assertThat(expenseTotal).isEqualTo(600.0);
+            Assertions.assertThat(incomeTotal).isEqualTo(0.0);
+
+            verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(Set.of(userId)), eq(from), eq(to), eq(cash.getId()), eq(food.getId()));
+        }
+
+        @Test
+        void givenExpensesWithNullOptionalFilters_shouldAggregateAcrossCategories() {
+            CategoryEntity food = createCategory("FOOD");
+            CategoryEntity rent = createCategory("RENT");
+            AccountEntity cash = createAccount("CASH");
+
+            List.of(
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 1)).description("food1").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 15)).description("food2").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(rent.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 10)).description("rent").build()
+            ).forEach(transactionService::addTransaction);
+
+            LocalDate from = LocalDate.of(2026, 3, 1);
+            LocalDate to = LocalDate.of(2026, 3, 31);
+
+            var result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, null, null);
+
+            double expenseTotal = result.stream()
+                    .filter(p -> p.label().equals("EXPENSE"))
+                    .mapToDouble(SummaryPoint::total)
+                    .sum();
+            double incomeTotal = result.stream()
+                    .filter(p -> p.label().equals("INCOME"))
+                    .mapToDouble(SummaryPoint::total)
+                    .sum();
+
+            Assertions.assertThat(expenseTotal).isEqualTo(5300.0);
+            Assertions.assertThat(incomeTotal).isEqualTo(0.0);
+
+            verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(Set.of(userId)), eq(from), eq(to), eq(null), eq(null));
+        }
+
+        @Test
+        void givenNoMatchingTransactions_shouldReturnZero() {
+            CategoryEntity food = createCategory("FOOD");
+            AccountEntity cash = createAccount("CASH");
+
+            LocalDate from = LocalDate.of(2026, 3, 1);
+            LocalDate to = LocalDate.of(2026, 3, 31);
+
+            doReturn(Streamable.empty()).when(jpaTransactionRepository)
+                    .sumByTypeAndDateRange(eq(Set.of(userId)), eq(from), eq(to), eq(cash.getId()), eq(food.getId()));
+
+            var result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, cash.getId(), food.getId());
+
+            double incomeTotal = result.stream()
+                    .filter(p -> p.label().equals("INCOME"))
+                    .mapToDouble(SummaryPoint::total)
+                    .sum();
+            double expenseTotal = result.stream()
+                    .filter(p -> p.label().equals("EXPENSE"))
+                    .mapToDouble(SummaryPoint::total)
+                    .sum();
+
+            Assertions.assertThat(incomeTotal).isEqualTo(0.0);
+            Assertions.assertThat(expenseTotal).isEqualTo(0.0);
+
+            verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(Set.of(userId)), eq(from), eq(to), eq(cash.getId()), eq(food.getId()));
+        }
+
+        @Test
+        void givenIncomeAndExpenses_shouldReturnBothTotals() {
+            AccountEntity cash = createAccount("CASH");
+            CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
+            CategoryEntity food = createCategory("FOOD");
+
+            List.of(
+                    AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 1)).description("salary").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(500, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 5)).description("food1").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(300, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 15)).description("food2").build()
+            ).forEach(transactionService::addTransaction);
+
+            LocalDate from = LocalDate.of(2026, 3, 1);
+            LocalDate to = LocalDate.of(2026, 3, 31);
+
+            var result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, cash.getId(), null);
+
+            double incomeTotal = result.stream()
+                    .filter(p -> p.label().equals("INCOME"))
+                    .mapToDouble(SummaryPoint::total)
+                    .sum();
+            double expenseTotal = result.stream()
+                    .filter(p -> p.label().equals("EXPENSE"))
+                    .mapToDouble(SummaryPoint::total)
+                    .sum();
+
+            Assertions.assertThat(incomeTotal).isEqualTo(5000.0);
+            Assertions.assertThat(expenseTotal).isEqualTo(800.0);
+
+            verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(Set.of(userId)), eq(from), eq(to), eq(cash.getId()), eq(null));
+        }
+
+        @Test
+        void givenMultipleTransactionsWithSameCategory_shouldReturnAggregatedTotals() {
+            CategoryEntity food = createCategory("FOOD");
+            CategoryEntity rent = createCategory("RENT");
+            AccountEntity cash = createAccount("CASH");
+
+            List.of(AddTransactionCommand.builder()
+                            .userId(userId)
+                            .categoryId(food.getId())
+                            .accountId(cash.getId())
+                            .amount(Amount.of(100, Currency.getInstance("PHP")))
+                            .transactionDate(LocalDate.of(2026, 6, 1))
+                            .description("Food 1")
+                            .build(),
+                    AddTransactionCommand.builder()
+                            .userId(userId)
+                            .categoryId(food.getId())
+                            .accountId(cash.getId())
+                            .amount(Amount.of(150, Currency.getInstance("PHP")))
+                            .transactionDate(LocalDate.of(2026, 6, 15))
+                            .description("Food 2")
+                            .build(),
+                    AddTransactionCommand.builder()
+                            .userId(userId)
+                            .categoryId(rent.getId())
+                            .accountId(cash.getId())
+                            .amount(Amount.of(8000, Currency.getInstance("PHP")))
+                            .transactionDate(LocalDate.of(2026, 6, 1))
+                            .description("Rent")
+                            .build()).forEach(transactionService::addTransaction);
+
+            LocalDate from = LocalDate.of(2026, 6, 1);
+            LocalDate to = LocalDate.of(2026, 6, 30);
+
+            List<SummaryPoint> result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, food.getId());
+
+            Assertions.assertThat(result).hasSize(1);
+            Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactly("EXPENSE");
+            Assertions.assertThat(result).extracting(SummaryPoint::total).containsExactly(250.0);
+
+            verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRangeByCategory(eq(Set.of(userId)), eq(from), eq(to), eq(food.getId()));
+        }
+
+        @Test
+        void givenNoMatchingTransactionsForCategory_shouldReturnEmptyList() {
+            CategoryEntity food = createCategory("FOOD");
+            CategoryEntity other = createCategory("OTHER");
+            AccountEntity cash = createAccount("CASH");
+
+            AddTransactionCommand.builder()
+                    .userId(userId)
+                    .categoryId(food.getId())
+                    .accountId(cash.getId())
+                    .amount(Amount.of(100, Currency.getInstance("PHP")))
+                    .transactionDate(LocalDate.of(2026, 6, 1))
+                    .description("Food")
+                    .build();
+
+            LocalDate from = LocalDate.of(2026, 6, 1);
+            LocalDate to = LocalDate.of(2026, 6, 30);
+
+            when(jpaTransactionRepository.sumByTypeAndDateRangeByCategory(eq(Set.of(userId)), eq(from), eq(to), eq(other.getId())))
+                    .thenReturn(Streamable.empty());
+
+            List<SummaryPoint> result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, other.getId());
+
+            Assertions.assertThat(result).isEmpty();
+
+            verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRangeByCategory(eq(Set.of(userId)), eq(from), eq(to), eq(other.getId()));
+        }
+
+        @Test
+        void givenTransactionsAcrossMultipleMonths_shouldReturnAggregatedTotals() {
+            CategoryEntity food = createCategory("FOOD");
+            AccountEntity cash = createAccount("CASH");
+
+            List.of(AddTransactionCommand.builder()
+                            .userId(userId)
+                            .categoryId(food.getId())
+                            .accountId(cash.getId())
+                            .amount(Amount.of(100, Currency.getInstance("PHP")))
+                            .transactionDate(LocalDate.of(2026, 4, 1))
+                            .description("April food")
+                            .build(),
+                    AddTransactionCommand.builder()
+                            .userId(userId)
+                            .categoryId(food.getId())
+                            .accountId(cash.getId())
+                            .amount(Amount.of(200, Currency.getInstance("PHP")))
+                            .transactionDate(LocalDate.of(2026, 5, 15))
+                            .description("May food")
+                            .build(),
+                    AddTransactionCommand.builder()
+                            .userId(userId)
+                            .categoryId(food.getId())
+                            .accountId(cash.getId())
+                            .amount(Amount.of(300, Currency.getInstance("PHP")))
+                            .transactionDate(LocalDate.of(2026, 6, 1))
+                            .description("June food")
+                            .build()).forEach(transactionService::addTransaction);
+
+            LocalDate from = LocalDate.of(2026, 4, 1);
+            LocalDate to = LocalDate.of(2026, 6, 30);
+
+            List<SummaryPoint> result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, food.getId());
+
+            Assertions.assertThat(result).hasSize(1);
+            Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactly("EXPENSE");
+            Assertions.assertThat(result).extracting(SummaryPoint::total).containsExactly(600.0);
+
+            verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRangeByCategory(eq(Set.of(userId)), eq(from), eq(to), eq(food.getId()));
+        }
     }
 
-    @Test
-    void getTransactionsByPageAndUserIdAndType_givenNullType_thenShouldReturnAllTransactions() {
-        CategoryEntity food = createCategory("FOOD");
-        CategoryEntity salary = createCategory("SALARY");
-        AccountEntity cash = createAccount("CASH");
-
-        List.of(
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 1)).description("expense1").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 2)).description("income1").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 3)).description("expense2").build()
-        ).forEach(transactionService::addTransaction);
-
-        com.fabiankevin.app.services.queries.PageQuery query = new com.fabiankevin.app.services.queries.PageQuery(0, 10, "transactionDate", "ASC");
-
-        com.fabiankevin.app.models.Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, Set.of(userId), null);
-
-        Assertions.assertThat(page).isNotNull();
-        Assertions.assertThat(page.content()).hasSize(3);
-        Assertions.assertThat(page.totalElements()).isEqualTo(3);
-        Assertions.assertThat(page.content()).extracting(Transaction::description).containsExactly("expense1", "income1", "expense2");
-
-        verify(jpaTransactionRepository, times(1)).findAllByUserIdsAndType(eq(Set.of(userId)), eq(null), any(Pageable.class));
-    }
 
     @Test
-    void getTransactionsByPageAndUserIdAndType_givenNonMatchingType_thenShouldReturnEmptyPage() {
-        CategoryEntity food = createCategory("FOOD");
-        AccountEntity cash = createAccount("CASH");
-
-        List.of(
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 1)).description("expense1").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 2)).description("expense2").build()
-        ).forEach(transactionService::addTransaction);
-
-        PageQuery query = new PageQuery(0, 10, "transactionDate", "ASC");
-
-        Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, Set.of(userId), TransactionType.INCOME);
-
-        Assertions.assertThat(page).isNotNull();
-        Assertions.assertThat(page.content()).isEmpty();
-        Assertions.assertThat(page.totalElements()).isEqualTo(0);
-        Assertions.assertThat(page.totalPages()).isEqualTo(0);
-
-        verify(jpaTransactionRepository, times(1)).findAllByUserIdsAndType(eq(Set.of(userId)), eq(TransactionType.INCOME), any(Pageable.class));
-    }
-
-    @Test
-    void getTransactionsByPageAndUserIdAndType_givenWrongUserId_thenShouldReturnEmptyPage() {
-        CategoryEntity food = createCategory("FOOD");
-        AccountEntity cash = createAccount("CASH");
-
-        AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 1)).description("expense1").build();
-        transactionService.addTransaction(AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 1, 1)).description("expense1").build());
-
-        UUID differentUserId = UUID.randomUUID();
-        PageQuery query = new PageQuery(0, 10, "transactionDate", "ASC");
-
-        com.fabiankevin.app.models.Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, Set.of(differentUserId), TransactionType.EXPENSE);
-
-        Assertions.assertThat(page).isNotNull();
-        Assertions.assertThat(page.content()).isEmpty();
-        Assertions.assertThat(page.totalElements()).isEqualTo(0);
-
-        verify(jpaTransactionRepository, times(1)).findAllByUserIdsAndType(eq(Set.of(differentUserId)), eq(TransactionType.EXPENSE), any(Pageable.class));
-    }
-
-    @Test
-    void sumByTypeAndUserId_givenExpensesWithAllFilters_shouldReturnCorrectSum() {
-        CategoryEntity food = createCategory("FOOD");
-        AccountEntity cash = createAccount("CASH");
-
-        List.of(
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 1)).description("t1").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 15)).description("t2").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(300, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 25)).description("t3").build()
-        ).forEach(transactionService::addTransaction);
-
-        LocalDate from = LocalDate.of(2026, 3, 1);
-        LocalDate to = LocalDate.of(2026, 3, 31);
-
-        var result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, cash.getId(), food.getId());
-
-        double expenseTotal = result.stream()
-                .filter(p -> p.label().equals("EXPENSE"))
-                .mapToDouble(SummaryPoint::total)
-                .sum();
-        double incomeTotal = result.stream()
-                .filter(p -> p.label().equals("INCOME"))
-                .mapToDouble(SummaryPoint::total)
-                .sum();
-
-        Assertions.assertThat(expenseTotal).isEqualTo(600.0);
-        Assertions.assertThat(incomeTotal).isEqualTo(0.0);
-
-        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(Set.of(userId)), eq(from), eq(to), eq(cash.getId()), eq(food.getId()));
-    }
-
-    @Test
-    void sumByTypeAndUserId_givenExpensesWithNullOptionalFilters_shouldAggregateAcrossCategories() {
-        CategoryEntity food = createCategory("FOOD");
-        CategoryEntity rent = createCategory("RENT");
-        AccountEntity cash = createAccount("CASH");
-
-        List.of(
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 1)).description("food1").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 15)).description("food2").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(rent.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 10)).description("rent").build()
-        ).forEach(transactionService::addTransaction);
-
-        LocalDate from = LocalDate.of(2026, 3, 1);
-        LocalDate to = LocalDate.of(2026, 3, 31);
-
-        var result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, null, null);
-
-        double expenseTotal = result.stream()
-                .filter(p -> p.label().equals("EXPENSE"))
-                .mapToDouble(SummaryPoint::total)
-                .sum();
-        double incomeTotal = result.stream()
-                .filter(p -> p.label().equals("INCOME"))
-                .mapToDouble(SummaryPoint::total)
-                .sum();
-
-        Assertions.assertThat(expenseTotal).isEqualTo(5300.0);
-        Assertions.assertThat(incomeTotal).isEqualTo(0.0);
-
-        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(Set.of(userId)), eq(from), eq(to), eq(null), eq(null));
-    }
-
-    @Test
-    void sumByTypeAndUserId_givenNoMatchingTransactions_shouldReturnZero() {
-        CategoryEntity food = createCategory("FOOD");
-        AccountEntity cash = createAccount("CASH");
-
-        LocalDate from = LocalDate.of(2026, 3, 1);
-        LocalDate to = LocalDate.of(2026, 3, 31);
-
-        doReturn(Streamable.empty()).when(jpaTransactionRepository)
-                .sumByTypeAndDateRange(eq(Set.of(userId)), eq(from), eq(to), eq(cash.getId()), eq(food.getId()));
-
-        var result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, cash.getId(), food.getId());
-
-        double incomeTotal = result.stream()
-                .filter(p -> p.label().equals("INCOME"))
-                .mapToDouble(SummaryPoint::total)
-                .sum();
-        double expenseTotal = result.stream()
-                .filter(p -> p.label().equals("EXPENSE"))
-                .mapToDouble(SummaryPoint::total)
-                .sum();
-
-        Assertions.assertThat(incomeTotal).isEqualTo(0.0);
-        Assertions.assertThat(expenseTotal).isEqualTo(0.0);
-
-        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(Set.of(userId)), eq(from), eq(to), eq(cash.getId()), eq(food.getId()));
-    }
-
-    @Test
-    void sumByTypeAndUserId_givenIncomeAndExpenses_shouldReturnBothTotals() {
-        AccountEntity cash = createAccount("CASH");
-        CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
-        CategoryEntity food = createCategory("FOOD");
-
-        List.of(
-                AddTransactionCommand.builder().userId(userId).categoryId(salary.getId()).accountId(cash.getId()).amount(Amount.of(5000, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 1)).description("salary").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(500, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 5)).description("food1").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(300, Currency.getInstance("PHP"))).transactionDate(LocalDate.of(2026, 3, 15)).description("food2").build()
-        ).forEach(transactionService::addTransaction);
-
-        LocalDate from = LocalDate.of(2026, 3, 1);
-        LocalDate to = LocalDate.of(2026, 3, 31);
-
-        var result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, cash.getId(), null);
-
-        double incomeTotal = result.stream()
-                .filter(p -> p.label().equals("INCOME"))
-                .mapToDouble(SummaryPoint::total)
-                .sum();
-        double expenseTotal = result.stream()
-                .filter(p -> p.label().equals("EXPENSE"))
-                .mapToDouble(SummaryPoint::total)
-                .sum();
-
-        Assertions.assertThat(incomeTotal).isEqualTo(5000.0);
-        Assertions.assertThat(expenseTotal).isEqualTo(800.0);
-
-        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRange(eq(Set.of(userId)), eq(from), eq(to), eq(cash.getId()), eq(null));
-    }
-
-    @Test
-    void sumBalance_givenIncomeAndExpenses_shouldReturnNetBalance() {
+    void givenIncomeAndExpenses_shouldReturnNetBalance() {
         AccountEntity cash = createAccount("CASH");
         CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
         CategoryEntity food = createCategory("FOOD");
@@ -790,7 +912,7 @@ class DefaultTransactionRepositoryTest {
     }
 
     @Test
-    void sumBalance_givenTransactionsAcrossMultipleAccounts_shouldSumAll() {
+    void givenTransactionsAcrossMultipleAccounts_shouldSumAll() {
         AccountEntity cash = createAccount("CASH");
         AccountEntity savings = createAccount("SAVINGS");
         CategoryEntity salary = createCategory("SALARY", TransactionType.INCOME);
@@ -811,7 +933,7 @@ class DefaultTransactionRepositoryTest {
     }
 
     @Test
-    void sumBalance_givenNoMatchingTransactions_shouldReturnZero() {
+    void givenNoMatchingTransactions_shouldReturnZero() {
         doReturn(0.0).when(jpaTransactionRepository).sumBalance(Set.of(userId));
 
         double result = transactionRepository.sumBalance(Set.of(userId));
@@ -821,156 +943,46 @@ class DefaultTransactionRepositoryTest {
         verify(jpaTransactionRepository, times(1)).sumBalance(eq(Set.of(userId)));
     }
 
-    @Test
-    void sumByTypeAndUserId_givenMultipleTransactionsWithSameCategory_shouldReturnAggregatedTotals() {
-        CategoryEntity food = createCategory("FOOD");
-        CategoryEntity rent = createCategory("RENT");
-        AccountEntity cash = createAccount("CASH");
+    @Nested
+    class GetDailyAveragePastWeek {
+        @Test
+        void givenTransactionsWithinPastWeek_shouldReturnDailyAverage() {
+            CategoryEntity food = createCategory("Food & Drinks");
+            AccountEntity cash = createAccount("Cash Wallet");
 
-        List.of(AddTransactionCommand.builder()
-                        .userId(userId)
-                        .categoryId(food.getId())
-                        .accountId(cash.getId())
-                        .amount(Amount.of(100, Currency.getInstance("PHP")))
-                        .transactionDate(LocalDate.of(2026, 6, 1))
-                        .description("Food 1")
-                        .build(),
-                AddTransactionCommand.builder()
-                        .userId(userId)
-                        .categoryId(food.getId())
-                        .accountId(cash.getId())
-                        .amount(Amount.of(150, Currency.getInstance("PHP")))
-                        .transactionDate(LocalDate.of(2026, 6, 15))
-                        .description("Food 2")
-                        .build(),
-                AddTransactionCommand.builder()
-                        .userId(userId)
-                        .categoryId(rent.getId())
-                        .accountId(cash.getId())
-                        .amount(Amount.of(8000, Currency.getInstance("PHP")))
-                        .transactionDate(LocalDate.of(2026, 6, 1))
-                        .description("Rent")
-                        .build()).forEach(transactionService::addTransaction);
+            LocalDate today = LocalDate.now();
+            List.of(
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(today.minusDays(1)).description("t1").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(today.minusDays(2)).description("t2").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(300, Currency.getInstance("PHP"))).transactionDate(today.minusDays(3)).description("t3").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(400, Currency.getInstance("PHP"))).transactionDate(today.minusDays(4)).description("t4").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(500, Currency.getInstance("PHP"))).transactionDate(today.minusDays(5)).description("t5").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(600, Currency.getInstance("PHP"))).transactionDate(today.minusDays(6)).description("t6").build(),
+                    AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(700, Currency.getInstance("PHP"))).transactionDate(today.minusDays(7)).description("t7").build()
+            ).forEach(transactionService::addTransaction);
 
-        LocalDate from = LocalDate.of(2026, 6, 1);
-        LocalDate to = LocalDate.of(2026, 6, 30);
+            LocalDate startDate = today.minusDays(7);
 
-        List<SummaryPoint> result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, food.getId());
+            List<SummaryPoint> result = transactionRepository.getDailyAveragePastWeek(Set.of(userId));
 
-        Assertions.assertThat(result).hasSize(1);
-        Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactly("EXPENSE");
-        Assertions.assertThat(result).extracting(SummaryPoint::total).containsExactly(250.0);
+            Assertions.assertThat(result).hasSize(1);
+            SummaryPoint summaryPoint = result.getFirst();
+            Assertions.assertThat(summaryPoint.label()).isEqualTo(userId.toString());
+            Assertions.assertThat(summaryPoint.total()).isCloseTo(1.0, offset(0.01));
 
-        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRangeByCategory(eq(Set.of(userId)), eq(from), eq(to), eq(food.getId()));
-    }
+            verify(jpaTransactionRepository, times(1)).getDailyAveragePastWeek(Set.of(userId), startDate);
+        }
 
-    @Test
-    void sumByTypeAndUserId_givenNoMatchingTransactionsForCategory_shouldReturnEmptyList() {
-        CategoryEntity food = createCategory("FOOD");
-        CategoryEntity other = createCategory("OTHER");
-        AccountEntity cash = createAccount("CASH");
+        @Test
+        void givenNoTransactionsInRange_shouldReturnEmptyList() {
+            UUID otherUserId = UUID.randomUUID();
 
-        AddTransactionCommand.builder()
-                .userId(userId)
-                .categoryId(food.getId())
-                .accountId(cash.getId())
-                .amount(Amount.of(100, Currency.getInstance("PHP")))
-                .transactionDate(LocalDate.of(2026, 6, 1))
-                .description("Food")
-                .build();
+            List<SummaryPoint> result = transactionRepository.getDailyAveragePastWeek(Set.of(otherUserId));
 
-        LocalDate from = LocalDate.of(2026, 6, 1);
-        LocalDate to = LocalDate.of(2026, 6, 30);
+            Assertions.assertThat(result).isEmpty();
 
-        when(jpaTransactionRepository.sumByTypeAndDateRangeByCategory(eq(Set.of(userId)), eq(from), eq(to), eq(other.getId())))
-                .thenReturn(Streamable.empty());
-
-        List<SummaryPoint> result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, other.getId());
-
-        Assertions.assertThat(result).isEmpty();
-
-        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRangeByCategory(eq(Set.of(userId)), eq(from), eq(to), eq(other.getId()));
-    }
-
-    @Test
-    void sumByTypeAndUserId_givenTransactionsAcrossMultipleMonths_shouldReturnAggregatedTotals() {
-        CategoryEntity food = createCategory("FOOD");
-        AccountEntity cash = createAccount("CASH");
-
-        List.of(AddTransactionCommand.builder()
-                        .userId(userId)
-                        .categoryId(food.getId())
-                        .accountId(cash.getId())
-                        .amount(Amount.of(100, Currency.getInstance("PHP")))
-                        .transactionDate(LocalDate.of(2026, 4, 1))
-                        .description("April food")
-                        .build(),
-                AddTransactionCommand.builder()
-                        .userId(userId)
-                        .categoryId(food.getId())
-                        .accountId(cash.getId())
-                        .amount(Amount.of(200, Currency.getInstance("PHP")))
-                        .transactionDate(LocalDate.of(2026, 5, 15))
-                        .description("May food")
-                        .build(),
-                AddTransactionCommand.builder()
-                        .userId(userId)
-                        .categoryId(food.getId())
-                        .accountId(cash.getId())
-                        .amount(Amount.of(300, Currency.getInstance("PHP")))
-                        .transactionDate(LocalDate.of(2026, 6, 1))
-                        .description("June food")
-                        .build()).forEach(transactionService::addTransaction);
-
-        LocalDate from = LocalDate.of(2026, 4, 1);
-        LocalDate to = LocalDate.of(2026, 6, 30);
-
-        List<SummaryPoint> result = transactionRepository.sumByTypeAndUserId(Set.of(userId), from, to, food.getId());
-
-        Assertions.assertThat(result).hasSize(1);
-        Assertions.assertThat(result).extracting(SummaryPoint::label).containsExactly("EXPENSE");
-        Assertions.assertThat(result).extracting(SummaryPoint::total).containsExactly(600.0);
-
-        verify(jpaTransactionRepository, times(1)).sumByTypeAndDateRangeByCategory(eq(Set.of(userId)), eq(from), eq(to), eq(food.getId()));
-    }
-
-    @Test
-    void getDailyAveragePastWeek_givenTransactionsWithinPastWeek_shouldReturnDailyAverage() {
-        CategoryEntity food = createCategory("Food & Drinks");
-        AccountEntity cash = createAccount("Cash Wallet");
-
-        LocalDate today = LocalDate.now();
-        List.of(
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(100, Currency.getInstance("PHP"))).transactionDate(today.minusDays(1)).description("t1").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(200, Currency.getInstance("PHP"))).transactionDate(today.minusDays(2)).description("t2").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(300, Currency.getInstance("PHP"))).transactionDate(today.minusDays(3)).description("t3").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(400, Currency.getInstance("PHP"))).transactionDate(today.minusDays(4)).description("t4").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(500, Currency.getInstance("PHP"))).transactionDate(today.minusDays(5)).description("t5").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(600, Currency.getInstance("PHP"))).transactionDate(today.minusDays(6)).description("t6").build(),
-                AddTransactionCommand.builder().userId(userId).categoryId(food.getId()).accountId(cash.getId()).amount(Amount.of(700, Currency.getInstance("PHP"))).transactionDate(today.minusDays(7)).description("t7").build()
-        ).forEach(transactionService::addTransaction);
-
-        LocalDate startDate = today.minusDays(7);
-
-        List<SummaryPoint> result = transactionRepository.getDailyAveragePastWeek(Set.of(userId));
-
-        Assertions.assertThat(result).hasSize(1);
-        SummaryPoint summaryPoint = result.getFirst();
-        Assertions.assertThat(summaryPoint.label()).isEqualTo(userId.toString());
-        Assertions.assertThat(summaryPoint.total()).isCloseTo(1.0, offset(0.01));
-
-        verify(jpaTransactionRepository, times(1)).getDailyAveragePastWeek(Set.of(userId), startDate);
-    }
-
-    @Test
-    void getDailyAveragePastWeek_givenNoTransactionsInRange_shouldReturnEmptyList() {
-        UUID otherUserId = UUID.randomUUID();
-
-        List<SummaryPoint> result = transactionRepository.getDailyAveragePastWeek(Set.of(otherUserId));
-
-        Assertions.assertThat(result).isEmpty();
-
-        verify(jpaTransactionRepository, times(1)).getDailyAveragePastWeek(Set.of(otherUserId), LocalDate.now().minusDays(7));
+            verify(jpaTransactionRepository, times(1)).getDailyAveragePastWeek(Set.of(otherUserId), LocalDate.now().minusDays(7));
+        }
     }
 
     private CategoryEntity createCategory(String categoryName) {
