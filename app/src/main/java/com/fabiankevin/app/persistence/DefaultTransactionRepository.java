@@ -153,4 +153,10 @@ public class DefaultTransactionRepository implements TransactionRepository {
     public double sumSpentByCategoryIdAndUserId(UUID categoryId, UUID userId) {
         return jpaTransactionRepository.sumSpentByCategoryIdAndUserId(categoryId, userId);
     }
+
+    @Override
+    public Optional<Transaction> findByRecurringTransactionId(UUID id) {
+        return jpaTransactionRepository.findByRecurringTransactionId(id)
+                .map(TransactionEntity::toModel);
+    }
 }

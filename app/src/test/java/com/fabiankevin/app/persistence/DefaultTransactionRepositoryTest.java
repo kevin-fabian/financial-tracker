@@ -32,10 +32,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.Currency;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.offset;
 import static org.mockito.Mockito.*;
@@ -993,6 +990,43 @@ class DefaultTransactionRepositoryTest {
             Assertions.assertThat(result).isEmpty();
 
             verify(jpaTransactionRepository, times(1)).getDailyAveragePastWeek(Set.of(otherUserId), LocalDate.now().minusDays(7));
+        }
+    }
+
+    @Nested
+    class FindByRecurringTransactionId {
+        @Test
+        void givenTransactionWithRecurringId_shouldReturnTransaction() {
+            CategoryEntity food = createCategory("FOOD");
+            AccountEntity cash = createAccount("CASH");
+            UUID recurringId = UUID.randomUUID();
+
+            Transaction saved = transactionService.addTransaction(AddTransactionCommand.builder()
+                    .userId(userId)
+                    .categoryId(food.getId())
+                    .accountId(cash.getId())
+                    .amount(Amount.of(500, Currency.getInstance("PHP")))
+                    .transactionDate(LocalDate.of(2026, 5, 1))
+                    .description("Recurring payment")
+                    .recurringTransactionId(recurringId)
+                    .build());
+
+            Optional<Transaction> result = transactionRepository.findByRecurringTransactionId(recurringId);
+
+            Assertions.assertThat(result).isPresent();
+            Assertions.assertThat(result.get().id()).isEqualTo(saved.id());
+            Assertions.assertThat(result.get().recurringTransactionId()).isEqualTo(recurringId);
+            verify(jpaTransactionRepository, times(1)).findByRecurringTransactionId(recurringId);
+        }
+
+        @Test
+        void givenNoTransactionWithRecurringId_shouldReturnEmpty() {
+            UUID recurringId = UUID.randomUUID();
+
+            Optional<Transaction> result = transactionRepository.findByRecurringTransactionId(recurringId);
+
+            Assertions.assertThat(result).isEmpty();
+            verify(jpaTransactionRepository, times(1)).findByRecurringTransactionId(recurringId);
         }
     }
 

@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.util.Streamable;
 
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -157,4 +158,6 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
               AND t.account.userId = :userId
             """)
     double sumSpentByCategoryIdAndUserId(@Param("categoryId") UUID categoryId, @Param("userId") UUID userId);
+
+    Optional<TransactionEntity> findByRecurringTransactionId(UUID recurringTransactionId);
 }
