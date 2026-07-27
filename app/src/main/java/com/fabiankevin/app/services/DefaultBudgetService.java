@@ -59,6 +59,9 @@ public class DefaultBudgetService implements BudgetService {
     private BudgetSummary toSummary(Budget budget, double spent) {
         User user = userClient.getUsersByIds(List.of(budget.userId())).stream().findFirst().orElse(null);
         String lastUpdatedByName = user != null ? user.fullName() : null;
+        String firstName = user != null ? user.firstName() : null;
+        String lastName = user != null ? user.lastName() : null;
+        String initial = user != null ? user.initial() : null;
         double allocated = budget.allocated();
         double spentPercentage = allocated > 0 ? (spent / allocated) * 100.0 : 0.0;
 
@@ -67,6 +70,9 @@ public class DefaultBudgetService implements BudgetService {
                 .userId(budget.userId())
                 .lastUpdatedBy(budget.lastUpdatedBy())
                 .lastUpdatedByName(lastUpdatedByName)
+                .firstName(firstName)
+                .lastName(lastName)
+                .initial(initial)
                 .updatedAt(budget.updatedAt())
                 .createdAt(budget.createdAt())
                 .period(budget.period())
@@ -125,7 +131,15 @@ public class DefaultBudgetService implements BudgetService {
                 .map(summary -> {
                     User user = usersById.get(summary.lastUpdatedBy());
                     String name = user != null ? user.fullName() : null;
-                    return summary.toBuilder().lastUpdatedByName(name).build();
+                    String firstName = user != null ? user.firstName() : null;
+                    String lastName = user != null ? user.lastName() : null;
+                    String initial = user != null ? user.initial() : null;
+                    return summary.toBuilder()
+                            .lastUpdatedByName(name)
+                            .firstName(firstName)
+                            .lastName(lastName)
+                            .initial(initial)
+                            .build();
                 })
                 .toList();
     }

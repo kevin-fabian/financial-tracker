@@ -13,4 +13,10 @@ public record User(
     public String fullName() {
          return String.format("%s %s", firstName, lastName);
     }
+
+    public String initial() {
+        String first = firstName != null && !firstName.isBlank() ? firstName.substring(0, 1) : "";
+        String last = lastName != null && !lastName.isBlank() ? lastName.substring(0, 1) : "";
+        return (first + last).toUpperCase();
+    }
 }

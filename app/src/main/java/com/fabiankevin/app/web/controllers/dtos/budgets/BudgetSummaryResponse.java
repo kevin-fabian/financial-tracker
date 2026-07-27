@@ -17,6 +17,12 @@ public record BudgetSummaryResponse(
         UUID lastUpdatedBy,
         @Schema(description = "Full name of the user who last updated the budget", example = "John Doe")
         String lastUpdatedByName,
+        @Schema(description = "First name of the user who last updated the budget", example = "John")
+        String firstName,
+        @Schema(description = "Last name of the user who last updated the budget", example = "Doe")
+        String lastName,
+        @Schema(description = "Initials of the user who last updated the budget", example = "JD")
+        String initial,
         @Schema(description = "Timestamp of the last update", example = "2026-07-26T09:00:00Z")
         Instant updatedAt,
         @Schema(description = "Timestamp when the budget was created", example = "2026-07-26T09:00:00Z")
@@ -41,6 +47,9 @@ public record BudgetSummaryResponse(
                 .id(summary.id())
                 .lastUpdatedBy(summary.lastUpdatedBy())
                 .lastUpdatedByName(summary.lastUpdatedByName())
+                .firstName(summary.firstName())
+                .lastName(summary.lastName())
+                .initial(summary.initial())
                 .updatedAt(summary.updatedAt())
                 .createdAt(summary.createdAt())
                 .period(summary.period())
