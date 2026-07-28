@@ -1058,6 +1058,28 @@ class RecurringTransactionControllerSpringBootTest {
         }
     }
 
+    @Nested
+    class ProcessDueRecurringTransactions {
+        @Test
+        void givenValidClientCredentials_thenTriggerProcessDueReturnsAccepted() throws Exception {
+            mockMvc.perform(post("/api/recurring-transactions/process-due")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("zeny:operator"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", UUID.randomUUID())
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isAccepted());
+        }
+
+        @Test
+        void givenNoJwt_thenReturnsForbidden() throws Exception {
+            mockMvc.perform(post("/api/recurring-transactions/process-due"))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
     private Category createCategory(UUID userId, String name, TransactionType type, String icon) {
         return categoryService.createCategory(CreateCategoryCommand.builder()
                 .name(name)

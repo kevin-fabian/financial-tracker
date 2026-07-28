@@ -100,4 +100,18 @@ public class RecurringTransactionController {
         recurringTransactionService.deleteRecurringTransactionById(id, userId);
         return ResponseEntity.noContent().build();
     }
+
+    @Operation(
+            summary = "Trigger processing of due recurring transactions",
+            description = "Starts an asynchronous job to process all due recurring transactions. Returns 202 immediately.",
+            responses = {
+                    @ApiResponse(responseCode = "202", description = "Accepted - Processing job started"),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @PostMapping("/process-due")
+    public ResponseEntity<Void> processDueRecurringTransactions() {
+        recurringTransactionService.processDueRecurringTransactions();
+        return ResponseEntity.accepted().build();
+    }
 }

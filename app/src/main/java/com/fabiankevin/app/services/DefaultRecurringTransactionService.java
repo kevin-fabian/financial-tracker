@@ -14,6 +14,7 @@ import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.recurring_transactions.commands.CreateRecurringTransactionCommand;
 import com.fabiankevin.app.services.recurring_transactions.commands.UpdateRecurringTransactionCommand;
 import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -207,6 +208,7 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
         return TransactionStatus.OVERDUE;
     }
 
+    @Async
     @Transactional
     @Override
     public void processDueRecurringTransactions() {
