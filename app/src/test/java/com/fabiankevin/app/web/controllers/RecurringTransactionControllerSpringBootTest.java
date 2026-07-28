@@ -6,6 +6,10 @@ import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
+import com.fabiankevin.app.models.recurring_transactions.RecurringTransaction;
+import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus;
+import com.fabiankevin.app.persistence.RecurringTransactionRepository;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.services.RecurringTransactionService;
@@ -14,6 +18,7 @@ import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateRecurringTransactionRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchRecurringTransactionRequest;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,6 +70,9 @@ class RecurringTransactionControllerSpringBootTest {
 
     @Autowired
     private RecurringTransactionService recurringTransactionService;
+
+    @Autowired
+    private RecurringTransactionRepository recurringTransactionRepository;
 
     @Autowired
     private CategoryService categoryService;
@@ -1060,6 +1068,14 @@ class RecurringTransactionControllerSpringBootTest {
 
     @Nested
     class ProcessDueRecurringTransactions {
+        @Autowired
+        private JpaTransactionRepository jpaTransactionRepository;
+
+        @BeforeEach
+        void beforeEach() {
+            jpaTransactionRepository.deleteAll();
+        }
+
         @Test
         void givenValidClientCredentials_thenTriggerProcessDueReturnsAccepted() throws Exception {
             mockMvc.perform(post("/api/recurring-transactions/process-due")
@@ -1077,6 +1093,46 @@ class RecurringTransactionControllerSpringBootTest {
         void givenNoJwt_thenReturnsForbidden() throws Exception {
             mockMvc.perform(post("/api/recurring-transactions/process-due"))
                     .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void givenTenDueRecurringTransactions_thenProcessDueCreatesTenTransactions() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Account account = createAccount(userId, "Cash Wallet");
+            ZonedDateTime pastDate = ZonedDateTime.now().minusDays(1);
+
+            for (int i = 0; i < 10; i++) {
+                RecurringTransaction recurringTransaction = RecurringTransaction.builder()
+                        .userId(userId)
+                        .description("Due transaction " + i)
+                        .amount(10.0 + i)
+                        .variableAmount(false)
+                        .category(category)
+                        .account(account)
+                        .dayOfMonth(15)
+                        .nextOccurrenceDate(pastDate)
+                        .endDate(null)
+                        .status(RecurringTransactionStatus.ACTIVE)
+                        .createdAt(pastDate.toInstant())
+                        .updatedAt(pastDate.toInstant())
+                        .build();
+                recurringTransactionRepository.save(recurringTransaction);
+            }
+
+            recurringTransactionService.processDueRecurringTransactions();
+
+            mockMvc.perform(get("/api/transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.totalElements").value(10))
+                    .andExpect(jsonPath("$.content.length()").value(10));
         }
     }
 
