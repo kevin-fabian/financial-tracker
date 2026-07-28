@@ -34,6 +34,7 @@ import java.util.UUID;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -335,6 +336,83 @@ class RecurringTransactionControllerSpringBootTest {
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Nested
+    class GetRecurringTransactions {
+
+        @Test
+        void givenRecurringTransactionsExist_thenReturnsListOfSummaries() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Account account = createAccount(userId, "Cash Wallet");
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            CreateRecurringTransactionRequest request = CreateRecurringTransactionRequest.builder()
+                    .description("Monthly subscription")
+                    .amount(15.99)
+                    .variableAmount(false)
+                    .categoryId(category.id())
+                    .accountId(account.id())
+                    .noEndDate(false)
+                    .dayOfMonth(15)
+                    .durationMonths(6)
+                    .build();
+
+            mockMvc.perform(post("/api/recurring-transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated());
+
+            mockMvc.perform(get("/api/recurring-transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].id").isNotEmpty())
+                    .andExpect(jsonPath("$[0].description").value("Monthly subscription"))
+                    .andExpect(jsonPath("$[0].amount").value(15.99))
+                    .andExpect(jsonPath("$[0].categoryName").value("GROCERIES"))
+                    .andExpect(jsonPath("$[0].accountName").value("Cash Wallet"))
+                    .andExpect(jsonPath("$[0].dayOfMonth").value(15))
+                    .andExpect(jsonPath("$[0].remainingDays").isNumber())
+                    .andExpect(jsonPath("$[0].remainingDays").value(org.hamcrest.Matchers.greaterThan(0)))
+                    .andExpect(jsonPath("$[0].transactionStatus").value("UPCOMING"))
+                    .andExpect(jsonPath("$[0].status").value("ACTIVE"))
+                    .andExpect(jsonPath("$[0].firstName").value("John"))
+                    .andExpect(jsonPath("$[0].lastName").value("Doe"))
+                    .andExpect(jsonPath("$[0].initial").value("JD"));
+        }
+
+        @Test
+        void givenNoRecurringTransactions_thenReturnsEmptyList() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            mockMvc.perform(get("/api/recurring-transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(0));
         }
     }
 

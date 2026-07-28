@@ -4,6 +4,7 @@ import com.fabiankevin.app.services.RecurringTransactionService;
 import com.fabiankevin.app.web.controllers.dtos.CreateRecurringTransactionRequest;
 import com.fabiankevin.app.web.controllers.dtos.RecurringSummaryResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -13,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -39,5 +41,22 @@ public class RecurringTransactionController {
     ) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         return RecurringSummaryResponse.from(recurringTransactionService.create(request.toCommand(userId)));
+    }
+
+    @Operation(
+            summary = "Retrieve recurring transactions",
+            description = "Retrieves a list of recurring transaction summaries for the authenticated user",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - Resources retrieved successfully",
+                            content = @Content(array = @ArraySchema(schema = @Schema(implementation = RecurringSummaryResponse.class)))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @GetMapping
+    public List<RecurringSummaryResponse> getRecurringTransactions(JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        return recurringTransactionService.getRecurringTransactionsByUserId(userId).stream()
+                .map(RecurringSummaryResponse::from)
+                .toList();
     }
 }

@@ -24,6 +24,7 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 @Service
@@ -94,6 +95,11 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
                 .createdAt(saved.createdAt())
                 .updatedAt(saved.updatedAt())
                 .build();
+    }
+
+    @Override
+    public List<RecurringTransactionSummary> getRecurringTransactionsByUserId(UUID userId) {
+        return recurringTransactionRepository.findSummariesByUserId(userId, ZonedDateTime.now());
     }
 
     private ZonedDateTime deriveNextOccurrenceDate(int dayOfMonth, ZonedDateTime now) {
