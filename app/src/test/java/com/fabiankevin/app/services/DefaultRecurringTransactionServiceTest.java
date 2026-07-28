@@ -32,8 +32,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -160,6 +159,43 @@ class DefaultRecurringTransactionServiceTest {
             verify(accountRepository, never()).findById(any());
             verify(categoryRepository, never()).findById(any());
             verify(recurringTransactionRepository, never()).save(any());
+        }
+
+        @Test
+        void givenNoEndDateFlag_thenEndDateIsNullAndDayOfMonthZeroDoesNotThrow() {
+            CreateRecurringTransactionCommand noEndDateCommand = command.toBuilder()
+                    .noEndDate(true)
+                    .dayOfMonth(0)
+                    .build();
+
+            when(accountRepository.findById(account.id())).thenReturn(Optional.of(account));
+            when(categoryRepository.findById(category.id())).thenReturn(Optional.of(category));
+            when(recurringTransactionRepository.save(any())).thenAnswer(invocation -> {
+                RecurringTransaction input = invocation.getArgument(0);
+                return input.toBuilder().id(UUID.randomUUID()).createdAt(Instant.now()).updatedAt(Instant.now()).build();
+            });
+
+            RecurringTransactionSummary summary = service.create(noEndDateCommand);
+
+            assertNotNull(summary, "summary should not be null");
+            assertNotNull(summary.id(), "id should be generated");
+            assertEquals(noEndDateCommand.userId(), summary.userId(), "userId should match command");
+            assertEquals("Monthly subscription", summary.description(), "description should match command");
+            assertEquals(15.99, summary.amount(), "amount should match command");
+            assertEquals(RecurringTransactionStatus.ACTIVE, summary.status(), "recurring status should be ACTIVE");
+            assertNotNull(summary.category(), "category should not be null");
+            assertEquals(category.id(), summary.category().id(), "category should match");
+            assertNotNull(summary.account(), "account should not be null");
+            assertEquals(account.id(), summary.account().id(), "account should match");
+            assertNotNull(summary.createdAt(), "createdAt should not be null");
+            assertNotNull(summary.updatedAt(), "updatedAt should not be null");
+            assertNotNull(summary.nextOccurrenceDate(), "nextOccurrenceDate should not be null");
+            assertEquals(TransactionStatus.UPCOMING, summary.transactionStatus(), "transactionStatus should be UPCOMING");
+            assertNull(summary.endDate(), "endDate should be null when noEndDate is true");
+
+            verify(accountRepository).findById(account.id());
+            verify(categoryRepository).findById(category.id());
+            verify(recurringTransactionRepository).save(any());
         }
     }
 }

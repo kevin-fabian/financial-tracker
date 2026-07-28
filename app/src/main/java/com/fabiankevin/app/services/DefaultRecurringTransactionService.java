@@ -27,7 +27,7 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
 
     @Override
     public RecurringTransactionSummary create(CreateRecurringTransactionCommand command) {
-        if (command.dayOfMonth() < 1 || command.dayOfMonth() > 31) {
+        if (!command.noEndDate() && (command.dayOfMonth() < 1 || command.dayOfMonth() > 31)) {
             throw new IllegalArgumentException("dayOfMonth must be between 1 and 31");
         }
 
@@ -37,8 +37,7 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
                 .orElseThrow(CategoryNotFoundException::new);
 
         ZonedDateTime now = ZonedDateTime.now();
-        ZonedDateTime startDate = now;
-        ZonedDateTime endDate = now.plusMonths(command.durationMonths());
+        ZonedDateTime endDate = command.noEndDate() ? null : now.plusMonths(command.durationMonths());
         ZonedDateTime nextOccurrenceDate = deriveNextOccurrenceDate(command.dayOfMonth(), now);
         Instant instantNow = now.toInstant();
 
@@ -78,6 +77,9 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
     }
 
     private ZonedDateTime deriveNextOccurrenceDate(int dayOfMonth, ZonedDateTime now) {
+        if (dayOfMonth < 1 || dayOfMonth > 31) {
+            return now.plusMonths(1);
+        }
         if (now.getDayOfMonth() < dayOfMonth) {
             return now.withDayOfMonth(dayOfMonth);
         }
