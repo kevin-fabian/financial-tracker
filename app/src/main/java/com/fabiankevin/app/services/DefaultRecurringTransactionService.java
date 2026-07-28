@@ -3,6 +3,7 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
+import com.fabiankevin.app.exceptions.InvalidAmountException;
 import com.fabiankevin.app.models.*;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransaction;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus;
@@ -38,7 +39,7 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
     @Override
     public RecurringTransactionSummary create(CreateRecurringTransactionCommand command) {
         if (command.variableAmount() && command.amount() != 0) {
-            throw new IllegalArgumentException("amount must be zero when variableAmount is true");
+            throw new InvalidAmountException("amount must be zero when variableAmount is true");
         }
         if (!command.noEndDate() && (command.dayOfMonth() < 1 || command.dayOfMonth() > 31)) {
             throw new IllegalArgumentException("dayOfMonth must be between 1 and 31");

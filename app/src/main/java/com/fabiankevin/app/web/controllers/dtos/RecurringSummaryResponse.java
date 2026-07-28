@@ -28,8 +28,14 @@ public record RecurringSummaryResponse(
         @Schema(description = "Whether the amount varies each cycle", example = "false")
         boolean variableAmount,
 
+        @Schema(description = "Category ID", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
+        UUID categoryId,
+
         @Schema(description = "Category name", example = "GROCERIES")
         String categoryName,
+
+        @Schema(description = "Account ID", example = "d290f1ee-6c54-4b01-90e6-d701748f0852")
+        UUID accountId,
 
         @Schema(description = "Account name", example = "Checking")
         String accountName,
@@ -76,7 +82,9 @@ public record RecurringSummaryResponse(
                 .description(summary.description())
                 .amount(summary.amount())
                 .variableAmount(summary.variableAmount())
+                .categoryId(category != null ? category.id() : null)
                 .categoryName(category != null ? category.name() : null)
+                .accountId(account != null ? account.id() : null)
                 .accountName(account != null ? account.name() : null)
                 .dayOfMonth(summary.dayOfMonth())
                 .nextOccurrenceDate(summary.nextOccurrenceDate())

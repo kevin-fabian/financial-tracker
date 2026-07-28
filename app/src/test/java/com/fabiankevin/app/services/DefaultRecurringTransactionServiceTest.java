@@ -2,6 +2,7 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
+import com.fabiankevin.app.exceptions.InvalidAmountException;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.Transaction;
@@ -257,15 +258,15 @@ class DefaultRecurringTransactionServiceTest {
         }
 
         @Test
-        void givenVariableAmountFlagWithNonZeroAmount_thenThrowsIllegalArgumentException() {
+        void givenVariableAmountFlagWithNonZeroAmount_thenThrowsInvalidAmountException() {
             CreateRecurringTransactionCommand invalidCommand = command.toBuilder()
                     .variableAmount(true)
                     .amount(15.99)
                     .build();
 
             assertThatThrownBy(() -> service.create(invalidCommand))
-                    .as("should throw IllegalArgumentException when variableAmount is true and amount is non-zero")
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .as("should throw InvalidAmountException when variableAmount is true and amount is non-zero")
+                    .isInstanceOf(InvalidAmountException.class);
 
             verify(accountRepository, never()).findById(any());
             verify(categoryRepository, never()).findById(any());
