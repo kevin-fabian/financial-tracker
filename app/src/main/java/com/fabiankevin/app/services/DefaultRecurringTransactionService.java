@@ -75,7 +75,7 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
         RecurringTransaction saved = recurringTransactionRepository.save(recurringTransaction);
 
         User user = userClient.getUsersByIds(List.of(command.userId())).stream().findFirst().orElse(null);
-        int remainingDays = (int) ChronoUnit.DAYS.between(now, saved.nextOccurrenceDate());
+        int remainingDays = getRemainingDays(saved.nextOccurrenceDate(), now);
 
         TransactionStatus transactionStatus = deriveTransactionStatus(saved.nextOccurrenceDate(), instantNow);
 
@@ -100,7 +100,18 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
 
     @Override
     public List<RecurringTransactionSummary> getRecurringTransactionsByUserId(UUID userId) {
-        return recurringTransactionRepository.findSummariesByUserId(userId, ZonedDateTime.now());
+        ZonedDateTime now = ZonedDateTime.now();
+        List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserId(userId, now);
+        User user = userClient.getUsersByIds(List.of(userId)).stream().findFirst().orElse(null);
+        return summaries.stream()
+                .map(s -> {
+                    int remainingDays = getRemainingDays(s.nextOccurrenceDate(), now);
+                    return s.toBuilder()
+                            .remainingDays(remainingDays)
+                            .user(user)
+                            .build();
+                })
+                .toList();
     }
 
     @Transactional
@@ -244,5 +255,11 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
             transactionRepository.saveAll(batch);
             transactionRepository.flush();
         }
+    }
+
+    private static int getRemainingDays(ZonedDateTime nextOccurrenceDate, ZonedDateTime now) {
+        return nextOccurrenceDate != null
+                ? (int) ChronoUnit.DAYS.between(now, nextOccurrenceDate)
+                : 0;
     }
 }

@@ -403,6 +403,7 @@ class RecurringTransactionControllerSpringBootTest {
                     .andExpect(jsonPath("$[0].categoryId").value(category.id().toString()))
                     .andExpect(jsonPath("$[0].categoryName").value("GROCERIES"))
                     .andExpect(jsonPath("$[0].categoryIcon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$[0].transactionType").value("EXPENSE"))
                     .andExpect(jsonPath("$[0].accountId").value(account.id().toString()))
                     .andExpect(jsonPath("$[0].accountName").value("Cash Wallet"))
                     .andExpect(jsonPath("$[0].dayOfMonth").value(15))

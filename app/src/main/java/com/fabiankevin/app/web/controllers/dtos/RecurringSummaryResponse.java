@@ -3,6 +3,7 @@ package com.fabiankevin.app.web.controllers.dtos;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
+import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionSummary;
 import com.fabiankevin.app.models.recurring_transactions.TransactionStatus;
@@ -36,6 +37,9 @@ public record RecurringSummaryResponse(
 
         @Schema(description = "Category icon", example = "local_grocery_store")
         String categoryIcon,
+
+        @Schema(description = "Transaction type", example = "EXPENSE")
+        TransactionType transactionType,
 
         @Schema(description = "Account ID", example = "d290f1ee-6c54-4b01-90e6-d701748f0852")
         UUID accountId,
@@ -88,6 +92,7 @@ public record RecurringSummaryResponse(
                 .categoryId(category != null ? category.id() : null)
                 .categoryName(category != null ? category.name() : null)
                 .categoryIcon(category != null ? category.icon() : null)
+                .transactionType(category != null ? category.type() : null)
                 .accountId(account != null ? account.id() : null)
                 .accountName(account != null ? account.name() : null)
                 .dayOfMonth(summary.dayOfMonth())

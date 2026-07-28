@@ -94,7 +94,7 @@ class DefaultRecurringTransactionRepositoryTest {
                 .category(category.toModel())
                 .account(account.toModel())
                 .dayOfMonth(15)
-                .nextOccurrenceDate(ZonedDateTime.of(2026, 8, 15, 0, 0, 0, 0, ZoneId.of("UTC")))
+                .nextOccurrenceDate(ZonedDateTime.of(2026, 8, 15, 12, 0, 0, 0, ZoneId.of("UTC")))
                 .endDate(null)
                 .status(RecurringTransactionStatus.ACTIVE)
                 .createdAt(now)
@@ -174,11 +174,9 @@ class DefaultRecurringTransactionRepositoryTest {
 
             List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserId(userId, referenceNow);
 
-            int expectedRemainingDays = (int) java.time.temporal.ChronoUnit.DAYS.between(
-                    ZonedDateTime.now(), saved.nextOccurrenceDate());
-
             Assertions.assertThat(summaries).hasSize(1);
             RecurringTransactionSummary summary = summaries.getFirst();
+            assertEquals(0, summary.remainingDays(), "remainingDays initial value should be zero");
             assertEquals(saved.id(), summary.id(), "summary id should match saved recurring transaction id");
             assertEquals("Monthly subscription", summary.description(), "description should match");
             assertEquals(15.99, summary.amount(), "amount should match");
@@ -191,10 +189,6 @@ class DefaultRecurringTransactionRepositoryTest {
             assertEquals(category.id(), summary.category().id(), "category id should match");
             assertNotNull(summary.account(), "account should not be null");
             assertEquals(account.id(), summary.account().id(), "account id should match");
-            assertNotNull(summary.user(), "user should not be null");
-            assertEquals("Kevin", summary.user().firstName(), "user firstName should match");
-            assertEquals("Fabian", summary.user().lastName(), "user lastName should match");
-            assertEquals(expectedRemainingDays, summary.remainingDays(), "remainingDays should be computed from nextOccurrenceDate");
 
             verify(jpaRecurringTransactionRepository, times(1)).findAllSummariesByUserId(userId, referenceNow);
         }

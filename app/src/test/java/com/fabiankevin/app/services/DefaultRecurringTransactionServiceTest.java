@@ -394,4 +394,76 @@ class DefaultRecurringTransactionServiceTest {
             verify(transactionRepository, times(2)).flush();
         }
     }
+
+    @Nested
+    class GetRecurringTransactionsByUserId {
+
+        @Test
+        void givenRecurringTransactionsExist_thenReturnsSummariesWithRemainingDaysAndUser() {
+            UUID userId = UUID.randomUUID();
+            ZonedDateTime nextOccurrenceDate = ZonedDateTime.now().plusDays(10);
+
+            RecurringTransactionSummary summary = RecurringTransactionSummary.builder()
+                    .id(UUID.randomUUID())
+                    .description("Monthly subscription")
+                    .amount(15.99)
+                    .variableAmount(false)
+                    .category(category)
+                    .account(account)
+                    .dayOfMonth(15)
+                    .nextOccurrenceDate(nextOccurrenceDate)
+                    .endDate(ZonedDateTime.now().plusMonths(6))
+                    .transactionStatus(TransactionStatus.UPCOMING)
+                    .status(RecurringTransactionStatus.ACTIVE)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            User user = User.builder().id(userId).firstName("John").lastName("Doe").build();
+
+            when(recurringTransactionRepository.findSummariesByUserId(eq(userId), any()))
+                    .thenReturn(List.of(summary));
+            when(userClient.getUsersByIds(List.of(userId))).thenReturn(List.of(user));
+
+            List<RecurringTransactionSummary> result = service.getRecurringTransactionsByUserId(userId);
+
+            assertNotNull(result, "result should not be null");
+            assertEquals(1, result.size(), "should return 1 summary");
+
+            RecurringTransactionSummary resultSummary = result.getFirst();
+            assertEquals("Monthly subscription", resultSummary.description(), "description should match");
+            assertEquals(15.99, resultSummary.amount(), "amount should match");
+            assertEquals(category, resultSummary.category(), "category should match");
+            assertEquals(account, resultSummary.account(), "account should match");
+            assertEquals(TransactionStatus.UPCOMING, resultSummary.transactionStatus(), "transactionStatus should match");
+            assertEquals(RecurringTransactionStatus.ACTIVE, resultSummary.status(), "status should match");
+            assertEquals(nextOccurrenceDate, resultSummary.nextOccurrenceDate(), "nextOccurrenceDate should match");
+
+            int expectedRemainingDays = (int) ChronoUnit.DAYS.between(ZonedDateTime.now(), nextOccurrenceDate);
+            assertEquals(expectedRemainingDays, resultSummary.remainingDays(), "remainingDays should be computed from nextOccurrenceDate");
+            assertNotNull(resultSummary.user(), "user should not be null");
+            assertEquals("John", resultSummary.user().firstName(), "user firstName should match");
+            assertEquals("Doe", resultSummary.user().lastName(), "user lastName should match");
+
+            verify(recurringTransactionRepository).findSummariesByUserId(eq(userId), any());
+            verify(userClient).getUsersByIds(List.of(userId));
+        }
+
+        @Test
+        void givenNoRecurringTransactions_thenReturnsEmptyList() {
+            UUID userId = UUID.randomUUID();
+
+            when(recurringTransactionRepository.findSummariesByUserId(eq(userId), any()))
+                    .thenReturn(List.of());
+            when(userClient.getUsersByIds(List.of(userId))).thenReturn(List.of());
+
+            List<RecurringTransactionSummary> result = service.getRecurringTransactionsByUserId(userId);
+
+            assertNotNull(result, "result should not be null");
+            assertTrue(result.isEmpty(), "should return empty list");
+
+            verify(recurringTransactionRepository).findSummariesByUserId(eq(userId), any());
+            verify(userClient).getUsersByIds(List.of(userId));
+        }
+    }
 }
