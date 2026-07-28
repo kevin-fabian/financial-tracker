@@ -26,6 +26,7 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -119,31 +120,23 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
         RecurringTransaction existing = recurringTransactionRepository.findByIdAndUserId(command.id(), command.userId())
                 .orElseThrow(() -> new NotFoundException("Recurring transaction not found"));
 
-        // Validate variableAmount constraint
-        boolean newVariableAmount = command.variableAmount() != null ? command.variableAmount() : existing.variableAmount();
-        double newAmount = command.amount() != null ? command.amount() : existing.amount();
+        boolean newVariableAmount = Optional.ofNullable(command.variableAmount()).orElse(existing.variableAmount());
+        double newAmount = Optional.ofNullable(command.amount()).orElse(existing.amount());
         if (newVariableAmount && newAmount != 0) {
             throw new InvalidAmountException("amount must be zero when variableAmount is true");
         }
 
-        // Resolve category if provided
-        Category category = existing.category();
-        if (command.categoryId() != null) {
-            category = categoryRepository.findById(command.categoryId())
-                    .orElseThrow(CategoryNotFoundException::new);
-        }
+        Category category = Optional.ofNullable(command.categoryId())
+                .map(id -> categoryRepository.findById(id).orElseThrow(CategoryNotFoundException::new))
+                .orElse(existing.category());
 
-        // Resolve account if provided
-        Account account = existing.account();
-        if (command.accountId() != null) {
-            account = accountRepository.findById(command.accountId())
-                    .orElseThrow(AccountNotFoundException::new);
-        }
+        Account account = Optional.ofNullable(command.accountId())
+                .map(id -> accountRepository.findById(id).orElseThrow(AccountNotFoundException::new))
+                .orElse(existing.account());
 
-        // Determine endDate-related fields
-        boolean noEndDate = command.noEndDate() != null ? command.noEndDate() : existing.endDate() == null;
-        int dayOfMonth = command.dayOfMonth() != null ? command.dayOfMonth() : existing.dayOfMonth();
-        int durationMonths = command.durationMonths() != null ? command.durationMonths() : 0;
+        boolean noEndDate = Optional.ofNullable(command.noEndDate()).orElse(existing.endDate() == null);
+        int dayOfMonth = Optional.ofNullable(command.dayOfMonth()).orElse(existing.dayOfMonth());
+        int durationMonths = Optional.ofNullable(command.durationMonths()).orElse(0);
 
         ZonedDateTime now = ZonedDateTime.now();
         ZonedDateTime endDate;
@@ -155,14 +148,12 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
             endDate = existing.endDate();
         }
 
-        // Recalculate nextOccurrenceDate if dayOfMonth changed
-        ZonedDateTime nextOccurrenceDate = existing.nextOccurrenceDate();
-        if (command.dayOfMonth() != null) {
-            nextOccurrenceDate = deriveNextOccurrenceDate(dayOfMonth, now);
-        }
+        ZonedDateTime nextOccurrenceDate = Optional.ofNullable(command.dayOfMonth())
+                .map(dm -> deriveNextOccurrenceDate(dm, now))
+                .orElse(existing.nextOccurrenceDate());
 
         RecurringTransaction updated = existing.toBuilder()
-                .description(command.description() != null ? command.description() : existing.description())
+                .description(Optional.ofNullable(command.description()).orElse(existing.description()))
                 .amount(newAmount)
                 .variableAmount(newVariableAmount)
                 .category(category)
