@@ -5,6 +5,7 @@ import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionSum
 
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -16,4 +17,6 @@ public interface RecurringTransactionRepository {
     Stream<RecurringTransaction> streamDueRecurringTransactions(ZonedDateTime now);
 
     int deleteByIdAndUserId(UUID id, UUID userId);
+
+    Optional<RecurringTransaction> findByIdAndUserId(UUID id, UUID userId);
 }

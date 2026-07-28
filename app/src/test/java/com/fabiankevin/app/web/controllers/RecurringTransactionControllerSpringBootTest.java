@@ -12,6 +12,7 @@ import com.fabiankevin.app.services.RecurringTransactionService;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateRecurringTransactionRequest;
+import com.fabiankevin.app.web.controllers.dtos.PatchRecurringTransactionRequest;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -486,6 +487,99 @@ class RecurringTransactionControllerSpringBootTest {
                                             .claim("sub", userId)
                                             .claim("scope", List.of())
                                     )))
+                    .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    class PatchRecurringTransaction {
+
+        @Test
+        void givenExistingRecurringTransaction_thenReturnsUpdatedSummary() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Account account = createAccount(userId, "Cash Wallet");
+            Category newCategory = createCategory(userId, "ENTERTAINMENT", TransactionType.EXPENSE, "movie");
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            CreateRecurringTransactionRequest createRequest = CreateRecurringTransactionRequest.builder()
+                    .description("Monthly subscription")
+                    .amount(15.99)
+                    .variableAmount(false)
+                    .categoryId(category.id())
+                    .accountId(account.id())
+                    .noEndDate(false)
+                    .dayOfMonth(15)
+                    .durationMonths(6)
+                    .build();
+
+            MvcResult createResult = mockMvc.perform(post("/api/recurring-transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(createRequest)))
+                    .andExpect(status().isCreated())
+                    .andReturn();
+
+            String id = jsonMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
+
+            PatchRecurringTransactionRequest patchRequest = PatchRecurringTransactionRequest.builder()
+                    .description("Updated subscription")
+                    .amount(25.99)
+                    .categoryId(newCategory.id())
+                    .build();
+
+            mockMvc.perform(MockMvcRequestBuilders.patch("/api/recurring-transactions/{id}", id)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(patchRequest)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(id))
+                    .andExpect(jsonPath("$.description").value("Updated subscription"))
+                    .andExpect(jsonPath("$.amount").value(25.99))
+                    .andExpect(jsonPath("$.categoryId").value(newCategory.id().toString()))
+                    .andExpect(jsonPath("$.categoryName").value("ENTERTAINMENT"))
+                    .andExpect(jsonPath("$.accountId").value(account.id().toString()))
+                    .andExpect(jsonPath("$.accountName").value("Cash Wallet"))
+                    .andExpect(jsonPath("$.dayOfMonth").value(15))
+                    .andExpect(jsonPath("$.variableAmount").value(false))
+                    .andExpect(jsonPath("$.status").value("ACTIVE"))
+                    .andExpect(jsonPath("$.firstName").value("John"))
+                    .andExpect(jsonPath("$.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.initial").value("JD"));
+        }
+
+        @Test
+        void givenNonExistentRecurringTransaction_thenReturnsNotFound() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            PatchRecurringTransactionRequest patchRequest = PatchRecurringTransactionRequest.builder()
+                    .description("Updated subscription")
+                    .build();
+
+            mockMvc.perform(MockMvcRequestBuilders.patch("/api/recurring-transactions/{id}", UUID.randomUUID())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(patchRequest)))
                     .andExpect(status().isNotFound());
         }
     }

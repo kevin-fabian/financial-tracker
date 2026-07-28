@@ -20,6 +20,7 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Currency;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -50,6 +51,12 @@ public class DefaultRecurringTransactionRepository implements RecurringTransacti
     @Override
     public int deleteByIdAndUserId(UUID id, UUID userId) {
         return jpaRecurringTransactionRepository.deleteByIdAndUserId(id, userId);
+    }
+
+    @Override
+    public Optional<RecurringTransaction> findByIdAndUserId(UUID id, UUID userId) {
+        return jpaRecurringTransactionRepository.findByIdAndUserId(id, userId)
+                .map(RecurringTransactionEntity::toModel);
     }
 
     private RecurringTransactionSummary toSummary(RecurringTransactionSummaryProjection p) {

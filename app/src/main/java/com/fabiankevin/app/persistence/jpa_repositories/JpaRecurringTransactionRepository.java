@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -47,4 +48,6 @@ public interface JpaRecurringTransactionRepository extends JpaRepository<Recurri
     Stream<RecurringTransactionEntity> streamDueRecurringTransactions(@Param("now") ZonedDateTime now);
 
     int deleteByIdAndUserId(UUID id, UUID userId);
+
+    Optional<RecurringTransactionEntity> findByIdAndUserId(UUID id, UUID userId);
 }

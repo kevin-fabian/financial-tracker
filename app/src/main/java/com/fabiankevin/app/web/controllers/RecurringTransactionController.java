@@ -2,6 +2,7 @@ package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.services.RecurringTransactionService;
 import com.fabiankevin.app.web.controllers.dtos.CreateRecurringTransactionRequest;
+import com.fabiankevin.app.web.controllers.dtos.PatchRecurringTransactionRequest;
 import com.fabiankevin.app.web.controllers.dtos.RecurringSummaryResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -59,6 +60,27 @@ public class RecurringTransactionController {
         return recurringTransactionService.getRecurringTransactionsByUserId(userId).stream()
                 .map(RecurringSummaryResponse::from)
                 .toList();
+    }
+
+    @Operation(
+            summary = "Patch a recurring transaction",
+            description = "Updates a recurring transaction by id. All fields are optional.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - Recurring transaction updated successfully",
+                            content = @Content(schema = @Schema(implementation = RecurringSummaryResponse.class))),
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @PatchMapping("/{id}")
+    public RecurringSummaryResponse patchRecurringTransaction(
+            @PathVariable UUID id,
+            @Valid @RequestBody PatchRecurringTransactionRequest request,
+            JwtAuthenticationToken jwtAuthenticationToken
+    ) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        return RecurringSummaryResponse.from(recurringTransactionService.updateRecurringTransaction(request.toCommand(userId, id)));
     }
 
     @Operation(
