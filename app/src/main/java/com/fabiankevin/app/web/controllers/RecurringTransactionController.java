@@ -1,0 +1,43 @@
+package com.fabiankevin.app.web.controllers;
+
+import com.fabiankevin.app.services.RecurringTransactionService;
+import com.fabiankevin.app.web.controllers.dtos.CreateRecurringTransactionRequest;
+import com.fabiankevin.app.web.controllers.dtos.RecurringSummaryResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
+
+@RequiredArgsConstructor
+@RestController
+@RequestMapping(value = "/api/recurring-transactions", version = "v1")
+public class RecurringTransactionController {
+    private final RecurringTransactionService recurringTransactionService;
+
+    @Operation(
+            summary = "Create a new recurring transaction",
+            description = "Creates a recurring transaction template that can optionally generate automatic transactions on schedule.",
+            responses = {
+                    @ApiResponse(responseCode = "201", description = "Created - Recurring transaction created successfully",
+                            content = @Content(schema = @Schema(implementation = RecurringSummaryResponse.class))),
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public RecurringSummaryResponse create(
+            @Valid @RequestBody CreateRecurringTransactionRequest request,
+            JwtAuthenticationToken jwtAuthenticationToken
+    ) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        return RecurringSummaryResponse.from(recurringTransactionService.create(request.toCommand(userId)));
+    }
+}

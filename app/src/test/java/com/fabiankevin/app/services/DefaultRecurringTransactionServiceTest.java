@@ -1,9 +1,11 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.Transaction;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransaction;
@@ -54,6 +56,9 @@ class DefaultRecurringTransactionServiceTest {
 
     @Mock
     private CategoryRepository categoryRepository;
+
+    @Mock
+    private UserClient userClient;
 
     @InjectMocks
     private DefaultRecurringTransactionService service;
@@ -109,15 +114,17 @@ class DefaultRecurringTransactionServiceTest {
                 RecurringTransaction input = invocation.getArgument(0);
                 return input.toBuilder().id(UUID.randomUUID()).createdAt(Instant.now()).updatedAt(Instant.now()).build();
             });
-
-            RecurringTransactionSummary summary = service.create(command);
+            when(userClient.getUsersByIds(List.of(command.userId()))).thenReturn(List.of(
+                    User.builder().id(command.userId()).firstName("John").lastName("Doe").build()
+            ));
 
             ZonedDateTime now = ZonedDateTime.now();
+            RecurringTransactionSummary summary = service.create(command);
+
             ZonedDateTime expectedEndDate = now.plusMonths(command.durationMonths());
 
             assertNotNull(summary, "summary should not be null");
             assertNotNull(summary.id(), "id should be generated");
-            assertEquals(command.userId(), summary.userId(), "userId should match command");
             assertEquals("Monthly subscription", summary.description(), "description should match command");
             assertEquals(15.99, summary.amount(), "amount should match command");
             assertFalse(summary.variableAmount(), "variableAmount should be false");
@@ -136,6 +143,12 @@ class DefaultRecurringTransactionServiceTest {
             assertNotNull(summary.updatedAt(), "updatedAt should not be null");
             assertEquals(expectedEndDate.truncatedTo(ChronoUnit.HOURS), summary.endDate().truncatedTo(ChronoUnit.HOURS), "endDate should be now plus durationMonths");
             assertEquals(expectedNextOccurrenceDate.truncatedTo(ChronoUnit.HOURS), summary.nextOccurrenceDate().truncatedTo(ChronoUnit.HOURS), "nextOccurrenceDate should be derived from dayOfMonth");
+            assertNotNull(summary.user(), "user should not be null");
+            assertEquals("John", summary.user().firstName(), "user firstName should match");
+            assertEquals("Doe", summary.user().lastName(), "user lastName should match");
+            assertEquals("JD", summary.user().initial(), "user initial should match");
+            int expectedRemainingDays = (int) ChronoUnit.DAYS.between(now, summary.nextOccurrenceDate());
+            assertEquals(expectedRemainingDays, summary.remainingDays(), "remainingDays should be computed from nextOccurrenceDate");
 
             ArgumentCaptor<RecurringTransaction> captor = ArgumentCaptor.forClass(RecurringTransaction.class);
             verify(recurringTransactionRepository).save(captor.capture());
@@ -184,12 +197,14 @@ class DefaultRecurringTransactionServiceTest {
                 RecurringTransaction input = invocation.getArgument(0);
                 return input.toBuilder().id(UUID.randomUUID()).createdAt(Instant.now()).updatedAt(Instant.now()).build();
             });
+            lenient().when(userClient.getUsersByIds(List.of(noEndDateCommand.userId()))).thenReturn(List.of(
+                    User.builder().id(noEndDateCommand.userId()).firstName("Kevin").lastName("Fabian").build()
+            ));
 
             RecurringTransactionSummary summary = service.create(noEndDateCommand);
 
             assertNotNull(summary, "summary should not be null");
             assertNotNull(summary.id(), "id should be generated");
-            assertEquals(noEndDateCommand.userId(), summary.userId(), "userId should match command");
             assertEquals("Monthly subscription", summary.description(), "description should match command");
             assertEquals(15.99, summary.amount(), "amount should match command");
             assertEquals(RecurringTransactionStatus.ACTIVE, summary.status(), "recurring status should be ACTIVE");
@@ -221,6 +236,9 @@ class DefaultRecurringTransactionServiceTest {
                 RecurringTransaction input = invocation.getArgument(0);
                 return input.toBuilder().id(UUID.randomUUID()).createdAt(Instant.now()).updatedAt(Instant.now()).build();
             });
+            lenient().when(userClient.getUsersByIds(List.of(variableAmountCommand.userId()))).thenReturn(List.of(
+                    User.builder().id(variableAmountCommand.userId()).firstName("Kevin").lastName("Fabian").build()
+            ));
 
             RecurringTransactionSummary summary = service.create(variableAmountCommand);
 

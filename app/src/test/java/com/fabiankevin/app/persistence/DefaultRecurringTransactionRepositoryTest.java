@@ -2,6 +2,7 @@ package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransaction;
@@ -24,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
@@ -37,8 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @DataJpaTest
 @Import(DefaultRecurringTransactionRepository.class)
@@ -46,6 +47,9 @@ class DefaultRecurringTransactionRepositoryTest {
 
     @MockitoSpyBean
     private JpaRecurringTransactionRepository jpaRecurringTransactionRepository;
+
+    @MockitoBean
+    private com.fabiankevin.app.clients.UserClient userClient;
 
     @Autowired
     private JpaAccountRepository jpaAccountRepository;
@@ -140,6 +144,13 @@ class DefaultRecurringTransactionRepositoryTest {
             UUID userId = saved.userId();
             Instant now = Instant.now();
 
+            User user = User.builder()
+                    .id(userId)
+                    .firstName("Kevin")
+                    .lastName("Fabian")
+                    .build();
+            when(userClient.getUsersByIds(List.of(userId))).thenReturn(List.of(user));
+
             Account account = saved.account();
             Category category = saved.category();
 
@@ -163,10 +174,12 @@ class DefaultRecurringTransactionRepositoryTest {
 
             List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserId(userId, referenceNow);
 
+            int expectedRemainingDays = (int) java.time.temporal.ChronoUnit.DAYS.between(
+                    ZonedDateTime.now(), saved.nextOccurrenceDate());
+
             Assertions.assertThat(summaries).hasSize(1);
             RecurringTransactionSummary summary = summaries.getFirst();
             assertEquals(saved.id(), summary.id(), "summary id should match saved recurring transaction id");
-            assertEquals(userId, summary.userId(), "summary userId should match the query userId");
             assertEquals("Monthly subscription", summary.description(), "description should match");
             assertEquals(15.99, summary.amount(), "amount should match");
             assertEquals(15, summary.dayOfMonth(), "dayOfMonth should match");
@@ -178,6 +191,10 @@ class DefaultRecurringTransactionRepositoryTest {
             assertEquals(category.id(), summary.category().id(), "category id should match");
             assertNotNull(summary.account(), "account should not be null");
             assertEquals(account.id(), summary.account().id(), "account id should match");
+            assertNotNull(summary.user(), "user should not be null");
+            assertEquals("Kevin", summary.user().firstName(), "user firstName should match");
+            assertEquals("Fabian", summary.user().lastName(), "user lastName should match");
+            assertEquals(expectedRemainingDays, summary.remainingDays(), "remainingDays should be computed from nextOccurrenceDate");
 
             verify(jpaRecurringTransactionRepository, times(1)).findAllSummariesByUserId(userId, referenceNow);
         }

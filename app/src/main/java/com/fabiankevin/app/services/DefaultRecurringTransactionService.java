@@ -1,11 +1,9 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
-import com.fabiankevin.app.models.Account;
-import com.fabiankevin.app.models.Amount;
-import com.fabiankevin.app.models.Category;
-import com.fabiankevin.app.models.Transaction;
+import com.fabiankevin.app.models.*;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransaction;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionSummary;
@@ -22,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
@@ -34,6 +33,7 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final CategoryRepository categoryRepository;
+    private final UserClient userClient;
 
     @Override
     public RecurringTransactionSummary create(CreateRecurringTransactionCommand command) {
@@ -71,11 +71,13 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
 
         RecurringTransaction saved = recurringTransactionRepository.save(recurringTransaction);
 
+        User user = userClient.getUsersByIds(List.of(command.userId())).stream().findFirst().orElse(null);
+        int remainingDays = (int) ChronoUnit.DAYS.between(now, saved.nextOccurrenceDate());
+
         TransactionStatus transactionStatus = deriveTransactionStatus(saved.nextOccurrenceDate(), instantNow);
 
         return RecurringTransactionSummary.builder()
                 .id(saved.id())
-                .userId(saved.userId())
                 .description(saved.description())
                 .amount(saved.amount())
                 .variableAmount(saved.variableAmount())
@@ -84,8 +86,10 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
                 .dayOfMonth(saved.dayOfMonth())
                 .nextOccurrenceDate(saved.nextOccurrenceDate())
                 .endDate(saved.endDate())
+                .remainingDays(remainingDays)
                 .transactionStatus(transactionStatus)
                 .status(saved.status())
+                .user(user)
                 .createdAt(saved.createdAt())
                 .updatedAt(saved.updatedAt())
                 .build();
