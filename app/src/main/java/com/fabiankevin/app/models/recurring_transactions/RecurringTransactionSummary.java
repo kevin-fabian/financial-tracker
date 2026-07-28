@@ -18,7 +18,6 @@ public record RecurringTransactionSummary(
         Account account,
         int dayOfMonth,
         ZonedDateTime nextOccurrenceDate,
-        ZonedDateTime startDate,
         ZonedDateTime endDate,
         TransactionStatus transactionStatus,
         RecurringTransactionStatus status,

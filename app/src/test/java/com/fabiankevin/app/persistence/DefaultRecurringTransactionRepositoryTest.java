@@ -91,7 +91,6 @@ class DefaultRecurringTransactionRepositoryTest {
                 .account(account.toModel())
                 .dayOfMonth(15)
                 .nextOccurrenceDate(ZonedDateTime.of(2026, 8, 15, 0, 0, 0, 0, ZoneId.of("UTC")))
-                .startDate(ZonedDateTime.of(2026, 1, 15, 0, 0, 0, 0, ZoneId.of("UTC")))
                 .endDate(null)
                 .status(RecurringTransactionStatus.ACTIVE)
                 .createdAt(now)
@@ -115,7 +114,6 @@ class DefaultRecurringTransactionRepositoryTest {
             assertEquals(recurringTransaction.category().id(), saved.category().id(), "category should match");
             assertEquals(recurringTransaction.account().id(), saved.account().id(), "account should match");
             assertEquals(recurringTransaction.nextOccurrenceDate(), saved.nextOccurrenceDate(), "nextOccurrenceDate should match");
-            assertEquals(recurringTransaction.startDate(), saved.startDate(), "startDate should match");
             assertEquals(recurringTransaction.endDate(), saved.endDate(), "endDate should match");
             assertNotNull(saved.createdAt(), "createdAt should not be null");
             assertNotNull(saved.updatedAt(), "updatedAt should not be null");
@@ -175,7 +173,6 @@ class DefaultRecurringTransactionRepositoryTest {
             assertEquals(TransactionStatus.PAID, summary.transactionStatus(), "status should be PAID when transaction exists and nextOccurrenceDate is in the past");
             assertEquals(RecurringTransactionStatus.ACTIVE, summary.status(), "recurring transaction status should match");
             assertEquals(saved.nextOccurrenceDate().toInstant(), summary.nextOccurrenceDate().toInstant(), "nextOccurrenceDate should match");
-            assertEquals(saved.startDate().toInstant(), summary.startDate().toInstant(), "startDate should match");
             assertEquals(saved.endDate(), summary.endDate(), "endDate should match");
             assertNotNull(summary.category(), "category should not be null");
             assertEquals(category.id(), summary.category().id(), "category id should match");

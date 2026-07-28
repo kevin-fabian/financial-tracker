@@ -125,7 +125,6 @@ class DefaultRecurringTransactionServiceTest {
             assertEquals(account.id(), summary.account().id(), "account should match");
             assertNotNull(summary.createdAt(), "createdAt should not be null");
             assertNotNull(summary.updatedAt(), "updatedAt should not be null");
-            assertEquals(now.truncatedTo(ChronoUnit.HOURS), summary.startDate().truncatedTo(ChronoUnit.HOURS), "startDate should be now");
             assertEquals(expectedEndDate.truncatedTo(ChronoUnit.HOURS), summary.endDate().truncatedTo(ChronoUnit.HOURS), "endDate should be now plus durationMonths");
             assertEquals(expectedNextOccurrenceDate.truncatedTo(ChronoUnit.HOURS), summary.nextOccurrenceDate().truncatedTo(ChronoUnit.HOURS), "nextOccurrenceDate should be derived from dayOfMonth");
 

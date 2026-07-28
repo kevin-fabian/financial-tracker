@@ -11,6 +11,7 @@ public record CreateRecurringTransactionCommand(
         double amount,
         UUID categoryId,
         UUID accountId,
+        boolean noEndDate,// true = indefinite, false = fixed term
         int dayOfMonth,
         int durationMonths
 ) {

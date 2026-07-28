@@ -14,7 +14,7 @@ public interface JpaRecurringTransactionRepository extends JpaRepository<Recurri
     @Query("""
             SELECT rt.id AS id, rt.userId AS userId, rt.description AS description, rt.amount AS amount,
                 rt.dayOfMonth AS dayOfMonth,
-                rt.nextOccurrenceDate AS nextOccurrenceDate, rt.startDate AS startDate, rt.endDate AS endDate,
+                rt.nextOccurrenceDate AS nextOccurrenceDate, rt.endDate AS endDate,
                 CASE
                     WHEN rt.nextOccurrenceDate > :now THEN 'UPCOMING'
                     WHEN (SELECT COUNT(t.id) FROM com.fabiankevin.app.persistence.entities.TransactionEntity t WHERE t.recurringTransactionId = rt.id) > 0 THEN 'PAID'

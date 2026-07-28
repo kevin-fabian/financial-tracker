@@ -49,9 +49,6 @@ public class RecurringTransactionEntity {
     @Column(name = "next_occurrence_date")
     private ZonedDateTime nextOccurrenceDate;
 
-    @Column(name = "start_date")
-    private ZonedDateTime startDate;
-
     @Column(name = "end_date")
     private ZonedDateTime endDate;
 
@@ -76,7 +73,6 @@ public class RecurringTransactionEntity {
                 .account(AccountEntity.from(recurringTransaction.account()))
                 .dayOfMonth(recurringTransaction.dayOfMonth())
                 .nextOccurrenceDate(recurringTransaction.nextOccurrenceDate())
-                .startDate(recurringTransaction.startDate())
                 .endDate(recurringTransaction.endDate())
                 .status(recurringTransaction.status())
                 .createdAt(recurringTransaction.createdAt())
@@ -94,7 +90,6 @@ public class RecurringTransactionEntity {
                 .account(this.account != null ? this.account.toModel() : null)
                 .dayOfMonth(this.dayOfMonth)
                 .nextOccurrenceDate(this.nextOccurrenceDate)
-                .startDate(this.startDate)
                 .endDate(this.endDate)
                 .status(this.status)
                 .createdAt(this.createdAt)

@@ -14,7 +14,6 @@ public record RecurringTransactionSummaryProjection(
         double amount,
         int dayOfMonth,
         ZonedDateTime nextOccurrenceDate,
-        ZonedDateTime startDate,
         ZonedDateTime endDate,
         String transactionStatus,
         String status,

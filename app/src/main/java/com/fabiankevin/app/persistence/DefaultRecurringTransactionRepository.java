@@ -64,7 +64,6 @@ public class DefaultRecurringTransactionRepository implements RecurringTransacti
                         .build())
                 .dayOfMonth(p.dayOfMonth())
                 .nextOccurrenceDate(p.nextOccurrenceDate())
-                .startDate(p.startDate())
                 .endDate(p.endDate())
                 .transactionStatus(TransactionStatus.valueOf(p.transactionStatus()))
                 .status(RecurringTransactionStatus.valueOf(p.status()))
