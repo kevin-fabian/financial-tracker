@@ -1,10 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.exceptions.AccountNotFoundException;
-import com.fabiankevin.app.exceptions.CategoryNotFoundException;
-import com.fabiankevin.app.exceptions.InvalidAmountException;
-import com.fabiankevin.app.exceptions.NotFoundException;
+import com.fabiankevin.app.exceptions.*;
 import com.fabiankevin.app.models.*;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransaction;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus;
@@ -137,6 +134,10 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
         boolean noEndDate = Optional.ofNullable(command.noEndDate()).orElse(existing.endDate() == null);
         int dayOfMonth = Optional.ofNullable(command.dayOfMonth()).orElse(existing.dayOfMonth());
         int durationMonths = Optional.ofNullable(command.durationMonths()).orElse(0);
+
+        if (!noEndDate && command.durationMonths() == null && existing.endDate() == null) {
+            throw new InvalidDurationException("durationMonths is required when noEndDate is false and no existing endDate");
+        }
 
         ZonedDateTime now = ZonedDateTime.now();
         ZonedDateTime endDate;

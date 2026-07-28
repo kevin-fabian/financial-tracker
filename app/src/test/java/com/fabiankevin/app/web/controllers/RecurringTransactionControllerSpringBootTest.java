@@ -13,6 +13,7 @@ import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateRecurringTransactionRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchRecurringTransactionRequest;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -399,7 +400,7 @@ class RecurringTransactionControllerSpringBootTest {
                     .andExpect(jsonPath("$[0].nextOccurrenceDate").exists())
                     .andExpect(jsonPath("$[0].endDate").exists())
                     .andExpect(jsonPath("$[0].remainingDays").isNumber())
-                    .andExpect(jsonPath("$[0].remainingDays").value(org.hamcrest.Matchers.greaterThan(0)))
+                    .andExpect(jsonPath("$[0].remainingDays").value(Matchers.greaterThan(0)))
                     .andExpect(jsonPath("$[0].transactionStatus").value("UPCOMING"))
                     .andExpect(jsonPath("$[0].status").value("ACTIVE"))
                     .andExpect(jsonPath("$[0].firstName").value("John"))
@@ -581,6 +582,124 @@ class RecurringTransactionControllerSpringBootTest {
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(patchRequest)))
                     .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void givenExistingRecurringTransactionWithEndDate_thenPatchNoEndDateReturnsEndDateNull() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Account account = createAccount(userId, "Cash Wallet");
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            CreateRecurringTransactionRequest createRequest = CreateRecurringTransactionRequest.builder()
+                    .description("Monthly subscription")
+                    .amount(15.99)
+                    .variableAmount(false)
+                    .categoryId(category.id())
+                    .accountId(account.id())
+                    .noEndDate(false)
+                    .dayOfMonth(15)
+                    .durationMonths(6)
+                    .build();
+
+            MvcResult createResult = mockMvc.perform(post("/api/recurring-transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(createRequest)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.endDate").exists())
+                    .andReturn();
+
+            String id = jsonMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
+
+            PatchRecurringTransactionRequest patchRequest = PatchRecurringTransactionRequest.builder()
+                    .noEndDate(true)
+                    .build();
+
+            mockMvc.perform(MockMvcRequestBuilders.patch("/api/recurring-transactions/{id}", id)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(patchRequest)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(id))
+                    .andExpect(jsonPath("$.endDate").isEmpty())
+                    .andExpect(jsonPath("$.description").value("Monthly subscription"))
+                    .andExpect(jsonPath("$.amount").value(15.99))
+                    .andExpect(jsonPath("$.categoryId").value(category.id().toString()))
+                    .andExpect(jsonPath("$.accountId").value(account.id().toString()))
+                    .andExpect(jsonPath("$.dayOfMonth").value(15))
+                    .andExpect(jsonPath("$.variableAmount").value(false))
+                    .andExpect(jsonPath("$.status").value("ACTIVE"))
+                    .andExpect(jsonPath("$.firstName").value("John"))
+                    .andExpect(jsonPath("$.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.initial").value("JD"));
+        }
+
+        @Test
+        void givenExistingRecurringTransactionWithNoEndDate_thenPatchNoEndDateFalseWithoutDurationMonthsReturnsBadRequest() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Account account = createAccount(userId, "Cash Wallet");
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            CreateRecurringTransactionRequest createRequest = CreateRecurringTransactionRequest.builder()
+                    .description("Monthly subscription")
+                    .amount(15.99)
+                    .variableAmount(false)
+                    .categoryId(category.id())
+                    .accountId(account.id())
+                    .noEndDate(true)
+                    .dayOfMonth(0)
+                    .durationMonths(6)
+                    .build();
+
+            MvcResult createResult = mockMvc.perform(post("/api/recurring-transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(createRequest)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.endDate").isEmpty())
+                    .andReturn();
+
+            String id = jsonMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
+
+            PatchRecurringTransactionRequest patchRequest = PatchRecurringTransactionRequest.builder()
+                    .noEndDate(false)
+                    .build();
+
+            mockMvc.perform(MockMvcRequestBuilders.patch("/api/recurring-transactions/{id}", id)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(patchRequest)))
+                    .andExpect(status().isBadRequest());
         }
     }
 
