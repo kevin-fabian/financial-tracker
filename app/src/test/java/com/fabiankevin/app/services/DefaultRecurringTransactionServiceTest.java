@@ -82,8 +82,10 @@ class DefaultRecurringTransactionServiceTest {
                 .userId(userId)
                 .description("Monthly subscription")
                 .amount(15.99)
+                .variableAmount(false)
                 .categoryId(category.id())
                 .accountId(account.id())
+                .noEndDate(false)
                 .dayOfMonth(15)
                 .durationMonths(6)
                 .build();
@@ -111,6 +113,7 @@ class DefaultRecurringTransactionServiceTest {
             assertEquals(command.userId(), summary.userId(), "userId should match command");
             assertEquals("Monthly subscription", summary.description(), "description should match command");
             assertEquals(15.99, summary.amount(), "amount should match command");
+            assertFalse(summary.variableAmount(), "variableAmount should be false");
             assertEquals(15, summary.dayOfMonth(), "dayOfMonth should match command");
             ZonedDateTime expectedNextOccurrenceDate = now.getDayOfMonth() < command.dayOfMonth()
                     ? now.withDayOfMonth(command.dayOfMonth())
@@ -196,6 +199,52 @@ class DefaultRecurringTransactionServiceTest {
             verify(accountRepository).findById(account.id());
             verify(categoryRepository).findById(category.id());
             verify(recurringTransactionRepository).save(any());
+        }
+
+        @Test
+        void givenVariableAmountFlag_thenAmountIsZero() {
+            CreateRecurringTransactionCommand variableAmountCommand = command.toBuilder()
+                    .variableAmount(true)
+                    .amount(0)
+                    .build();
+
+            when(accountRepository.findById(account.id())).thenReturn(Optional.of(account));
+            when(categoryRepository.findById(category.id())).thenReturn(Optional.of(category));
+            when(recurringTransactionRepository.save(any())).thenAnswer(invocation -> {
+                RecurringTransaction input = invocation.getArgument(0);
+                return input.toBuilder().id(UUID.randomUUID()).createdAt(Instant.now()).updatedAt(Instant.now()).build();
+            });
+
+            RecurringTransactionSummary summary = service.create(variableAmountCommand);
+
+            assertNotNull(summary, "summary should not be null");
+            assertTrue(summary.variableAmount(), "variableAmount should be true");
+            assertEquals(0.0, summary.amount(), "amount should be zero when variableAmount is true");
+            assertEquals(RecurringTransactionStatus.ACTIVE, summary.status(), "recurring status should be ACTIVE");
+            assertNotNull(summary.category(), "category should not be null");
+            assertNotNull(summary.account(), "account should not be null");
+
+            ArgumentCaptor<RecurringTransaction> captor = ArgumentCaptor.forClass(RecurringTransaction.class);
+            verify(recurringTransactionRepository).save(captor.capture());
+            RecurringTransaction saved = captor.getValue();
+            assertTrue(saved.variableAmount(), "saved variableAmount should be true");
+            assertEquals(0.0, saved.amount(), "saved amount should be zero when variableAmount is true");
+        }
+
+        @Test
+        void givenVariableAmountFlagWithNonZeroAmount_thenThrowsIllegalArgumentException() {
+            CreateRecurringTransactionCommand invalidCommand = command.toBuilder()
+                    .variableAmount(true)
+                    .amount(15.99)
+                    .build();
+
+            assertThatThrownBy(() -> service.create(invalidCommand))
+                    .as("should throw IllegalArgumentException when variableAmount is true and amount is non-zero")
+                    .isInstanceOf(IllegalArgumentException.class);
+
+            verify(accountRepository, never()).findById(any());
+            verify(categoryRepository, never()).findById(any());
+            verify(recurringTransactionRepository, never()).save(any());
         }
     }
 }

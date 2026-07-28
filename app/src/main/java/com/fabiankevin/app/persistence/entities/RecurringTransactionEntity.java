@@ -35,6 +35,9 @@ public class RecurringTransactionEntity {
     @Column(nullable = false)
     private double amount;
 
+    @Column(name = "variable_amount", nullable = false)
+    private boolean variableAmount;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id")
     private CategoryEntity category;
@@ -69,6 +72,7 @@ public class RecurringTransactionEntity {
                 .userId(recurringTransaction.userId())
                 .description(recurringTransaction.description())
                 .amount(recurringTransaction.amount())
+                .variableAmount(recurringTransaction.variableAmount())
                 .category(CategoryEntity.from(recurringTransaction.category()))
                 .account(AccountEntity.from(recurringTransaction.account()))
                 .dayOfMonth(recurringTransaction.dayOfMonth())
@@ -86,6 +90,7 @@ public class RecurringTransactionEntity {
                 .userId(this.userId)
                 .description(this.description)
                 .amount(this.amount)
+                .variableAmount(this.variableAmount)
                 .category(this.category != null ? this.category.toModel() : null)
                 .account(this.account != null ? this.account.toModel() : null)
                 .dayOfMonth(this.dayOfMonth)

@@ -9,6 +9,7 @@ public record CreateRecurringTransactionCommand(
         UUID userId,
         String description,
         double amount,
+        boolean variableAmount,
         UUID categoryId,
         UUID accountId,
         boolean noEndDate,

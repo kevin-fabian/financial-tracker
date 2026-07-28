@@ -27,6 +27,9 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
 
     @Override
     public RecurringTransactionSummary create(CreateRecurringTransactionCommand command) {
+        if (command.variableAmount() && command.amount() != 0) {
+            throw new IllegalArgumentException("amount must be zero when variableAmount is true");
+        }
         if (!command.noEndDate() && (command.dayOfMonth() < 1 || command.dayOfMonth() > 31)) {
             throw new IllegalArgumentException("dayOfMonth must be between 1 and 31");
         }
@@ -45,6 +48,7 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
                 .userId(command.userId())
                 .description(command.description())
                 .amount(command.amount())
+                .variableAmount(command.variableAmount())
                 .category(category)
                 .account(account)
                 .dayOfMonth(command.dayOfMonth())
@@ -64,6 +68,7 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
                 .userId(saved.userId())
                 .description(saved.description())
                 .amount(saved.amount())
+                .variableAmount(saved.variableAmount())
                 .category(saved.category())
                 .account(saved.account())
                 .dayOfMonth(saved.dayOfMonth())

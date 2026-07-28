@@ -14,6 +14,7 @@ public record RecurringTransactionSummary(
         UUID userId,
         String description,
         double amount,
+        boolean variableAmount,
         Category category,
         Account account,
         int dayOfMonth,
