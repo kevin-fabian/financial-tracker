@@ -34,6 +34,9 @@ public record RecurringSummaryResponse(
         @Schema(description = "Category name", example = "GROCERIES")
         String categoryName,
 
+        @Schema(description = "Category icon", example = "local_grocery_store")
+        String categoryIcon,
+
         @Schema(description = "Account ID", example = "d290f1ee-6c54-4b01-90e6-d701748f0852")
         UUID accountId,
 
@@ -84,6 +87,7 @@ public record RecurringSummaryResponse(
                 .variableAmount(summary.variableAmount())
                 .categoryId(category != null ? category.id() : null)
                 .categoryName(category != null ? category.name() : null)
+                .categoryIcon(category != null ? category.icon() : null)
                 .accountId(account != null ? account.id() : null)
                 .accountName(account != null ? account.name() : null)
                 .dayOfMonth(summary.dayOfMonth())

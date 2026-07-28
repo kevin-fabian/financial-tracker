@@ -402,6 +402,7 @@ class RecurringTransactionControllerSpringBootTest {
                     .andExpect(jsonPath("$[0].variableAmount").value(false))
                     .andExpect(jsonPath("$[0].categoryId").value(category.id().toString()))
                     .andExpect(jsonPath("$[0].categoryName").value("GROCERIES"))
+                    .andExpect(jsonPath("$[0].categoryIcon").value("local_grocery_store"))
                     .andExpect(jsonPath("$[0].accountId").value(account.id().toString()))
                     .andExpect(jsonPath("$[0].accountName").value("Cash Wallet"))
                     .andExpect(jsonPath("$[0].dayOfMonth").value(15))
@@ -1121,6 +1122,9 @@ class RecurringTransactionControllerSpringBootTest {
             }
 
             recurringTransactionService.processDueRecurringTransactions();
+
+            // Wait for async processing to complete
+            Thread.sleep(2000);
 
             mockMvc.perform(get("/api/transactions")
                             .with(jwt()
