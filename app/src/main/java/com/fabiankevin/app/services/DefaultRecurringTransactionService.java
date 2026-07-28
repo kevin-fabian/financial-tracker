@@ -20,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -52,10 +51,10 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
         Category category = categoryRepository.findById(command.categoryId())
                 .orElseThrow(CategoryNotFoundException::new);
 
-        ZonedDateTime now = ZonedDateTime.now();
-        ZonedDateTime endDate = command.noEndDate() ? null : now.plusMonths(command.durationMonths());
-        ZonedDateTime nextOccurrenceDate = deriveNextOccurrenceDate(command.dayOfMonth(), now);
-        Instant instantNow = now.toInstant();
+        LocalDate today = LocalDate.now();
+        LocalDate endDate = command.noEndDate() ? null : today.plusMonths(command.durationMonths());
+        LocalDate nextOccurrenceDate = deriveNextOccurrenceDate(command.dayOfMonth(), today);
+        Instant instantNow = Instant.now();
 
         RecurringTransaction recurringTransaction = RecurringTransaction.builder()
                 .userId(command.userId())
@@ -75,9 +74,9 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
         RecurringTransaction saved = recurringTransactionRepository.save(recurringTransaction);
 
         User user = userClient.getUsersByIds(List.of(command.userId())).stream().findFirst().orElse(null);
-        int remainingDays = getRemainingDays(saved.nextOccurrenceDate(), now);
+        int remainingDays = getRemainingDays(saved.nextOccurrenceDate(), today);
 
-        TransactionStatus transactionStatus = deriveTransactionStatus(saved.nextOccurrenceDate(), instantNow);
+        TransactionStatus transactionStatus = deriveTransactionStatus(saved.nextOccurrenceDate(), today);
 
         return RecurringTransactionSummary.builder()
                 .id(saved.id())
@@ -100,12 +99,12 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
 
     @Override
     public List<RecurringTransactionSummary> getRecurringTransactionsByUserId(UUID userId) {
-        ZonedDateTime now = ZonedDateTime.now();
-        List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserId(userId, now);
+        LocalDate today = LocalDate.now();
+        List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserId(userId, today);
         User user = userClient.getUsersByIds(List.of(userId)).stream().findFirst().orElse(null);
         return summaries.stream()
                 .map(s -> {
-                    int remainingDays = getRemainingDays(s.nextOccurrenceDate(), now);
+                    int remainingDays = getRemainingDays(s.nextOccurrenceDate(), today);
                     return s.toBuilder()
                             .remainingDays(remainingDays)
                             .user(user)
@@ -151,18 +150,18 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
             throw new InvalidDurationException("durationMonths is required when noEndDate is false and no existing endDate");
         }
 
-        ZonedDateTime now = ZonedDateTime.now();
-        ZonedDateTime endDate;
+        LocalDate today = LocalDate.now();
+        LocalDate endDate;
         if (noEndDate) {
             endDate = null;
         } else if (command.durationMonths() != null) {
-            endDate = now.plusMonths(durationMonths);
+            endDate = today.plusMonths(durationMonths);
         } else {
             endDate = existing.endDate();
         }
 
-        ZonedDateTime nextOccurrenceDate = Optional.ofNullable(command.dayOfMonth())
-                .map(dm -> deriveNextOccurrenceDate(dm, now))
+        LocalDate nextOccurrenceDate = Optional.ofNullable(command.dayOfMonth())
+                .map(dm -> deriveNextOccurrenceDate(dm, today))
                 .orElse(existing.nextOccurrenceDate());
 
         RecurringTransaction updated = existing.toBuilder()
@@ -174,14 +173,14 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
                 .dayOfMonth(dayOfMonth)
                 .nextOccurrenceDate(nextOccurrenceDate)
                 .endDate(endDate)
-                .updatedAt(now.toInstant())
+                .updatedAt(Instant.now())
                 .build();
 
         RecurringTransaction saved = recurringTransactionRepository.save(updated);
 
         User user = userClient.getUsersByIds(List.of(command.userId())).stream().findFirst().orElse(null);
-        int remainingDays = (int) ChronoUnit.DAYS.between(now, saved.nextOccurrenceDate());
-        TransactionStatus transactionStatus = deriveTransactionStatus(saved.nextOccurrenceDate(), now.toInstant());
+        int remainingDays = getRemainingDays(saved.nextOccurrenceDate(), today);
+        TransactionStatus transactionStatus = deriveTransactionStatus(saved.nextOccurrenceDate(), today);
 
         return RecurringTransactionSummary.builder()
                 .id(saved.id())
@@ -202,18 +201,18 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
                 .build();
     }
 
-    private ZonedDateTime deriveNextOccurrenceDate(int dayOfMonth, ZonedDateTime now) {
+    private LocalDate deriveNextOccurrenceDate(int dayOfMonth, LocalDate today) {
         if (dayOfMonth < 1 || dayOfMonth > 31) {
-            return now.plusMonths(1);
+            return today.plusMonths(1);
         }
-        if (now.getDayOfMonth() < dayOfMonth) {
-            return now.withDayOfMonth(dayOfMonth);
+        if (today.getDayOfMonth() < dayOfMonth) {
+            return today.withDayOfMonth(dayOfMonth);
         }
-        return now.plusMonths(1).withDayOfMonth(dayOfMonth);
+        return today.plusMonths(1).withDayOfMonth(dayOfMonth);
     }
 
-    private TransactionStatus deriveTransactionStatus(ZonedDateTime nextOccurrenceDate, Instant now) {
-        if (nextOccurrenceDate.toInstant().isAfter(now)) {
+    private TransactionStatus deriveTransactionStatus(LocalDate nextOccurrenceDate, LocalDate today) {
+        if (nextOccurrenceDate.isAfter(today)) {
             return TransactionStatus.UPCOMING;
         }
         return TransactionStatus.OVERDUE;
@@ -223,12 +222,11 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
     @Transactional
     @Override
     public void processDueRecurringTransactions() {
-        ZonedDateTime now = ZonedDateTime.now();
         LocalDate today = LocalDate.now();
-        Instant instantNow = now.toInstant();
+        Instant instantNow = Instant.now();
         List<Transaction> batch = new ArrayList<>(BATCH_SIZE);
 
-        try (Stream<RecurringTransaction> stream = recurringTransactionRepository.streamDueRecurringTransactions(now)) {
+        try (Stream<RecurringTransaction> stream = recurringTransactionRepository.streamDueRecurringTransactions(today)) {
             stream.forEach(recurring -> {
                 Transaction transaction = Transaction.builder()
                         .account(recurring.account())
@@ -257,9 +255,9 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
         }
     }
 
-    private static int getRemainingDays(ZonedDateTime nextOccurrenceDate, ZonedDateTime now) {
+    private static int getRemainingDays(LocalDate nextOccurrenceDate, LocalDate today) {
         return nextOccurrenceDate != null
-                ? (int) ChronoUnit.DAYS.between(now, nextOccurrenceDate)
+                ? (int) ChronoUnit.DAYS.between(today, nextOccurrenceDate)
                 : 0;
     }
 }

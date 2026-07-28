@@ -3,7 +3,7 @@ package com.fabiankevin.app.persistence.entities.projections;
 import lombok.Builder;
 
 import java.time.Instant;
-import java.time.ZonedDateTime;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
@@ -13,8 +13,8 @@ public record RecurringTransactionSummaryProjection(
         String description,
         double amount,
         int dayOfMonth,
-        ZonedDateTime nextOccurrenceDate,
-        ZonedDateTime endDate,
+        LocalDate nextOccurrenceDate,
+        LocalDate endDate,
         String transactionStatus,
         String status,
         Instant createdAt,

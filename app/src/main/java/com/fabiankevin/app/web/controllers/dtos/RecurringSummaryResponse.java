@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
 import java.time.Instant;
-import java.time.ZonedDateTime;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
@@ -51,10 +51,10 @@ public record RecurringSummaryResponse(
         int dayOfMonth,
 
         @Schema(description = "Next occurrence date")
-        ZonedDateTime nextOccurrenceDate,
+        LocalDate nextOccurrenceDate,
 
         @Schema(description = "End date (null when noEndDate is true)")
-        ZonedDateTime endDate,
+        LocalDate endDate,
 
         @Schema(description = "Days remaining until next occurrence", example = "5")
         int remainingDays,

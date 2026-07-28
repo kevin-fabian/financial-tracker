@@ -6,7 +6,7 @@ import com.fabiankevin.app.models.User;
 import lombok.Builder;
 
 import java.time.Instant;
-import java.time.ZonedDateTime;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
@@ -18,8 +18,8 @@ public record RecurringTransactionSummary(
         Category category,
         Account account,
         int dayOfMonth,
-        ZonedDateTime nextOccurrenceDate,
-        ZonedDateTime endDate,
+        LocalDate nextOccurrenceDate,
+        LocalDate endDate,
         int remainingDays,
         TransactionStatus transactionStatus,
         RecurringTransactionStatus status,

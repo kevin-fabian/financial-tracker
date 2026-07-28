@@ -14,7 +14,7 @@ import com.fabiankevin.app.persistence.jpa_repositories.JpaRecurringTransactionR
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
-import java.time.ZonedDateTime;
+import java.time.LocalDate;
 import java.util.Currency;
 import java.util.List;
 import java.util.Optional;
@@ -32,14 +32,14 @@ public class DefaultRecurringTransactionRepository implements RecurringTransacti
     }
 
     @Override
-    public List<RecurringTransactionSummary> findSummariesByUserId(UUID userId, ZonedDateTime now) {
+    public List<RecurringTransactionSummary> findSummariesByUserId(UUID userId, LocalDate now) {
         return jpaRecurringTransactionRepository.findAllSummariesByUserId(userId, now).stream()
                 .map(this::toSummary)
                 .toList();
     }
 
     @Override
-    public Stream<RecurringTransaction> streamDueRecurringTransactions(ZonedDateTime now) {
+    public Stream<RecurringTransaction> streamDueRecurringTransactions(LocalDate now) {
         return jpaRecurringTransactionRepository.streamDueRecurringTransactions(now)
                 .map(RecurringTransactionEntity::toModel);
     }

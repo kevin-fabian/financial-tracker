@@ -30,7 +30,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
-import java.time.ZonedDateTime;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Currency;
 import java.util.List;
@@ -119,10 +119,10 @@ class DefaultRecurringTransactionServiceTest {
                     User.builder().id(command.userId()).firstName("John").lastName("Doe").build()
             ));
 
-            ZonedDateTime now = ZonedDateTime.now();
+            LocalDate today = LocalDate.now();
             RecurringTransactionSummary summary = service.create(command);
 
-            ZonedDateTime expectedEndDate = now.plusMonths(command.durationMonths());
+            LocalDate expectedEndDate = today.plusMonths(command.durationMonths());
 
             assertNotNull(summary, "summary should not be null");
             assertNotNull(summary.id(), "id should be generated");
@@ -130,9 +130,9 @@ class DefaultRecurringTransactionServiceTest {
             assertEquals(15.99, summary.amount(), "amount should match command");
             assertFalse(summary.variableAmount(), "variableAmount should be false");
             assertEquals(15, summary.dayOfMonth(), "dayOfMonth should match command");
-            ZonedDateTime expectedNextOccurrenceDate = now.getDayOfMonth() < command.dayOfMonth()
-                    ? now.withDayOfMonth(command.dayOfMonth())
-                    : now.plusMonths(1).withDayOfMonth(command.dayOfMonth());
+            LocalDate expectedNextOccurrenceDate = today.getDayOfMonth() < command.dayOfMonth()
+                    ? today.withDayOfMonth(command.dayOfMonth())
+                    : today.plusMonths(1).withDayOfMonth(command.dayOfMonth());
 
             assertEquals(TransactionStatus.UPCOMING, summary.transactionStatus(), "status should be UPCOMING when nextOccurrenceDate is in the future");
             assertEquals(RecurringTransactionStatus.ACTIVE, summary.status(), "recurring status should be ACTIVE");
@@ -142,13 +142,13 @@ class DefaultRecurringTransactionServiceTest {
             assertEquals(account.id(), summary.account().id(), "account should match");
             assertNotNull(summary.createdAt(), "createdAt should not be null");
             assertNotNull(summary.updatedAt(), "updatedAt should not be null");
-            assertEquals(expectedEndDate.truncatedTo(ChronoUnit.HOURS), summary.endDate().truncatedTo(ChronoUnit.HOURS), "endDate should be now plus durationMonths");
-            assertEquals(expectedNextOccurrenceDate.truncatedTo(ChronoUnit.HOURS), summary.nextOccurrenceDate().truncatedTo(ChronoUnit.HOURS), "nextOccurrenceDate should be derived from dayOfMonth");
+            assertEquals(expectedEndDate, summary.endDate(), "endDate should be now plus durationMonths");
+            assertEquals(expectedNextOccurrenceDate, summary.nextOccurrenceDate(), "nextOccurrenceDate should be derived from dayOfMonth");
             assertNotNull(summary.user(), "user should not be null");
             assertEquals("John", summary.user().firstName(), "user firstName should match");
             assertEquals("Doe", summary.user().lastName(), "user lastName should match");
             assertEquals("JD", summary.user().initial(), "user initial should match");
-            int expectedRemainingDays = (int) ChronoUnit.DAYS.between(now, summary.nextOccurrenceDate());
+            int expectedRemainingDays = (int) ChronoUnit.DAYS.between(today, summary.nextOccurrenceDate());
             assertEquals(expectedRemainingDays, summary.remainingDays(), "remainingDays should be computed from nextOccurrenceDate");
 
             ArgumentCaptor<RecurringTransaction> captor = ArgumentCaptor.forClass(RecurringTransaction.class);
@@ -292,8 +292,8 @@ class DefaultRecurringTransactionServiceTest {
                     .category(category)
                     .account(account)
                     .dayOfMonth(15)
-                    .nextOccurrenceDate(ZonedDateTime.now().minusDays(1))
-                    .endDate(ZonedDateTime.now().plusMonths(6))
+                    .nextOccurrenceDate(LocalDate.now().minusDays(1))
+                    .endDate(LocalDate.now().plusMonths(6))
                     .status(RecurringTransactionStatus.ACTIVE)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -308,8 +308,8 @@ class DefaultRecurringTransactionServiceTest {
                     .category(category)
                     .account(account)
                     .dayOfMonth(10)
-                    .nextOccurrenceDate(ZonedDateTime.now().minusDays(2))
-                    .endDate(ZonedDateTime.now().plusMonths(12))
+                    .nextOccurrenceDate(LocalDate.now().minusDays(2))
+                    .endDate(LocalDate.now().plusMonths(12))
                     .status(RecurringTransactionStatus.ACTIVE)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -366,8 +366,8 @@ class DefaultRecurringTransactionServiceTest {
                     .category(category)
                     .account(account)
                     .dayOfMonth(1)
-                    .nextOccurrenceDate(ZonedDateTime.now().minusDays(1))
-                    .endDate(ZonedDateTime.now().plusMonths(6))
+                    .nextOccurrenceDate(LocalDate.now().minusDays(1))
+                    .endDate(LocalDate.now().plusMonths(6))
                     .status(RecurringTransactionStatus.ACTIVE)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -401,7 +401,7 @@ class DefaultRecurringTransactionServiceTest {
         @Test
         void givenRecurringTransactionsExist_thenReturnsSummariesWithRemainingDaysAndUser() {
             UUID userId = UUID.randomUUID();
-            ZonedDateTime nextOccurrenceDate = ZonedDateTime.now().plusDays(10);
+            LocalDate nextOccurrenceDate = LocalDate.now().plusDays(10);
 
             RecurringTransactionSummary summary = RecurringTransactionSummary.builder()
                     .id(UUID.randomUUID())
@@ -412,7 +412,7 @@ class DefaultRecurringTransactionServiceTest {
                     .account(account)
                     .dayOfMonth(15)
                     .nextOccurrenceDate(nextOccurrenceDate)
-                    .endDate(ZonedDateTime.now().plusMonths(6))
+                    .endDate(LocalDate.now().plusMonths(6))
                     .transactionStatus(TransactionStatus.UPCOMING)
                     .status(RecurringTransactionStatus.ACTIVE)
                     .createdAt(Instant.now())
@@ -439,11 +439,51 @@ class DefaultRecurringTransactionServiceTest {
             assertEquals(RecurringTransactionStatus.ACTIVE, resultSummary.status(), "status should match");
             assertEquals(nextOccurrenceDate, resultSummary.nextOccurrenceDate(), "nextOccurrenceDate should match");
 
-            int expectedRemainingDays = (int) ChronoUnit.DAYS.between(ZonedDateTime.now(), nextOccurrenceDate);
+            int expectedRemainingDays = (int) ChronoUnit.DAYS.between(LocalDate.now(), nextOccurrenceDate);
             assertEquals(expectedRemainingDays, resultSummary.remainingDays(), "remainingDays should be computed from nextOccurrenceDate");
             assertNotNull(resultSummary.user(), "user should not be null");
             assertEquals("John", resultSummary.user().firstName(), "user firstName should match");
             assertEquals("Doe", resultSummary.user().lastName(), "user lastName should match");
+
+            verify(recurringTransactionRepository).findSummariesByUserId(eq(userId), any());
+            verify(userClient).getUsersByIds(List.of(userId));
+        }
+
+        @Test
+        void givenNextOccurrenceDateIsTomorrow_thenRemainingDaysIsOne() {
+            UUID userId = UUID.randomUUID();
+            LocalDate today = LocalDate.now();
+            LocalDate tomorrow = today.plusDays(1);
+
+            RecurringTransactionSummary summary = RecurringTransactionSummary.builder()
+                    .id(UUID.randomUUID())
+                    .description("Monthly subscription")
+                    .amount(15.99)
+                    .variableAmount(false)
+                    .category(category)
+                    .account(account)
+                    .dayOfMonth(15)
+                    .nextOccurrenceDate(tomorrow)
+                    .endDate(today.plusMonths(6))
+                    .transactionStatus(TransactionStatus.UPCOMING)
+                    .status(RecurringTransactionStatus.ACTIVE)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            User user = User.builder().id(userId).firstName("John").lastName("Doe").build();
+
+            when(recurringTransactionRepository.findSummariesByUserId(eq(userId), any()))
+                    .thenReturn(List.of(summary));
+            when(userClient.getUsersByIds(List.of(userId))).thenReturn(List.of(user));
+
+            List<RecurringTransactionSummary> result = service.getRecurringTransactionsByUserId(userId);
+
+            assertNotNull(result, "result should not be null");
+            assertEquals(1, result.size(), "should return 1 summary");
+
+            RecurringTransactionSummary resultSummary = result.getFirst();
+            assertEquals(1, resultSummary.remainingDays(), "remainingDays should be 1 when nextOccurrenceDate is tomorrow");
 
             verify(recurringTransactionRepository).findSummariesByUserId(eq(userId), any());
             verify(userClient).getUsersByIds(List.of(userId));

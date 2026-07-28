@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 
-import java.time.ZonedDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,7 +36,7 @@ public interface JpaRecurringTransactionRepository extends JpaRepository<Recurri
             FROM RecurringTransactionEntity rt
             WHERE rt.userId = :userId
             """)
-    List<RecurringTransactionSummaryProjection> findAllSummariesByUserId(@Param("userId") UUID userId, @Param("now") ZonedDateTime now);
+    List<RecurringTransactionSummaryProjection> findAllSummariesByUserId(@Param("userId") UUID userId, @Param("now") LocalDate now);
 
     @QueryHints(value = @QueryHint(name = "org.hibernate.fetchSize", value = "50"))
     @Query("""
@@ -45,7 +45,7 @@ public interface JpaRecurringTransactionRepository extends JpaRepository<Recurri
               AND rt.variableAmount = false
               AND rt.status = com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus.ACTIVE
             """)
-    Stream<RecurringTransactionEntity> streamDueRecurringTransactions(@Param("now") ZonedDateTime now);
+    Stream<RecurringTransactionEntity> streamDueRecurringTransactions(@Param("now") LocalDate now);
 
     int deleteByIdAndUserId(UUID id, UUID userId);
 

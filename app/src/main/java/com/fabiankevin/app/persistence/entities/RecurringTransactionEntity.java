@@ -9,7 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
-import java.time.ZonedDateTime;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
@@ -50,10 +50,10 @@ public class RecurringTransactionEntity {
     private int dayOfMonth;
 
     @Column(name = "next_occurrence_date")
-    private ZonedDateTime nextOccurrenceDate;
+    private LocalDate nextOccurrenceDate;
 
     @Column(name = "end_date")
-    private ZonedDateTime endDate;
+    private LocalDate endDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)

@@ -30,8 +30,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -94,7 +92,7 @@ class DefaultRecurringTransactionRepositoryTest {
                 .category(category.toModel())
                 .account(account.toModel())
                 .dayOfMonth(15)
-                .nextOccurrenceDate(ZonedDateTime.of(2026, 8, 15, 12, 0, 0, 0, ZoneId.of("UTC")))
+                .nextOccurrenceDate(LocalDate.of(2026, 8, 15))
                 .endDate(null)
                 .status(RecurringTransactionStatus.ACTIVE)
                 .createdAt(now)
@@ -170,7 +168,7 @@ class DefaultRecurringTransactionRepositoryTest {
                     .updatedAt(now)
                     .build());
 
-            ZonedDateTime referenceNow = ZonedDateTime.of(2026, 9, 1, 0, 0, 0, 0, ZoneId.of("UTC"));
+            LocalDate referenceNow = LocalDate.of(2026, 9, 1);
 
             List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserId(userId, referenceNow);
 
@@ -183,7 +181,7 @@ class DefaultRecurringTransactionRepositoryTest {
             assertEquals(15, summary.dayOfMonth(), "dayOfMonth should match");
             assertEquals(TransactionStatus.PAID, summary.transactionStatus(), "status should be PAID when transaction exists and nextOccurrenceDate is in the past");
             assertEquals(RecurringTransactionStatus.ACTIVE, summary.status(), "recurring transaction status should match");
-            assertEquals(saved.nextOccurrenceDate().toInstant(), summary.nextOccurrenceDate().toInstant(), "nextOccurrenceDate should match");
+            assertEquals(saved.nextOccurrenceDate(), summary.nextOccurrenceDate(), "nextOccurrenceDate should match");
             assertEquals(saved.endDate(), summary.endDate(), "endDate should match");
             assertNotNull(summary.category(), "category should not be null");
             assertEquals(category.id(), summary.category().id(), "category id should match");
@@ -198,7 +196,7 @@ class DefaultRecurringTransactionRepositoryTest {
             RecurringTransaction saved = recurringTransactionRepository.save(recurringTransaction);
             UUID userId = saved.userId();
 
-            ZonedDateTime referenceNow = ZonedDateTime.of(2026, 9, 1, 0, 0, 0, 0, ZoneId.of("UTC"));
+            LocalDate referenceNow = LocalDate.of(2026, 9, 1);
 
             List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserId(userId, referenceNow);
 
@@ -214,7 +212,7 @@ class DefaultRecurringTransactionRepositoryTest {
             RecurringTransaction saved = recurringTransactionRepository.save(recurringTransaction);
             UUID userId = saved.userId();
 
-            ZonedDateTime referenceNow = ZonedDateTime.of(2026, 8, 1, 0, 0, 0, 0, ZoneId.of("UTC"));
+            LocalDate referenceNow = LocalDate.of(2026, 8, 1);
 
             List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserId(userId, referenceNow);
 
@@ -230,7 +228,7 @@ class DefaultRecurringTransactionRepositoryTest {
             recurringTransactionRepository.save(recurringTransaction);
             UUID otherUserId = UUID.randomUUID();
 
-            List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserId(otherUserId, ZonedDateTime.now());
+            List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserId(otherUserId, LocalDate.now());
 
             Assertions.assertThat(summaries).isEmpty();
 
@@ -241,7 +239,7 @@ class DefaultRecurringTransactionRepositoryTest {
         void givenUserIdWithNoRecurringTransactions_thenReturnsEmptyList() {
             UUID userId = UUID.randomUUID();
 
-            List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserId(userId, ZonedDateTime.now());
+            List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserId(userId, LocalDate.now());
 
             Assertions.assertThat(summaries).isEmpty();
 

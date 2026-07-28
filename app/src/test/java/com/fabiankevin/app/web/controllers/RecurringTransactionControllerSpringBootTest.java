@@ -35,7 +35,8 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.time.ZonedDateTime;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Currency;
 import java.util.List;
@@ -106,11 +107,11 @@ class RecurringTransactionControllerSpringBootTest {
             when(userClient.getUsersByIds(List.of(userId)))
                     .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
 
-            ZonedDateTime now = ZonedDateTime.now();
-            ZonedDateTime expectedNextOccurrenceDate = now.getDayOfMonth() < request.dayOfMonth()
-                    ? now.withDayOfMonth(request.dayOfMonth())
-                    : now.plusMonths(1).withDayOfMonth(request.dayOfMonth());
-            int expectedRemainingDays = (int) ChronoUnit.DAYS.between(now, expectedNextOccurrenceDate);
+            LocalDate today = LocalDate.now();
+            LocalDate expectedNextOccurrenceDate = today.getDayOfMonth() < request.dayOfMonth()
+                    ? today.withDayOfMonth(request.dayOfMonth())
+                    : today.plusMonths(1).withDayOfMonth(request.dayOfMonth());
+            int expectedRemainingDays = (int) ChronoUnit.DAYS.between(today, expectedNextOccurrenceDate);
 
             mockMvc.perform(post("/api/recurring-transactions")
                             .with(jwt()
@@ -1102,7 +1103,7 @@ class RecurringTransactionControllerSpringBootTest {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
             Account account = createAccount(userId, "Cash Wallet");
-            ZonedDateTime pastDate = ZonedDateTime.now().minusDays(1);
+            LocalDate pastDate = LocalDate.now().minusDays(1);
 
             for (int i = 0; i < 10; i++) {
                 RecurringTransaction recurringTransaction = RecurringTransaction.builder()
@@ -1116,8 +1117,8 @@ class RecurringTransactionControllerSpringBootTest {
                         .nextOccurrenceDate(pastDate)
                         .endDate(null)
                         .status(RecurringTransactionStatus.ACTIVE)
-                        .createdAt(pastDate.toInstant())
-                        .updatedAt(pastDate.toInstant())
+                        .createdAt(Instant.now())
+                        .updatedAt(Instant.now())
                         .build();
                 recurringTransactionRepository.save(recurringTransaction);
             }
