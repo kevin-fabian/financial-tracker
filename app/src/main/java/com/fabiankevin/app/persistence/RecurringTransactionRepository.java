@@ -6,9 +6,12 @@ import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionSum
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 public interface RecurringTransactionRepository {
     RecurringTransaction save(RecurringTransaction recurringTransaction);
 
     List<RecurringTransactionSummary> findSummariesByUserId(UUID userId, ZonedDateTime now);
+
+    Stream<RecurringTransaction> streamDueRecurringTransactions(ZonedDateTime now);
 }

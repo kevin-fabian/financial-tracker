@@ -14,6 +14,8 @@ import java.util.UUID;
 
 public interface TransactionRepository {
     Transaction save(Transaction transaction);
+    List<Transaction> saveAll(List<Transaction> transactions);
+    void flush();
     Optional<Transaction> findById(UUID id);
     void deleteById(UUID id);
     // Delete a transaction by id only when it belongs to the specified id.

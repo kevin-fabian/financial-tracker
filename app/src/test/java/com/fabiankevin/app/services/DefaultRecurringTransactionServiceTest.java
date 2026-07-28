@@ -3,6 +3,7 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransaction;
@@ -12,6 +13,7 @@ import com.fabiankevin.app.models.recurring_transactions.TransactionStatus;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.RecurringTransactionRepository;
+import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.recurring_transactions.commands.CreateRecurringTransactionCommand;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -28,8 +30,10 @@ import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Currency;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
@@ -41,6 +45,9 @@ class DefaultRecurringTransactionServiceTest {
 
     @Mock
     private RecurringTransactionRepository recurringTransactionRepository;
+
+    @Mock
+    private TransactionRepository transactionRepository;
 
     @Mock
     private AccountRepository accountRepository;
@@ -245,6 +252,127 @@ class DefaultRecurringTransactionServiceTest {
             verify(accountRepository, never()).findById(any());
             verify(categoryRepository, never()).findById(any());
             verify(recurringTransactionRepository, never()).save(any());
+        }
+    }
+
+    @Nested
+    class ProcessDueRecurringTransactions {
+
+        @Test
+        void givenDueRecurringTransactions_thenCreatesTransactionsWithRecurringTransactionId() {
+            UUID userId = account.userId();
+            UUID recurringId1 = UUID.randomUUID();
+            UUID recurringId2 = UUID.randomUUID();
+
+            RecurringTransaction recurring1 = RecurringTransaction.builder()
+                    .id(recurringId1)
+                    .userId(userId)
+                    .description("Netflix")
+                    .amount(15.99)
+                    .variableAmount(false)
+                    .category(category)
+                    .account(account)
+                    .dayOfMonth(15)
+                    .nextOccurrenceDate(ZonedDateTime.now().minusDays(1))
+                    .endDate(ZonedDateTime.now().plusMonths(6))
+                    .status(RecurringTransactionStatus.ACTIVE)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            RecurringTransaction recurring2 = RecurringTransaction.builder()
+                    .id(recurringId2)
+                    .userId(userId)
+                    .description("Spotify")
+                    .amount(9.99)
+                    .variableAmount(false)
+                    .category(category)
+                    .account(account)
+                    .dayOfMonth(10)
+                    .nextOccurrenceDate(ZonedDateTime.now().minusDays(2))
+                    .endDate(ZonedDateTime.now().plusMonths(12))
+                    .status(RecurringTransactionStatus.ACTIVE)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(recurringTransactionRepository.streamDueRecurringTransactions(any()))
+                    .thenReturn(Stream.of(recurring1, recurring2));
+            when(transactionRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+            service.processDueRecurringTransactions();
+
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<List<Transaction>> captor = ArgumentCaptor.forClass(List.class);
+            verify(transactionRepository).saveAll(captor.capture());
+            List<Transaction> saved = captor.getValue();
+
+            assertEquals(2, saved.size(), "should create 2 transactions");
+
+            Transaction first = saved.get(0);
+            assertEquals(recurringId1, first.recurringTransactionId(), "first transaction should reference recurring txn 1");
+            assertEquals("Netflix", first.description(), "first description should match recurring");
+            assertEquals(15.99, first.amount().value(), "first amount should match recurring");
+            assertEquals(account.currency(), first.amount().currency(), "first currency should match account");
+            assertEquals(category, first.category(), "first category should match recurring");
+            assertEquals(account, first.account(), "first account should match recurring");
+            assertEquals(category.type(), first.type(), "first type should derive from category");
+
+            Transaction second = saved.get(1);
+            assertEquals(recurringId2, second.recurringTransactionId(), "second transaction should reference recurring txn 2");
+            assertEquals("Spotify", second.description(), "second description should match recurring");
+            assertEquals(9.99, second.amount().value(), "second amount should match recurring");
+
+            verify(transactionRepository, times(1)).flush();
+        }
+
+        @Test
+        void givenNoDueRecurringTransactions_thenDoesNotCreateAnyTransaction() {
+            when(recurringTransactionRepository.streamDueRecurringTransactions(any()))
+                    .thenReturn(Stream.empty());
+
+            service.processDueRecurringTransactions();
+
+            verify(transactionRepository, never()).saveAll(any());
+        }
+
+        @Test
+        void givenBatchExceedsLimit_thenFlushesInBatches() {
+            RecurringTransaction recurring = RecurringTransaction.builder()
+                    .id(UUID.randomUUID())
+                    .userId(account.userId())
+                    .description("Subscription")
+                    .amount(10.0)
+                    .variableAmount(false)
+                    .category(category)
+                    .account(account)
+                    .dayOfMonth(1)
+                    .nextOccurrenceDate(ZonedDateTime.now().minusDays(1))
+                    .endDate(ZonedDateTime.now().plusMonths(6))
+                    .status(RecurringTransactionStatus.ACTIVE)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            List<RecurringTransaction> dueRecurrences = java.util.stream.IntStream.range(0, 75)
+                    .mapToObj(i -> recurring.toBuilder().id(UUID.randomUUID()).description("Sub " + i).build())
+                    .toList();
+
+            when(recurringTransactionRepository.streamDueRecurringTransactions(any()))
+                    .thenReturn(dueRecurrences.stream());
+            when(transactionRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+            service.processDueRecurringTransactions();
+
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<List<Transaction>> captor = ArgumentCaptor.forClass(List.class);
+            verify(transactionRepository, times(2)).saveAll(captor.capture());
+            List<List<Transaction>> batches = captor.getAllValues();
+
+            assertEquals(50, batches.get(0).size(), "first batch should be full (50)");
+            assertEquals(25, batches.get(1).size(), "second batch should contain remaining 25");
+
+            verify(transactionRepository, times(2)).flush();
         }
     }
 }

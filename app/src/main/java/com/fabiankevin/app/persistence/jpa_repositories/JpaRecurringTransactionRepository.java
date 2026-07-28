@@ -2,13 +2,16 @@ package com.fabiankevin.app.persistence.jpa_repositories;
 
 import com.fabiankevin.app.persistence.entities.RecurringTransactionEntity;
 import com.fabiankevin.app.persistence.entities.projections.RecurringTransactionSummaryProjection;
+import jakarta.persistence.QueryHint;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 public interface JpaRecurringTransactionRepository extends JpaRepository<RecurringTransactionEntity, UUID> {
     @Query("""
@@ -33,4 +36,13 @@ public interface JpaRecurringTransactionRepository extends JpaRepository<Recurri
             WHERE rt.userId = :userId
             """)
     List<RecurringTransactionSummaryProjection> findAllSummariesByUserId(@Param("userId") UUID userId, @Param("now") ZonedDateTime now);
+
+    @QueryHints(value = @QueryHint(name = "org.hibernate.fetchSize", value = "50"))
+    @Query("""
+            SELECT rt FROM RecurringTransactionEntity rt
+            WHERE rt.nextOccurrenceDate < :now
+              AND rt.variableAmount = false
+              AND rt.status = com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus.ACTIVE
+            """)
+    Stream<RecurringTransactionEntity> streamDueRecurringTransactions(@Param("now") ZonedDateTime now);
 }

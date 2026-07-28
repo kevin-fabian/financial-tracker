@@ -7,6 +7,7 @@ import com.fabiankevin.app.persistence.entities.TransactionEntity;
 import com.fabiankevin.app.persistence.entities.projections.SummaryPointProjection;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import com.fabiankevin.app.services.queries.PageQuery;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -22,11 +23,28 @@ import java.util.UUID;
 @Repository
 public class DefaultTransactionRepository implements TransactionRepository {
     private final JpaTransactionRepository jpaTransactionRepository;
+    private final EntityManager entityManager;
 
     @Override
     public Transaction save(Transaction transaction) {
         TransactionEntity saved = jpaTransactionRepository.save(TransactionEntity.from(transaction));
         return saved.toModel();
+    }
+
+    @Override
+    public List<Transaction> saveAll(List<Transaction> transactions) {
+        List<TransactionEntity> entities = transactions.stream()
+                .map(TransactionEntity::from)
+                .toList();
+        return jpaTransactionRepository.saveAll(entities).stream()
+                .map(TransactionEntity::toModel)
+                .toList();
+    }
+
+    @Override
+    public void flush() {
+        jpaTransactionRepository.flush();
+        entityManager.clear();
     }
 
     @Override

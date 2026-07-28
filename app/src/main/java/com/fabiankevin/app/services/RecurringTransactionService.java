@@ -5,4 +5,6 @@ import com.fabiankevin.app.services.recurring_transactions.commands.CreateRecurr
 
 public interface RecurringTransactionService {
     RecurringTransactionSummary create(CreateRecurringTransactionCommand command);
+
+    void processDueRecurringTransactions();
 }

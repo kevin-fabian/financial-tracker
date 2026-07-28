@@ -16,6 +16,7 @@ import com.fabiankevin.app.services.DefaultTransactionService;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
+import jakarta.persistence.EntityManager;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -56,8 +57,8 @@ class DefaultTransactionRepositoryTest {
     @TestConfiguration
     public static class TestContextConfiguration {
         @Bean
-        public TransactionRepository transactionRepository(JpaTransactionRepository jpaTransactionRepository) {
-            return new DefaultTransactionRepository(jpaTransactionRepository);
+        public TransactionRepository transactionRepository(JpaTransactionRepository jpaTransactionRepository, EntityManager entityManager) {
+            return new DefaultTransactionRepository(jpaTransactionRepository, entityManager);
         }
 
         @Bean

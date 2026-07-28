@@ -18,6 +18,7 @@ import java.time.ZonedDateTime;
 import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @Repository
 @RequiredArgsConstructor
@@ -34,6 +35,12 @@ public class DefaultRecurringTransactionRepository implements RecurringTransacti
         return jpaRecurringTransactionRepository.findAllSummariesByUserId(userId, now).stream()
                 .map(DefaultRecurringTransactionRepository::toSummary)
                 .toList();
+    }
+
+    @Override
+    public Stream<RecurringTransaction> streamDueRecurringTransactions(ZonedDateTime now) {
+        return jpaRecurringTransactionRepository.streamDueRecurringTransactions(now)
+                .map(RecurringTransactionEntity::toModel);
     }
 
     private static RecurringTransactionSummary toSummary(RecurringTransactionSummaryProjection p) {
