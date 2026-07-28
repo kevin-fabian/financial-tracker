@@ -387,16 +387,23 @@ class RecurringTransactionControllerSpringBootTest {
                     .andExpect(jsonPath("$[0].id").isNotEmpty())
                     .andExpect(jsonPath("$[0].description").value("Monthly subscription"))
                     .andExpect(jsonPath("$[0].amount").value(15.99))
+                    .andExpect(jsonPath("$[0].variableAmount").value(false))
+                    .andExpect(jsonPath("$[0].categoryId").value(category.id().toString()))
                     .andExpect(jsonPath("$[0].categoryName").value("GROCERIES"))
+                    .andExpect(jsonPath("$[0].accountId").value(account.id().toString()))
                     .andExpect(jsonPath("$[0].accountName").value("Cash Wallet"))
                     .andExpect(jsonPath("$[0].dayOfMonth").value(15))
+                    .andExpect(jsonPath("$[0].nextOccurrenceDate").exists())
+                    .andExpect(jsonPath("$[0].endDate").exists())
                     .andExpect(jsonPath("$[0].remainingDays").isNumber())
                     .andExpect(jsonPath("$[0].remainingDays").value(org.hamcrest.Matchers.greaterThan(0)))
                     .andExpect(jsonPath("$[0].transactionStatus").value("UPCOMING"))
                     .andExpect(jsonPath("$[0].status").value("ACTIVE"))
                     .andExpect(jsonPath("$[0].firstName").value("John"))
                     .andExpect(jsonPath("$[0].lastName").value("Doe"))
-                    .andExpect(jsonPath("$[0].initial").value("JD"));
+                    .andExpect(jsonPath("$[0].initial").value("JD"))
+                    .andExpect(jsonPath("$[0].createdAt").exists())
+                    .andExpect(jsonPath("$[0].updatedAt").exists());
         }
 
         @Test
