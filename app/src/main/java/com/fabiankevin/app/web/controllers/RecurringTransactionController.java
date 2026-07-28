@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
@@ -58,5 +59,23 @@ public class RecurringTransactionController {
         return recurringTransactionService.getRecurringTransactionsByUserId(userId).stream()
                 .map(RecurringSummaryResponse::from)
                 .toList();
+    }
+
+    @Operation(
+            summary = "Delete a recurring transaction",
+            description = "Deletes a recurring transaction by id. Returns 204 on success.",
+            responses = {
+                    @ApiResponse(responseCode = "204", description = "No Content - Recurring transaction deleted successfully"),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteRecurringTransaction(
+            @PathVariable UUID id,
+            JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        recurringTransactionService.deleteRecurringTransactionById(id, userId);
+        return ResponseEntity.noContent().build();
     }
 }

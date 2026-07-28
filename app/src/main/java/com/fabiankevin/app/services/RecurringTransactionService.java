@@ -11,5 +11,7 @@ public interface RecurringTransactionService {
 
     List<RecurringTransactionSummary> getRecurringTransactionsByUserId(UUID userId);
 
+    void deleteRecurringTransactionById(UUID id, UUID userId);
+
     void processDueRecurringTransactions();
 }

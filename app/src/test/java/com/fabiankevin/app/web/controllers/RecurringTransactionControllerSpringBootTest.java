@@ -24,6 +24,8 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.ZonedDateTime;
@@ -420,6 +422,71 @@ class RecurringTransactionControllerSpringBootTest {
                                     )))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(0));
+        }
+    }
+
+    @Nested
+    class DeleteRecurringTransaction {
+
+        @Test
+        void givenExistingRecurringTransaction_thenReturnsNoContent() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Account account = createAccount(userId, "Cash Wallet");
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            CreateRecurringTransactionRequest request = CreateRecurringTransactionRequest.builder()
+                    .description("Monthly subscription")
+                    .amount(15.99)
+                    .variableAmount(false)
+                    .categoryId(category.id())
+                    .accountId(account.id())
+                    .noEndDate(false)
+                    .dayOfMonth(15)
+                    .durationMonths(6)
+                    .build();
+
+            MvcResult result = mockMvc.perform(post("/api/recurring-transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andReturn();
+
+            String id = jsonMapper.readTree(result.getResponse().getContentAsString()).get("id").asText();
+
+            mockMvc.perform(MockMvcRequestBuilders.delete("/api/recurring-transactions/{id}", id)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isNoContent());
+        }
+
+        @Test
+        void givenNonExistentRecurringTransaction_thenReturnsNotFound() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            mockMvc.perform(MockMvcRequestBuilders.delete("/api/recurring-transactions/{id}", UUID.randomUUID())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isNotFound());
         }
     }
 

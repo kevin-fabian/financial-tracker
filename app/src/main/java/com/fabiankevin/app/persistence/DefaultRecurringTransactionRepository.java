@@ -47,6 +47,11 @@ public class DefaultRecurringTransactionRepository implements RecurringTransacti
                 .map(RecurringTransactionEntity::toModel);
     }
 
+    @Override
+    public int deleteByIdAndUserId(UUID id, UUID userId) {
+        return jpaRecurringTransactionRepository.deleteByIdAndUserId(id, userId);
+    }
+
     private RecurringTransactionSummary toSummary(RecurringTransactionSummaryProjection p) {
         List<User> users = userClient.getUsersByIds(List.of(p.userId()));
         User user = users.isEmpty() ? null : users.getFirst();

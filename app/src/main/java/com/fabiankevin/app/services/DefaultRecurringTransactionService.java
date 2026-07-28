@@ -4,6 +4,7 @@ import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.exceptions.InvalidAmountException;
+import com.fabiankevin.app.exceptions.NotFoundException;
 import com.fabiankevin.app.models.*;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransaction;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus;
@@ -100,6 +101,15 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
     @Override
     public List<RecurringTransactionSummary> getRecurringTransactionsByUserId(UUID userId) {
         return recurringTransactionRepository.findSummariesByUserId(userId, ZonedDateTime.now());
+    }
+
+    @Transactional
+    @Override
+    public void deleteRecurringTransactionById(UUID id, UUID userId) {
+        int deleted = recurringTransactionRepository.deleteByIdAndUserId(id, userId);
+        if (deleted == 0) {
+            throw new NotFoundException("Recurring transaction not found");
+        }
     }
 
     private ZonedDateTime deriveNextOccurrenceDate(int dayOfMonth, ZonedDateTime now) {

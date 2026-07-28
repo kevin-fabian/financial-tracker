@@ -45,4 +45,6 @@ public interface JpaRecurringTransactionRepository extends JpaRepository<Recurri
               AND rt.status = com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus.ACTIVE
             """)
     Stream<RecurringTransactionEntity> streamDueRecurringTransactions(@Param("now") ZonedDateTime now);
+
+    int deleteByIdAndUserId(UUID id, UUID userId);
 }
