@@ -16,7 +16,7 @@ public record ShoppingListSummary(
         String name,
         String description,
         ShoppingListStatus status,
-        List<ShoppingListSummary> items,
+        List<ShoppingItemSummary> items,
         User user,
         double budget,
         Instant completedAt,

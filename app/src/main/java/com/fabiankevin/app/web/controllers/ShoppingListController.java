@@ -6,6 +6,7 @@ import com.fabiankevin.app.web.controllers.dtos.shopping_list.CreateShoppingList
 import com.fabiankevin.app.web.controllers.dtos.shopping_list.ShoppingItemResponse;
 import com.fabiankevin.app.web.controllers.dtos.shopping_list.ShoppingListSummaryResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -15,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -22,6 +24,24 @@ import java.util.UUID;
 @RequestMapping(value = "/api/shopping-lists", version = "v1")
 public class ShoppingListController {
     private final ShoppingListService shoppingListService;
+
+    @Operation(
+            summary = "Retrieve shopping lists",
+            description = "Retrieves a list of shopping list summaries for the authenticated user",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - Resources retrieved successfully",
+                            content = @Content(array = @ArraySchema(schema = @Schema(implementation = ShoppingListSummaryResponse.class)))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @GetMapping
+    public List<ShoppingListSummaryResponse> createShoppingList
+            (JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        return shoppingListService.getShoppingListsByUserId(userId).stream()
+                .map(ShoppingListSummaryResponse::from)
+                .toList();
+    }
 
     @Operation(
             summary = "Create a new shopping list",
@@ -56,7 +76,7 @@ public class ShoppingListController {
     )
     @PostMapping("/{id}/items")
     @ResponseStatus(HttpStatus.CREATED)
-    public ShoppingItemResponse addItem(
+    public ShoppingItemResponse addShoppingItem(
             @PathVariable UUID id,
             @Valid @RequestBody CreateShoppingItemRequest request,
             JwtAuthenticationToken jwtAuthenticationToken

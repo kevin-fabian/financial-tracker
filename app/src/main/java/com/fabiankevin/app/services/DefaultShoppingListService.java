@@ -16,7 +16,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -92,23 +97,68 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .build();
     }
 
-    private ShoppingListSummary toSummary(ShoppingList shoppingList) {
-        User user = userClient.getUsersByIds(List.of(shoppingList.userId()))
-                .stream()
-                .findFirst()
-                .orElse(null);
+    @Override
+    public List<ShoppingListSummary> getShoppingListsByUserId(UUID userId) {
+        List<ShoppingList> shoppingLists = shoppingListRepository.findAllByUserId(userId);
+
+        List<UUID> addedByIds = shoppingLists.stream()
+                .flatMap(list -> list.items().stream())
+                .map(ShoppingItem::addedBy)
+                .distinct()
+                .toList();
+        List<UUID> userIds = new ArrayList<>(addedByIds);
+        userIds.add(userId);
+        Map<UUID, User> usersById = userClient.getUsersByIds(userIds).stream()
+                .collect(Collectors.toMap(User::id, Function.identity()));
+        User user = usersById.get(userId);
+
+        return shoppingLists.stream()
+                .map(shoppingList -> toSummary(shoppingList, user, usersById))
+                .toList();
+    }
+
+    private ShoppingListSummary toSummary(ShoppingList shoppingList, User user, Map<UUID, User> usersById) {
+        List<ShoppingItemSummary> items = shoppingList.items().stream()
+                .map(item -> toItemSummary(item, usersById.get(item.addedBy())))
+                .toList();
 
         return ShoppingListSummary.builder()
                 .id(shoppingList.id())
                 .name(shoppingList.name())
                 .description(shoppingList.description())
                 .status(shoppingList.status())
-                .items(List.of())
+                .items(items)
                 .user(user)
                 .budget(shoppingList.budget())
                 .completedAt(shoppingList.completedAt())
                 .createdAt(shoppingList.createdAt())
                 .updatedAt(shoppingList.updatedAt())
                 .build();
+    }
+
+    private ShoppingItemSummary toItemSummary(ShoppingItem item, User addedBy) {
+        return ShoppingItemSummary.builder()
+                .id(item.id())
+                .name(item.name())
+                .category(item.category())
+                .quantity(item.quantity())
+                .unit(item.unit())
+                .price(item.price())
+                .purchased(item.purchased())
+                .priority(item.priority())
+                .notes(item.notes())
+                .addedBy(addedBy)
+                .createdAt(item.createdAt())
+                .updatedAt(item.updatedAt())
+                .build();
+    }
+
+    private ShoppingListSummary toSummary(ShoppingList shoppingList) {
+        User user = userClient.getUsersByIds(List.of(shoppingList.userId()))
+                .stream()
+                .findFirst()
+                .orElse(null);
+        Map<UUID, User> usersById = user != null ? Map.of(user.id(), user) : Map.of();
+        return toSummary(shoppingList, user, usersById);
     }
 }

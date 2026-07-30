@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
@@ -27,6 +28,9 @@ public record ShoppingListSummaryResponse(
         @Schema(description = "Budget", example = "200.0")
         double budget,
 
+        @Schema(description = "Items in the shopping list")
+        List<ShoppingItemResponse> items,
+
         @Schema(description = "User first name", example = "Kevin")
         String firstName,
 
@@ -44,12 +48,16 @@ public record ShoppingListSummaryResponse(
 ) {
     public static ShoppingListSummaryResponse from(ShoppingListSummary summary) {
         User user = summary.user();
+        List<ShoppingItemResponse> items = summary.items().stream()
+                .map(ShoppingItemResponse::from)
+                .toList();
         return ShoppingListSummaryResponse.builder()
                 .id(summary.id())
                 .name(summary.name())
                 .description(summary.description())
                 .status(summary.status())
                 .budget(summary.budget())
+                .items(items)
                 .firstName(user != null ? user.firstName() : null)
                 .lastName(user != null ? user.lastName() : null)
                 .initial(user != null ? user.initial() : null)

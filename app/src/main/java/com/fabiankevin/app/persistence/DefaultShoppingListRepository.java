@@ -6,6 +6,7 @@ import com.fabiankevin.app.persistence.jpa_repositories.JpaShoppingListRepositor
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,5 +24,12 @@ public class DefaultShoppingListRepository implements ShoppingListRepository {
     @Override
     public Optional<ShoppingList> findById(UUID id) {
         return jpaShoppingListRepository.findById(id).map(ShoppingListEntity::toModel);
+    }
+
+    @Override
+    public List<ShoppingList> findAllByUserId(UUID userId) {
+        return jpaShoppingListRepository.findAllByUserId(userId).stream()
+                .map(ShoppingListEntity::toModel)
+                .toList();
     }
 }
