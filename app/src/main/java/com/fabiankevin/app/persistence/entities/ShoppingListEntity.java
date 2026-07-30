@@ -29,9 +29,6 @@ public class ShoppingListEntity {
     @Column(name = "name")
     private String name;
 
-    @Column(name = "category")
-    private String category;
-
     @Column(name = "description", length = 500)
     private String description;
 
@@ -68,7 +65,6 @@ public class ShoppingListEntity {
         ShoppingListEntity entity = ShoppingListEntity.builder()
                 .id(shoppingList.id())
                 .name(shoppingList.name())
-                .category(shoppingList.category())
                 .description(shoppingList.description())
                 .status(shoppingList.status())
                 .userId(shoppingList.userId())
@@ -90,7 +86,6 @@ public class ShoppingListEntity {
         return ShoppingList.builder()
                 .id(this.id)
                 .name(this.name)
-                .category(this.category)
                 .description(this.description)
                 .status(this.status)
                 .userId(this.userId)

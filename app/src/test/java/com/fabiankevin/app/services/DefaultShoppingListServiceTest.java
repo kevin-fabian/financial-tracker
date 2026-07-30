@@ -1,6 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
+import com.fabiankevin.app.exceptions.InvalidNotesException;
 import com.fabiankevin.app.exceptions.ShoppingListNotFoundException;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ItemPriority;
@@ -48,7 +49,6 @@ class DefaultShoppingListServiceTest {
             UUID userId = UUID.randomUUID();
             CreateShoppingListCommand command = CreateShoppingListCommand.builder()
                     .name("Groceries")
-                    .category("Food")
                     .description("Weekly groceries")
                     .userId(userId)
                     .budget(200.0)
@@ -166,6 +166,38 @@ class DefaultShoppingListServiceTest {
             verify(shoppingListRepository, times(1)).save(captor.capture());
             assertEquals(1, captor.getValue().items().size(), "list should contain the added item");
             assertEquals("Milk", captor.getValue().items().getFirst().name());
+        }
+
+        @Test
+        void givenNotesExceedsMaxLength_thenThrowsAndDoesNotSave() {
+            UUID shoppingListId = UUID.randomUUID();
+            ShoppingList existing = ShoppingList.builder()
+                    .id(shoppingListId)
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(UUID.randomUUID())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            CreateShoppingItemCommand command = CreateShoppingItemCommand.builder()
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .notes("a".repeat(33))
+                    .addedBy(UUID.randomUUID())
+                    .shoppingListId(shoppingListId)
+                    .priority(ItemPriority.HIGH)
+                    .build();
+
+            when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
+
+            assertThrows(InvalidNotesException.class,
+                    () -> shoppingListService.addShoppingItem(command));
+
+            verify(shoppingListRepository, never()).save(any());
         }
 
         @Test

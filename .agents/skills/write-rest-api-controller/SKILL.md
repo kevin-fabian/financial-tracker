@@ -120,6 +120,7 @@ When the action generates side effects that must be audited, requires its own me
 public record CreateItemRequest(
     @Schema(description = "Item name", example = "Premium Widget")
     @NotBlank(message = "name is required")
+    @Size(max = 128, message = "name must not exceed 128 characters")
     String name,
     @Schema(description = "Item price", example = "49.99")
     @NotNull(message = "price is required")
@@ -183,6 +184,7 @@ public record CreateAccountActivationRequest(
 Guidance:
 - Keep DTOs close to controllers.
 - Put validation annotations on request DTOs at the boundary.
+- Add a `@Size(max = ...)` to **every** `String` field (use a sensible limit per field, e.g. 36 for a unit, 128 for names/categories, 255 for descriptions) so oversized payloads are rejected with `400` at the boundary rather than reaching the persistence layer.
 - Add field-level `@Schema` examples/descriptions so request payloads are self-documented in OpenAPI.
 - Action Pattern B endpoints look like standard CRUD `POST` endpoints — they create a new resource.
 
@@ -366,6 +368,89 @@ class AccountControllerActivateTest {
 }
 ```
 
+### Parameterized field-validation tests
+
+When several request fields share the same validation rule (e.g. `@NotBlank`, `@Size(max = ...)`), cover the failing cases with a single `@ParameterizedTest` driven by a `@MethodSource` that supplies one invalid request per field. Keep the happy-path and not-found tests as separate `@Test` methods.
+
+```java
+@ParameterizedTest
+@NullAndEmptySource
+void givenBlankName_thenReturnsBadRequest(String name) throws Exception {
+    CreateItemRequest request = CreateItemRequest.builder()
+            .name(name)
+            .category("Dairy")
+            .quantity(2.0)
+            .unit("liters")
+            .price(3.5)
+            .priority(ItemPriority.HIGH)
+            .build();
+
+    mockMvc.perform(post("/api/items/{id}/items", UUID.randomUUID())
+                    .with(jwt()
+                            .authorities(new SimpleGrantedAuthority("USER"))
+                            .jwt(jwt -> jwt
+                                    .audience(List.of("financial-tracker-test"))
+                                    .claim("sub", UUID.randomUUID())
+                                    .claim("scope", List.of())
+                            ))
+                    .contentType("application/json")
+                    .content(jsonMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest());
+}
+
+@ParameterizedTest
+@MethodSource("oversizedFieldRequests")
+void givenFieldExceedsMaxLength_thenReturnsBadRequest(CreateItemRequest request) throws Exception {
+    mockMvc.perform(post("/api/items/{id}/items", UUID.randomUUID())
+                    .with(jwt()
+                            .authorities(new SimpleGrantedAuthority("USER"))
+                            .jwt(jwt -> jwt
+                                    .audience(List.of("financial-tracker-test"))
+                                    .claim("sub", UUID.randomUUID())
+                                    .claim("scope", List.of())
+                            ))
+                    .contentType("application/json")
+                    .content(jsonMapper.writeValueAsString(request)))
+            .andExpect(status().isBadRequest());
+}
+
+static Stream<Arguments> oversizedFieldRequests() {
+    return Stream.of(
+            Arguments.of(CreateItemRequest.builder()
+                    .name("a".repeat(129))
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .priority(ItemPriority.HIGH)
+                    .build()),
+            Arguments.of(CreateItemRequest.builder()
+                    .name("Milk")
+                    .category("a".repeat(129))
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .priority(ItemPriority.HIGH)
+                    .build()),
+            Arguments.of(CreateItemRequest.builder()
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .notes("a".repeat(129))
+                    .priority(ItemPriority.HIGH)
+                    .build())
+    );
+}
+```
+
+Guidance:
+- Use `@NullAndEmptySource` to cover both `null` and `""` (and `@NotBlank` also rejects whitespace-only) in one method.
+- Use `@MethodSource` with a `static Stream<Arguments>` when each failing case needs a different field populated differently (e.g. exceeding a per-field `@Size` max).
+- Build every supplied request so that **only one** field violates at a time — keep the rest valid — to pinpoint which annotation rejects.
+- Name the method `given<Field>ExceedsMaxLength_thenReturnsBadRequest` (or `givenBlank<Field>_thenReturnsBadRequest`) so the failure message identifies the rule.
+
 ### Service test (unit)
 
 ```java
@@ -441,4 +526,6 @@ Guidance:
 - `404 Not Found` for missing resources
 - service owns business rules, cross-user isolation, and domain exceptions
 - controller tests use `@WebMvcTest` with `MockMvc` and `@MockitoBean`
+- request field-validation failures are covered by `@ParameterizedTest` (`@NullAndEmptySource` or `@MethodSource`), one invalid field per supplied request
+- every `String` request field carries a `@Size(max = ...)` boundary annotation
 - service tests use mocked collaborators with focused assertions

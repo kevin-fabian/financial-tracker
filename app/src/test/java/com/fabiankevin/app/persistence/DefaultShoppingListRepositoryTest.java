@@ -71,7 +71,6 @@ class DefaultShoppingListRepositoryTest {
         shoppingList = ShoppingList.builder()
                 .id(null)
                 .name("Weekly Groceries")
-                .category("Groceries")
                 .description("Weekly grocery run")
                 .status(ShoppingListStatus.ACTIVE)
                 .items(List.of(item))
@@ -90,7 +89,6 @@ class DefaultShoppingListRepositoryTest {
 
             Assertions.assertThat(saved.id()).isNotNull();
             Assertions.assertThat(saved.name()).isEqualTo("Weekly Groceries");
-            Assertions.assertThat(saved.category()).isEqualTo("Groceries");
             Assertions.assertThat(saved.description()).isEqualTo("Weekly grocery run");
             Assertions.assertThat(saved.status()).isEqualTo(ShoppingListStatus.ACTIVE);
             Assertions.assertThat(saved.userId()).isNotNull();

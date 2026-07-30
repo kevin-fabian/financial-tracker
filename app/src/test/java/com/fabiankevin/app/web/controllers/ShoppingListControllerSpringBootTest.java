@@ -11,6 +11,8 @@ import com.fabiankevin.app.web.controllers.dtos.shopping_list.CreateShoppingList
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -27,6 +29,7 @@ import tools.jackson.databind.json.JsonMapper;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -69,7 +72,6 @@ class ShoppingListControllerSpringBootTest {
 
             CreateShoppingListRequest request = CreateShoppingListRequest.builder()
                     .name("Groceries")
-                    .category("Food")
                     .description("Weekly groceries")
                     .budget(200.0)
                     .build();
@@ -104,7 +106,6 @@ class ShoppingListControllerSpringBootTest {
         void givenNoJwt_thenReturnsForbidden() throws Exception {
             CreateShoppingListRequest request = CreateShoppingListRequest.builder()
                     .name("Groceries")
-                    .category("Food")
                     .description("Weekly groceries")
                     .budget(200.0)
                     .build();
@@ -113,6 +114,61 @@ class ShoppingListControllerSpringBootTest {
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isForbidden());
+        }
+
+        @ParameterizedTest
+        @NullAndEmptySource
+        void givenBlankName_thenReturnsBadRequest(String name) throws Exception {
+            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
+                    .name(name)
+                    .description("Weekly groceries")
+                    .budget(200.0)
+                    .build();
+
+            mockMvc.perform(post("/api/shopping-lists")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", UUID.randomUUID())
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @ParameterizedTest(name = "[{index}] {0}")
+        @MethodSource("oversizedFieldRequests")
+        void givenFieldExceedsMaxLength_thenReturnsBadRequest(String label, CreateShoppingListRequest request) throws Exception {
+            mockMvc.perform(post("/api/shopping-lists")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", UUID.randomUUID())
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        static Stream<Arguments> oversizedFieldRequests() {
+            return Stream.of(
+                    Arguments.of("name exceeds 64 chars",
+                            CreateShoppingListRequest.builder()
+                                    .name("a".repeat(65))
+                                    .description("Weekly groceries")
+                                    .budget(200.0)
+                                    .build()),
+                    Arguments.of("description exceeds 128 chars",
+                            CreateShoppingListRequest.builder()
+                                    .name("Groceries")
+                                    .description("a".repeat(129))
+                                    .budget(200.0)
+                                    .build())
+            );
         }
     }
 
@@ -204,7 +260,6 @@ class ShoppingListControllerSpringBootTest {
         void givenBlankName_thenReturnsBadRequest(String name) throws Exception {
             CreateShoppingItemRequest request = CreateShoppingItemRequest.builder()
                     .name(name)
-                    .category("Dairy")
                     .quantity(2.0)
                     .unit("liters")
                     .price(3.5)
@@ -229,7 +284,6 @@ class ShoppingListControllerSpringBootTest {
         void givenBlankCategory_thenReturnsBadRequest(String category) throws Exception {
             CreateShoppingItemRequest request = CreateShoppingItemRequest.builder()
                     .name("Milk")
-                    .category(category)
                     .quantity(2.0)
                     .unit("liters")
                     .price(3.5)
@@ -247,6 +301,64 @@ class ShoppingListControllerSpringBootTest {
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest());
+        }
+
+        @ParameterizedTest(name = "[{index}] {0}")
+        @MethodSource("oversizedFieldRequests")
+        void givenFieldExceedsMaxLength_thenReturnsBadRequest(String label, CreateShoppingItemRequest request) throws Exception {
+            mockMvc.perform(post("/api/shopping-lists/{id}/items", UUID.randomUUID())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", UUID.randomUUID())
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        static Stream<Arguments> oversizedFieldRequests() {
+            return Stream.of(
+                    Arguments.of("name exceeds 128 chars",
+                            CreateShoppingItemRequest.builder()
+                                    .name("a".repeat(129))
+                                    .category("Dairy")
+                                    .quantity(2.0)
+                                    .unit("liters")
+                                    .price(3.5)
+                                    .priority(ItemPriority.HIGH)
+                                    .build()),
+                    Arguments.of("category exceeds 128 chars",
+                            CreateShoppingItemRequest.builder()
+                                    .name("Milk")
+                                    .category("a".repeat(129))
+                                    .quantity(2.0)
+                                    .unit("liters")
+                                    .price(3.5)
+                                    .priority(ItemPriority.HIGH)
+                                    .build()),
+                    Arguments.of("notes exceeds 128 chars",
+                            CreateShoppingItemRequest.builder()
+                                    .name("Milk")
+                                    .category("Dairy")
+                                    .quantity(2.0)
+                                    .unit("liters")
+                                    .price(3.5)
+                                    .notes("a".repeat(129))
+                                    .priority(ItemPriority.HIGH)
+                                    .build()),
+                    Arguments.of("unit exceeds 36 chars",
+                            CreateShoppingItemRequest.builder()
+                                    .name("Milk")
+                                    .category("Dairy")
+                                    .quantity(2.0)
+                                    .unit("liters".repeat(40))
+                                    .price(3.5)
+                                    .priority(ItemPriority.HIGH)
+                                    .build())
+            );
         }
     }
 }

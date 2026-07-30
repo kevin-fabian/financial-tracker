@@ -1,5 +1,6 @@
 package com.fabiankevin.app.models.shopping_list;
 
+import com.fabiankevin.app.exceptions.InvalidNotesException;
 import com.fabiankevin.app.models.enums.ItemPriority;
 import lombok.Builder;
 import lombok.With;
@@ -31,5 +32,8 @@ public record ShoppingItem(
         Objects.requireNonNull(priority, "Priority is required");
         Objects.requireNonNull(addedBy, "Added by is required");
         Objects.requireNonNull(createdAt, "Created at is required");
+        if (notes != null && notes.length() > 32) {
+            throw new InvalidNotesException("Item notes must not exceed 32 characters");
+        }
     }
 }

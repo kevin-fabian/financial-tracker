@@ -12,7 +12,6 @@ import java.util.*;
 public record ShoppingList(
         UUID id,
         String name,
-        String category,
         String description,
         ShoppingListStatus status,
         List<ShoppingItem> items,

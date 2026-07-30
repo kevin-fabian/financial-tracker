@@ -30,7 +30,6 @@ public class DefaultShoppingListService implements ShoppingListService {
         Instant now = Instant.now();
         ShoppingList shoppingList = ShoppingList.builder()
                 .name(command.name())
-                .category(command.category())
                 .description(command.description())
                 .status(ShoppingListStatus.ACTIVE)
                 .userId(command.userId())

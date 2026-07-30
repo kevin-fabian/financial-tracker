@@ -3,6 +3,7 @@ package com.fabiankevin.app.web.controllers.dtos.shopping_list;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingListCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Builder;
 
 import java.util.UUID;
@@ -11,12 +12,11 @@ import java.util.UUID;
 @Schema(description = "Request to create a shopping list")
 public record CreateShoppingListRequest(
         @NotBlank(message = "name is required")
+        @Size(max = 64, message = "name must not exceed 64 characters")
         @Schema(description = "Shopping list name", example = "Groceries")
         String name,
 
-        @Schema(description = "Category", example = "Food")
-        String category,
-
+        @Size(max = 128, message = "description must not exceed 128 characters")
         @Schema(description = "Description", example = "Weekly groceries")
         String description,
 
@@ -26,7 +26,6 @@ public record CreateShoppingListRequest(
     public CreateShoppingListCommand toCommand(UUID userId) {
         return CreateShoppingListCommand.builder()
                 .name(name())
-                .category(category())
                 .description(description())
                 .userId(userId)
                 .budget(budget())

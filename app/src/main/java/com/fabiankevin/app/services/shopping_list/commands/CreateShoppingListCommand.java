@@ -9,7 +9,6 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 public record CreateShoppingListCommand(
         String name,
-        String category,
         String description,
         UUID userId,
         double budget) {
