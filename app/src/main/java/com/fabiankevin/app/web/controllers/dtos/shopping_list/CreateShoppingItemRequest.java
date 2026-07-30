@@ -16,6 +16,7 @@ public record CreateShoppingItemRequest(
         @Schema(description = "Item name", example = "Milk")
         String name,
 
+        @NotBlank(message = "category is required")
         @Schema(description = "Category", example = "Dairy")
         String category,
 

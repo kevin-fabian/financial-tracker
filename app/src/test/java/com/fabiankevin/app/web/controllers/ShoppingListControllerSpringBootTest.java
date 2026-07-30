@@ -10,6 +10,8 @@ import com.fabiankevin.app.web.controllers.dtos.shopping_list.CreateShoppingItem
 import com.fabiankevin.app.web.controllers.dtos.shopping_list.CreateShoppingListRequest;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -29,7 +31,6 @@ import java.util.UUID;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -178,6 +179,7 @@ class ShoppingListControllerSpringBootTest {
 
             CreateShoppingItemRequest request = CreateShoppingItemRequest.builder()
                     .name("Milk")
+                    .category("Dairy")
                     .quantity(2.0)
                     .unit("liters")
                     .price(3.5)
@@ -197,10 +199,11 @@ class ShoppingListControllerSpringBootTest {
                     .andExpect(status().isNotFound());
         }
 
-        @Test
-        void givenBlankName_thenReturnsBadRequest() throws Exception {
+        @ParameterizedTest
+        @NullAndEmptySource
+        void givenBlankName_thenReturnsBadRequest(String name) throws Exception {
             CreateShoppingItemRequest request = CreateShoppingItemRequest.builder()
-                    .name(" ")
+                    .name(name)
                     .category("Dairy")
                     .quantity(2.0)
                     .unit("liters")
@@ -221,10 +224,12 @@ class ShoppingListControllerSpringBootTest {
                     .andExpect(status().isBadRequest());
         }
 
-        @Test
-        void givenBlankCategory_thenReturnsBadRequest() throws Exception {
+        @ParameterizedTest
+        @NullAndEmptySource
+        void givenBlankCategory_thenReturnsBadRequest(String category) throws Exception {
             CreateShoppingItemRequest request = CreateShoppingItemRequest.builder()
-                    .name("Puregold")
+                    .name("Milk")
+                    .category(category)
                     .quantity(2.0)
                     .unit("liters")
                     .price(3.5)
@@ -241,7 +246,6 @@ class ShoppingListControllerSpringBootTest {
                                     ))
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(request)))
-                    .andDo(print())
                     .andExpect(status().isBadRequest());
         }
     }
