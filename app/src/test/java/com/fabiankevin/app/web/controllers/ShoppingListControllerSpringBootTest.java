@@ -179,7 +179,7 @@ class ShoppingListControllerSpringBootTest {
     class GetShoppingLists {
 
         @Test
-        void givenExistingLists_thenReturnsListOfSummaries() throws Exception {
+        void givenExistingListsWithItems_thenReturnsListOfSummaries() throws Exception {
             UUID userId = UUID.randomUUID();
             UUID addedBy = UUID.randomUUID();
 
@@ -256,6 +256,54 @@ class ShoppingListControllerSpringBootTest {
                     .andExpect(jsonPath("$[0].items[0].addedByInitial").value("JD"))
                     .andExpect(jsonPath("$[0].createdAt").exists())
                     .andExpect(jsonPath("$[0].updatedAt").exists())
+                    .andExpect(jsonPath("$[1].name").value("Supplies"))
+                    .andExpect(jsonPath("$[1].items").isArray())
+                    .andExpect(jsonPath("$[1].items.length()").value(0));
+        }
+
+        @Test
+        void givenListsWithoutItems_thenReturnsEmptyItemsForAll() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            ShoppingList list1 = ShoppingList.builder()
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .description("Weekly groceries")
+                    .budget(200.0)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            ShoppingList list2 = ShoppingList.builder()
+                    .name("Supplies")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .description("Office supplies")
+                    .budget(50.0)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            shoppingListRepository.save(list1);
+            shoppingListRepository.save(list2);
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(get("/api/shopping-lists")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$").isArray())
+                    .andExpect(jsonPath("$.length()").value(2))
+                    .andExpect(jsonPath("$[0].name").value("Groceries"))
+                    .andExpect(jsonPath("$[0].items").isArray())
+                    .andExpect(jsonPath("$[0].items.length()").value(0))
                     .andExpect(jsonPath("$[1].name").value("Supplies"))
                     .andExpect(jsonPath("$[1].items").isArray())
                     .andExpect(jsonPath("$[1].items.length()").value(0));
