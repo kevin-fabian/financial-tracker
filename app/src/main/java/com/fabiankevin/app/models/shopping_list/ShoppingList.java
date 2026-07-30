@@ -12,6 +12,7 @@ import java.util.*;
 public record ShoppingList(
         UUID id,
         String name,
+        String category,
         String description,
         ShoppingListStatus status,
         List<ShoppingItem> items,
@@ -21,7 +22,6 @@ public record ShoppingList(
         Instant createdAt,
         Instant updatedAt) {
     public ShoppingList {
-        Objects.requireNonNull(id, "ID is required");
         Optional.ofNullable(name)
                 .filter(n -> !n.isBlank())
                 .orElseThrow(() -> new IllegalArgumentException("Shopping list name is required"));

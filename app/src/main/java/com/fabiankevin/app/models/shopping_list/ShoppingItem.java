@@ -18,7 +18,7 @@ public record ShoppingItem(
         double quantity,
         String unit,
         double price,
-        boolean isPurchased,
+        boolean purchased,
         UUID purchasedBy,
         Instant purchasedAt,
         ItemPriority priority,
@@ -27,7 +27,6 @@ public record ShoppingItem(
         Instant createdAt,
         Instant updatedAt) {
     public ShoppingItem {
-        Objects.requireNonNull(id, "ID is required");
         Optional.ofNullable(name)
                 .filter(n -> !n.isBlank())
                 .orElseThrow(() -> new IllegalArgumentException("Item name is required"));

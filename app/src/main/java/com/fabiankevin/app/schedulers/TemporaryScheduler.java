@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 public class TemporaryScheduler {
     private final RecurringTransactionService recurringTransactionService;
 
-    @Scheduled(cron = "0 0 0 * * *")
+    @Scheduled(cron = "0 0 * * * *")
     void run(){
         log.info("Running temporary scheduler");
         recurringTransactionService.processDueRecurringTransactions();
