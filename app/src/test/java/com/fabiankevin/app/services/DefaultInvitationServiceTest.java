@@ -151,7 +151,7 @@ class DefaultInvitationServiceTest {
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(604800))
-                    .sharedSpaceId(partyId)
+                    .partyId(partyId)
                     .build();
 
             SendInvitationCommand command = new SendInvitationCommand(
@@ -289,7 +289,7 @@ class DefaultInvitationServiceTest {
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(604800))
-                    .sharedSpaceId(partyId)
+                    .partyId(partyId)
                     .build();
             Party space = Party.builder()
                     .id(partyId)
@@ -375,7 +375,7 @@ class DefaultInvitationServiceTest {
                     .status(InvitationStatus.ACCEPTED)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(604800))
-                    .sharedSpaceId(partyId)
+                    .partyId(partyId)
                     .build();
 
             when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
@@ -402,7 +402,7 @@ class DefaultInvitationServiceTest {
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now().minusSeconds(172800))
                     .expiresAt(Instant.now().minusSeconds(60))
-                    .sharedSpaceId(partyId)
+                    .partyId(partyId)
                     .build();
 
             when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
@@ -428,7 +428,7 @@ class DefaultInvitationServiceTest {
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(604800))
-                    .sharedSpaceId(partyId)
+                    .partyId(partyId)
                     .build();
 
             when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
@@ -456,7 +456,7 @@ class DefaultInvitationServiceTest {
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(604800))
-                    .sharedSpaceId(partyId)
+                    .partyId(partyId)
                     .build();
 
             when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
@@ -487,7 +487,7 @@ class DefaultInvitationServiceTest {
                 .status(InvitationStatus.PENDING)
                 .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(604800))
-                .sharedSpaceId(partyId)
+                .partyId(partyId)
                 .build();
             Invitation received = Invitation.builder()
                 .id(UUID.randomUUID())
@@ -498,7 +498,7 @@ class DefaultInvitationServiceTest {
                 .status(InvitationStatus.PENDING)
                 .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(604800))
-                .sharedSpaceId(partyId)
+                .partyId(partyId)
                 .build();
 
             when(invitationRepository.findByInviterUserIdOrInviteeUserId(userId))
@@ -566,7 +566,7 @@ class DefaultInvitationServiceTest {
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(604800))
-                    .sharedSpaceId(partyId)
+                    .partyId(partyId)
                     .build();
 
             when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
@@ -606,7 +606,7 @@ class DefaultInvitationServiceTest {
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(604800))
-                    .sharedSpaceId(UUID.randomUUID())
+                    .partyId(UUID.randomUUID())
                     .build();
 
             when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
@@ -632,7 +632,7 @@ class DefaultInvitationServiceTest {
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(604800))
-                    .sharedSpaceId(partyId)
+                    .partyId(partyId)
                     .build();
 
             when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
@@ -669,7 +669,7 @@ class DefaultInvitationServiceTest {
                     .status(InvitationStatus.ACCEPTED)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(604800))
-                    .sharedSpaceId(UUID.randomUUID())
+                    .partyId(UUID.randomUUID())
                     .build();
 
             when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));

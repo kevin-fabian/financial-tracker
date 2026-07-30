@@ -42,7 +42,7 @@ class DefaultPartyRepositoryTest {
     @TestConfiguration
     public static class ContextConfiguration {
         @Bean
-        public PartyRepository sharedSpaceRepository(JpaPartyRepository jpaPartyRepository) {
+        public PartyRepository partyRepository(JpaPartyRepository jpaPartyRepository) {
             return new DefaultPartyRepository(jpaPartyRepository);
         }
     }
@@ -81,10 +81,10 @@ class DefaultPartyRepositoryTest {
     void save_givenNewParty_shouldPersistAndRetrieveAllFields() {
         Party saved = partyRepository.save(party);
 
-        Optional<Party> optRetrievedSharedSpace = partyRepository.findById(saved.id());
+        Optional<Party> optRetrievedParty = partyRepository.findById(saved.id());
 
-        Assertions.assertThat(optRetrievedSharedSpace).isPresent();
-        Party retrievedParty = optRetrievedSharedSpace.get();
+        Assertions.assertThat(optRetrievedParty).isPresent();
+        Party retrievedParty = optRetrievedParty.get();
         Assertions.assertThat(retrievedParty.id()).as("generated id should be present").isNotNull();
         Assertions.assertThat(retrievedParty.name()).isEqualTo("Family 2026 Budget");
         Assertions.assertThat(retrievedParty.partyLeaderId()).isEqualTo(party.partyLeaderId());

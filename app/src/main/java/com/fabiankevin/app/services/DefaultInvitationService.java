@@ -63,7 +63,7 @@ public class DefaultInvitationService implements InvitationService {
                             .status(InvitationStatus.PENDING)
                             .createdAt(Instant.now())
                             .expiresAt(Instant.now().plus(Duration.ofDays(7)))
-                            .sharedSpaceId(space.id())
+                            .partyId(space.id())
                             .build();
 
                     // TODO notify the recipient
@@ -97,11 +97,11 @@ public class DefaultInvitationService implements InvitationService {
                 .status(InvitationStatus.ACCEPTED)
                 .createdAt(invitation.createdAt())
                 .expiresAt(invitation.expiresAt())
-                .sharedSpaceId(invitation.sharedSpaceId())
+                .partyId(invitation.partyId())
                 .build();
         invitationRepository.save(updatedInvitation);
 
-        Party space = findSpaceOrThrow(invitation.sharedSpaceId());
+        Party space = findSpaceOrThrow(invitation.partyId());
 
         PartyMember participant = PartyMember.builder()
                 .playerId(invitation.inviteePlayerId())
@@ -162,7 +162,7 @@ public class DefaultInvitationService implements InvitationService {
                         .collect(Collectors.toMap(User::id, Function.identity()));
 
         List<UUID> spaceIds = invitations.stream()
-                .map(Invitation::sharedSpaceId)
+                .map(Invitation::partyId)
                 .distinct()
                 .toList();
 
@@ -204,7 +204,7 @@ public class DefaultInvitationService implements InvitationService {
     private InvitationSummary toSummary(Invitation invitation, Map<UUID, User> usersById, Map<UUID, Party> spacesById, UUID currentUserId) {
         User inviter = usersById.get(invitation.inviterPlayerId());
         User invitee = usersById.get(invitation.inviteePlayerId());
-        Party space = spacesById.get(invitation.sharedSpaceId());
+        Party space = spacesById.get(invitation.partyId());
 
         return InvitationSummary.builder()
                 .id(invitation.id())
@@ -219,7 +219,7 @@ public class DefaultInvitationService implements InvitationService {
                 .status(invitation.status())
                 .createdAt(invitation.createdAt())
                 .expiresAt(invitation.expiresAt())
-                .partyId(invitation.sharedSpaceId())
+                .partyId(invitation.partyId())
                 .partyName(space != null ? space.name() : null)
                 .inviter(invitation.inviterPlayerId().equals(currentUserId))
                 .build();
@@ -229,7 +229,7 @@ public class DefaultInvitationService implements InvitationService {
         List<UUID> userIds = List.of(invitation.inviterPlayerId(), invitation.inviteePlayerId());
         Map<UUID, User> usersById = userClient.getUsersByIds(userIds).stream()
                 .collect(Collectors.toMap(User::id, Function.identity()));
-        Party space = partyRepository.findById(invitation.sharedSpaceId()).orElse(null);
+        Party space = partyRepository.findById(invitation.partyId()).orElse(null);
         Map<UUID, Party> spacesById = space != null
                 ? Map.of(space.id(), space)
                 : Map.of();

@@ -174,7 +174,7 @@ class DefaultPartyServiceTest {
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
-                    .sharedSpaceId(null)
+                    .partyId(null)
                     .build();
             Invitation incoming2 = Invitation.builder()
                     .id(UUID.randomUUID())
@@ -185,7 +185,7 @@ class DefaultPartyServiceTest {
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
-                    .sharedSpaceId(null)
+                    .partyId(null)
                     .build();
 
             when(invitationRepository.findByInviteeUserId(partyLeaderId)).thenReturn(List.of(incoming1, incoming2));

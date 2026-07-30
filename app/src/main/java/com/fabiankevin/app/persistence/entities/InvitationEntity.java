@@ -61,7 +61,7 @@ public class InvitationEntity {
                 .status(invitation.status())
                 .createdAt(invitation.createdAt())
                 .expiresAt(invitation.expiresAt())
-                .partyId(invitation.sharedSpaceId())
+                .partyId(invitation.partyId())
                 .build();
     }
 
@@ -75,7 +75,7 @@ public class InvitationEntity {
                 .status(this.status)
                 .createdAt(this.createdAt)
                 .expiresAt(this.expiresAt)
-                .sharedSpaceId(this.partyId)
+                .partyId(this.partyId)
                 .build();
     }
 

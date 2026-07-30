@@ -170,7 +170,7 @@ public class DefaultPartyService implements PartyService {
                         .status(InvitationStatus.CANCELLED)
                         .createdAt(invitation.createdAt())
                         .expiresAt(invitation.expiresAt())
-                        .sharedSpaceId(invitation.sharedSpaceId())
+                        .partyId(invitation.partyId())
                         .build())
                 .forEach(invitationRepository::save);
     }

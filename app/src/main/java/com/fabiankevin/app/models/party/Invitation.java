@@ -21,7 +21,7 @@ public record Invitation(
         InvitationStatus status,
         Instant createdAt,
         Instant expiresAt,
-        UUID sharedSpaceId
+        UUID partyId
 ) {
     public Invitation {
         Objects.requireNonNull(inviterPlayerId, "inviterPlayerId");

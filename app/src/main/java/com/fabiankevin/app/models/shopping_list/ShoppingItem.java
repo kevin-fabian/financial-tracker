@@ -24,7 +24,8 @@ public record ShoppingItem(
         ItemPriority priority,
         String notes,
         UUID addedBy,
-        Instant createdAt) {
+        Instant createdAt,
+        Instant updatedAt) {
     public ShoppingItem {
         Objects.requireNonNull(id, "ID is required");
         Optional.ofNullable(name)

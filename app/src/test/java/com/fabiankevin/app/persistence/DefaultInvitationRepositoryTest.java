@@ -55,7 +55,7 @@ class DefaultInvitationRepositoryTest {
                 .status(InvitationStatus.PENDING)
                 .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(86400))
-                .sharedSpaceId(null)
+                .partyId(null)
                 .build();
     }
 
@@ -75,7 +75,7 @@ class DefaultInvitationRepositoryTest {
         Assertions.assertThat(restored.status()).isEqualTo(InvitationStatus.PENDING);
         Assertions.assertThat(restored.createdAt()).isEqualTo(invitation.createdAt());
         Assertions.assertThat(restored.expiresAt()).isEqualTo(invitation.expiresAt());
-        Assertions.assertThat(restored.sharedSpaceId()).isNull();
+        Assertions.assertThat(restored.partyId()).isNull();
 
         verify(jpaInvitationRepository, times(1)).save(any());
         verify(jpaInvitationRepository, times(1)).findById(saved.id());
@@ -94,7 +94,7 @@ class DefaultInvitationRepositoryTest {
                 .status(InvitationStatus.ACCEPTED)
                 .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(86400))
-                .sharedSpaceId(resultingSpaceId)
+                .partyId(resultingSpaceId)
                 .build();
 
         Invitation saved = invitationRepository.save(accepted);
@@ -104,7 +104,7 @@ class DefaultInvitationRepositoryTest {
         Assertions.assertThat(found).isPresent();
         Assertions.assertThat(found.get().status()).isEqualTo(InvitationStatus.ACCEPTED);
         Assertions.assertThat(found.get().inviteePlayerId()).isEqualTo(inviteeUserId);
-        Assertions.assertThat(found.get().sharedSpaceId()).isEqualTo(resultingSpaceId);
+        Assertions.assertThat(found.get().partyId()).isEqualTo(resultingSpaceId);
     }
 
     @Test
@@ -143,7 +143,7 @@ class DefaultInvitationRepositoryTest {
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
-                    .sharedSpaceId(null)
+                    .partyId(null)
                     .build();
             Invitation outgoing = Invitation.builder()
                     .inviterPlayerId(userId)
@@ -153,7 +153,7 @@ class DefaultInvitationRepositoryTest {
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
-                    .sharedSpaceId(null)
+                    .partyId(null)
                     .build();
             Invitation savedIncoming = invitationRepository.save(incoming);
             invitationRepository.save(outgoing);
@@ -178,7 +178,7 @@ class DefaultInvitationRepositoryTest {
                     .status(InvitationStatus.ACCEPTED)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
-                    .sharedSpaceId(UUID.randomUUID())
+                    .partyId(UUID.randomUUID())
                     .build();
             invitationRepository.save(accepted);
 
@@ -202,7 +202,7 @@ class DefaultInvitationRepositoryTest {
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
-                    .sharedSpaceId(spaceId)
+                    .partyId(spaceId)
                     .build();
             Invitation saved = invitationRepository.save(pending);
 
@@ -211,7 +211,7 @@ class DefaultInvitationRepositoryTest {
 
             Assertions.assertThat(found).isPresent();
             Assertions.assertThat(found.get().id()).isEqualTo(saved.id());
-            Assertions.assertThat(found.get().sharedSpaceId()).isEqualTo(spaceId);
+            Assertions.assertThat(found.get().partyId()).isEqualTo(spaceId);
             Assertions.assertThat(found.get().status()).isEqualTo(InvitationStatus.PENDING);
         }
 
@@ -226,7 +226,7 @@ class DefaultInvitationRepositoryTest {
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
-                    .sharedSpaceId(spaceId)
+                    .partyId(spaceId)
                     .build();
             Invitation saved = invitationRepository.save(pending);
 
@@ -247,7 +247,7 @@ class DefaultInvitationRepositoryTest {
                     .status(InvitationStatus.ACCEPTED)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
-                    .sharedSpaceId(spaceId)
+                    .partyId(spaceId)
                     .build();
             Invitation saved = invitationRepository.save(accepted);
 
