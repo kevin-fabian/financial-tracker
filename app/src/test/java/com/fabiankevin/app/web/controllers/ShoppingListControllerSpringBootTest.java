@@ -286,6 +286,7 @@ class ShoppingListControllerSpringBootTest {
                     .name("Milk")
                     .quantity(2.0)
                     .unit("liters")
+                    .category(category)
                     .price(3.5)
                     .priority(ItemPriority.HIGH)
                     .build();
