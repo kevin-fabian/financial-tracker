@@ -1,5 +1,6 @@
 package com.fabiankevin.app.services.shopping_list.commands;
 
+import com.fabiankevin.app.models.enums.ItemPriority;
 import lombok.Builder;
 import lombok.With;
 
@@ -14,5 +15,7 @@ public record CreateShoppingItemCommand(
         String unit,
         double price,
         String notes,
-        UUID addedBy) {
+        UUID addedBy,
+        UUID shoppingListId,
+        ItemPriority priority) {
 }
