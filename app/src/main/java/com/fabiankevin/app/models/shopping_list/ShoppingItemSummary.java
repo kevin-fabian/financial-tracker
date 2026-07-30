@@ -1,5 +1,6 @@
 package com.fabiankevin.app.models.shopping_list;
 
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ItemPriority;
 import lombok.Builder;
 import lombok.With;
@@ -11,7 +12,7 @@ import java.util.UUID;
 
 @With
 @Builder(toBuilder = true)
-public record ShoppingItem(
+public record ShoppingItemSummary(
         UUID id,
         String name,
         String category,
@@ -21,10 +22,10 @@ public record ShoppingItem(
         boolean purchased,
         ItemPriority priority,
         String notes,
-        UUID addedBy,
+        User addedBy,
         Instant createdAt,
         Instant updatedAt) {
-    public ShoppingItem {
+    public ShoppingItemSummary {
         Optional.ofNullable(name)
                 .filter(n -> !n.isBlank())
                 .orElseThrow(() -> new IllegalArgumentException("Item name is required"));

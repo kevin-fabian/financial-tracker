@@ -39,12 +39,6 @@ public class ShoppingItemEntity {
     @Column(name = "purchased")
     private boolean purchased;
 
-    @Column(name = "purchased_by")
-    private UUID purchasedBy;
-
-    @Column(name = "purchased_at")
-    private Instant purchasedAt;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "priority")
     private ItemPriority priority;
@@ -75,8 +69,6 @@ public class ShoppingItemEntity {
                 .unit(item.unit())
                 .price(item.price())
                 .purchased(item.purchased())
-                .purchasedBy(item.purchasedBy())
-                .purchasedAt(item.purchasedAt())
                 .priority(item.priority())
                 .notes(item.notes())
                 .addedBy(item.addedBy())
@@ -94,8 +86,6 @@ public class ShoppingItemEntity {
                 .unit(this.unit)
                 .price(this.price)
                 .purchased(this.purchased)
-                .purchasedBy(this.purchasedBy)
-                .purchasedAt(this.purchasedAt)
                 .priority(this.priority)
                 .notes(this.notes)
                 .addedBy(this.addedBy)
