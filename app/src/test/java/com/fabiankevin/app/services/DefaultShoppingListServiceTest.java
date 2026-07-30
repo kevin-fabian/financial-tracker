@@ -6,6 +6,7 @@ import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ItemPriority;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
+import com.fabiankevin.app.models.shopping_list.ShoppingItemSummary;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
@@ -20,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -132,9 +134,17 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
-            when(shoppingListRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(shoppingListRepository.save(any())).thenAnswer(invocation -> {
+                ShoppingList s = invocation.getArgument(0);
+                List<ShoppingItem> items = new ArrayList<>(s.items());
+                ShoppingItem last = items.getLast();
+                items.set(items.size() - 1, last.toBuilder().id(UUID.randomUUID()).build());
+                return s.toBuilder().items(items).build();
+            });
+            when(userClient.getUsersByIds(List.of(addedBy)))
+                    .thenReturn(List.of(User.builder().id(addedBy).firstName("John").lastName("Doe").build()));
 
-            ShoppingItem added = shoppingListService.addShoppingItem(command);
+            ShoppingItemSummary added = shoppingListService.addShoppingItem(command);
 
             // item fields
             assertNotNull(added.id(), "id should be generated");
@@ -146,7 +156,9 @@ class DefaultShoppingListServiceTest {
             assertFalse(added.purchased(), "purchased should default to false");
             assertEquals(ItemPriority.HIGH, added.priority(), "priority should match command");
             assertEquals("Whole milk", added.notes(), "notes should match command");
-            assertEquals(addedBy, added.addedBy(), "addedBy should match command");
+            assertNotNull(added.addedBy(), "addedBy user should be enriched");
+            assertEquals("John", added.addedBy().firstName(), "addedBy first name should be enriched");
+            assertEquals("Doe", added.addedBy().lastName(), "addedBy last name should be enriched");
             assertNotNull(added.createdAt(), "createdAt should not be null");
             assertNotNull(added.updatedAt(), "updatedAt should not be null");
 

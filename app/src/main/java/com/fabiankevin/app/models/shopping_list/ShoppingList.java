@@ -31,4 +31,8 @@ public record ShoppingList(
         Objects.requireNonNull(updatedAt, "Updated at is required");
         items = Optional.ofNullable(items).orElse(new ArrayList<>());
     }
+
+    public void addItem(ShoppingItem item) {
+        items.add(item);
+    }
 }

@@ -1,6 +1,6 @@
 package com.fabiankevin.app.services;
 
-import com.fabiankevin.app.models.shopping_list.ShoppingItem;
+import com.fabiankevin.app.models.shopping_list.ShoppingItemSummary;
 import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingItemCommand;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingListCommand;
@@ -8,5 +8,5 @@ import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingListCom
 public interface ShoppingListService {
     ShoppingListSummary createShoppingList(CreateShoppingListCommand command);
 
-    ShoppingItem addShoppingItem(CreateShoppingItemCommand command);
+    ShoppingItemSummary addShoppingItem(CreateShoppingItemCommand command);
 }

@@ -5,6 +5,7 @@ import com.fabiankevin.app.exceptions.ShoppingListNotFoundException;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
+import com.fabiankevin.app.models.shopping_list.ShoppingItemSummary;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
@@ -15,9 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -30,7 +29,6 @@ public class DefaultShoppingListService implements ShoppingListService {
     public ShoppingListSummary createShoppingList(CreateShoppingListCommand command) {
         Instant now = Instant.now();
         ShoppingList shoppingList = ShoppingList.builder()
-                .id(UUID.randomUUID())
                 .name(command.name())
                 .category(command.category())
                 .description(command.description())
@@ -47,13 +45,12 @@ public class DefaultShoppingListService implements ShoppingListService {
 
     @Transactional
     @Override
-    public ShoppingItem addShoppingItem(CreateShoppingItemCommand command) {
+    public ShoppingItemSummary addShoppingItem(CreateShoppingItemCommand command) {
         ShoppingList existing = shoppingListRepository.findById(command.shoppingListId())
                 .orElseThrow(ShoppingListNotFoundException::new);
 
         Instant now = Instant.now();
         ShoppingItem item = ShoppingItem.builder()
-                .id(UUID.randomUUID())
                 .name(command.name())
                 .category(command.category())
                 .quantity(command.quantity())
@@ -67,15 +64,33 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .updatedAt(now)
                 .build();
 
-        List<ShoppingItem> updatedItems = new ArrayList<>(existing.items());
-        updatedItems.add(item);
+        existing.addItem(item);
         ShoppingList updated = existing.toBuilder()
-                .items(updatedItems)
                 .updatedAt(now)
                 .build();
 
         ShoppingList saved = shoppingListRepository.save(updated);
-        return saved.items().get(saved.items().size() - 1);
+        ShoppingItem savedItem = saved.items().get(saved.items().size() - 1);
+
+        User user = userClient.getUsersByIds(List.of(savedItem.addedBy()))
+                .stream()
+                .findFirst()
+                .orElse(null);
+
+        return ShoppingItemSummary.builder()
+                .id(savedItem.id())
+                .name(savedItem.name())
+                .category(savedItem.category())
+                .quantity(savedItem.quantity())
+                .unit(savedItem.unit())
+                .price(savedItem.price())
+                .purchased(savedItem.purchased())
+                .priority(savedItem.priority())
+                .notes(savedItem.notes())
+                .addedBy(user)
+                .createdAt(savedItem.createdAt())
+                .updatedAt(savedItem.updatedAt())
+                .build();
     }
 
     private ShoppingListSummary toSummary(ShoppingList shoppingList) {

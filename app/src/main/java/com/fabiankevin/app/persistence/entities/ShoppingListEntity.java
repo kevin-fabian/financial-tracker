@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -97,7 +98,7 @@ public class ShoppingListEntity {
                 .completedAt(this.completedAt)
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)
-                .items(this.items.stream().map(ShoppingItemEntity::toModel).toList())
+                .items(this.items.stream().map(ShoppingItemEntity::toModel).collect(ArrayList::new, ArrayList::add, ArrayList::addAll))
                 .build();
     }
 }
