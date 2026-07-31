@@ -36,4 +36,8 @@ public record ShoppingList(
     public void addItem(ShoppingItem item) {
         items.add(item);
     }
+
+    public boolean removeItem(UUID itemId) {
+        return items.removeIf(item -> item.id().equals(itemId));
+    }
 }

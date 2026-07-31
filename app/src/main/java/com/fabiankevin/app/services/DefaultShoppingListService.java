@@ -12,6 +12,7 @@ import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingItemCommand;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingListCommand;
+import com.fabiankevin.app.services.shopping_list.commands.DeleteShoppingItemCommand;
 import com.fabiankevin.app.services.shopping_list.commands.UpdateShoppingItemCommand;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -143,6 +144,29 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .orElse(null);
 
         return toItemSummary(savedItem, user);
+    }
+
+    @Transactional
+    @Override
+    public void deleteShoppingItem(DeleteShoppingItemCommand command) {
+        ShoppingList existing = shoppingListRepository.findById(command.shoppingListId())
+                .orElseThrow(ShoppingListNotFoundException::new);
+
+        boolean isOwner = existing.userId().equals(command.userId());
+        boolean isSharedWith = existing.sharedWithUserIds().contains(command.userId());
+        if (!isOwner && !isSharedWith) {
+            throw new ShoppingListNotFoundException();
+        }
+
+        if (!existing.removeItem(command.itemId())) {
+            throw new ShoppingItemNotFoundException();
+        }
+
+        ShoppingList updated = existing.toBuilder()
+                .updatedAt(Instant.now())
+                .build();
+
+        shoppingListRepository.save(updated);
     }
 
     @Override

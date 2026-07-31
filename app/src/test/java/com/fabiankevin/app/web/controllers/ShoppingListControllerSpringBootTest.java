@@ -713,4 +713,130 @@ class ShoppingListControllerSpringBootTest {
             );
         }
     }
+
+    @Nested
+    class DeleteShoppingItem {
+
+        @Test
+        void givenExistingItem_thenReturnsNoContent() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            ShoppingItem milk = ShoppingItem.builder()
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .priority(ItemPriority.HIGH)
+                    .addedBy(userId)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            ShoppingList shoppingList = ShoppingList.builder()
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .items(new ArrayList<>(List.of(milk)))
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
+            UUID itemId = shoppingListRepository.findById(shoppingListId).get().items().getFirst().id();
+
+            mockMvc.perform(delete("/api/shopping-lists/{id}/items/{itemId}", shoppingListId, itemId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json"))
+                    .andExpect(status().isNoContent());
+
+            Assertions.assertThat(shoppingListRepository.findById(shoppingListId).get().items()).isEmpty();
+        }
+
+        @Test
+        void givenNonExistentList_thenReturnsNotFound() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            mockMvc.perform(delete("/api/shopping-lists/{id}/items/{itemId}", UUID.randomUUID(), UUID.randomUUID())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json"))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void givenNonExistentItem_thenReturnsNotFound() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            ShoppingList shoppingList = ShoppingList.builder()
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
+
+            mockMvc.perform(delete("/api/shopping-lists/{id}/items/{itemId}", shoppingListId, UUID.randomUUID())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json"))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void givenListNotOwnedOrSharedWithUser_thenReturnsNotFound() throws Exception {
+            UUID listOwnerId = UUID.randomUUID();
+            UUID unauthorizedUserId = UUID.randomUUID();
+
+            ShoppingItem milk = ShoppingItem.builder()
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .priority(ItemPriority.HIGH)
+                    .addedBy(listOwnerId)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            ShoppingList shoppingList = ShoppingList.builder()
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(listOwnerId)
+                    .items(new ArrayList<>(List.of(milk)))
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
+            UUID itemId = shoppingListRepository.findById(shoppingListId).get().items().getFirst().id();
+
+            mockMvc.perform(delete("/api/shopping-lists/{id}/items/{itemId}", shoppingListId, itemId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", unauthorizedUserId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json"))
+                    .andExpect(status().isNotFound());
+
+            Assertions.assertThat(shoppingListRepository.findById(shoppingListId).get().items()).hasSize(1);
+        }
+    }
 }
