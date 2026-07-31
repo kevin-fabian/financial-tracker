@@ -1,10 +1,7 @@
 package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.services.ShoppingListService;
-import com.fabiankevin.app.web.controllers.dtos.shopping_list.CreateShoppingItemRequest;
-import com.fabiankevin.app.web.controllers.dtos.shopping_list.CreateShoppingListRequest;
-import com.fabiankevin.app.web.controllers.dtos.shopping_list.ShoppingItemResponse;
-import com.fabiankevin.app.web.controllers.dtos.shopping_list.ShoppingListSummaryResponse;
+import com.fabiankevin.app.web.controllers.dtos.shopping_list.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -83,5 +80,27 @@ public class ShoppingListController {
     ) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         return ShoppingItemResponse.from(shoppingListService.addShoppingItem(request.toCommand(id, userId)));
+    }
+
+    @Operation(
+            summary = "Update a shopping item",
+            description = "Partially updates a shopping item in the specified shopping list. All fields are optional.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - Item updated successfully",
+                            content = @Content(schema = @Schema(implementation = ShoppingItemResponse.class))),
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Shopping list or item not found"),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @PatchMapping("/{id}/items/{itemId}")
+    public ShoppingItemResponse updateShoppingItem(
+            @PathVariable("id") UUID shoppingListId,
+            @PathVariable UUID itemId,
+            @Valid @RequestBody UpdateShoppingItemRequest request,
+            JwtAuthenticationToken jwtAuthenticationToken
+    ) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        return ShoppingItemResponse.from(shoppingListService.updateShoppingItem(request.toCommand(shoppingListId, itemId)));
     }
 }

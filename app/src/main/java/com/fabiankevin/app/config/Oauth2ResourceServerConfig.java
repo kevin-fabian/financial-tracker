@@ -37,7 +37,9 @@ public class Oauth2ResourceServerConfig {
                                 "/api/categories", "/api/categories/**",
                                 "/api/stats", "/api/stats*",
                                 "/api/parties", "/api/party/**",
-                                "/api/budgets", "/api/budgets/**").hasAnyAuthority(USER_ROLE)
+                                "/api/budgets", "/api/budgets/**",
+                                "/api/shopping-lists/**"
+                                ).hasAnyAuthority(USER_ROLE)
                         .requestMatchers("/api/recurring-transactions/process-due").hasAnyAuthority("zeny:operator")
                         .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus**").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()

@@ -22,6 +22,7 @@ public class DefaultShoppingListRepository implements ShoppingListRepository {
         return saved.toModel();
     }
 
+    @Transactional(readOnly = true)
     @Override
     public Optional<ShoppingList> findById(UUID id) {
         return jpaShoppingListRepository.findById(id).map(ShoppingListEntity::toModel);

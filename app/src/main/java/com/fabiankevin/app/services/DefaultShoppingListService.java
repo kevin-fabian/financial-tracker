@@ -1,6 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
+import com.fabiankevin.app.exceptions.ShoppingItemNotFoundException;
 import com.fabiankevin.app.exceptions.ShoppingListNotFoundException;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
@@ -11,6 +12,7 @@ import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingItemCommand;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingListCommand;
+import com.fabiankevin.app.services.shopping_list.commands.UpdateShoppingItemCommand;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -96,6 +98,51 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .createdAt(savedItem.createdAt())
                 .updatedAt(savedItem.updatedAt())
                 .build();
+    }
+
+    @Transactional
+    @Override
+    public ShoppingItemSummary updateShoppingItem(UpdateShoppingItemCommand command) {
+        ShoppingList existing = shoppingListRepository.findById(command.shoppingListId())
+                .orElseThrow(ShoppingListNotFoundException::new);
+
+        ShoppingItem existingItem = existing.items().stream()
+                .filter(item -> item.id().equals(command.itemId()))
+                .findFirst()
+                .orElseThrow(ShoppingItemNotFoundException::new);
+
+        ShoppingItem patched = existingItem.toBuilder()
+                .name(command.name() != null ? command.name() : existingItem.name())
+                .category(command.category() != null ? command.category() : existingItem.category())
+                .quantity(command.quantity() != null ? command.quantity() : existingItem.quantity())
+                .unit(command.unit() != null ? command.unit() : existingItem.unit())
+                .price(command.price() != null ? command.price() : existingItem.price())
+                .notes(command.notes() != null ? command.notes() : existingItem.notes())
+                .priority(command.priority() != null ? command.priority() : existingItem.priority())
+                .updatedAt(Instant.now())
+                .build();
+
+        List<ShoppingItem> updatedItems = existing.items().stream()
+                .map(item -> item.id().equals(command.itemId()) ? patched : item)
+                .toList();
+
+        ShoppingList updated = existing.toBuilder()
+                .items(updatedItems)
+                .updatedAt(Instant.now())
+                .build();
+
+        ShoppingList saved = shoppingListRepository.save(updated);
+        ShoppingItem savedItem = saved.items().stream()
+                .filter(item -> item.id().equals(command.itemId()))
+                .findFirst()
+                .orElseThrow();
+
+        User user = userClient.getUsersByIds(List.of(savedItem.addedBy()))
+                .stream()
+                .findFirst()
+                .orElse(null);
+
+        return toItemSummary(savedItem, user);
     }
 
     @Override

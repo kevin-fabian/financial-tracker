@@ -9,6 +9,7 @@ import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
 import com.fabiankevin.app.web.controllers.dtos.shopping_list.CreateShoppingItemRequest;
 import com.fabiankevin.app.web.controllers.dtos.shopping_list.CreateShoppingListRequest;
+import com.fabiankevin.app.web.controllers.dtos.shopping_list.UpdateShoppingItemRequest;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -36,8 +37,7 @@ import java.util.stream.Stream;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -554,6 +554,161 @@ class ShoppingListControllerSpringBootTest {
                                     .unit("liters".repeat(40))
                                     .price(3.5)
                                     .priority(ItemPriority.HIGH)
+                                    .build())
+            );
+        }
+    }
+
+    @Nested
+    class UpdateShoppingItem {
+
+        @Test
+        void givenExistingItem_thenReturnsOkWithUpdatedItem() throws Exception {
+            UUID userId = UUID.randomUUID();
+            UUID addedBy = UUID.randomUUID();
+
+            ShoppingItem milk = ShoppingItem.builder()
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .priority(ItemPriority.HIGH)
+                    .notes("Whole milk")
+                    .addedBy(addedBy)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            ShoppingList shoppingList = ShoppingList.builder()
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .items(new ArrayList<>(List.of(milk)))
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
+            UUID itemId = shoppingListRepository.findById(shoppingListId).get().items().getFirst().id();
+
+            when(userClient.getUsersByIds(List.of(addedBy)))
+                    .thenReturn(List.of(User.builder().id(addedBy).firstName("Jane").lastName("Doe").build()));
+
+            UpdateShoppingItemRequest request = UpdateShoppingItemRequest.builder()
+                    .price(4.0)
+                    .priority(ItemPriority.MEDIUM)
+                    .build();
+
+            mockMvc.perform(patch("/api/shopping-lists/{id}/items/{itemId}", shoppingListId, itemId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(itemId.toString()))
+                    .andExpect(jsonPath("$.name").value("Milk"))
+                    .andExpect(jsonPath("$.category").value("Dairy"))
+                    .andExpect(jsonPath("$.quantity").value(2.0))
+                    .andExpect(jsonPath("$.unit").value("liters"))
+                    .andExpect(jsonPath("$.price").value(4.0))
+                    .andExpect(jsonPath("$.priority").value("MEDIUM"))
+                    .andExpect(jsonPath("$.notes").value("Whole milk"))
+                    .andExpect(jsonPath("$.addedByFirstName").value("Jane"))
+                    .andExpect(jsonPath("$.addedByLastName").value("Doe"))
+                    .andExpect(jsonPath("$.addedByInitial").value("JD"))
+                    .andExpect(jsonPath("$.purchased").value(false))
+                    .andExpect(jsonPath("$.createdAt").exists())
+                    .andExpect(jsonPath("$.updatedAt").exists());
+        }
+
+        @Test
+        void givenNonExistentList_thenReturnsNotFound() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            UpdateShoppingItemRequest request = UpdateShoppingItemRequest.builder()
+                    .price(4.0)
+                    .build();
+
+            mockMvc.perform(patch("/api/shopping-lists/{id}/items/{itemId}", UUID.randomUUID(), UUID.randomUUID())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void givenNonExistentItem_thenReturnsNotFound() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            ShoppingList shoppingList = ShoppingList.builder()
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
+
+            UpdateShoppingItemRequest request = UpdateShoppingItemRequest.builder()
+                    .price(4.0)
+                    .build();
+
+            mockMvc.perform(patch("/api/shopping-lists/{id}/items/{itemId}", shoppingListId, UUID.randomUUID())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound());
+        }
+
+        @ParameterizedTest(name = "[{index}] {0}")
+        @MethodSource("oversizedFieldRequests")
+        void givenFieldExceedsMaxLength_thenReturnsBadRequest(String label, UpdateShoppingItemRequest request) throws Exception {
+            mockMvc.perform(patch("/api/shopping-lists/{id}/items/{itemId}", UUID.randomUUID(), UUID.randomUUID())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", UUID.randomUUID())
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        static Stream<Arguments> oversizedFieldRequests() {
+            return Stream.of(
+                    Arguments.of("name exceeds 128 chars",
+                            UpdateShoppingItemRequest.builder()
+                                    .name("a".repeat(129))
+                                    .build()),
+                    Arguments.of("category exceeds 128 chars",
+                            UpdateShoppingItemRequest.builder()
+                                    .category("a".repeat(129))
+                                    .build()),
+                    Arguments.of("notes exceeds 32 chars",
+                            UpdateShoppingItemRequest.builder()
+                                    .notes("a".repeat(33))
+                                    .build()),
+                    Arguments.of("unit exceeds 36 chars",
+                            UpdateShoppingItemRequest.builder()
+                                    .unit("liters".repeat(40))
                                     .build())
             );
         }
