@@ -47,6 +47,9 @@ public class ShoppingListEntity {
     @Column(name = "budget")
     private double budget;
 
+    @Column(name = "final_amount")
+    private Double finalAmount;
+
     @Column(name = "completed_at")
     private Instant completedAt;
 
@@ -75,6 +78,7 @@ public class ShoppingListEntity {
                 .userId(shoppingList.userId())
                 .sharedWithUserIds(shoppingList.sharedWithUserIds())
                 .budget(shoppingList.budget())
+                .finalAmount(shoppingList.finalAmount())
                 .completedAt(shoppingList.completedAt())
                 .createdAt(shoppingList.createdAt())
                 .updatedAt(shoppingList.updatedAt())
@@ -97,6 +101,7 @@ public class ShoppingListEntity {
                 .userId(this.userId)
                 .sharedWithUserIds(this.sharedWithUserIds != null ? new ArrayList<>(this.sharedWithUserIds) : new ArrayList<>())
                 .budget(this.budget)
+                .finalAmount(this.finalAmount)
                 .completedAt(this.completedAt)
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)

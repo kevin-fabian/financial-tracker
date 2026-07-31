@@ -62,6 +62,27 @@ public class ShoppingListController {
     }
 
     @Operation(
+            summary = "Complete a shopping list",
+            description = "Marks the specified shopping list as completed with the final amount.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - Shopping list completed successfully",
+                            content = @Content(schema = @Schema(implementation = ShoppingListSummaryResponse.class))),
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Shopping list not found"),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @PostMapping("/{id}/complete")
+    public ShoppingListSummaryResponse completeShoppingList(
+            @PathVariable UUID id,
+            @Valid @RequestBody CompleteShoppingListRequest request,
+            JwtAuthenticationToken jwtAuthenticationToken
+    ) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        return ShoppingListSummaryResponse.from(shoppingListService.completeShoppingList(request.toCommand(id, userId)));
+    }
+
+    @Operation(
             summary = "Update a shopping list",
             description = "Partially updates the specified shopping list. All fields are optional.",
             responses = {

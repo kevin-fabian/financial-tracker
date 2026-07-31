@@ -10,6 +10,8 @@ import java.util.UUID;
 public interface ShoppingListService {
     ShoppingListSummary createShoppingList(CreateShoppingListCommand command);
 
+    ShoppingListSummary completeShoppingList(CompleteShoppingListCommand command);
+
     ShoppingListSummary updateShoppingList(UpdateShoppingListCommand command);
 
     ShoppingItemSummary addShoppingItem(CreateShoppingItemCommand command);

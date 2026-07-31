@@ -19,6 +19,7 @@ public record ShoppingListSummary(
         List<ShoppingItemSummary> items,
         User user,
         double budget,
+        Double finalAmount,
         Instant completedAt,
         Instant createdAt,
         Instant updatedAt) {

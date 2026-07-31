@@ -18,6 +18,7 @@ public record ShoppingList(
         UUID userId,
         List<UUID> sharedWithUserIds,
         double budget,
+        Double finalAmount,
         Instant completedAt,
         Instant createdAt,
         Instant updatedAt) {

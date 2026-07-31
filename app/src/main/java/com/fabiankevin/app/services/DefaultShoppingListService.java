@@ -1,6 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
+import com.fabiankevin.app.exceptions.EmptyShoppingListException;
 import com.fabiankevin.app.exceptions.ShoppingItemNotFoundException;
 import com.fabiankevin.app.exceptions.ShoppingListNotFoundException;
 import com.fabiankevin.app.models.User;
@@ -45,6 +46,32 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .build();
 
         ShoppingList saved = shoppingListRepository.save(shoppingList);
+        return toSummary(saved);
+    }
+
+    @Transactional
+    @Override
+    public ShoppingListSummary completeShoppingList(CompleteShoppingListCommand command) {
+        ShoppingList existing = shoppingListRepository.findById(command.shoppingListId())
+                .orElseThrow(ShoppingListNotFoundException::new);
+
+        if (!existing.userId().equals(command.userId())) {
+            throw new ShoppingListNotFoundException();
+        }
+
+        if (existing.items().isEmpty()) {
+            throw new EmptyShoppingListException();
+        }
+
+        Instant now = Instant.now();
+        ShoppingList completed = existing.toBuilder()
+                .status(ShoppingListStatus.COMPLETED)
+                .finalAmount(command.finalAmount())
+                .completedAt(now)
+                .updatedAt(now)
+                .build();
+
+        ShoppingList saved = shoppingListRepository.save(completed);
         return toSummary(saved);
     }
 
@@ -229,6 +256,7 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .items(items)
                 .user(user)
                 .budget(shoppingList.budget())
+                .finalAmount(shoppingList.finalAmount())
                 .completedAt(shoppingList.completedAt())
                 .createdAt(shoppingList.createdAt())
                 .updatedAt(shoppingList.updatedAt())

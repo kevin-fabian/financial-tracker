@@ -7,10 +7,7 @@ import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
-import com.fabiankevin.app.web.controllers.dtos.shopping_list.CreateShoppingItemRequest;
-import com.fabiankevin.app.web.controllers.dtos.shopping_list.CreateShoppingListRequest;
-import com.fabiankevin.app.web.controllers.dtos.shopping_list.PatchShoppingItemRequest;
-import com.fabiankevin.app.web.controllers.dtos.shopping_list.PatchShoppingListRequest;
+import com.fabiankevin.app.web.controllers.dtos.shopping_list.*;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -210,6 +207,119 @@ class ShoppingListControllerSpringBootTest {
                                     .budget(200.0)
                                     .build())
             );
+        }
+    }
+
+    @Nested
+    class CompleteShoppingList {
+
+        @Test
+        void givenExistingList_thenReturnsOkWithCompletedList() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            ShoppingItem milk = ShoppingItem.builder()
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .purchased(true)
+                    .priority(ItemPriority.HIGH)
+                    .addedBy(userId)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            ShoppingList shoppingList = ShoppingList.builder()
+                    .name("Groceries")
+                    .description("Weekly groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .items(new ArrayList<>(List.of(milk)))
+                    .budget(200.0)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            CompleteShoppingListRequest request = CompleteShoppingListRequest.builder()
+                    .finalAmount(185.0)
+                    .build();
+
+            mockMvc.perform(post("/api/shopping-lists/{id}/complete", shoppingListId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(shoppingListId.toString()))
+                    .andExpect(jsonPath("$.status").value("COMPLETED"))
+                    .andExpect(jsonPath("$.finalAmount").value(185.0))
+                    .andExpect(jsonPath("$.completedAt").exists());
+
+            ShoppingList saved = shoppingListRepository.findById(shoppingListId).get();
+            Assertions.assertThat(saved.status()).isEqualTo(ShoppingListStatus.COMPLETED);
+            Assertions.assertThat(saved.finalAmount()).isEqualTo(185.0);
+            Assertions.assertThat(saved.completedAt()).isNotNull();
+        }
+
+        @Test
+        void givenNonExistentList_thenReturnsNotFound() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            CompleteShoppingListRequest request = CompleteShoppingListRequest.builder()
+                    .finalAmount(100.0)
+                    .build();
+
+            mockMvc.perform(post("/api/shopping-lists/{id}/complete", UUID.randomUUID())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void givenListWithNoItems_thenReturnsBadRequest() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            ShoppingList shoppingList = ShoppingList.builder()
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .budget(200.0)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
+
+            CompleteShoppingListRequest request = CompleteShoppingListRequest.builder()
+                    .finalAmount(100.0)
+                    .build();
+
+            mockMvc.perform(post("/api/shopping-lists/{id}/complete", shoppingListId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
         }
     }
 

@@ -28,6 +28,12 @@ public record ShoppingListSummaryResponse(
         @Schema(description = "Budget", example = "200.0")
         double budget,
 
+        @Schema(description = "Final amount", example = "185.0")
+        Double finalAmount,
+
+        @Schema(description = "Completion timestamp")
+        Instant completedAt,
+
         @Schema(description = "Items in the shopping list")
         List<ShoppingItemResponse> items,
 
@@ -57,6 +63,8 @@ public record ShoppingListSummaryResponse(
                 .description(summary.description())
                 .status(summary.status())
                 .budget(summary.budget())
+                .finalAmount(summary.finalAmount())
+                .completedAt(summary.completedAt())
                 .items(items)
                 .firstName(user != null ? user.firstName() : null)
                 .lastName(user != null ? user.lastName() : null)
