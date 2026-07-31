@@ -676,6 +676,50 @@ class ShoppingListControllerSpringBootTest {
                     .andExpect(status().isNotFound());
         }
 
+        @Test
+        void givenListNotOwnedOrSharedWithUser_thenReturnsNotFound() throws Exception {
+            UUID listOwnerId = UUID.randomUUID();
+            UUID unauthorizedUserId = UUID.randomUUID();
+
+            ShoppingItem milk = ShoppingItem.builder()
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .priority(ItemPriority.HIGH)
+                    .addedBy(listOwnerId)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            ShoppingList shoppingList = ShoppingList.builder()
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(listOwnerId)
+                    .items(new ArrayList<>(List.of(milk)))
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
+            UUID itemId = shoppingListRepository.findById(shoppingListId).get().items().getFirst().id();
+
+            UpdateShoppingItemRequest request = UpdateShoppingItemRequest.builder()
+                    .price(4.0)
+                    .build();
+
+            mockMvc.perform(patch("/api/shopping-lists/{id}/items/{itemId}", shoppingListId, itemId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", unauthorizedUserId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound());
+        }
+
         @ParameterizedTest(name = "[{index}] {0}")
         @MethodSource("oversizedFieldRequests")
         void givenFieldExceedsMaxLength_thenReturnsBadRequest(String label, UpdateShoppingItemRequest request) throws Exception {

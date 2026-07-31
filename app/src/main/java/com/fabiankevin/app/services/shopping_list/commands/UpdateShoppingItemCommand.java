@@ -17,5 +17,6 @@ public record UpdateShoppingItemCommand(
         String unit,
         Double price,
         String notes,
-        ItemPriority priority) {
+        ItemPriority priority,
+        UUID userId) {
 }

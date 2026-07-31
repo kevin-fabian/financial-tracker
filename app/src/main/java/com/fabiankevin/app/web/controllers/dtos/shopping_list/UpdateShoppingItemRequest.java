@@ -36,7 +36,7 @@ public record UpdateShoppingItemRequest(
         @Schema(description = "Priority", example = "HIGH")
         ItemPriority priority
 ) {
-    public UpdateShoppingItemCommand toCommand(UUID shoppingListId, UUID itemId) {
+    public UpdateShoppingItemCommand toCommand(UUID shoppingListId, UUID itemId, UUID userId) {
         return UpdateShoppingItemCommand.builder()
                 .shoppingListId(shoppingListId)
                 .itemId(itemId)
@@ -47,6 +47,7 @@ public record UpdateShoppingItemRequest(
                 .price(price())
                 .notes(notes())
                 .priority(priority())
+                .userId(userId)
                 .build();
     }
 }

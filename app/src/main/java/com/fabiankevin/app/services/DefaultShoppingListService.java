@@ -107,6 +107,12 @@ public class DefaultShoppingListService implements ShoppingListService {
         ShoppingList existing = shoppingListRepository.findById(command.shoppingListId())
                 .orElseThrow(ShoppingListNotFoundException::new);
 
+        boolean isOwner = existing.userId().equals(command.userId());
+        boolean isSharedWith = existing.sharedWithUserIds().contains(command.userId());
+        if (!isOwner && !isSharedWith) {
+            throw new ShoppingListNotFoundException();
+        }
+
         ShoppingItem existingItem = existing.items().stream()
                 .filter(item -> item.id().equals(command.itemId()))
                 .findFirst()

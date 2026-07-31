@@ -102,7 +102,7 @@ public class ShoppingListController {
             JwtAuthenticationToken jwtAuthenticationToken
     ) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        return ShoppingItemResponse.from(shoppingListService.updateShoppingItem(request.toCommand(shoppingListId, itemId)));
+        return ShoppingItemResponse.from(shoppingListService.updateShoppingItem(request.toCommand(shoppingListId, itemId, userId)));
     }
 
     @Operation(
