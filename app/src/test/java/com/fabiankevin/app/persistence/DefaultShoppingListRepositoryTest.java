@@ -135,6 +135,35 @@ class DefaultShoppingListRepositoryTest {
         }
 
         @Test
+        void givenShoppingListWithSharedWithUserIds_persistsAndRetrievesSharedWithUserIds() {
+            UUID userId = UUID.randomUUID();
+            UUID sharedUser1 = UUID.randomUUID();
+            UUID sharedUser2 = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            ShoppingList sharedList = ShoppingList.builder()
+                    .id(null)
+                    .name("Shared List")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .items(List.of())
+                    .userId(userId)
+                    .sharedWithUserIds(List.of(sharedUser1, sharedUser2))
+                    .budget(50.00)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingList saved = shoppingListRepository.save(sharedList);
+
+            Assertions.assertThat(saved.id()).isNotNull();
+            Assertions.assertThat(saved.sharedWithUserIds())
+                    .hasSize(2)
+                    .containsExactlyInAnyOrder(sharedUser1, sharedUser2);
+
+            verify(jpaShoppingListRepository, times(1)).save(any());
+        }
+
+        @Test
         void givenNullShoppingList_throwsException() {
             Assertions.assertThatThrownBy(() -> shoppingListRepository.save(null))
                     .isInstanceOf(InvalidDataAccessApiUsageException.class);

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Builder;
 
+import java.util.List;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
@@ -21,7 +22,10 @@ public record CreateShoppingListRequest(
         String description,
 
         @Schema(description = "Budget", example = "200.0")
-        double budget
+        double budget,
+
+        @Schema(description = "User IDs to share the list with")
+        List<UUID> sharedWithUserIds
 ) {
     public CreateShoppingListCommand toCommand(UUID userId) {
         return CreateShoppingListCommand.builder()
@@ -29,6 +33,7 @@ public record CreateShoppingListRequest(
                 .description(description())
                 .userId(userId)
                 .budget(budget())
+                .sharedWithUserIds(sharedWithUserIds())
                 .build();
     }
 }

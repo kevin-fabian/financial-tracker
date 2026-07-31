@@ -35,7 +35,7 @@ public class ShoppingListController {
             }
     )
     @GetMapping
-    public List<ShoppingListSummaryResponse> createShoppingList
+    public List<ShoppingListSummaryResponse> getShoppingLists
             (JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         return shoppingListService.getShoppingListsByUserId(userId).stream()
@@ -55,7 +55,7 @@ public class ShoppingListController {
     )
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ShoppingListSummaryResponse create(
+    public ShoppingListSummaryResponse createShoppingList(
             @Valid @RequestBody CreateShoppingListRequest request,
             JwtAuthenticationToken jwtAuthenticationToken
     ) {

@@ -5,6 +5,7 @@ import com.fabiankevin.app.persistence.entities.ShoppingListEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaShoppingListRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +27,7 @@ public class DefaultShoppingListRepository implements ShoppingListRepository {
         return jpaShoppingListRepository.findById(id).map(ShoppingListEntity::toModel);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public List<ShoppingList> findAllByUserId(UUID userId) {
         return jpaShoppingListRepository.findAllByUserId(userId).stream()

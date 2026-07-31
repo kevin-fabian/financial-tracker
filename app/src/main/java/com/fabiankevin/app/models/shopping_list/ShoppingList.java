@@ -16,6 +16,7 @@ public record ShoppingList(
         ShoppingListStatus status,
         List<ShoppingItem> items,
         UUID userId,
+        List<UUID> sharedWithUserIds,
         double budget,
         Instant completedAt,
         Instant createdAt,
@@ -29,6 +30,7 @@ public record ShoppingList(
         Objects.requireNonNull(createdAt, "Created at is required");
         Objects.requireNonNull(updatedAt, "Updated at is required");
         items = Optional.ofNullable(items).orElse(new ArrayList<>());
+        sharedWithUserIds = Optional.ofNullable(sharedWithUserIds).orElse(new ArrayList<>());
     }
 
     public void addItem(ShoppingItem item) {

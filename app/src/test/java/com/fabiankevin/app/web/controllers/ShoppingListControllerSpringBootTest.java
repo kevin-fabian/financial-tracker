@@ -9,6 +9,7 @@ import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
 import com.fabiankevin.app.web.controllers.dtos.shopping_list.CreateShoppingItemRequest;
 import com.fabiankevin.app.web.controllers.dtos.shopping_list.CreateShoppingListRequest;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -103,6 +104,42 @@ class ShoppingListControllerSpringBootTest {
                     .andExpect(jsonPath("$.initial").value("JD"))
                     .andExpect(jsonPath("$.createdAt").exists())
                     .andExpect(jsonPath("$.updatedAt").exists());
+        }
+
+        @Test
+        void givenRequestWithSharedWithUserIds_thenSavesSharedWithUserIdsButDoesNotReturnThem() throws Exception {
+            UUID userId = UUID.randomUUID();
+            UUID sharedUser1 = UUID.randomUUID();
+            UUID sharedUser2 = UUID.randomUUID();
+
+            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
+                    .name("Shared Groceries")
+                    .description("Shared weekly groceries")
+                    .budget(150.0)
+                    .sharedWithUserIds(List.of(sharedUser1, sharedUser2))
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(post("/api/shopping-lists")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").isNotEmpty())
+                    .andExpect(jsonPath("$.name").value("Shared Groceries"))
+                    .andExpect(jsonPath("$.sharedWithUserIds").doesNotExist());
+
+            ShoppingList saved = shoppingListRepository.findAllByUserId(userId).getFirst();
+            Assertions.assertThat(saved.sharedWithUserIds())
+                    .containsExactlyInAnyOrder(sharedUser1, sharedUser2);
         }
 
         @Test

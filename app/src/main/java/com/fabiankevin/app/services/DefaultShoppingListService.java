@@ -38,6 +38,7 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .description(command.description())
                 .status(ShoppingListStatus.ACTIVE)
                 .userId(command.userId())
+                .sharedWithUserIds(command.sharedWithUserIds())
                 .budget(command.budget())
                 .createdAt(now)
                 .updatedAt(now)

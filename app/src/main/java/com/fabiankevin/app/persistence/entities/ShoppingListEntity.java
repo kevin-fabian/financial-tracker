@@ -10,10 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Builder(toBuilder = true)
 @Data
@@ -38,6 +35,14 @@ public class ShoppingListEntity {
 
     @Column(name = "user_id")
     private UUID userId;
+
+    @ElementCollection
+    @CollectionTable(
+            name = "shopping_lists_shared_users",
+            joinColumns = @JoinColumn(name = "shopping_item_id")
+    )
+    @Column(name = "shared_user_id")
+    private List<UUID> sharedWithUserIds = new ArrayList<>();
 
     @Column(name = "budget")
     private double budget;
@@ -68,6 +73,7 @@ public class ShoppingListEntity {
                 .description(shoppingList.description())
                 .status(shoppingList.status())
                 .userId(shoppingList.userId())
+                .sharedWithUserIds(shoppingList.sharedWithUserIds())
                 .budget(shoppingList.budget())
                 .completedAt(shoppingList.completedAt())
                 .createdAt(shoppingList.createdAt())
@@ -89,6 +95,7 @@ public class ShoppingListEntity {
                 .description(this.description)
                 .status(this.status)
                 .userId(this.userId)
+                .sharedWithUserIds(this.sharedWithUserIds != null ? new ArrayList<>(this.sharedWithUserIds) : new ArrayList<>())
                 .budget(this.budget)
                 .completedAt(this.completedAt)
                 .createdAt(this.createdAt)

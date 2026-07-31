@@ -3,6 +3,7 @@ package com.fabiankevin.app.services.shopping_list.commands;
 import lombok.Builder;
 import lombok.With;
 
+import java.util.List;
 import java.util.UUID;
 
 @With
@@ -11,5 +12,6 @@ public record CreateShoppingListCommand(
         String name,
         String description,
         UUID userId,
-        double budget) {
+        double budget,
+        List<UUID> sharedWithUserIds) {
 }
