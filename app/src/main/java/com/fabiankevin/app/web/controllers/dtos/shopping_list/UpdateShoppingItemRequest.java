@@ -34,7 +34,10 @@ public record UpdateShoppingItemRequest(
         String notes,
 
         @Schema(description = "Priority", example = "HIGH")
-        ItemPriority priority
+        ItemPriority priority,
+
+        @Schema(description = "Purchased", example = "true")
+        Boolean purchased
 ) {
     public UpdateShoppingItemCommand toCommand(UUID shoppingListId, UUID itemId, UUID userId) {
         return UpdateShoppingItemCommand.builder()
@@ -47,6 +50,7 @@ public record UpdateShoppingItemRequest(
                 .price(price())
                 .notes(notes())
                 .priority(priority())
+                .purchased(purchased())
                 .userId(userId)
                 .build();
     }

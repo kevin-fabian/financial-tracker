@@ -126,6 +126,7 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .price(command.price() != null ? command.price() : existingItem.price())
                 .notes(command.notes() != null ? command.notes() : existingItem.notes())
                 .priority(command.priority() != null ? command.priority() : existingItem.priority())
+                .purchased(command.purchased() != null ? command.purchased() : existingItem.purchased())
                 .updatedAt(Instant.now())
                 .build();
 

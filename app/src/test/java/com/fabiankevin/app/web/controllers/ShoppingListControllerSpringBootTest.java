@@ -677,6 +677,56 @@ class ShoppingListControllerSpringBootTest {
         }
 
         @Test
+        void givenExistingItem_whenPatchPurchasedTrue_thenReturnsPurchasedTrue() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            ShoppingItem milk = ShoppingItem.builder()
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .purchased(false)
+                    .priority(ItemPriority.HIGH)
+                    .addedBy(userId)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            ShoppingList shoppingList = ShoppingList.builder()
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .items(new ArrayList<>(List.of(milk)))
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
+            UUID itemId = shoppingListRepository.findById(shoppingListId).get().items().getFirst().id();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            UpdateShoppingItemRequest request = UpdateShoppingItemRequest.builder()
+                    .purchased(true)
+                    .build();
+
+            mockMvc.perform(patch("/api/shopping-lists/{id}/items/{itemId}", shoppingListId, itemId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(itemId.toString()))
+                    .andExpect(jsonPath("$.purchased").value(true))
+                    .andExpect(jsonPath("$.name").value("Milk"));
+        }
+
+        @Test
         void givenListNotOwnedOrSharedWithUser_thenReturnsNotFound() throws Exception {
             UUID listOwnerId = UUID.randomUUID();
             UUID unauthorizedUserId = UUID.randomUUID();

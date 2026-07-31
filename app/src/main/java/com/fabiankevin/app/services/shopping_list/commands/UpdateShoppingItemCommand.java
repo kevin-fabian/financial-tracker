@@ -18,5 +18,6 @@ public record UpdateShoppingItemCommand(
         Double price,
         String notes,
         ItemPriority priority,
+        Boolean purchased,
         UUID userId) {
 }
