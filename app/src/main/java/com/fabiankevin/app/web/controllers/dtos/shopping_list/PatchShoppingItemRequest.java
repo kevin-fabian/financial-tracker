@@ -10,7 +10,7 @@ import java.util.UUID;
 
 @Builder(toBuilder = true)
 @Schema(description = "Request to update a shopping item")
-public record UpdateShoppingItemRequest(
+public record PatchShoppingItemRequest(
         @Size(max = 128, message = "name must not exceed 128 characters")
         @Schema(description = "Item name", example = "Milk")
         String name,

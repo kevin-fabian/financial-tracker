@@ -62,6 +62,27 @@ public class ShoppingListController {
     }
 
     @Operation(
+            summary = "Update a shopping list",
+            description = "Partially updates the specified shopping list. All fields are optional.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - Shopping list updated successfully",
+                            content = @Content(schema = @Schema(implementation = ShoppingListSummaryResponse.class))),
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Shopping list not found"),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            }
+    )
+    @PatchMapping("/{id}")
+    public ShoppingListSummaryResponse updateShoppingList(
+            @PathVariable UUID id,
+            @Valid @RequestBody PatchShoppingListRequest request,
+            JwtAuthenticationToken jwtAuthenticationToken
+    ) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        return ShoppingListSummaryResponse.from(shoppingListService.updateShoppingList(request.toCommand(id, userId)));
+    }
+
+    @Operation(
             summary = "Add an item to a shopping list",
             description = "Adds a new item to the specified shopping list and returns the created item.",
             responses = {
@@ -98,7 +119,7 @@ public class ShoppingListController {
     public ShoppingItemResponse updateShoppingItem(
             @PathVariable("id") UUID shoppingListId,
             @PathVariable UUID itemId,
-            @Valid @RequestBody UpdateShoppingItemRequest request,
+            @Valid @RequestBody PatchShoppingItemRequest request,
             JwtAuthenticationToken jwtAuthenticationToken
     ) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());

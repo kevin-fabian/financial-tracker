@@ -9,7 +9,8 @@ import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
 import com.fabiankevin.app.web.controllers.dtos.shopping_list.CreateShoppingItemRequest;
 import com.fabiankevin.app.web.controllers.dtos.shopping_list.CreateShoppingListRequest;
-import com.fabiankevin.app.web.controllers.dtos.shopping_list.UpdateShoppingItemRequest;
+import com.fabiankevin.app.web.controllers.dtos.shopping_list.PatchShoppingItemRequest;
+import com.fabiankevin.app.web.controllers.dtos.shopping_list.PatchShoppingListRequest;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -207,6 +208,180 @@ class ShoppingListControllerSpringBootTest {
                                     .name("Groceries")
                                     .description("a".repeat(129))
                                     .budget(200.0)
+                                    .build())
+            );
+        }
+    }
+
+    @Nested
+    class UpdateShoppingList {
+
+        @Test
+        void givenExistingList_thenReturnsOkWithUpdatedList() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            ShoppingList shoppingList = ShoppingList.builder()
+                    .name("Groceries")
+                    .description("Weekly groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .budget(200.0)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            PatchShoppingListRequest request = PatchShoppingListRequest.builder()
+                    .name("Weekly Groceries")
+                    .budget(250.0)
+                    .status(ShoppingListStatus.ACTIVE)
+                    .build();
+
+            mockMvc.perform(patch("/api/shopping-lists/{id}", shoppingListId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(shoppingListId.toString()))
+                    .andExpect(jsonPath("$.name").value("Weekly Groceries"))
+                    .andExpect(jsonPath("$.description").value("Weekly groceries"))
+                    .andExpect(jsonPath("$.status").value("ACTIVE"))
+                    .andExpect(jsonPath("$.budget").value(250.0))
+                    .andExpect(jsonPath("$.firstName").value("John"))
+                    .andExpect(jsonPath("$.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.initial").value("JD"))
+                    .andExpect(jsonPath("$.createdAt").exists())
+                    .andExpect(jsonPath("$.updatedAt").exists());
+        }
+
+        @Test
+        void givenExistingList_whenPatchSharedWithUserIds_thenPersistsAndDoesNotReturnThem() throws Exception {
+            UUID userId = UUID.randomUUID();
+            UUID sharedUser1 = UUID.randomUUID();
+            UUID sharedUser2 = UUID.randomUUID();
+
+            ShoppingList shoppingList = ShoppingList.builder()
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .budget(100.0)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            PatchShoppingListRequest request = PatchShoppingListRequest.builder()
+                    .sharedWithUserIds(List.of(sharedUser1, sharedUser2))
+                    .build();
+
+            mockMvc.perform(patch("/api/shopping-lists/{id}", shoppingListId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.sharedWithUserIds").doesNotExist());
+
+            ShoppingList saved = shoppingListRepository.findById(shoppingListId).get();
+            Assertions.assertThat(saved.sharedWithUserIds())
+                    .containsExactlyInAnyOrder(sharedUser1, sharedUser2);
+        }
+
+        @Test
+        void givenNonExistentList_thenReturnsNotFound() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            PatchShoppingListRequest request = PatchShoppingListRequest.builder()
+                    .name("Updated")
+                    .build();
+
+            mockMvc.perform(patch("/api/shopping-lists/{id}", UUID.randomUUID())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void givenListNotOwnedByUser_thenReturnsNotFound() throws Exception {
+            UUID listOwnerId = UUID.randomUUID();
+            UUID unauthorizedUserId = UUID.randomUUID();
+
+            ShoppingList shoppingList = ShoppingList.builder()
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(listOwnerId)
+                    .budget(100.0)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
+
+            PatchShoppingListRequest request = PatchShoppingListRequest.builder()
+                    .name("Hacked")
+                    .build();
+
+            mockMvc.perform(patch("/api/shopping-lists/{id}", shoppingListId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", unauthorizedUserId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound());
+        }
+
+        @ParameterizedTest(name = "[{index}] {0}")
+        @MethodSource("oversizedUpdateListFieldRequests")
+        void givenFieldExceedsMaxLength_thenReturnsBadRequest(String label, PatchShoppingListRequest request) throws Exception {
+            mockMvc.perform(patch("/api/shopping-lists/{id}", UUID.randomUUID())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", UUID.randomUUID())
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        static Stream<Arguments> oversizedUpdateListFieldRequests() {
+            return Stream.of(
+                    Arguments.of("name exceeds 64 chars",
+                            PatchShoppingListRequest.builder()
+                                    .name("a".repeat(65))
+                                    .build()),
+                    Arguments.of("description exceeds 128 chars",
+                            PatchShoppingListRequest.builder()
+                                    .description("a".repeat(129))
                                     .build())
             );
         }
@@ -593,7 +768,7 @@ class ShoppingListControllerSpringBootTest {
             when(userClient.getUsersByIds(List.of(addedBy)))
                     .thenReturn(List.of(User.builder().id(addedBy).firstName("Jane").lastName("Doe").build()));
 
-            UpdateShoppingItemRequest request = UpdateShoppingItemRequest.builder()
+            PatchShoppingItemRequest request = PatchShoppingItemRequest.builder()
                     .price(4.0)
                     .priority(ItemPriority.MEDIUM)
                     .build();
@@ -629,7 +804,7 @@ class ShoppingListControllerSpringBootTest {
         void givenNonExistentList_thenReturnsNotFound() throws Exception {
             UUID userId = UUID.randomUUID();
 
-            UpdateShoppingItemRequest request = UpdateShoppingItemRequest.builder()
+            PatchShoppingItemRequest request = PatchShoppingItemRequest.builder()
                     .price(4.0)
                     .build();
 
@@ -659,7 +834,7 @@ class ShoppingListControllerSpringBootTest {
                     .build();
             UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
 
-            UpdateShoppingItemRequest request = UpdateShoppingItemRequest.builder()
+            PatchShoppingItemRequest request = PatchShoppingItemRequest.builder()
                     .price(4.0)
                     .build();
 
@@ -706,7 +881,7 @@ class ShoppingListControllerSpringBootTest {
             when(userClient.getUsersByIds(List.of(userId)))
                     .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
 
-            UpdateShoppingItemRequest request = UpdateShoppingItemRequest.builder()
+            PatchShoppingItemRequest request = PatchShoppingItemRequest.builder()
                     .purchased(true)
                     .build();
 
@@ -753,7 +928,7 @@ class ShoppingListControllerSpringBootTest {
             UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
             UUID itemId = shoppingListRepository.findById(shoppingListId).get().items().getFirst().id();
 
-            UpdateShoppingItemRequest request = UpdateShoppingItemRequest.builder()
+            PatchShoppingItemRequest request = PatchShoppingItemRequest.builder()
                     .price(4.0)
                     .build();
 
@@ -772,7 +947,7 @@ class ShoppingListControllerSpringBootTest {
 
         @ParameterizedTest(name = "[{index}] {0}")
         @MethodSource("oversizedFieldRequests")
-        void givenFieldExceedsMaxLength_thenReturnsBadRequest(String label, UpdateShoppingItemRequest request) throws Exception {
+        void givenFieldExceedsMaxLength_thenReturnsBadRequest(String label, PatchShoppingItemRequest request) throws Exception {
             mockMvc.perform(patch("/api/shopping-lists/{id}/items/{itemId}", UUID.randomUUID(), UUID.randomUUID())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -789,19 +964,19 @@ class ShoppingListControllerSpringBootTest {
         static Stream<Arguments> oversizedFieldRequests() {
             return Stream.of(
                     Arguments.of("name exceeds 128 chars",
-                            UpdateShoppingItemRequest.builder()
+                            PatchShoppingItemRequest.builder()
                                     .name("a".repeat(129))
                                     .build()),
                     Arguments.of("category exceeds 128 chars",
-                            UpdateShoppingItemRequest.builder()
+                            PatchShoppingItemRequest.builder()
                                     .category("a".repeat(129))
                                     .build()),
                     Arguments.of("notes exceeds 32 chars",
-                            UpdateShoppingItemRequest.builder()
+                            PatchShoppingItemRequest.builder()
                                     .notes("a".repeat(33))
                                     .build()),
                     Arguments.of("unit exceeds 36 chars",
-                            UpdateShoppingItemRequest.builder()
+                            PatchShoppingItemRequest.builder()
                                     .unit("liters".repeat(40))
                                     .build())
             );

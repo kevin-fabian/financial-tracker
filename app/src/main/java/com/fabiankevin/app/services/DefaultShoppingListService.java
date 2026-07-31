@@ -10,10 +10,7 @@ import com.fabiankevin.app.models.shopping_list.ShoppingItemSummary;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
-import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingItemCommand;
-import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingListCommand;
-import com.fabiankevin.app.services.shopping_list.commands.DeleteShoppingItemCommand;
-import com.fabiankevin.app.services.shopping_list.commands.UpdateShoppingItemCommand;
+import com.fabiankevin.app.services.shopping_list.commands.*;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -48,6 +45,29 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .build();
 
         ShoppingList saved = shoppingListRepository.save(shoppingList);
+        return toSummary(saved);
+    }
+
+    @Transactional
+    @Override
+    public ShoppingListSummary updateShoppingList(UpdateShoppingListCommand command) {
+        ShoppingList existing = shoppingListRepository.findById(command.shoppingListId())
+                .orElseThrow(ShoppingListNotFoundException::new);
+
+        if (!existing.userId().equals(command.userId())) {
+            throw new ShoppingListNotFoundException();
+        }
+
+        ShoppingList patched = existing.toBuilder()
+                .name(command.name() != null ? command.name() : existing.name())
+                .description(command.description() != null ? command.description() : existing.description())
+                .budget(command.budget() != null ? command.budget() : existing.budget())
+                .sharedWithUserIds(command.sharedWithUserIds() != null ? command.sharedWithUserIds() : existing.sharedWithUserIds())
+                .status(command.status() != null ? command.status() : existing.status())
+                .updatedAt(Instant.now())
+                .build();
+
+        ShoppingList saved = shoppingListRepository.save(patched);
         return toSummary(saved);
     }
 
