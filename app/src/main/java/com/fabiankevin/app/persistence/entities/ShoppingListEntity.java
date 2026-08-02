@@ -62,7 +62,7 @@ public class ShoppingListEntity {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
-    @OneToMany(mappedBy = "shoppingList", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "shoppingList", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ShoppingItemEntity> items = new HashSet<>();
 
     public void addItem(ShoppingItemEntity item) {

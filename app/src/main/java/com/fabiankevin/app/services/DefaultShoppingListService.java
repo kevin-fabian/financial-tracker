@@ -239,6 +239,7 @@ public class DefaultShoppingListService implements ShoppingListService {
         shoppingListRepository.save(updated);
     }
 
+    @Transactional
     @Override
     public List<ShoppingListSummary> getShoppingListsByUserId(UUID userId) {
         List<ShoppingList> shoppingLists = shoppingListRepository.findAllByUserId(userId);
