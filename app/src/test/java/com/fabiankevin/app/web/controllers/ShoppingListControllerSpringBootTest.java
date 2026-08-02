@@ -8,9 +8,12 @@ import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
+import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
 import com.fabiankevin.app.services.CategoryService;
+import com.fabiankevin.app.services.ShoppingListService;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
+import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingListCommand;
 import com.fabiankevin.app.web.controllers.dtos.shopping_list.*;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Nested;
@@ -63,8 +66,11 @@ class ShoppingListControllerSpringBootTest {
     @MockitoBean
     private UserClient userClient;
 
-    @MockitoBean
+    @Autowired
     private CategoryService categoryService;
+
+    @Autowired
+    private ShoppingListService shoppingListService;
 
     @Autowired
     private ShoppingListRepository shoppingListRepository;
@@ -78,26 +84,15 @@ class ShoppingListControllerSpringBootTest {
         @Test
         void givenValidRequest_thenReturnsCreatedWithSummary() throws Exception {
             UUID userId = UUID.randomUUID();
-            UUID categoryId = UUID.randomUUID();
+
+            Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
 
             CreateShoppingListRequest request = CreateShoppingListRequest.builder()
                     .name("Groceries")
                     .description("Weekly groceries")
-                    .categoryId(categoryId)
+                    .categoryId(category.id())
                     .budget(200.0)
                     .build();
-
-            when(categoryService.getCategoryById(categoryId, userId))
-                    .thenReturn(Category.builder()
-                            .id(categoryId)
-                            .name("Food")
-                            .icon("shopping-cart")
-                            .type(TransactionType.EXPENSE)
-                            .userId(userId)
-                            .active(true)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
-                            .build());
 
             when(userClient.getUsersByIds(List.of(userId)))
                     .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
@@ -118,7 +113,7 @@ class ShoppingListControllerSpringBootTest {
                     .andExpect(jsonPath("$.description").value("Weekly groceries"))
                     .andExpect(jsonPath("$.status").value("ACTIVE"))
                     .andExpect(jsonPath("$.budget").value(200.0))
-                    .andExpect(jsonPath("$.categoryId").value(categoryId.toString()))
+                    .andExpect(jsonPath("$.categoryId").value(category.id().toString()))
                     .andExpect(jsonPath("$.categoryName").value("Food"))
                     .andExpect(jsonPath("$.categoryIcon").value("shopping-cart"))
                     .andExpect(jsonPath("$.firstName").value("John"))
@@ -484,34 +479,27 @@ class ShoppingListControllerSpringBootTest {
         @Test
         void givenExistingList_thenReturnsUpdatedCategoryFields() throws Exception {
             UUID userId = UUID.randomUUID();
-            UUID categoryId = UUID.randomUUID();
+            Category shopping = createCategory(userId, "Shopping", TransactionType.EXPENSE, "shopping-cart");
 
-            ShoppingList shoppingList = ShoppingList.builder()
-                    .name("Groceries")
-                    .status(ShoppingListStatus.ACTIVE)
-                    .userId(userId)
-                    .budget(100.0)
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
-                    .build();
-            UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
-
-            when(categoryService.getCategoryById(categoryId, userId))
-                    .thenReturn(Category.builder()
-                            .id(categoryId)
-                            .name("Food")
-                            .icon("shopping-cart")
-                            .type(TransactionType.EXPENSE)
+            ShoppingListSummary shoppingListSummary = shoppingListService.createShoppingList(
+                    CreateShoppingListCommand.builder()
+                            .budget(100.0)
+                            .name("Groceries")
+                            .categoryId(shopping.id())
+                            .description("Weekly groceries")
                             .userId(userId)
-                            .active(true)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
-                            .build());
+                            .build()
+            );
+
+            UUID shoppingListId = shoppingListSummary.id();
+
+            Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
+
             when(userClient.getUsersByIds(List.of(userId)))
                     .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
 
             PatchShoppingListRequest request = PatchShoppingListRequest.builder()
-                    .categoryId(categoryId)
+                    .categoryId(category.id())
                     .build();
 
             mockMvc.perform(patch("/api/shopping-lists/{id}", shoppingListId)
@@ -526,13 +514,13 @@ class ShoppingListControllerSpringBootTest {
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(shoppingListId.toString()))
-                    .andExpect(jsonPath("$.categoryId").value(categoryId.toString()))
+                    .andExpect(jsonPath("$.categoryId").value(category.id().toString()))
                     .andExpect(jsonPath("$.categoryName").value("Food"))
                     .andExpect(jsonPath("$.categoryIcon").value("shopping-cart"));
 
             Assertions.assertThat(shoppingListRepository.findCategoryIdById(shoppingListId))
                     .isPresent()
-                    .contains(categoryId);
+                    .contains(category.id());
         }
 
         @Test
