@@ -30,11 +30,13 @@ import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepo
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -42,7 +44,8 @@ import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
 
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -72,7 +75,7 @@ class RecurringTransactionControllerSpringBootTest {
     @Autowired
     private RecurringTransactionService recurringTransactionService;
 
-    @Autowired
+    @MockitoSpyBean
     private RecurringTransactionRepository recurringTransactionRepository;
 
     @Autowired
@@ -1096,6 +1099,41 @@ class RecurringTransactionControllerSpringBootTest {
         void givenNoJwt_thenReturnsForbidden() throws Exception {
             mockMvc.perform(post("/api/recurring-transactions/process-due"))
                     .andExpect(status().isForbidden());
+        }
+
+        @Test
+        void givenDueRecurringTransaction_thenProcessDueAdvancesNextOccurrenceDateToNextMonth() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Account account = createAccount(userId, "Cash Wallet");
+            LocalDate today = LocalDate.now().atStartOfDay().toLocalDate();
+            int dayOfMonth = today.plusMonths(1).lengthOfMonth() >= 15 ? 15 : today.plusMonths(1).lengthOfMonth();
+            LocalDate pastDate = today.minusDays(1);
+
+            RecurringTransaction recurringTransaction = RecurringTransaction.builder()
+                    .userId(userId)
+                    .description("Due transaction")
+                    .amount(10.0)
+                    .variableAmount(false)
+                    .category(category)
+                    .account(account)
+                    .dayOfMonth(dayOfMonth)
+                    .nextOccurrenceDate(pastDate)
+                    .endDate(null)
+                    .status(RecurringTransactionStatus.ACTIVE)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            RecurringTransaction saved = recurringTransactionRepository.save(recurringTransaction);
+
+            recurringTransactionService.processDueRecurringTransactions();
+
+            verify(recurringTransactionRepository,
+                    timeout(Duration.ofSeconds(10).toMillis()).atLeastOnce()).saveAll(anyList());
+
+            RecurringTransaction updated = recurringTransactionRepository.findByIdAndUserId(saved.id(), userId).orElseThrow();
+            LocalDate expectedNextOccurrenceDate = today.plusMonths(1).withDayOfMonth(dayOfMonth);
+            assertEquals(expectedNextOccurrenceDate, updated.nextOccurrenceDate());
         }
 
         @Test

@@ -225,6 +225,7 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
         LocalDate today = LocalDate.now();
         Instant instantNow = Instant.now();
         List<Transaction> batch = new ArrayList<>(BATCH_SIZE);
+        List<RecurringTransaction> recurringBatch = new ArrayList<>(BATCH_SIZE);
 
         try (Stream<RecurringTransaction> stream = recurringTransactionRepository.streamDueRecurringTransactions(today)) {
             stream.forEach(recurring -> {
@@ -241,9 +242,17 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
                         .build();
                 batch.add(transaction);
 
+                LocalDate nextOccurrenceDate = advanceToNextOccurrence(recurring, today);
+                recurringBatch.add(recurring.toBuilder()
+                        .nextOccurrenceDate(nextOccurrenceDate)
+                        .updatedAt(instantNow)
+                        .build());
+
                 if (batch.size() >= BATCH_SIZE) {
                     transactionRepository.saveAll(new ArrayList<>(batch));
+                    recurringTransactionRepository.saveAll(new ArrayList<>(recurringBatch));
                     batch.clear();
+                    recurringBatch.clear();
                     transactionRepository.flush();
                 }
             });
@@ -251,8 +260,18 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
 
         if (!batch.isEmpty()) {
             transactionRepository.saveAll(batch);
+            recurringTransactionRepository.saveAll(recurringBatch);
             transactionRepository.flush();
         }
+    }
+
+    private LocalDate advanceToNextOccurrence(RecurringTransaction recurring, LocalDate today) {
+        LocalDate nextMonth = today.plusMonths(1);
+        int dayOfMonth = recurring.dayOfMonth();
+        if (dayOfMonth < 1 || dayOfMonth > 31) {
+            return nextMonth;
+        }
+        return nextMonth.withDayOfMonth(Math.min(dayOfMonth, nextMonth.lengthOfMonth()));
     }
 
     private static int getRemainingDays(LocalDate nextOccurrenceDate, LocalDate today) {

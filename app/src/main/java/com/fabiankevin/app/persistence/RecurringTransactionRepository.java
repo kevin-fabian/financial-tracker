@@ -12,6 +12,8 @@ import java.util.stream.Stream;
 public interface RecurringTransactionRepository {
     RecurringTransaction save(RecurringTransaction recurringTransaction);
 
+    List<RecurringTransaction> saveAll(List<RecurringTransaction> recurringTransactions);
+
     List<RecurringTransactionSummary> findSummariesByUserId(UUID userId, LocalDate now);
 
     Stream<RecurringTransaction> streamDueRecurringTransactions(LocalDate now);
