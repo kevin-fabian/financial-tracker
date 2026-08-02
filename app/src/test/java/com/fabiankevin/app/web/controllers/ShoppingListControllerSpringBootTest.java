@@ -129,9 +129,12 @@ class ShoppingListControllerSpringBootTest {
             UUID sharedUser1 = UUID.randomUUID();
             UUID sharedUser2 = UUID.randomUUID();
 
+            Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
+
             CreateShoppingListRequest request = CreateShoppingListRequest.builder()
                     .name("Shared Groceries")
                     .description("Shared weekly groceries")
+                    .categoryId(category.id())
                     .budget(150.0)
                     .sharedWithUserIds(List.of(sharedUser1, sharedUser2))
                     .build();
@@ -178,6 +181,27 @@ class ShoppingListControllerSpringBootTest {
         void givenBlankName_thenReturnsBadRequest(String name) throws Exception {
             CreateShoppingListRequest request = CreateShoppingListRequest.builder()
                     .name(name)
+                    .description("Weekly groceries")
+                    .budget(200.0)
+                    .build();
+
+            mockMvc.perform(post("/api/shopping-lists")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", UUID.randomUUID())
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void givenNullCategoryId_thenReturnsBadRequest() throws Exception {
+            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
+                    .name("Groceries")
                     .description("Weekly groceries")
                     .budget(200.0)
                     .build();

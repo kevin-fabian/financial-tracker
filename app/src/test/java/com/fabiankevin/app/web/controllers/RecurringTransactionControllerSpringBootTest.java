@@ -9,6 +9,9 @@ import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransaction;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus;
 import com.fabiankevin.app.persistence.RecurringTransactionRepository;
+import com.fabiankevin.app.persistence.entities.AccountEntity;
+import com.fabiankevin.app.persistence.entities.CategoryEntity;
+import com.fabiankevin.app.persistence.entities.TransactionEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.CategoryService;
@@ -357,6 +360,83 @@ class RecurringTransactionControllerSpringBootTest {
 
     @Nested
     class GetRecurringTransactions {
+
+        @Autowired
+        private JpaTransactionRepository jpaTransactionRepository;
+
+        @Test
+        void givenRecurringTransactionAlreadyOccurred_thenStatusIsPaid_andAfterMonthChange_thenStatusIsUpcoming() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Account account = createAccount(userId, "Cash Wallet");
+            LocalDate today = LocalDate.now();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            RecurringTransaction recurringTransaction = RecurringTransaction.builder()
+                    .userId(userId)
+                    .description("Monthly subscription")
+                    .amount(15.99)
+                    .variableAmount(false)
+                    .category(category)
+                    .account(account)
+                    .dayOfMonth(today.getDayOfMonth())
+                    .nextOccurrenceDate(today)
+                    .endDate(null)
+                    .status(RecurringTransactionStatus.ACTIVE)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            RecurringTransaction saved = recurringTransactionRepository.save(recurringTransaction);
+
+            TransactionEntity linkedTransaction = TransactionEntity.builder()
+                    .account(AccountEntity.from(account))
+                    .category(CategoryEntity.from(category))
+                    .amount(15.99)
+                    .currency(account.currency().getCurrencyCode())
+                    .description("Monthly subscription")
+                    .transactionDate(today)
+                    .recurringTransactionId(saved.id())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            jpaTransactionRepository.save(linkedTransaction);
+
+            // Current month: nextOccurrenceDate <= today and a linked transaction exists → PAID
+            mockMvc.perform(get("/api/recurring-transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].nextOccurrenceDate").value(today.toString()))
+                    .andExpect(jsonPath("$[0].transactionStatus").value("PAID"));
+
+            // Month changes: advance nextOccurrenceDate to next month (> today) → UPCOMING
+            RecurringTransaction advanced = saved.toBuilder()
+                    .nextOccurrenceDate(today.plusMonths(1))
+                    .updatedAt(Instant.now())
+                    .build();
+            recurringTransactionRepository.save(advanced);
+
+            mockMvc.perform(get("/api/recurring-transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].nextOccurrenceDate").value(today.plusMonths(1).toString()))
+                    .andExpect(jsonPath("$[0].transactionStatus").value("UPCOMING"));
+        }
 
         @Test
         void givenRecurringTransactionsExist_thenReturnsListOfSummaries() throws Exception {

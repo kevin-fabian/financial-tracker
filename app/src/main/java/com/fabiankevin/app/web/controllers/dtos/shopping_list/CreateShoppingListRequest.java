@@ -3,6 +3,7 @@ package com.fabiankevin.app.web.controllers.dtos.shopping_list;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingListCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Builder;
 
@@ -21,6 +22,7 @@ public record CreateShoppingListRequest(
         @Schema(description = "Description", example = "Weekly groceries")
         String description,
 
+        @NotNull(message = "categoryId is required")
         @Schema(description = "Category ID", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
         UUID categoryId,
 
