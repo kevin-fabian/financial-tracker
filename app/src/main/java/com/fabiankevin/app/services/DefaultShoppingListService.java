@@ -94,16 +94,24 @@ public class DefaultShoppingListService implements ShoppingListService {
             throw new ShoppingListNotFoundException();
         }
 
+        UUID resolvedCategoryId = command.categoryId() != null
+                ? command.categoryId()
+                : shoppingListRepository.findCategoryIdById(command.shoppingListId()).orElse(null);
+        Category category = resolvedCategoryId != null
+                ? categoryService.getCategoryById(resolvedCategoryId, command.userId())
+                : null;
+
         ShoppingList patched = existing.toBuilder()
                 .name(command.name() != null ? command.name() : existing.name())
                 .description(command.description() != null ? command.description() : existing.description())
                 .budget(command.budget() != null ? command.budget() : existing.budget())
                 .sharedWithUserIds(command.sharedWithUserIds() != null ? command.sharedWithUserIds() : existing.sharedWithUserIds())
+                .category(category)
                 .updatedAt(Instant.now())
                 .build();
 
         ShoppingList saved = shoppingListRepository.save(patched);
-        return toSummary(saved);
+        return toSummary(saved, category);
     }
 
     @Transactional

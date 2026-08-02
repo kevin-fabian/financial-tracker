@@ -12,5 +12,6 @@ public record UpdateShoppingListCommand(
         String description,
         Double budget,
         List<UUID> sharedWithUserIds,
+        UUID categoryId,
         UUID userId) {
 }

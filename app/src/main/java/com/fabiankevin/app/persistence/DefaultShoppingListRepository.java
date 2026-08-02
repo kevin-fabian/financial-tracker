@@ -28,6 +28,11 @@ public class DefaultShoppingListRepository implements ShoppingListRepository {
         return jpaShoppingListRepository.findById(id).map(ShoppingListEntity::toModel);
     }
 
+    @Override
+    public Optional<UUID> findCategoryIdById(UUID id) {
+        return jpaShoppingListRepository.findById(id).map(ShoppingListEntity::getCategoryId);
+    }
+
     @Transactional(readOnly = true)
     @Override
     public List<ShoppingList> findAllByUserId(UUID userId) {

@@ -23,7 +23,10 @@ public record PatchShoppingListRequest(
         Double budget,
 
         @Schema(description = "User IDs to share the list with")
-        List<UUID> sharedWithUserIds
+        List<UUID> sharedWithUserIds,
+
+        @Schema(description = "Category ID", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
+        UUID categoryId
 ) {
     public UpdateShoppingListCommand toCommand(UUID shoppingListId, UUID userId) {
         return UpdateShoppingListCommand.builder()
@@ -32,6 +35,7 @@ public record PatchShoppingListRequest(
                 .description(description())
                 .budget(budget())
                 .sharedWithUserIds(sharedWithUserIds())
+                .categoryId(categoryId())
                 .userId(userId)
                 .build();
     }

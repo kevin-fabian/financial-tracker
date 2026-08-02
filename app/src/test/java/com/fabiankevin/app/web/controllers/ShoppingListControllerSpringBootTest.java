@@ -10,6 +10,7 @@ import com.fabiankevin.app.models.shopping_list.ShoppingItem;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
 import com.fabiankevin.app.services.CategoryService;
+import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.shopping_list.*;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Nested;
@@ -440,7 +441,7 @@ class ShoppingListControllerSpringBootTest {
         }
 
         @Test
-        void givenExistingList_whenPatchSharedWithUserIds_thenPersistsAndDoesNotReturnThem() throws Exception {
+        void givenExistingList_thenShouldPatchSharedWithUserIdsAndPersistsAndDoesNotReturnThem() throws Exception {
             UUID userId = UUID.randomUUID();
             UUID sharedUser1 = UUID.randomUUID();
             UUID sharedUser2 = UUID.randomUUID();
@@ -478,6 +479,60 @@ class ShoppingListControllerSpringBootTest {
             ShoppingList saved = shoppingListRepository.findById(shoppingListId).get();
             Assertions.assertThat(saved.sharedWithUserIds())
                     .containsExactlyInAnyOrder(sharedUser1, sharedUser2);
+        }
+
+        @Test
+        void givenExistingList_thenReturnsUpdatedCategoryFields() throws Exception {
+            UUID userId = UUID.randomUUID();
+            UUID categoryId = UUID.randomUUID();
+
+            ShoppingList shoppingList = ShoppingList.builder()
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .budget(100.0)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
+
+            when(categoryService.getCategoryById(categoryId, userId))
+                    .thenReturn(Category.builder()
+                            .id(categoryId)
+                            .name("Food")
+                            .icon("shopping-cart")
+                            .type(TransactionType.EXPENSE)
+                            .userId(userId)
+                            .active(true)
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build());
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            PatchShoppingListRequest request = PatchShoppingListRequest.builder()
+                    .categoryId(categoryId)
+                    .build();
+
+            mockMvc.perform(patch("/api/shopping-lists/{id}", shoppingListId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(shoppingListId.toString()))
+                    .andExpect(jsonPath("$.categoryId").value(categoryId.toString()))
+                    .andExpect(jsonPath("$.categoryName").value("Food"))
+                    .andExpect(jsonPath("$.categoryIcon").value("shopping-cart"));
+
+            Assertions.assertThat(shoppingListRepository.findCategoryIdById(shoppingListId))
+                    .isPresent()
+                    .contains(categoryId);
         }
 
         @Test
@@ -1283,5 +1338,14 @@ class ShoppingListControllerSpringBootTest {
 
             Assertions.assertThat(shoppingListRepository.findById(shoppingListId).get().items()).hasSize(1);
         }
+    }
+
+    private Category createCategory(UUID userId, String name, TransactionType type, String icon) {
+        return categoryService.createCategory(CreateCategoryCommand.builder()
+                .name(name)
+                .type(type)
+                .icon(icon)
+                .userId(userId)
+                .build());
     }
 }
