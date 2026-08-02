@@ -14,4 +14,6 @@ public interface ShoppingListRepository {
     Optional<UUID> findCategoryIdById(UUID id);
 
     List<ShoppingList> findAllByUserId(UUID userId);
+
+    void deleteById(UUID id);
 }

@@ -241,6 +241,19 @@ public class DefaultShoppingListService implements ShoppingListService {
 
     @Transactional
     @Override
+    public void deleteShoppingList(DeleteShoppingListCommand command) {
+        ShoppingList existing = shoppingListRepository.findById(command.shoppingListId())
+                .orElseThrow(ShoppingListNotFoundException::new);
+
+        if (!existing.userId().equals(command.userId())) {
+            throw new ShoppingListNotFoundException();
+        }
+
+        shoppingListRepository.deleteById(command.shoppingListId());
+    }
+
+    @Transactional
+    @Override
     public List<ShoppingListSummary> getShoppingListsByUserId(UUID userId) {
         List<ShoppingList> shoppingLists = shoppingListRepository.findAllByUserId(userId);
 

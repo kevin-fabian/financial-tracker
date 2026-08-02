@@ -40,4 +40,9 @@ public class DefaultShoppingListRepository implements ShoppingListRepository {
                 .map(ShoppingListEntity::toModel)
                 .toList();
     }
+
+    @Override
+    public void deleteById(UUID id) {
+        jpaShoppingListRepository.deleteById(id);
+    }
 }

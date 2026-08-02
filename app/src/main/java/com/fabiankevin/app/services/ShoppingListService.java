@@ -20,5 +20,7 @@ public interface ShoppingListService {
 
     void deleteShoppingItem(DeleteShoppingItemCommand command);
 
+    void deleteShoppingList(DeleteShoppingListCommand command);
+
     List<ShoppingListSummary> getShoppingListsByUserId(UUID userId);
 }

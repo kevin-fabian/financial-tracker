@@ -1352,6 +1352,65 @@ class ShoppingListControllerSpringBootTest {
         }
     }
 
+    @Nested
+    class DeleteShoppingList {
+
+        @Test
+        void givenExistingListWithItems_thenReturnsNoContentAndDeletesListAndItems() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            ShoppingItem milk = ShoppingItem.builder()
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .priority(ItemPriority.HIGH)
+                    .addedBy(userId)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            ShoppingList shoppingList = ShoppingList.builder()
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .items(new ArrayList<>(List.of(milk)))
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
+
+            mockMvc.perform(delete("/api/shopping-lists/{id}", shoppingListId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json"))
+                    .andExpect(status().isNoContent());
+
+            Assertions.assertThat(shoppingListRepository.findById(shoppingListId)).isEmpty();
+        }
+
+        @Test
+        void givenNonExistentList_thenReturnsNotFound() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            mockMvc.perform(delete("/api/shopping-lists/{id}", UUID.randomUUID())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json"))
+                    .andExpect(status().isNotFound());
+        }
+    }
+
     private Category createCategory(UUID userId, String name, TransactionType type, String icon) {
         return categoryService.createCategory(CreateCategoryCommand.builder()
                 .name(name)

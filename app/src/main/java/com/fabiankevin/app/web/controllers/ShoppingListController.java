@@ -2,6 +2,7 @@ package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.services.ShoppingListService;
 import com.fabiankevin.app.services.shopping_list.commands.DeleteShoppingItemCommand;
+import com.fabiankevin.app.services.shopping_list.commands.DeleteShoppingListCommand;
 import com.fabiankevin.app.web.controllers.dtos.shopping_list.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -184,6 +185,30 @@ public class ShoppingListController {
         shoppingListService.deleteShoppingItem(DeleteShoppingItemCommand.builder()
                 .shoppingListId(shoppingListId)
                 .itemId(itemId)
+                .userId(userId)
+                .build());
+    }
+
+    @Operation(
+            summary = "Delete a shopping list",
+            description = "Deletes the specified shopping list and all its items.",
+            responses = {
+                    @ApiResponse(responseCode = "204", description = "No Content - Shopping list deleted successfully"),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Shopping list not found",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+            }
+    )
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteShoppingList(
+            @PathVariable UUID id,
+            JwtAuthenticationToken jwtAuthenticationToken
+    ) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        shoppingListService.deleteShoppingList(DeleteShoppingListCommand.builder()
+                .shoppingListId(id)
                 .userId(userId)
                 .build());
     }
