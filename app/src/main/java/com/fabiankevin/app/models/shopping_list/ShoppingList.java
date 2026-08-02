@@ -41,4 +41,8 @@ public record ShoppingList(
     public boolean removeItem(UUID itemId) {
         return items.removeIf(item -> item.id().equals(itemId));
     }
+
+    public boolean hasAllItemsPurchased() {
+        return items().stream().allMatch(ShoppingItem::purchased);
+    }
 }

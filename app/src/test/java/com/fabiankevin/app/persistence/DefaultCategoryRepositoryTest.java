@@ -15,12 +15,12 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
@@ -35,7 +35,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@ActiveProfiles("test")
 @DataJpaTest
 @Import(DefaultCategoryRepository.class)
 class DefaultCategoryRepositoryTest {
@@ -493,7 +493,7 @@ class DefaultCategoryRepositoryTest {
                     .category(food)
                     .amount(300.0)
                     .currency("PHP")
-                    .transactionDate(LocalDate.of(2026, 7, 1))
+                    .transactionDate(LocalDate.now())
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -503,7 +503,7 @@ class DefaultCategoryRepositoryTest {
                     .category(rent)
                     .amount(700.0)
                     .currency("PHP")
-                    .transactionDate(LocalDate.of(2026, 7, 1))
+                    .transactionDate(LocalDate.now())
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -565,7 +565,7 @@ class DefaultCategoryRepositoryTest {
                     .category(salary)
                     .amount(5000.0)
                     .currency("PHP")
-                    .transactionDate(LocalDate.of(2026, 7, 1))
+                    .transactionDate(LocalDate.now())
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -575,7 +575,7 @@ class DefaultCategoryRepositoryTest {
                     .category(freelance)
                     .amount(3000.0)
                     .currency("PHP")
-                    .transactionDate(LocalDate.of(2026, 7, 1))
+                    .transactionDate(LocalDate.now())
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -637,7 +637,7 @@ class DefaultCategoryRepositoryTest {
                     .category(food)
                     .amount(500.0)
                     .currency("PHP")
-                    .transactionDate(java.time.LocalDate.of(2026, 7, 1))
+                    .transactionDate(LocalDate.now())
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -647,7 +647,7 @@ class DefaultCategoryRepositoryTest {
                     .category(salary)
                     .amount(5000.0)
                     .currency("PHP")
-                    .transactionDate(java.time.LocalDate.of(2026, 7, 1))
+                    .transactionDate(LocalDate.now())
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();

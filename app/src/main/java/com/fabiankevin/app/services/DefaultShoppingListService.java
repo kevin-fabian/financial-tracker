@@ -4,6 +4,7 @@ import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.EmptyShoppingListException;
 import com.fabiankevin.app.exceptions.ShoppingItemNotFoundException;
 import com.fabiankevin.app.exceptions.ShoppingListNotFoundException;
+import com.fabiankevin.app.exceptions.UnpurchasedItemsException;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
@@ -61,6 +62,10 @@ public class DefaultShoppingListService implements ShoppingListService {
 
         if (existing.items().isEmpty()) {
             throw new EmptyShoppingListException();
+        }
+
+        if (!existing.hasAllItemsPurchased()) {
+            throw new UnpurchasedItemsException();
         }
 
         Instant now = Instant.now();
