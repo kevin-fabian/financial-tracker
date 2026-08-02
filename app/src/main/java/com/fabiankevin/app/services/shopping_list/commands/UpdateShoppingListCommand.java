@@ -1,6 +1,5 @@
 package com.fabiankevin.app.services.shopping_list.commands;
 
-import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import lombok.Builder;
 
 import java.util.List;
@@ -13,6 +12,5 @@ public record UpdateShoppingListCommand(
         String description,
         Double budget,
         List<UUID> sharedWithUserIds,
-        ShoppingListStatus status,
         UUID userId) {
 }

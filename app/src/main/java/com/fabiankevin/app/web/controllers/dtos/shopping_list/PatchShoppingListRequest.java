@@ -1,6 +1,5 @@
 package com.fabiankevin.app.web.controllers.dtos.shopping_list;
 
-import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.services.shopping_list.commands.UpdateShoppingListCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
@@ -24,10 +23,7 @@ public record PatchShoppingListRequest(
         Double budget,
 
         @Schema(description = "User IDs to share the list with")
-        List<UUID> sharedWithUserIds,
-
-        @Schema(description = "Status", example = "ACTIVE")
-        ShoppingListStatus status
+        List<UUID> sharedWithUserIds
 ) {
     public UpdateShoppingListCommand toCommand(UUID shoppingListId, UUID userId) {
         return UpdateShoppingListCommand.builder()
@@ -36,7 +32,6 @@ public record PatchShoppingListRequest(
                 .description(description())
                 .budget(budget())
                 .sharedWithUserIds(sharedWithUserIds())
-                .status(status())
                 .userId(userId)
                 .build();
     }

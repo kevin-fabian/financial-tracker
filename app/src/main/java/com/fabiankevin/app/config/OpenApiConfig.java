@@ -6,7 +6,11 @@ import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.security.OAuthFlow;
 import io.swagger.v3.oas.annotations.security.OAuthFlows;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import org.springdoc.core.models.GroupedOpenApi;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
+@Configuration
 @OpenAPIDefinition(
         info = @Info(title = "${springdoc.api-docs.info.title}",
                 version = "${springdoc.api-docs.info.version}",
@@ -27,4 +31,12 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
         )
 )
 public class OpenApiConfig {
+    @Bean
+    public GroupedOpenApi shoppingListsApi() {
+        return GroupedOpenApi.builder()
+                .group("shopping-lists")
+                .displayName("Shopping Lists API")
+                .pathsToMatch("/api/shopping-lists/**")
+                .build();
+    }
 }

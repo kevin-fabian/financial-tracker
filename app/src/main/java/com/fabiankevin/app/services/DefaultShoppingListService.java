@@ -90,7 +90,6 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .description(command.description() != null ? command.description() : existing.description())
                 .budget(command.budget() != null ? command.budget() : existing.budget())
                 .sharedWithUserIds(command.sharedWithUserIds() != null ? command.sharedWithUserIds() : existing.sharedWithUserIds())
-                .status(command.status() != null ? command.status() : existing.status())
                 .updatedAt(Instant.now())
                 .build();
 

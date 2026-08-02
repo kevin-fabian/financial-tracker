@@ -347,7 +347,6 @@ class ShoppingListControllerSpringBootTest {
             PatchShoppingListRequest request = PatchShoppingListRequest.builder()
                     .name("Weekly Groceries")
                     .budget(250.0)
-                    .status(ShoppingListStatus.ACTIVE)
                     .build();
 
             mockMvc.perform(patch("/api/shopping-lists/{id}", shoppingListId)
