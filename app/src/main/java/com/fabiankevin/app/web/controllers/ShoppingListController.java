@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,7 +30,8 @@ public class ShoppingListController {
             responses = {
                     @ApiResponse(responseCode = "200", description = "OK - Resources retrieved successfully",
                             content = @Content(array = @ArraySchema(schema = @Schema(implementation = ShoppingListSummaryResponse.class)))),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             }
     )
     @GetMapping
@@ -47,16 +49,17 @@ public class ShoppingListController {
             responses = {
                     @ApiResponse(responseCode = "201", description = "Created - Shopping list created successfully",
                             content = @Content(schema = @Schema(implementation = ShoppingListSummaryResponse.class))),
-                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             }
     )
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ShoppingListSummaryResponse createShoppingList(
             @Valid @RequestBody CreateShoppingListRequest request,
-            JwtAuthenticationToken jwtAuthenticationToken
-    ) {
+            JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         return ShoppingListSummaryResponse.from(shoppingListService.createShoppingList(request.toCommand(userId)));
     }
@@ -67,9 +70,12 @@ public class ShoppingListController {
             responses = {
                     @ApiResponse(responseCode = "200", description = "OK - Shopping list completed successfully",
                             content = @Content(schema = @Schema(implementation = ShoppingListSummaryResponse.class))),
-                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
-                    @ApiResponse(responseCode = "404", description = "Not Found - Shopping list not found"),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Shopping list not found",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             }
     )
     @PostMapping("/{id}/complete")
@@ -88,9 +94,12 @@ public class ShoppingListController {
             responses = {
                     @ApiResponse(responseCode = "200", description = "OK - Shopping list updated successfully",
                             content = @Content(schema = @Schema(implementation = ShoppingListSummaryResponse.class))),
-                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
-                    @ApiResponse(responseCode = "404", description = "Not Found - Shopping list not found"),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Shopping list not found",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             }
     )
     @PatchMapping("/{id}")
@@ -109,9 +118,12 @@ public class ShoppingListController {
             responses = {
                     @ApiResponse(responseCode = "201", description = "Created - Item added successfully",
                             content = @Content(schema = @Schema(implementation = ShoppingItemResponse.class))),
-                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
-                    @ApiResponse(responseCode = "404", description = "Not Found - Shopping list not found"),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Shopping list not found",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             }
     )
     @PostMapping("/{id}/items")
@@ -131,9 +143,12 @@ public class ShoppingListController {
             responses = {
                     @ApiResponse(responseCode = "200", description = "OK - Item updated successfully",
                             content = @Content(schema = @Schema(implementation = ShoppingItemResponse.class))),
-                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
-                    @ApiResponse(responseCode = "404", description = "Not Found - Shopping list or item not found"),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Shopping list or item not found",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             }
     )
     @PatchMapping("/{id}/items/{itemId}")
@@ -152,8 +167,10 @@ public class ShoppingListController {
             description = "Deletes a shopping item from the specified shopping list.",
             responses = {
                     @ApiResponse(responseCode = "204", description = "No Content - Item deleted successfully"),
-                    @ApiResponse(responseCode = "404", description = "Not Found - Shopping list or item not found"),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+                    @ApiResponse(responseCode = "404", description = "Not Found - Shopping list or item not found",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             }
     )
     @DeleteMapping("/{id}/items/{itemId}")

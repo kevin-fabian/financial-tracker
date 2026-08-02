@@ -33,6 +33,7 @@ References:
 - Controllers must be HTTP adapters only: request mapping, auth/context extraction, DTO mapping, and service invocation.
 - Keep request/response contracts at the web boundary as web DTOs; do not expose entities from controller APIs.
 - Document public endpoints and DTOs with Swagger v3 annotations (`@Operation`, `@ApiResponse`, `@Schema`) for method, request body, and response.
+- For `4xx` and `5xx` `@ApiResponse` entries, document the error body with `@Content(schema = @Schema(implementation = ProblemDetail.class))` so the OpenAPI spec reflects the `ProblemDetail` payload returned by the global exception handler.
 - Use explicit mapping: `Request -> Command/Query` and `Domain Model -> Response`.
 - Keep business validation and domain rules in services/domain models, not in controllers.
 - Never accept ownership identifiers (`userId`, tenant id, organization id) from client request payloads when server context is available.
@@ -207,9 +208,12 @@ public class ItemController {
         summary = "Create a new item",
         description = "Creates a new item and returns the created entity.",
         responses = {
-            @ApiResponse(responseCode = "201", description = "Created - Item created."),
-            @ApiResponse(responseCode = "400", description = "Bad Request - Invalid request."),
-            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure.")
+            @ApiResponse(responseCode = "201", description = "Created - Item created.",
+                content = @Content(schema = @Schema(implementation = ItemResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Bad Request - Invalid request.",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure.",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
         }
     )
     public ItemResponse create(
@@ -238,9 +242,12 @@ public class AccountController {
         description = "Activates the specified account. Returns 204 on success.",
         responses = {
             @ApiResponse(responseCode = "204", description = "No Content - Account activated."),
-            @ApiResponse(responseCode = "404", description = "Not Found - Account not found."),
-            @ApiResponse(responseCode = "409", description = "Conflict - Account is already active."),
-            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure.")
+            @ApiResponse(responseCode = "404", description = "Not Found - Account not found.",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "409", description = "Conflict - Account is already active.",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure.",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
         }
     )
     public ResponseEntity<Void> activateAccount(
@@ -272,8 +279,10 @@ public class AccountActivationController {
         responses = {
             @ApiResponse(responseCode = "201", description = "Created - Activation request created.",
                 content = @Content(schema = @Schema(implementation = AccountActivationResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Bad Request - Invalid request."),
-            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure.")
+            @ApiResponse(responseCode = "400", description = "Bad Request - Invalid request.",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure.",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
         }
     )
     public AccountActivationResponse createActivation(
@@ -513,6 +522,7 @@ Guidance:
 - request/response models at HTTP boundary are web DTOs
 - request validation is applied at DTO/controller boundary
 - swagger v3 annotations cover method, request body DTO, and response DTO
+- `4xx` and `5xx` `@ApiResponse` entries document the error body with `@Content(schema = @Schema(implementation = ProblemDetail.class))`
 - ownership context is derived from trusted server-side authentication context
 - mapping is explicit (`Request -> Command/Query`, `Domain -> Response`)
 - services and persistence layers are extended only when needed
