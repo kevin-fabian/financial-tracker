@@ -5,6 +5,7 @@ import com.fabiankevin.app.exceptions.EmptyShoppingListException;
 import com.fabiankevin.app.exceptions.ShoppingItemNotFoundException;
 import com.fabiankevin.app.exceptions.ShoppingListNotFoundException;
 import com.fabiankevin.app.exceptions.UnpurchasedItemsException;
+import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
@@ -30,14 +31,20 @@ import java.util.stream.Collectors;
 public class DefaultShoppingListService implements ShoppingListService {
     private final ShoppingListRepository shoppingListRepository;
     private final UserClient userClient;
+    private final CategoryService categoryService;
 
     @Transactional
     @Override
     public ShoppingListSummary createShoppingList(CreateShoppingListCommand command) {
         Instant now = Instant.now();
+        Category category = command.categoryId() != null
+                ? categoryService.getCategoryById(command.categoryId(), command.userId())
+                : null;
+
         ShoppingList shoppingList = ShoppingList.builder()
                 .name(command.name())
                 .description(command.description())
+                .category(category)
                 .status(ShoppingListStatus.ACTIVE)
                 .userId(command.userId())
                 .sharedWithUserIds(command.sharedWithUserIds())
@@ -47,7 +54,7 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .build();
 
         ShoppingList saved = shoppingListRepository.save(shoppingList);
-        return toSummary(saved);
+        return toSummary(saved, category);
     }
 
     @Transactional
@@ -256,6 +263,7 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .id(shoppingList.id())
                 .name(shoppingList.name())
                 .description(shoppingList.description())
+                .category(shoppingList.category())
                 .status(shoppingList.status())
                 .items(items)
                 .user(user)
@@ -291,5 +299,15 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .orElse(null);
         Map<UUID, User> usersById = user != null ? Map.of(user.id(), user) : Map.of();
         return toSummary(shoppingList, user, usersById);
+    }
+
+    private ShoppingListSummary toSummary(ShoppingList shoppingList, Category category) {
+        User user = userClient.getUsersByIds(List.of(shoppingList.userId()))
+                .stream()
+                .findFirst()
+                .orElse(null);
+        Map<UUID, User> usersById = user != null ? Map.of(user.id(), user) : Map.of();
+        ShoppingList restored = shoppingList.toBuilder().category(category).build();
+        return toSummary(restored, user, usersById);
     }
 }

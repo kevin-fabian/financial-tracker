@@ -39,6 +39,9 @@ class DefaultShoppingListServiceTest {
     @Mock
     private UserClient userClient;
 
+    @Mock
+    private CategoryService categoryService;
+
     @InjectMocks
     private DefaultShoppingListService shoppingListService;
 

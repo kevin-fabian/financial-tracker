@@ -21,6 +21,9 @@ public record CreateShoppingListRequest(
         @Schema(description = "Description", example = "Weekly groceries")
         String description,
 
+        @Schema(description = "Category ID", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
+        UUID categoryId,
+
         @Schema(description = "Budget", example = "200.0")
         double budget,
 
@@ -31,6 +34,7 @@ public record CreateShoppingListRequest(
         return CreateShoppingListCommand.builder()
                 .name(name())
                 .description(description())
+                .categoryId(categoryId())
                 .userId(userId)
                 .budget(budget())
                 .sharedWithUserIds(sharedWithUserIds())

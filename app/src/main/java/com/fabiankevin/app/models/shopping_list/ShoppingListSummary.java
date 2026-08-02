@@ -1,5 +1,6 @@
 package com.fabiankevin.app.models.shopping_list;
 
+import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import lombok.Builder;
@@ -15,6 +16,7 @@ public record ShoppingListSummary(
         UUID id,
         String name,
         String description,
+        Category category,
         ShoppingListStatus status,
         List<ShoppingItemSummary> items,
         User user,

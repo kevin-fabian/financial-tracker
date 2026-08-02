@@ -36,6 +36,9 @@ public class ShoppingListEntity {
     @Column(name = "user_id")
     private UUID userId;
 
+    @Column(name = "category_id")
+    private UUID categoryId;
+
     @ElementCollection
     @CollectionTable(
             name = "shopping_lists_shared_users",
@@ -74,6 +77,7 @@ public class ShoppingListEntity {
                 .id(shoppingList.id())
                 .name(shoppingList.name())
                 .description(shoppingList.description())
+                .categoryId(shoppingList.category() != null ? shoppingList.category().id() : null)
                 .status(shoppingList.status())
                 .userId(shoppingList.userId())
                 .sharedWithUserIds(shoppingList.sharedWithUserIds())
@@ -97,6 +101,7 @@ public class ShoppingListEntity {
                 .id(this.id)
                 .name(this.name)
                 .description(this.description)
+                .category(null)
                 .status(this.status)
                 .userId(this.userId)
                 .sharedWithUserIds(this.sharedWithUserIds != null ? new ArrayList<>(this.sharedWithUserIds) : new ArrayList<>())

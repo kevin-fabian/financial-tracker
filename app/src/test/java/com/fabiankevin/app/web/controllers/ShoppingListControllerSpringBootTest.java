@@ -1,12 +1,15 @@
 package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.clients.UserClient;
+import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ItemPriority;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
+import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
+import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.web.controllers.dtos.shopping_list.*;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Nested;
@@ -59,6 +62,9 @@ class ShoppingListControllerSpringBootTest {
     @MockitoBean
     private UserClient userClient;
 
+    @MockitoBean
+    private CategoryService categoryService;
+
     @Autowired
     private ShoppingListRepository shoppingListRepository;
 
@@ -71,12 +77,26 @@ class ShoppingListControllerSpringBootTest {
         @Test
         void givenValidRequest_thenReturnsCreatedWithSummary() throws Exception {
             UUID userId = UUID.randomUUID();
+            UUID categoryId = UUID.randomUUID();
 
             CreateShoppingListRequest request = CreateShoppingListRequest.builder()
                     .name("Groceries")
                     .description("Weekly groceries")
+                    .categoryId(categoryId)
                     .budget(200.0)
                     .build();
+
+            when(categoryService.getCategoryById(categoryId, userId))
+                    .thenReturn(Category.builder()
+                            .id(categoryId)
+                            .name("Food")
+                            .icon("shopping-cart")
+                            .type(TransactionType.EXPENSE)
+                            .userId(userId)
+                            .active(true)
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build());
 
             when(userClient.getUsersByIds(List.of(userId)))
                     .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
@@ -97,6 +117,9 @@ class ShoppingListControllerSpringBootTest {
                     .andExpect(jsonPath("$.description").value("Weekly groceries"))
                     .andExpect(jsonPath("$.status").value("ACTIVE"))
                     .andExpect(jsonPath("$.budget").value(200.0))
+                    .andExpect(jsonPath("$.categoryId").value(categoryId.toString()))
+                    .andExpect(jsonPath("$.categoryName").value("Food"))
+                    .andExpect(jsonPath("$.categoryIcon").value("shopping-cart"))
                     .andExpect(jsonPath("$.firstName").value("John"))
                     .andExpect(jsonPath("$.lastName").value("Doe"))
                     .andExpect(jsonPath("$.initial").value("JD"))

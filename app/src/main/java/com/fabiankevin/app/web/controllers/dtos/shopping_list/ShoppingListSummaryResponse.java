@@ -1,5 +1,6 @@
 package com.fabiankevin.app.web.controllers.dtos.shopping_list;
 
+import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
@@ -37,6 +38,15 @@ public record ShoppingListSummaryResponse(
         @Schema(description = "Items in the shopping list")
         List<ShoppingItemResponse> items,
 
+        @Schema(description = "Category ID", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
+        UUID categoryId,
+
+        @Schema(description = "Category name", example = "Food")
+        String categoryName,
+
+        @Schema(description = "Category icon", example = "shopping-cart")
+        String categoryIcon,
+
         @Schema(description = "User first name", example = "Kevin")
         String firstName,
 
@@ -54,6 +64,7 @@ public record ShoppingListSummaryResponse(
 ) {
     public static ShoppingListSummaryResponse from(ShoppingListSummary summary) {
         User user = summary.user();
+        Category category = summary.category();
         List<ShoppingItemResponse> items = summary.items().stream()
                 .map(ShoppingItemResponse::from)
                 .toList();
@@ -66,6 +77,9 @@ public record ShoppingListSummaryResponse(
                 .finalAmount(summary.finalAmount())
                 .completedAt(summary.completedAt())
                 .items(items)
+                .categoryId(category != null ? category.id() : null)
+                .categoryName(category != null ? category.name() : null)
+                .categoryIcon(category != null ? category.icon() : null)
                 .firstName(user != null ? user.firstName() : null)
                 .lastName(user != null ? user.lastName() : null)
                 .initial(user != null ? user.initial() : null)

@@ -11,6 +11,7 @@ import java.util.UUID;
 public record CreateShoppingListCommand(
         String name,
         String description,
+        UUID categoryId,
         UUID userId,
         double budget,
         List<UUID> sharedWithUserIds) {
