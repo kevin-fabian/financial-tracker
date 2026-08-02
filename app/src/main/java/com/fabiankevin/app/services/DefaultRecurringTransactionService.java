@@ -14,6 +14,7 @@ import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.recurring_transactions.commands.CreateRecurringTransactionCommand;
 import com.fabiankevin.app.services.recurring_transactions.commands.UpdateRecurringTransactionCommand;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DefaultRecurringTransactionService implements RecurringTransactionService {
@@ -229,6 +231,7 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
 
         try (Stream<RecurringTransaction> stream = recurringTransactionRepository.streamDueRecurringTransactions(today)) {
             stream.forEach(recurring -> {
+                log.info("Recurring txn: {}", recurring.account());
                 Transaction transaction = Transaction.builder()
                         .account(recurring.account())
                         .category(recurring.category())

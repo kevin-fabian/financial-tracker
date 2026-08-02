@@ -1102,7 +1102,7 @@ class RecurringTransactionControllerSpringBootTest {
         }
 
         @Test
-        void givenDueRecurringTransaction_thenProcessDueAdvancesNextOccurrenceDateToNextMonth() throws Exception {
+        void givenDueRecurringTransaction_thenProcessDueAdvancesNextOccurrenceDateToNextMonth() {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
             Account account = createAccount(userId, "Cash Wallet");
@@ -1134,6 +1134,37 @@ class RecurringTransactionControllerSpringBootTest {
             RecurringTransaction updated = recurringTransactionRepository.findByIdAndUserId(saved.id(), userId).orElseThrow();
             LocalDate expectedNextOccurrenceDate = today.plusMonths(1).withDayOfMonth(dayOfMonth);
             assertEquals(expectedNextOccurrenceDate, updated.nextOccurrenceDate());
+        }
+
+        @Test
+        void givenProcessTwice_thenShouldExecuteOnlyOnce() {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Account account = createAccount(userId, "Cash Wallet");
+            LocalDate today = LocalDate.now().atStartOfDay().toLocalDate();
+            int dayOfMonth = today.plusMonths(1).lengthOfMonth() >= 15 ? 15 : today.plusMonths(1).lengthOfMonth();
+            LocalDate pastDate = today.minusDays(1);
+
+            RecurringTransaction recurringTransaction = RecurringTransaction.builder()
+                    .userId(userId)
+                    .description("Due transaction")
+                    .amount(10.0)
+                    .variableAmount(false)
+                    .category(category)
+                    .account(account)
+                    .dayOfMonth(dayOfMonth)
+                    .nextOccurrenceDate(pastDate)
+                    .endDate(null)
+                    .status(RecurringTransactionStatus.ACTIVE)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            recurringTransactionRepository.save(recurringTransaction);
+
+            recurringTransactionService.processDueRecurringTransactions();
+            verify(recurringTransactionRepository, timeout(Duration.ofSeconds(10).toMillis()).atLeastOnce()).saveAll(anyList());
+            recurringTransactionService.processDueRecurringTransactions();
+            verify(recurringTransactionRepository, timeout(Duration.ofSeconds(10).toMillis()).times(1)).saveAll(anyList());
         }
 
         @Test
