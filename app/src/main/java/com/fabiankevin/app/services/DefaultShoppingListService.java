@@ -19,10 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -37,9 +34,9 @@ public class DefaultShoppingListService implements ShoppingListService {
     @Override
     public ShoppingListSummary createShoppingList(CreateShoppingListCommand command) {
         Instant now = Instant.now();
-        Category category = command.categoryId() != null
-                ? categoryService.getCategoryById(command.categoryId(), command.userId())
-                : null;
+        Category category = Optional.ofNullable(command.categoryId())
+                .map(id -> categoryService.getCategoryById(id, command.userId()))
+                .orElse(null);
 
         ShoppingList shoppingList = ShoppingList.builder()
                 .name(command.name())
@@ -293,21 +290,23 @@ public class DefaultShoppingListService implements ShoppingListService {
     }
 
     private ShoppingListSummary toSummary(ShoppingList shoppingList) {
-        User user = userClient.getUsersByIds(List.of(shoppingList.userId()))
+        Optional<User> userOpt = userClient.getUsersByIds(List.of(shoppingList.userId()))
                 .stream()
-                .findFirst()
-                .orElse(null);
-        Map<UUID, User> usersById = user != null ? Map.of(user.id(), user) : Map.of();
-        return toSummary(shoppingList, user, usersById);
+                .findFirst();
+        Map<UUID, User> usersById = userOpt
+                .map(u -> Map.of(u.id(), u))
+                .orElseGet(Map::of);
+        return toSummary(shoppingList, userOpt.orElse(null), usersById);
     }
 
     private ShoppingListSummary toSummary(ShoppingList shoppingList, Category category) {
-        User user = userClient.getUsersByIds(List.of(shoppingList.userId()))
+        Optional<User> userOpt = userClient.getUsersByIds(List.of(shoppingList.userId()))
                 .stream()
-                .findFirst()
-                .orElse(null);
-        Map<UUID, User> usersById = user != null ? Map.of(user.id(), user) : Map.of();
+                .findFirst();
+        Map<UUID, User> usersById = userOpt
+                .map(u -> Map.of(u.id(), u))
+                .orElseGet(Map::of);
         ShoppingList restored = shoppingList.toBuilder().category(category).build();
-        return toSummary(restored, user, usersById);
+        return toSummary(restored, userOpt.orElse(null), usersById);
     }
 }
