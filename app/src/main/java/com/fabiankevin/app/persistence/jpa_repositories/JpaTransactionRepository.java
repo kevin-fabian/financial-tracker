@@ -81,8 +81,10 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
 
     @Query("""
             SELECT t FROM TransactionEntity t
-            WHERE t.account.userId IN :userIds
-              AND (:type IS NULL OR t.category.transactionType = :type)
+            JOIN FETCH t.account a
+            JOIN FETCH t.category c
+            WHERE a.userId IN :userIds
+              AND (:type IS NULL OR c.transactionType = :type)
             """)
     Page<TransactionEntity> findAllByUserIdsAndType(
             @Param("userIds") Set<UUID> userIds,
