@@ -43,14 +43,13 @@ CREATE TABLE IF NOT EXISTS transactions (
     amount NUMERIC(12, 2) NOT NULL,
     currency VARCHAR(3) NOT NULL,
     transaction_date DATE NOT NULL,
-    transaction_type VARCHAR(10) NOT NULL CHECK (transaction_type IN ('INCOME', 'EXPENSE')),
     description TEXT NULL,
+    recurring_transaction_id UUID NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT fk_transactions_account_id FOREIGN KEY (account_id) REFERENCES accounts (id),
     CONSTRAINT fk_transactions_category_id FOREIGN KEY (category_id) REFERENCES categories (id)
 );
--- add a composite index for transaction date and transaction_type
-CREATE INDEX IF NOT EXISTS idx_transactions_date_type ON transactions (transaction_date, transaction_type);
+CREATE INDEX IF NOT EXISTS idx_transactions_recurring_transaction_id ON transactions (recurring_transaction_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_account_id ON transactions (account_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_category_id ON transactions (category_id);
