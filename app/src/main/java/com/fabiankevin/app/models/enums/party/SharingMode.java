@@ -7,9 +7,9 @@ import lombok.Getter;
 @Getter
 public enum SharingMode {
     EVEN_SHARE("Even Share", """
-            Splits everything equally! All party members share
-            full access to view, co-manage, and update your
-            selected shared elements in real time.
+            Splits everything equally! All party members have
+            equal access to view the all party member transactions
+            in real time.
             """);
 
     private final String name;

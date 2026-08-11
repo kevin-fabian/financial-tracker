@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.util.Streamable;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.Set;
@@ -162,4 +163,15 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
     double sumSpentByCategoryIdAndUserId(@Param("categoryId") UUID categoryId, @Param("userId") UUID userId);
 
     Optional<TransactionEntity> findByRecurringTransactionId(UUID recurringTransactionId);
+
+    @Query("""
+            SELECT COUNT(t)
+            FROM TransactionEntity t
+            WHERE t.account.userId = :userId
+              AND t.createdAt >= :startInclusive
+              AND t.createdAt < :endExclusive
+            """)
+    long countByUserIdAndCreatedAtBetween(@Param("userId") UUID userId,
+                                          @Param("startInclusive") Instant startInclusive,
+                                          @Param("endExclusive") Instant endExclusive);
 }

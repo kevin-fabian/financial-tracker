@@ -12,6 +12,7 @@ import com.fabiankevin.app.services.DefaultTransactionService;
 import com.fabiankevin.app.services.PartyService;
 import com.fabiankevin.app.services.StatsService;
 import com.fabiankevin.app.services.summaries.SummaryGenerator;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -53,13 +54,15 @@ public class AppConfig {
             TransactionRepository transactionRepository,
             List<SummaryGenerator> generators,
             PartyRepository partyRepository,
-            CompositeTransactionEventPublisher compositeTransactionEventPublisher) {
+            CompositeTransactionEventPublisher compositeTransactionEventPublisher,
+            @Value("${transaction.daily-limit:100}") int dailyTransactionLimit) {
         return new DefaultTransactionService(
                 accountRepository,
                 categoryRepository,
                 transactionRepository,
                 generators,
                 partyRepository,
-                compositeTransactionEventPublisher);
+                compositeTransactionEventPublisher,
+                dailyTransactionLimit);
     }
 }

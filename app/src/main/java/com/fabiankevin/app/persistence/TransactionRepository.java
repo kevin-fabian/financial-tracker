@@ -34,4 +34,5 @@ public interface TransactionRepository {
     List<SummaryPoint> getDailyAveragePastWeek(Set<UUID> userIds);
     double sumSpentByCategoryIdAndUserId(UUID categoryId, UUID userId);
     Optional<Transaction> findByRecurringTransactionId(UUID id);
+    long countByUserIdAndCreatedAtOnDate(UUID userId, LocalDate date);
 }

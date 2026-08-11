@@ -3,6 +3,7 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.events.EventPublisher;
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
+import com.fabiankevin.app.exceptions.DailyTransactionLimitExceededException;
 import com.fabiankevin.app.exceptions.TransactionNotFoundException;
 import com.fabiankevin.app.models.*;
 import com.fabiankevin.app.models.enums.EventAction;
@@ -22,6 +23,7 @@ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -34,6 +36,7 @@ public class DefaultTransactionService implements TransactionService {
     private final Map<SummaryType, SummaryGenerator> generators;
     private final PartyRepository partyRepository;
     private final EventPublisher<Transaction> compositeEventPublisher;
+    private final int dailyTransactionLimit;
 
     public DefaultTransactionService(
             AccountRepository accountRepository,
@@ -41,7 +44,8 @@ public class DefaultTransactionService implements TransactionService {
             TransactionRepository transactionRepository,
             List<SummaryGenerator> generators,
             PartyRepository partyRepository,
-            EventPublisher<Transaction> compositeEventPublisher) {
+            EventPublisher<Transaction> compositeEventPublisher,
+            int dailyTransactionLimit) {
         this.accountRepository = accountRepository;
         this.categoryRepository = categoryRepository;
         this.transactionRepository = transactionRepository;
@@ -52,6 +56,7 @@ public class DefaultTransactionService implements TransactionService {
                 ));
         this.partyRepository = partyRepository;
         this.compositeEventPublisher = compositeEventPublisher;
+        this.dailyTransactionLimit = dailyTransactionLimit;
     }
 
     @Transactional
@@ -73,6 +78,11 @@ public class DefaultTransactionService implements TransactionService {
     @Override
     public Transaction addTransaction(AddTransactionCommand command) {
         UUID userId = command.userId();
+        LocalDate today = LocalDate.now();
+        long existingCount = transactionRepository.countByUserIdAndCreatedAtOnDate(userId, today);
+        if (existingCount >= dailyTransactionLimit) {
+            throw new DailyTransactionLimitExceededException(dailyTransactionLimit);
+        }
         Account account = accountRepository.findById(command.accountId())
                 .filter(acc -> acc.userId().equals(userId))
                 .orElseThrow(AccountNotFoundException::new);

@@ -3,6 +3,7 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.events.EventPublisher;
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
+import com.fabiankevin.app.exceptions.DailyTransactionLimitExceededException;
 import com.fabiankevin.app.exceptions.TransactionNotFoundException;
 import com.fabiankevin.app.models.*;
 import com.fabiankevin.app.models.enums.SummaryType;
@@ -59,7 +60,8 @@ class DefaultTransactionServiceTest {
                 transactionRepository,
                 summaryGenerators,
                 partyRepository,
-                eventPublisher
+                eventPublisher,
+                100
         );
     }
 
@@ -100,6 +102,7 @@ class DefaultTransactionServiceTest {
 
            assertEquals("Food and drinks", transaction.description(), "description should match");
 
+           verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, LocalDate.now());
            verify(accountRepository, times(1)).findById(command.accountId());
            verify(categoryRepository, times(1)).findById(command.categoryId());
            verify(transactionRepository, times(1)).save(any());
@@ -119,6 +122,7 @@ class DefaultTransactionServiceTest {
            when(accountRepository.findById(command.accountId())).thenReturn(Optional.empty());
 
            assertThrows(AccountNotFoundException.class, () -> transactionService.addTransaction(command));
+           verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, LocalDate.now());
            verify(accountRepository, times(1)).findById(command.accountId());
            verify(categoryRepository, never()).findById(any());
            verify(transactionRepository, never()).save(any());
@@ -144,6 +148,7 @@ class DefaultTransactionServiceTest {
                    .build()));
 
            assertThrows(AccountNotFoundException.class, () -> transactionService.addTransaction(command));
+           verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, LocalDate.now());
            verify(accountRepository, times(1)).findById(command.accountId());
            verify(categoryRepository, never()).findById(any());
            verify(transactionRepository, never()).save(any());
@@ -169,6 +174,7 @@ class DefaultTransactionServiceTest {
            when(categoryRepository.findById(command.categoryId())).thenReturn(Optional.empty());
 
            assertThrows(CategoryNotFoundException.class, () -> transactionService.addTransaction(command));
+           verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, LocalDate.now());
            verify(accountRepository, times(1)).findById(command.accountId());
            verify(categoryRepository, times(1)).findById(command.categoryId());
            verify(transactionRepository, never()).save(any());
@@ -200,6 +206,7 @@ class DefaultTransactionServiceTest {
                    .build()));
 
            assertThrows(CategoryNotFoundException.class, () -> transactionService.addTransaction(command));
+           verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, LocalDate.now());
            verify(accountRepository, times(1)).findById(command.accountId());
            verify(categoryRepository, times(1)).findById(command.categoryId());
            verify(transactionRepository, never()).save(any());
@@ -237,6 +244,7 @@ class DefaultTransactionServiceTest {
            Transaction transaction = transactionService.addTransaction(command);
 
            assertEquals("Food and drinks", transaction.description());
+           verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, LocalDate.now());
            verify(partyRepository, times(1)).findByPlayerId(userId);
            verify(eventPublisher, times(1)).publish(eq(sharedSpaceId), any());
        }
@@ -270,8 +278,30 @@ class DefaultTransactionServiceTest {
            Transaction transaction = transactionService.addTransaction(command);
 
            assertEquals("Food and drinks", transaction.description());
+           verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, LocalDate.now());
            verify(partyRepository, times(1)).findByPlayerId(userId);
            verify(eventPublisher, never()).publish(any(), any());
+       }
+
+       @Test
+       void givenDailyLimitReachedOnCurrentDay_thenShouldThrow() {
+           UUID userId = UUID.randomUUID();
+           LocalDate today = LocalDate.now();
+           AddTransactionCommand command = AddTransactionCommand.builder()
+                   .userId(userId)
+                   .amount(Amount.of(100, Currency.getInstance("PHP")))
+                   .accountId(UUID.randomUUID())
+                   .description("Food and drinks")
+                   .categoryId(UUID.randomUUID())
+                   .transactionDate(today)
+                   .build();
+           when(transactionRepository.countByUserIdAndCreatedAtOnDate(userId, today)).thenReturn(100L);
+
+           assertThrows(DailyTransactionLimitExceededException.class, () -> transactionService.addTransaction(command));
+           verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, today);
+           verify(accountRepository, never()).findById(any());
+           verify(categoryRepository, never()).findById(any());
+           verify(transactionRepository, never()).save(any());
        }
    }
 

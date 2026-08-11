@@ -13,7 +13,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -176,5 +178,12 @@ public class DefaultTransactionRepository implements TransactionRepository {
     public Optional<Transaction> findByRecurringTransactionId(UUID id) {
         return jpaTransactionRepository.findByRecurringTransactionId(id)
                 .map(TransactionEntity::toModel);
+    }
+
+    @Override
+    public long countByUserIdAndCreatedAtOnDate(UUID userId, LocalDate date) {
+        Instant startInclusive = date.atStartOfDay(ZoneId.systemDefault()).toInstant();
+        Instant endExclusive = date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+        return jpaTransactionRepository.countByUserIdAndCreatedAtBetween(userId, startInclusive, endExclusive);
     }
 }

@@ -12,7 +12,6 @@ public record AccountSummaryProjection(
         String currency,
         String type,
         boolean active,
-        boolean system,
         double totalBalance,
         int totalTransactions) {
 }

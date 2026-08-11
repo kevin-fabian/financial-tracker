@@ -52,7 +52,7 @@ public class InMemoryUserCategoryProvisioner implements UserCategoryProvisioner 
                             .build()
             )),
 
-            // === Essential Housing & Living Expenses ===
+            // === Housing & Living Expenses ===
             Map.entry("groceries", List.of(
                     CreateCategoryCommand.builder()
                             .name("Groceries")
@@ -65,24 +65,13 @@ public class InMemoryUserCategoryProvisioner implements UserCategoryProvisioner 
                             .name("Housing & Rent")
                             .type(EXPENSE)
                             .icon("home")
-                            .build(),
-                    CreateCategoryCommand.builder()
-                            .name("Home Maintenance")
-                            .type(EXPENSE)
-                            .icon("build")
                             .build()
             )),
-
             Map.entry("bills", List.of(
                     CreateCategoryCommand.builder()
                             .name("Utilities & Bills")
                             .type(EXPENSE)
                             .icon("receipt_long")
-                            .build(),
-                    CreateCategoryCommand.builder()
-                            .name("Subscriptions")
-                            .type(EXPENSE)
-                            .icon("card_membership")
                             .build()
             )),
 
@@ -104,16 +93,6 @@ public class InMemoryUserCategoryProvisioner implements UserCategoryProvisioner 
                             .name("Shopping")
                             .type(EXPENSE)
                             .icon("shopping_bag")
-                            .build(),
-                    CreateCategoryCommand.builder()
-                            .name("Personal Care")
-                            .type(EXPENSE)
-                            .icon("face")
-                            .build(),
-                    CreateCategoryCommand.builder()
-                            .name("Clothing & Footwear")
-                            .type(EXPENSE)
-                            .icon("checkroom")
                             .build()
             )),
 
@@ -194,7 +173,7 @@ public class InMemoryUserCategoryProvisioner implements UserCategoryProvisioner 
             )),
             Map.entry("education", List.of(
                     CreateCategoryCommand.builder()
-                            .name("Tuition & School Fees")
+                            .name("Education")
                             .type(EXPENSE)
                             .icon("account_balance_wallet")
                             .build(),
@@ -217,7 +196,7 @@ public class InMemoryUserCategoryProvisioner implements UserCategoryProvisioner 
             // === VEHICLE EXPENSES ===
             Map.entry("vehicle", List.of(  // [NEW GROUP] For car owners
                     CreateCategoryCommand.builder()
-                            .name("Fuel & Gas")
+                            .name("Vehicle")
                             .type(EXPENSE)
                             .icon("local_gas_station")
                             .build(),
@@ -253,18 +232,6 @@ public class InMemoryUserCategoryProvisioner implements UserCategoryProvisioner 
                             .name("Investments")
                             .type(INCOME)
                             .icon("trending_up")
-                            .build()
-            )),
-            Map.entry("allowances_gifts", List.of(
-                    CreateCategoryCommand.builder()
-                            .name("Gifts & Allowances")  // Income gifts
-                            .type(INCOME)
-                            .icon("card_giftcard")
-                            .build(),
-                    CreateCategoryCommand.builder()
-                            .name("Government Benefits")  // [NEW] Social security, unemployment, etc.
-                            .type(INCOME)
-                            .icon("account_balance")
                             .build()
             ))
     );
