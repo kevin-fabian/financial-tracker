@@ -51,7 +51,7 @@ class DefaultInvitationRepositoryTest {
                 .inviterPlayerId(UUID.randomUUID())
                 .inviteePlayerId(UUID.randomUUID())
                 .proposedSharingMode(SharingMode.EVEN_SHARE)
-                .proposedRole(AccessLevel.READ_WRITE)
+                .proposedRole(AccessLevel.VIEW_ONLY)
                 .status(InvitationStatus.PENDING)
                 .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(86400))
@@ -71,7 +71,7 @@ class DefaultInvitationRepositoryTest {
         Assertions.assertThat(restored.inviterPlayerId()).isEqualTo(invitation.inviterPlayerId());
         Assertions.assertThat(restored.inviteePlayerId()).isEqualTo(invitation.inviteePlayerId());
         Assertions.assertThat(restored.proposedSharingMode()).isEqualTo(SharingMode.EVEN_SHARE);
-        Assertions.assertThat(restored.proposedRole()).isEqualTo(AccessLevel.READ_WRITE);
+        Assertions.assertThat(restored.proposedRole()).isEqualTo(AccessLevel.VIEW_ONLY);
         Assertions.assertThat(restored.status()).isEqualTo(InvitationStatus.PENDING);
         Assertions.assertThat(restored.createdAt()).isEqualTo(invitation.createdAt());
         Assertions.assertThat(restored.expiresAt()).isEqualTo(invitation.expiresAt());
@@ -90,7 +90,7 @@ class DefaultInvitationRepositoryTest {
                 .inviterPlayerId(UUID.randomUUID())
                 .inviteePlayerId(inviteeUserId)
                 .proposedSharingMode(SharingMode.EVEN_SHARE)
-                .proposedRole(AccessLevel.READ_WRITE)
+                .proposedRole(AccessLevel.VIEW_ONLY)
                 .status(InvitationStatus.ACCEPTED)
                 .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(86400))
@@ -117,7 +117,7 @@ class DefaultInvitationRepositoryTest {
         Assertions.assertThat(found.get().inviteePlayerId()).isEqualTo(invitation.inviteePlayerId());
         Assertions.assertThat(found.get().status()).isEqualTo(InvitationStatus.PENDING);
         Assertions.assertThat(found.get().proposedSharingMode()).isEqualTo(SharingMode.EVEN_SHARE);
-        Assertions.assertThat(found.get().proposedRole()).isEqualTo(AccessLevel.READ_WRITE);
+        Assertions.assertThat(found.get().proposedRole()).isEqualTo(AccessLevel.VIEW_ONLY);
 
         verify(jpaInvitationRepository, times(1)).findById(saved.id());
     }
@@ -139,7 +139,7 @@ class DefaultInvitationRepositoryTest {
                     .inviterPlayerId(UUID.randomUUID())
                     .inviteePlayerId(userId)
                     .proposedSharingMode(SharingMode.EVEN_SHARE)
-                    .proposedRole(AccessLevel.READ_WRITE)
+                    .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
@@ -149,7 +149,7 @@ class DefaultInvitationRepositoryTest {
                     .inviterPlayerId(userId)
                     .inviteePlayerId(UUID.randomUUID())
                     .proposedSharingMode(SharingMode.EVEN_SHARE)
-                    .proposedRole(AccessLevel.READ_WRITE)
+                    .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
@@ -174,7 +174,7 @@ class DefaultInvitationRepositoryTest {
                     .inviterPlayerId(UUID.randomUUID())
                     .inviteePlayerId(userId)
                     .proposedSharingMode(SharingMode.EVEN_SHARE)
-                    .proposedRole(AccessLevel.READ_WRITE)
+                    .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.ACCEPTED)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
@@ -198,7 +198,7 @@ class DefaultInvitationRepositoryTest {
                     .inviterPlayerId(invitation.inviterPlayerId())
                     .inviteePlayerId(invitation.inviteePlayerId())
                     .proposedSharingMode(SharingMode.EVEN_SHARE)
-                    .proposedRole(AccessLevel.READ_WRITE)
+                    .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
@@ -222,7 +222,7 @@ class DefaultInvitationRepositoryTest {
                     .inviterPlayerId(invitation.inviterPlayerId())
                     .inviteePlayerId(invitation.inviteePlayerId())
                     .proposedSharingMode(SharingMode.EVEN_SHARE)
-                    .proposedRole(AccessLevel.READ_WRITE)
+                    .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
@@ -243,7 +243,7 @@ class DefaultInvitationRepositoryTest {
                     .inviterPlayerId(invitation.inviterPlayerId())
                     .inviteePlayerId(invitation.inviteePlayerId())
                     .proposedSharingMode(SharingMode.EVEN_SHARE)
-                    .proposedRole(AccessLevel.READ_WRITE)
+                    .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.ACCEPTED)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))

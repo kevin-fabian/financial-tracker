@@ -60,7 +60,7 @@ class DefaultPartyRepositoryTest {
 
         PartyMember participant = PartyMember.builder()
                 .playerId(participantUserId)
-                .accessLevel(AccessLevel.READ_WRITE)
+                .accessLevel(AccessLevel.VIEW_ONLY)
                 .status(PartyMemberStatus.ACTIVE)
                 .joinedAt(Instant.now())
                 .build();
@@ -100,7 +100,7 @@ class DefaultPartyRepositoryTest {
         Assertions.assertThat(retrievePartyMember.id()).as("participant id should be generated").isNotNull();
         Assertions.assertThat(retrievePartyMember.playerId())
                 .isEqualTo(party.partyMembers().getFirst().playerId());
-        Assertions.assertThat(retrievePartyMember.accessLevel()).isEqualTo(AccessLevel.READ_WRITE);
+        Assertions.assertThat(retrievePartyMember.accessLevel()).isEqualTo(AccessLevel.VIEW_ONLY);
         Assertions.assertThat(retrievePartyMember.status()).isEqualTo(PartyMemberStatus.ACTIVE);
         Assertions.assertThat(retrievePartyMember.joinedAt())
                 .isEqualTo(party.partyMembers().getFirst().joinedAt());
@@ -131,7 +131,7 @@ class DefaultPartyRepositoryTest {
         Assertions.assertThat(found.get().partyMembers().getFirst().playerId())
                 .isEqualTo(party.partyMembers().getFirst().playerId());
         Assertions.assertThat(found.get().partyMembers().getFirst().accessLevel())
-                .isEqualTo(AccessLevel.READ_WRITE);
+                .isEqualTo(AccessLevel.VIEW_ONLY);
     }
 
     @Test

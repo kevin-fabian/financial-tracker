@@ -47,7 +47,7 @@ public class DefaultPartyService implements PartyService {
         List<PartyMember> initialPartyMembers = new ArrayList<>();
         initialPartyMembers.add(PartyMember.builder()
                 .playerId(command.partyLeaderId())
-                .accessLevel(AccessLevel.READ_WRITE)
+                .accessLevel(AccessLevel.VIEW_ONLY)
                 .status(PartyMemberStatus.ACTIVE)
                 .joinedAt(Instant.now())
                 .build());
@@ -55,11 +55,6 @@ public class DefaultPartyService implements PartyService {
         List<SharedItem> sharedItems = new ArrayList<>();
         sharedItems.add(SharedItem.builder()
                 .type(ResourceType.TRANSACTION)
-                .sharedAt(Instant.now())
-                .items(List.of())
-                .build());
-        sharedItems.add(SharedItem.builder()
-                .type(ResourceType.BUDGET)
                 .sharedAt(Instant.now())
                 .items(List.of())
                 .build());

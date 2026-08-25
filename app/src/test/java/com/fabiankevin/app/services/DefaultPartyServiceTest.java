@@ -73,12 +73,11 @@ class DefaultPartyServiceTest {
             PartyMemberSummary leader = result.partyMembers().getFirst();
             assertTrue(leader.partyLeader(), "initial party member should be a leader");
             assertFalse(leader.partyMember(), "initial party member should not be a member");
-            assertEquals(AccessLevel.READ_WRITE, leader.accessLevel());
+            assertEquals(AccessLevel.VIEW_ONLY, leader.accessLevel());
             assertEquals(PartyMemberStatus.ACTIVE, leader.status());
 
             assertEquals(3, result.sharedItems().size());
             assertEquals(ResourceType.TRANSACTION, result.sharedItems().get(0).type());
-            assertEquals(ResourceType.BUDGET, result.sharedItems().get(1).type());
             assertEquals(ResourceType.CHECKLIST, result.sharedItems().get(2).type());
 
             verify(partyRepository).save(any(Party.class));
@@ -124,7 +123,7 @@ class DefaultPartyServiceTest {
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
                                     .playerId(partyLeaderId)
-                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
@@ -170,7 +169,7 @@ class DefaultPartyServiceTest {
                     .inviterPlayerId(UUID.randomUUID())
                     .inviteePlayerId(partyLeaderId)
                     .proposedSharingMode(SharingMode.EVEN_SHARE)
-                    .proposedRole(AccessLevel.READ_WRITE)
+                    .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
@@ -181,7 +180,7 @@ class DefaultPartyServiceTest {
                     .inviterPlayerId(UUID.randomUUID())
                     .inviteePlayerId(partyLeaderId)
                     .proposedSharingMode(SharingMode.EVEN_SHARE)
-                    .proposedRole(AccessLevel.READ_WRITE)
+                    .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
@@ -216,7 +215,7 @@ class DefaultPartyServiceTest {
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
                                     .playerId(partyLeaderId)
-                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
@@ -304,7 +303,7 @@ class DefaultPartyServiceTest {
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
                                     .playerId(partyLeaderId)
-                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
@@ -394,7 +393,7 @@ class DefaultPartyServiceTest {
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
                                     .playerId(partyLeaderId)
-                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
@@ -437,7 +436,7 @@ class DefaultPartyServiceTest {
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
                                     .playerId(partyLeaderId)
-                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
@@ -478,7 +477,7 @@ class DefaultPartyServiceTest {
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
                                     .playerId(partyLeaderId)
-                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
@@ -508,7 +507,7 @@ class DefaultPartyServiceTest {
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
                                     .playerId(partyLeaderId)
-                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
@@ -547,7 +546,7 @@ class DefaultPartyServiceTest {
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
                                     .playerId(partyLeaderId)
-                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
@@ -589,7 +588,7 @@ class DefaultPartyServiceTest {
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
                                     .playerId(partyLeaderId)
-                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
@@ -622,7 +621,7 @@ class DefaultPartyServiceTest {
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
                                     .playerId(partyLeaderId)
-                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
@@ -679,7 +678,7 @@ class DefaultPartyServiceTest {
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
                                     .playerId(partyLeaderId)
-                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()

@@ -59,7 +59,7 @@ public class DefaultInvitationService implements InvitationService {
                             .inviterPlayerId(command.inviterPlayerId())
                             .inviteePlayerId(invitee.id())
                             .proposedSharingMode(space.sharingMode())
-                            .proposedRole(AccessLevel.READ_WRITE)
+                            .proposedRole(AccessLevel.VIEW_ONLY)
                             .status(InvitationStatus.PENDING)
                             .createdAt(Instant.now())
                             .expiresAt(Instant.now().plus(Duration.ofDays(7)))

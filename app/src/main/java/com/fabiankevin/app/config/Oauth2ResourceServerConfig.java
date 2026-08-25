@@ -49,6 +49,7 @@ public class Oauth2ResourceServerConfig {
                 .cors(Customizer.withDefaults())
                 .oauth2ResourceServer(
                         oauth2 -> oauth2
+                                .dPoP(Customizer.withDefaults())
                                 .accessDeniedHandler(bearerAccessDeniedHandler)
                                 .authenticationEntryPoint(invalidTokenAuthenticationEntryPoint)
                                 .jwt(jwtConfigurer -> jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter())));

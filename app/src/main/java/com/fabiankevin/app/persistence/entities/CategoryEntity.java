@@ -37,7 +37,6 @@ public class CategoryEntity {
     private Instant createdAt;
     @Column(nullable = false)
     private Instant updatedAt;
-
     @Column(nullable = false)
     private boolean active = true;
 

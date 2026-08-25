@@ -2,7 +2,6 @@ package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.exceptions.party.CannotRemoveOwnerException;
 import com.fabiankevin.app.exceptions.party.PartyNotFoundException;
-import com.fabiankevin.app.models.enums.party.AccessLevel;
 import com.fabiankevin.app.models.enums.party.PartyMemberStatus;
 import com.fabiankevin.app.models.enums.party.ResourceType;
 import com.fabiankevin.app.models.enums.party.SharingMode;
@@ -33,7 +32,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import static com.fabiankevin.app.models.enums.party.AccessLevel.READ_WRITE;
+import static com.fabiankevin.app.models.enums.party.AccessLevel.VIEW_ONLY;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -96,7 +95,7 @@ class PartyControllerTest {
                 .initial("JD")
                 .partyLeader(false)
                 .partyMember(true)
-                .accessLevel(AccessLevel.READ_WRITE)
+                .accessLevel(VIEW_ONLY)
                 .status(PartyMemberStatus.ACTIVE)
                 .pastWeekDailyAverageTransactionCount(2.5)
                 .activeBudgetCount(1)
@@ -113,7 +112,7 @@ class PartyControllerTest {
                 .initial("JL")
                 .partyLeader(true)
                 .partyMember(false)
-                .accessLevel(AccessLevel.READ_WRITE)
+                .accessLevel(VIEW_ONLY)
                 .status(PartyMemberStatus.ACTIVE)
                 .pastWeekDailyAverageTransactionCount(4.0)
                 .activeBudgetCount(2)
@@ -267,7 +266,7 @@ class PartyControllerTest {
                     .andExpect(jsonPath("$[0].partyMembers[0].partyLeader").value(true))
                     .andExpect(jsonPath("$[0].partyMembers[0].partyMember").value(false))
                     .andExpect(jsonPath("$[0].partyMembers[0].accessLevelName").value("Full Co-op"))
-                    .andExpect(jsonPath("$[0].partyMembers[0].accessLevelDescription").value(READ_WRITE.getDescription()))
+                    .andExpect(jsonPath("$[0].partyMembers[0].accessLevelDescription").value(VIEW_ONLY.getDescription()))
                     .andExpect(jsonPath("$[0].partyMembers[0].status").value("ACTIVE"))
                     .andExpect(jsonPath("$[0].partyMembers[0].pastWeekDailyAverageTransactionCount").value(4.0))
                     .andExpect(jsonPath("$[0].partyMembers[0].activeBudgetCount").value(2))
@@ -280,7 +279,7 @@ class PartyControllerTest {
                     .andExpect(jsonPath("$[0].partyMembers[1].partyLeader").value(false))
                     .andExpect(jsonPath("$[0].partyMembers[1].partyMember").value(true))
                     .andExpect(jsonPath("$[0].partyMembers[1].accessLevelName").value("Full Co-op"))
-                    .andExpect(jsonPath("$[0].partyMembers[1].accessLevelDescription").value(READ_WRITE.getDescription()))
+                    .andExpect(jsonPath("$[0].partyMembers[1].accessLevelDescription").value(VIEW_ONLY.getDescription()))
                     .andExpect(jsonPath("$[0].partyMembers[1].status").value("ACTIVE"))
                     .andExpect(jsonPath("$[0].partyMembers[1].pastWeekDailyAverageTransactionCount").value(2.5))
                     .andExpect(jsonPath("$[0].partyMembers[1].activeBudgetCount").value(1))

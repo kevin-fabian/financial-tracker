@@ -16,20 +16,19 @@ spring:
           jws-algorithms: RS256
           jwk-set-uri: http://localhost:9000/oauth2/jwks
           audiences:
-            - test-client
-            - zeny-app-password
+            - laan-app
             - identity-service
       client:
         registration:
-          zeny-service:
+          financial-tracker-client:
             provider: identity
-            client-id: zeny-service
+            client-id: financial-tracker-client
             client-secret: 123456
             authorization-grant-type: client_credentials
             scope: user:read
         provider:
           identity:
-            issuer-uri: http://localhost:9000
+            token-uri: http://localhost:9000/oauth2/token
 
 logging:
   level:

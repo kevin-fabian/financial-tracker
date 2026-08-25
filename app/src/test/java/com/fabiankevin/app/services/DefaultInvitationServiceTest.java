@@ -68,14 +68,14 @@ class DefaultInvitationServiceTest {
             UUID inviteeUserId = UUID.randomUUID();
             UUID partyId = UUID.randomUUID();
             String inviteeEmail = "jane@example.com";
-            Party existingSpace = Party.builder()
+            Party existingParty = Party.builder()
                     .id(partyId)
                     .name("Family Budget")
                     .partyLeaderId(inviterUserId)
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
                                     .playerId(inviterUserId)
-                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
@@ -93,7 +93,7 @@ class DefaultInvitationServiceTest {
                     partyId
             );
 
-            when(spaceRepository.findById(partyId)).thenReturn(Optional.of(existingSpace));
+            when(spaceRepository.findById(partyId)).thenReturn(Optional.of(existingParty));
             when(userClient.getUserByEmail(inviteeEmail))
                     .thenReturn(User.builder().id(inviteeUserId).firstName("Jane").lastName("Doe").build());
             when(userClient.getUsersByIds(List.of(inviterUserId, inviteeUserId)))
@@ -130,7 +130,7 @@ class DefaultInvitationServiceTest {
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
                                     .playerId(inviterUserId)
-                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
@@ -220,7 +220,7 @@ class DefaultInvitationServiceTest {
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
                                     .playerId(inviterUserId)
-                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
@@ -298,7 +298,7 @@ class DefaultInvitationServiceTest {
                     .partyMembers(new ArrayList<>(List.of(
                             PartyMember.builder()
                                     .playerId(inviterUserId)
-                                    .accessLevel(AccessLevel.READ_WRITE)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(PartyMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
@@ -483,7 +483,7 @@ class DefaultInvitationServiceTest {
                 .inviterPlayerId(userId)
                 .inviteePlayerId(inviteeUserId)
                 .proposedSharingMode(SharingMode.EVEN_SHARE)
-                .proposedRole(AccessLevel.READ_WRITE)
+                .proposedRole(AccessLevel.VIEW_ONLY)
                 .status(InvitationStatus.PENDING)
                 .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(604800))
