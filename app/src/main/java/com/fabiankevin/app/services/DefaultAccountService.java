@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Currency;
 import java.util.Optional;
 import java.util.UUID;
@@ -118,8 +119,8 @@ public class DefaultAccountService implements AccountService {
     }
 
     @Override
-    public Page<AccountSummary> getAccountSummariesByPageQuery(PageQuery query, UUID userId) {
-        return accountRepository.findAllByPageQueryWithSummary(query, userId);
+    public Page<AccountSummary> getAccountSummariesByPageQuery(PageQuery query, UUID userId, LocalDate monthStart, LocalDate monthEnd) {
+        return accountRepository.findAllByPageQueryWithSummary(query, userId, monthStart, monthEnd);
     }
 
     @Transactional

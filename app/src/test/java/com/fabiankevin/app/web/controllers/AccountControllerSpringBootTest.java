@@ -636,5 +636,90 @@ class AccountControllerSpringBootTest {
                     .andExpect(jsonPath("$.content[0].totalBalance").value(500.0))
                     .andExpect(jsonPath("$.content[0].totalTransactions").value(3));
         }
+
+        @Test
+        void givenTransactionsFromLastMonthAndCurrentMonth_thenOnlyCurrentMonthTransactionsReflectOnAccountBalance() throws Exception {
+            Account account = accountService.createAccount(
+                    CreateAccountCommand.builder()
+                            .name("GCASH")
+                            .userId(userId)
+                            .currency(Currency.getInstance("PHP"))
+                            .type(E_WALLET)
+                            .build()
+            );
+
+            var incomeCategory = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
+                            .name("SALARY")
+                            .type(TransactionType.INCOME)
+                            .userId(userId)
+                            .build()
+            );
+
+            var expenseCategory = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
+                            .name("FOOD")
+                            .type(TransactionType.EXPENSE)
+                            .userId(userId)
+                            .build()
+            );
+
+            // Create transactions from last month — these should NOT appear in the balance
+            LocalDate lastMonthDate = LocalDate.now().minusMonths(1).withDayOfMonth(15);
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(Amount.of(500.0, "PHP"))
+                            .transactionDate(lastMonthDate)
+                            .categoryId(incomeCategory.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(Amount.of(100.0, "PHP"))
+                            .transactionDate(lastMonthDate)
+                            .categoryId(expenseCategory.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+
+            // Create transactions from the current month — these SHOULD appear in the balance
+            LocalDate currentMonthDate = LocalDate.now().withDayOfMonth(10);
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(Amount.of(1000.0, "PHP"))
+                            .transactionDate(currentMonthDate)
+                            .categoryId(incomeCategory.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(Amount.of(200.0, "PHP"))
+                            .transactionDate(currentMonthDate)
+                            .categoryId(expenseCategory.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+
+            mockMvc.perform(get("/api/accounts?page=0&size=10&sort=name&direction=ASC")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content").isArray())
+                    .andExpect(jsonPath("$.content.length()").value(1))
+                    .andExpect(jsonPath("$.content[0].name").value("GCASH"))
+                    .andExpect(jsonPath("$.content[0].totalBalance").value(800.0))
+                    .andExpect(jsonPath("$.content[0].totalTransactions").value(2));
+        }
     }
 }

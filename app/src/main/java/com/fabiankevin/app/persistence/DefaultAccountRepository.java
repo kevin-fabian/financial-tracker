@@ -12,6 +12,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.Currency;
 import java.util.List;
 import java.util.Optional;
@@ -63,13 +64,13 @@ public class DefaultAccountRepository implements AccountRepository {
     }
 
     @Override
-    public Page<AccountSummary> findAllByPageQueryWithSummary(PageQuery query, UUID userId) {
+    public Page<AccountSummary> findAllByPageQueryWithSummary(PageQuery query, UUID userId, LocalDate monthStart, LocalDate monthEnd) {
         var pageable = PageRequest.of(
                 query.page(),
                 query.size(),
                 Sort.by(Sort.Direction.fromString(query.direction()), query.sort())
         );
-        var entityPage = jpaAccountRepository.findAllByUserIdWithSummary(userId, pageable);
+        var entityPage = jpaAccountRepository.findAllByUserIdWithSummary(userId, monthStart, monthEnd, pageable);
 
         List<AccountSummary> content = entityPage.getContent().stream()
                 .map(projection -> AccountSummary.builder()

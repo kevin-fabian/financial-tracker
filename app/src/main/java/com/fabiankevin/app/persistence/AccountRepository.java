@@ -6,6 +6,7 @@ import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.services.queries.PageQuery;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,7 +20,7 @@ public interface AccountRepository {
 
     Page<Account> getAccountsByPageAndUserId(PageQuery query, UUID userId);
 
-    Page<AccountSummary> findAllByPageQueryWithSummary(PageQuery query, UUID userId);
+    Page<AccountSummary> findAllByPageQueryWithSummary(PageQuery query, UUID userId, LocalDate monthStart, LocalDate monthEnd);
 
     List<Account> findAllByNamesIn(List<String> accountNames);
 

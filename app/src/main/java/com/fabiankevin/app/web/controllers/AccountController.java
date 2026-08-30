@@ -19,6 +19,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -60,9 +63,18 @@ public class  AccountController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "name") String sort,
             @RequestParam(defaultValue = "ASC") String direction,
+            @RequestParam(required = false) String month,
             JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        Page<AccountSummary> summaries = accountService.getAccountSummariesByPageQuery(new PageQuery(page, size, sort, direction), userId);
+
+        YearMonth yearMonth = Optional.ofNullable(month)
+                .map(m -> YearMonth.parse(m))
+                .orElseGet(YearMonth::now);
+        LocalDate monthStart = yearMonth.atDay(1);
+        LocalDate monthEnd = yearMonth.atEndOfMonth();
+
+        Page<AccountSummary> summaries = accountService.getAccountSummariesByPageQuery(
+                new PageQuery(page, size, sort, direction), userId, monthStart, monthEnd);
 
         return PageResponse.from(Page.<AccountSummaryResponse>builder()
                 .content(summaries.content().stream().map(AccountSummaryResponse::from).toList())

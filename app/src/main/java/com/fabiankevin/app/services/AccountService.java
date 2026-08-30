@@ -7,6 +7,7 @@ import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.PatchAccountCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 public interface AccountService {
@@ -16,6 +17,6 @@ public interface AccountService {
     void deleteAccountById(UUID id, UUID userId);
     void disableAccount(UUID id, UUID userId);
     Page<Account> getAccountsByPageAndUserId(PageQuery query, UUID userId);
-    Page<AccountSummary> getAccountSummariesByPageQuery(PageQuery query, UUID userId);
+    Page<AccountSummary> getAccountSummariesByPageQuery(PageQuery query, UUID userId, LocalDate monthStart, LocalDate monthEnd);
     void deleteAllByUserId(UUID userId);
 }

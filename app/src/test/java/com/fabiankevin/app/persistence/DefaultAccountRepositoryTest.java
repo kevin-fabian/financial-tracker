@@ -226,7 +226,9 @@ class DefaultAccountRepositoryTest {
                     .category(expenseCategory3).build());
 
             PageQuery query = new PageQuery(0, 10, "name", "ASC");
-            Page<AccountSummary> page = accountRepository.findAllByPageQueryWithSummary(query, userId);
+            LocalDate monthStart = today.withDayOfMonth(1);
+            LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
+            Page<AccountSummary> page = accountRepository.findAllByPageQueryWithSummary(query, userId, monthStart, monthEnd);
 
             Assertions.assertThat(page.content()).as("page should contain 3 summaries").hasSize(3);
             Assertions.assertThat(page.totalElements()).isEqualTo(3);
@@ -283,7 +285,9 @@ class DefaultAccountRepositoryTest {
                     .category(expenseCategory).build());
 
             PageQuery query = new PageQuery(0, 10, "name", "ASC");
-            Page<AccountSummary> page = accountRepository.findAllByPageQueryWithSummary(query, userId);
+            LocalDate monthStart = today.withDayOfMonth(1);
+            LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
+            Page<AccountSummary> page = accountRepository.findAllByPageQueryWithSummary(query, userId, monthStart, monthEnd);
 
             Assertions.assertThat(page.content()).as("page should contain 1 summary").hasSize(1);
             AccountSummary summary = page.content().getFirst();
@@ -296,7 +300,10 @@ class DefaultAccountRepositoryTest {
             UUID userId = UUID.randomUUID();
 
             PageQuery query = new PageQuery(0, 10, "name", "ASC");
-            Page<AccountSummary> page = accountRepository.findAllByPageQueryWithSummary(query, userId);
+            LocalDate today = LocalDate.now();
+            LocalDate monthStart = today.withDayOfMonth(1);
+            LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
+            Page<AccountSummary> page = accountRepository.findAllByPageQueryWithSummary(query, userId, monthStart, monthEnd);
 
             Assertions.assertThat(page.content()).as("page should be empty when no accounts exist").isEmpty();
             Assertions.assertThat(page.totalElements()).isZero();
