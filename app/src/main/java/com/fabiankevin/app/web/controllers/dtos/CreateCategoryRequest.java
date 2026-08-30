@@ -5,6 +5,7 @@ import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Builder;
 
 import java.util.UUID;
@@ -13,6 +14,7 @@ import java.util.UUID;
 @Schema(description = "Request DTO for creating a category")
 public record CreateCategoryRequest(
         @NotBlank(message = "Name is required")
+        @Size(max = 128, message = "Name must not exceed 128 characters")
         @Schema(description = "Name of the category", example = "FOOD")
         String name,
         @NotNull(message = "Type is required")

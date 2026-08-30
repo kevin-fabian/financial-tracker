@@ -72,6 +72,17 @@ class CategoryControllerSpringBootTest {
     @Nested
     class CreateCategory {
 
+        static Stream<Arguments> invalidCreateCategoryRequestTestCases() {
+            return Stream.of(
+                    Arguments.of("", TransactionType.EXPENSE),
+                    Arguments.of(" ", TransactionType.EXPENSE),
+                    Arguments.of("   ", TransactionType.EXPENSE),
+                    Arguments.of("12345".repeat(100), TransactionType.EXPENSE),
+                    Arguments.of((String) null, TransactionType.EXPENSE),
+                    Arguments.of("FOOD", (TransactionType) null)
+            );
+        }
+
         @Test
         void givenValidRequest_thenReturnsCreatedWithCategoryResponse() throws Exception {
             CreateCategoryRequest request = CreateCategoryRequest.builder()
@@ -121,16 +132,6 @@ class CategoryControllerSpringBootTest {
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest());
-        }
-
-        static Stream<Arguments> invalidCreateCategoryRequestTestCases() {
-            return Stream.of(
-                    Arguments.of("", TransactionType.EXPENSE),
-                    Arguments.of(" ", TransactionType.EXPENSE),
-                    Arguments.of("   ", TransactionType.EXPENSE),
-                    Arguments.of((String) null, TransactionType.EXPENSE),
-                    Arguments.of("FOOD", (TransactionType) null)
-            );
         }
 
         @Test
