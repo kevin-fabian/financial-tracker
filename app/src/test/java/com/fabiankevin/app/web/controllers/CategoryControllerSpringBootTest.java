@@ -595,11 +595,11 @@ class CategoryControllerSpringBootTest {
 
             var systemCategory = categoryRepository.save(
                     Category.builder()
-                            .name("SYSTEM_FOOD")
+                            .name("Food")
                             .type(TransactionType.EXPENSE)
-                            .userId(UUID.fromString("00000000-0000-0000-0000-000000000001"))
+                            .userId(null)
                             .active(true)
-                            .system(false)
+                            .system(true)
                             .icon("food")
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
@@ -609,17 +609,17 @@ class CategoryControllerSpringBootTest {
             // Create an account for the current user (systemUserId)
             UUID myAccount = accountService.createAccount(
                     CreateAccountCommand.builder()
-                            .name("MY_ACCOUNT")
+                            .name("Cash")
                             .type(AccountType.CASH)
                             .userId(userId)
-                            .currency(Currency.getInstance("USD"))
+                            .currency(Currency.getInstance("PHP"))
                             .build()
             ).id();
 
             // Create a transaction for the current user linked to the system category (via service)
            transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(50.0, "USD"))
+                            .amount(Amount.of(50.0, "PHP"))
                             .transactionDate(LocalDate.now())
                             .categoryId(systemCategory.id())
                             .accountId(myAccount)
@@ -658,7 +658,7 @@ class CategoryControllerSpringBootTest {
                     .andExpect(jsonPath("$.content").isArray())
                     .andExpect(jsonPath("$.content.length()").value(1))
                     .andExpect(jsonPath("$.content[0].id").value(systemCategory.id().toString()))
-                    .andExpect(jsonPath("$.content[0].name").value("SYSTEM_FOOD"))
+                    .andExpect(jsonPath("$.content[0].name").value("Food"))
                     // Only the current user's transaction should be included in the aggregate
                     .andExpect(jsonPath("$.content[0].totalAmount").value(50.0))
                     .andExpect(jsonPath("$.content[0].totalTransactions").value(1))

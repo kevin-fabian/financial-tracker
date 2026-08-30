@@ -27,11 +27,7 @@ public record Category(
                 .orElseThrow(() -> new IllegalArgumentException("Category name is required"));
         Optional.ofNullable(type)
                 .orElseThrow(() -> new IllegalArgumentException("Category type is required"));
-        Optional.ofNullable(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User ID is required"));
     }
-
-    private static final UUID SYSTEM_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
 
     public static Category of(String name, TransactionType type, UUID userId, String icon){
         return Category.builder()
@@ -42,9 +38,5 @@ public record Category(
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
-    }
-
-    public boolean isSystem() {
-        return SYSTEM_ID.equals(this.userId);
     }
 }
