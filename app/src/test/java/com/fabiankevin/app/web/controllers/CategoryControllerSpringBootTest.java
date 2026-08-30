@@ -14,6 +14,7 @@ import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
+import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchCategoryRequest;
@@ -607,16 +608,16 @@ class CategoryControllerSpringBootTest {
 
             // Create an account for the current user (systemUserId)
             UUID myAccount = accountService.createAccount(
-                    com.fabiankevin.app.services.commands.CreateAccountCommand.builder()
+                    CreateAccountCommand.builder()
                             .name("MY_ACCOUNT")
-                            .type(com.fabiankevin.app.models.enums.AccountType.CASH)
+                            .type(AccountType.CASH)
                             .userId(userId)
                             .currency(Currency.getInstance("USD"))
                             .build()
             ).id();
 
             // Create a transaction for the current user linked to the system category (via service)
-            transactionService.addTransaction(
+           transactionService.addTransaction(
                     AddTransactionCommand.builder()
                             .amount(Amount.of(50.0, "USD"))
                             .transactionDate(LocalDate.now())
@@ -629,9 +630,9 @@ class CategoryControllerSpringBootTest {
             // Create an account for another user
             UUID otherUserId = UUID.randomUUID();
             final Account othersAccount = accountService.createAccount(
-                    com.fabiankevin.app.services.commands.CreateAccountCommand.builder()
+                    CreateAccountCommand.builder()
                             .name("OTHER_ACCOUNT")
-                            .type(com.fabiankevin.app.models.enums.AccountType.CASH)
+                            .type(AccountType.CASH)
                             .userId(otherUserId)
                             .currency(Currency.getInstance("USD"))
                             .build()
