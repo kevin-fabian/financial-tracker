@@ -221,6 +221,14 @@ class DefaultCategoryServiceTest {
     void deleteCategoryById_givenExistingId_thenShouldDelete() {
         UUID id = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
+        when(categoryRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(Category.builder()
+                .id(id)
+                .name("FOOD")
+                .type(TransactionType.EXPENSE)
+                .userId(userId)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build()));
         when(categoryRepository.deleteByIdAndUserId(id, userId)).thenReturn(1);
 
         categoryService.deleteCategoryById(id, userId);
