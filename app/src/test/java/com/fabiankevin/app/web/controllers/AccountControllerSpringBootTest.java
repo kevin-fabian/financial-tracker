@@ -2,10 +2,16 @@ package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.Amount;
 import com.fabiankevin.app.models.enums.AccountType;
+import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.services.AccountService;
+import com.fabiankevin.app.services.CategoryService;
+import com.fabiankevin.app.services.TransactionService;
+import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
+import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateAccountRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchAccountRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +33,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
@@ -63,6 +70,12 @@ class AccountControllerSpringBootTest {
 
     @Autowired
     private AccountService accountService;
+
+    @Autowired
+    private CategoryService categoryService;
+
+    @Autowired
+    private TransactionService transactionService;
 
     @Autowired
     private JsonMapper jsonMapper;
@@ -549,6 +562,79 @@ class AccountControllerSpringBootTest {
                     .andExpect(jsonPath("$.size").value(10))
                     .andExpect(jsonPath("$.totalElements").value(0))
                     .andExpect(jsonPath("$.totalPages").value(0));
+        }
+
+        @Test
+        void givenAccountWithIncomeAndExpenseTransactions_thenReturnsCorrectBalance() throws Exception {
+            Account account = accountService.createAccount(
+                    CreateAccountCommand.builder()
+                            .name("GCASH")
+                            .userId(userId)
+                            .currency(Currency.getInstance("PHP"))
+                            .type(E_WALLET)
+                            .build()
+            );
+
+            var incomeCategory = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
+                            .name("SALARY")
+                            .type(TransactionType.INCOME)
+                            .userId(userId)
+                            .build()
+            );
+
+            var expenseCategory = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
+                            .name("FOOD")
+                            .type(TransactionType.EXPENSE)
+                            .userId(userId)
+                            .build()
+            );
+
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(Amount.of(1000.0, "PHP"))
+                            .transactionDate(LocalDate.now())
+                            .categoryId(incomeCategory.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(Amount.of(200.0, "PHP"))
+                            .transactionDate(LocalDate.now())
+                            .categoryId(expenseCategory.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(Amount.of(300.0, "PHP"))
+                            .transactionDate(LocalDate.now())
+                            .categoryId(expenseCategory.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+
+            mockMvc.perform(get("/api/accounts?page=0&size=10&sort=name&direction=ASC")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content").isArray())
+                    .andExpect(jsonPath("$.content.length()").value(1))
+                    .andExpect(jsonPath("$.content[0].name").value("GCASH"))
+                    .andExpect(jsonPath("$.content[0].totalBalance").value(500.0))
+                    .andExpect(jsonPath("$.content[0].totalTransactions").value(3));
         }
     }
 }
