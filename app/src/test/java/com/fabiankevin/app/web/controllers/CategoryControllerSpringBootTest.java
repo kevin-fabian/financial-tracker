@@ -11,7 +11,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -27,6 +28,7 @@ import tools.jackson.databind.json.JsonMapper;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -101,11 +103,7 @@ class CategoryControllerSpringBootTest {
         }
 
         @ParameterizedTest
-        @CsvSource({
-                "'',   EXPENSE",
-                "' ',   EXPENSE",
-                "'   ', EXPENSE"
-        })
+        @MethodSource("blankNameTestCases")
         void givenBlankName_thenReturnsBadRequest(String name, TransactionType type) throws Exception {
             CreateCategoryRequest request = CreateCategoryRequest.builder()
                     .name(name)
@@ -123,6 +121,14 @@ class CategoryControllerSpringBootTest {
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest());
+        }
+
+        static Stream<Arguments> blankNameTestCases() {
+            return Stream.of(
+                    Arguments.of("", TransactionType.EXPENSE),
+                    Arguments.of(" ", TransactionType.EXPENSE),
+                    Arguments.of("   ", TransactionType.EXPENSE)
+            );
         }
 
         @Test
