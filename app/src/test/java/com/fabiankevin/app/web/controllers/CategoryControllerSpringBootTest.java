@@ -10,6 +10,8 @@ import com.fabiankevin.app.web.controllers.dtos.PatchCategoryRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -96,6 +98,71 @@ class CategoryControllerSpringBootTest {
                     .andExpect(jsonPath("$.system").value(false))
                     .andExpect(jsonPath("$.createdAt").isNotEmpty())
                     .andExpect(jsonPath("$.updatedAt").isNotEmpty());
+        }
+
+        @ParameterizedTest
+        @CsvSource({
+                "'',   EXPENSE",
+                "' ',   EXPENSE",
+                "'   ', EXPENSE"
+        })
+        void givenBlankName_thenReturnsBadRequest(String name, TransactionType type) throws Exception {
+            CreateCategoryRequest request = CreateCategoryRequest.builder()
+                    .name(name)
+                    .type(type)
+                    .build();
+
+            mockMvc.perform(post("/api/categories")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void givenNullName_thenReturnsBadRequest() throws Exception {
+            CreateCategoryRequest request = CreateCategoryRequest.builder()
+                    .name(null)
+                    .type(TransactionType.EXPENSE)
+                    .build();
+
+            mockMvc.perform(post("/api/categories")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void givenNullType_thenReturnsBadRequest() throws Exception {
+            CreateCategoryRequest request = CreateCategoryRequest.builder()
+                    .name("FOOD")
+                    .type(null)
+                    .build();
+
+            mockMvc.perform(post("/api/categories")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
         }
 
         @Test
