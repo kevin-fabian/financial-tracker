@@ -65,7 +65,13 @@ public class DefaultCategoryService implements CategoryService {
     @Transactional
     @Override
     public void deleteCategoryById(UUID id, UUID userId) {
-        categoryRepository.deleteByIdAndUserId(id, userId);
+        categoryRepository.findByIdAndUserId(id, userId)
+                .ifPresentOrElse(
+                        _ -> categoryRepository.deleteByIdAndUserId(id, userId),
+                        () -> {
+                            throw new CategoryNotFoundException();
+                        }
+                );
     }
 
     @Transactional
@@ -74,7 +80,9 @@ public class DefaultCategoryService implements CategoryService {
         categoryRepository.findByIdAndUserId(id, userId)
                 .ifPresentOrElse(
                         category -> categoryRepository.save(category.toBuilder().active(false).build()),
-                        () -> { throw new CategoryNotFoundException(); }
+                        () -> {
+                            throw new CategoryNotFoundException();
+                        }
                 );
     }
 
