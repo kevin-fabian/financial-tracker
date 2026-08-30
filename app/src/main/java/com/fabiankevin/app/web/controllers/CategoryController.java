@@ -30,38 +30,6 @@ public class CategoryController {
     private final CategoryService categoryService;
 
     @Operation(
-            summary = "Retrieves paginated categories",
-            description = "Retrieves a paginated list of transaction categories based on the provided pagination parameters",
-            responses = {
-                    @ApiResponse(responseCode = "200", description = "OK - Resources retrieved successfully",
-                            content = @Content(schema = @Schema(implementation = PageResponse.class))),
-                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
-            }
-    )
-    @GetMapping
-    public PageResponse<CategoryResponse> getCategories(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createdAt") String sort,
-            @RequestParam(defaultValue = "DESC") String direction,
-            @RequestParam(required = false) TransactionType type,
-            JwtAuthenticationToken jwtAuthenticationToken) {
-        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        Page<Category> categories = categoryService.getCategoriesByPageQuery(new PageQuery(page, size, sort, direction), userId, type);
-
-        return PageResponse.from(Page.<CategoryResponse>builder()
-                .content(categories.content().stream().map(CategoryResponse::from).toList())
-                .page(categories.page())
-                .size(categories.size())
-                .totalElements(categories.totalElements())
-                .totalPages(categories.totalPages())
-                .last(categories.last())
-                .first(categories.first())
-                .build());
-    }
-
-    @Operation(
             summary = "Retrieves paginated category summaries",
             description = "Retrieves a paginated list of category summaries with aggregated transaction data based on the provided pagination parameters",
             responses = {
@@ -71,7 +39,7 @@ public class CategoryController {
                     @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
             }
     )
-    @GetMapping("/summaries")
+    @GetMapping
     public PageResponse<CategorySummaryResponse> getCategorySummaries(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -148,22 +116,6 @@ public class CategoryController {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         Category updated = categoryService.patchCategory(request.toCommand(categoryId, userId));
         return CategoryResponse.from(updated);
-    }
-
-    @Operation(
-            summary = "Delete a category",
-            description = "Deletes a transaction category by specified ID",
-            responses = {
-                    @ApiResponse(responseCode = "204", description = "No Content - Resource deleted successfully"),
-                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
-            }
-    )
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCategory(@PathVariable UUID id, JwtAuthenticationToken jwtAuthenticationToken) {
-        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        categoryService.deleteCategoryById(id, userId);
-        return ResponseEntity.noContent().build();
     }
 
     @Operation(

@@ -181,6 +181,11 @@ public class DefaultTransactionRepository implements TransactionRepository {
     }
 
     @Override
+    public long countByCategoryIdAndUserId(UUID categoryId, UUID userId) {
+        return jpaTransactionRepository.countByCategoryIdAndUserId(categoryId, userId);
+    }
+
+    @Override
     public long countByUserIdAndCreatedAtOnDate(UUID userId, LocalDate date) {
         Instant startInclusive = date.atStartOfDay(ZoneId.systemDefault()).toInstant();
         Instant endExclusive = date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();

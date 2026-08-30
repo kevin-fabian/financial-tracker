@@ -7,6 +7,7 @@ import com.fabiankevin.app.models.CategorySummary;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.CategoryRepository;
+import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.PatchCategoryCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
@@ -22,6 +23,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class DefaultCategoryService implements CategoryService {
     private final CategoryRepository categoryRepository;
+    private final TransactionRepository transactionRepository;
 
     @Override
     public Category getCategoryById(UUID id, UUID userId) {
@@ -79,7 +81,14 @@ public class DefaultCategoryService implements CategoryService {
     public void disableCategory(UUID id, UUID userId) {
         categoryRepository.findByIdAndUserId(id, userId)
                 .ifPresentOrElse(
-                        category -> categoryRepository.save(category.toBuilder().active(false).build()),
+                        category -> {
+                            long transactionCount = transactionRepository.countByCategoryIdAndUserId(id, userId);
+                            if (transactionCount > 0) {
+                                categoryRepository.save(category.toBuilder().active(false).build());
+                            } else {
+                                categoryRepository.deleteByIdAndUserId(id, userId);
+                            }
+                        },
                         () -> {
                             throw new CategoryNotFoundException();
                         }

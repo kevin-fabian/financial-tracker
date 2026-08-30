@@ -1,10 +1,16 @@
 package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.clients.UserClient;
+import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.Amount;
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
+import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.services.CategoryService;
+import com.fabiankevin.app.services.TransactionService;
+import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchCategoryRequest;
@@ -27,6 +33,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -59,6 +67,12 @@ class CategoryControllerSpringBootTest {
 
     @Autowired
     private CategoryService categoryService;
+
+    @Autowired
+    private AccountRepository accountRepository;
+
+    @Autowired
+    private TransactionService transactionService;
 
     @Autowired
     private JsonMapper jsonMapper;
@@ -324,69 +338,6 @@ class CategoryControllerSpringBootTest {
             );
 
             mockMvc.perform(get("/api/categories/" + category.id())
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    )))
-                    .andExpect(status().isNotFound());
-        }
-    }
-
-    @Nested
-    class DeleteCategoryById {
-
-        @Test
-        void givenExistingId_thenReturnsNoContent() throws Exception {
-            Category category = categoryRepository.save(
-                    Category.builder()
-                            .name("FOOD")
-                            .type(TransactionType.EXPENSE)
-                            .userId(userId)
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
-                            .build()
-            );
-
-            mockMvc.perform(delete("/api/categories/" + category.id())
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    )))
-                    .andExpect(status().isNoContent());
-
-            // Verify it's actually deleted
-            mockMvc.perform(get("/api/categories/" + category.id())
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    )))
-                    .andExpect(status().isNotFound());
-        }
-
-        @Test
-        void givenNoJwt_thenReturnsUnauthorized() throws Exception {
-            UUID id = UUID.randomUUID();
-
-            mockMvc.perform(delete("/api/categories/" + id))
-                    .andExpect(status().isUnauthorized());
-        }
-
-        @Test
-        void givenCategoryNotFound_thenReturnNotFound() throws Exception {
-            UUID id = UUID.randomUUID();
-
-            mockMvc.perform(delete("/api/categories/" + id)
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -766,7 +717,7 @@ class CategoryControllerSpringBootTest {
     class DisableCategory {
 
         @Test
-        void givenValidCategoryId_thenReturnsNoContent() throws Exception {
+        void givenCategoryWithoutTransactions_thenHardDeletes() throws Exception {
             Category category = categoryRepository.save(
                     Category.builder()
                             .name("FOOD")
@@ -789,7 +740,66 @@ class CategoryControllerSpringBootTest {
                                     )))
                     .andExpect(status().isNoContent());
 
-            // Verify it's actually disabled
+            mockMvc.perform(get("/api/categories/" + category.id())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void givenCategoryWithTransactions_thenSoftDisables() throws Exception {
+            Category category = categoryRepository.save(
+                    Category.builder()
+                            .name("FOOD")
+                            .type(TransactionType.EXPENSE)
+                            .userId(userId)
+                            .active(true)
+                            .system(false)
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build()
+            );
+
+            Account account = accountRepository.save(
+                    Account.builder()
+                            .name("CASH")
+                            .type(AccountType.CASH)
+                            .userId(userId)
+                            .currency(Currency.getInstance("USD"))
+                            .active(true)
+                            .system(false)
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build()
+            );
+
+            // Create a transaction linked to this category
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(Amount.of(100.0, "USD"))
+                            .transactionDate(LocalDate.now())
+                            .categoryId(category.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+
+            mockMvc.perform(post("/api/categories/" + category.id() + "/disable")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isNoContent());
+
+            // Verify it's actually disabled (soft delete)
             mockMvc.perform(get("/api/categories/" + category.id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -823,72 +833,6 @@ class CategoryControllerSpringBootTest {
                                             .claim("scope", List.of())
                                     )))
                     .andExpect(status().isNotFound());
-        }
-    }
-
-    @Nested
-    class GetCategorySummaries {
-
-        @Test
-        void givenCategoriesWithTransactions_thenReturnsPagedSummaryResponse() throws Exception {
-            categoryRepository.save(
-                    Category.builder()
-                            .name("FOOD")
-                            .type(TransactionType.EXPENSE)
-                            .userId(userId)
-                            .icon("food")
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
-                            .build()
-            );
-            categoryRepository.save(
-                    Category.builder()
-                            .name("RENT")
-                            .type(TransactionType.EXPENSE)
-                            .userId(userId)
-                            .icon("house")
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
-                            .build()
-            );
-
-            mockMvc.perform(get("/api/categories/summaries?page=0&size=10&sort=name&direction=ASC&type=EXPENSE")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    )))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.content").isArray());
-        }
-
-        @Test
-        void givenNoJwt_thenReturnsUnauthorized() throws Exception {
-            mockMvc.perform(get("/api/categories/summaries?page=0&size=10&sort=name&direction=ASC"))
-                    .andExpect(status().isUnauthorized());
-        }
-
-        @Test
-        void givenNoCategories_thenReturnsEmptyPage() throws Exception {
-            mockMvc.perform(get("/api/categories/summaries?page=0&size=10&sort=name&direction=ASC&type=EXPENSE")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    )))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.content").isArray())
-                    .andExpect(jsonPath("$.content.length()").value(0))
-                    .andExpect(jsonPath("$.totalElements").value(0))
-                    .andExpect(jsonPath("$.totalPages").value(0));
         }
     }
 }

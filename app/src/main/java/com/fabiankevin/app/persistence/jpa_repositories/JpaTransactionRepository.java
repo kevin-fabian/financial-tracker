@@ -167,6 +167,14 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
     @Query("""
             SELECT COUNT(t)
             FROM TransactionEntity t
+            WHERE t.category.id = :categoryId
+              AND t.account.userId = :userId
+            """)
+    long countByCategoryIdAndUserId(@Param("categoryId") UUID categoryId, @Param("userId") UUID userId);
+
+    @Query("""
+            SELECT COUNT(t)
+            FROM TransactionEntity t
             WHERE t.account.userId = :userId
               AND t.createdAt >= :startInclusive
               AND t.createdAt < :endExclusive
