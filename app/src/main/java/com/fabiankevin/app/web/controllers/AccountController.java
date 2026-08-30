@@ -46,36 +46,6 @@ public class  AccountController {
     }
 
     @Operation(
-            summary = "Retrieve accounts with pagination",
-            description = "Retrieves paginated accounts for the authenticated user",
-            responses = {
-                    @ApiResponse(responseCode = "200", description = "OK - Resources retrieved successfully",
-                            content = @Content(schema = @Schema(implementation = PageResponse.class))),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
-            }
-    )
-    @GetMapping
-    public PageResponse<AccountResponse> getAccounts(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createdAt") String sort,
-            @RequestParam(defaultValue = "DESC") String direction,
-            JwtAuthenticationToken jwtAuthenticationToken) {
-        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        Page<Account> accounts = accountService.getAccountsByPageAndUserId(new PageQuery(page, size, sort, direction), userId);
-
-        return PageResponse.from(Page.<AccountResponse>builder()
-                .content(accounts.content().stream().map(AccountResponse::from).toList())
-                .page(accounts.page())
-                .size(accounts.size())
-                .totalElements(accounts.totalElements())
-                .totalPages(accounts.totalPages())
-                .last(accounts.last())
-                .first(accounts.first())
-                .build());
-    }
-
-    @Operation(
             summary = "Retrieve account summaries with pagination",
             description = "Retrieves a paginated list of account summaries with aggregated transaction data based on the provided pagination parameters",
             responses = {
@@ -84,7 +54,7 @@ public class  AccountController {
                     @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
             }
     )
-    @GetMapping("/summaries")
+    @GetMapping
     public PageResponse<AccountSummaryResponse> getAccountSummaries(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -143,22 +113,6 @@ public class  AccountController {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         Account updated = accountService.patchAccount(request.toCommand(accountId, userId));
         return AccountResponse.from(updated);
-    }
-
-    @Operation(
-            summary = "Delete an account",
-            description = "Deletes an account by specified ID",
-            responses = {
-                    @ApiResponse(responseCode = "204", description = "No Content - Resource deleted successfully"),
-                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
-            }
-    )
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteAccount(@PathVariable UUID id, JwtAuthenticationToken jwtAuthenticationToken) {
-        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        accountService.deleteAccountById(id, userId);
-        return ResponseEntity.noContent().build();
     }
 
     @Operation(
