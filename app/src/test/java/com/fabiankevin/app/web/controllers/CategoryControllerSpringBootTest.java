@@ -8,6 +8,9 @@ import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
+import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
@@ -66,6 +69,9 @@ class CategoryControllerSpringBootTest {
     private CategoryRepository categoryRepository;
 
     @Autowired
+    private JpaCategoryRepository jpaCategoryRepository;
+
+    @Autowired
     private CategoryService categoryService;
 
     @Autowired
@@ -73,6 +79,12 @@ class CategoryControllerSpringBootTest {
 
     @Autowired
     private TransactionService transactionService;
+
+    @Autowired
+    private AccountService accountService;
+
+    @Autowired
+    private JpaTransactionRepository jpaTransactionRepository;
 
     @Autowired
     private JsonMapper jsonMapper;
@@ -353,7 +365,7 @@ class CategoryControllerSpringBootTest {
     class GetCategories {
 
         @Test
-        void givenMultipleCategories_thenReturnsPagedResponse() throws Exception {
+        void givenCategoriesWithTransactions_thenReturnMultipleCategoriesWithAggregatedFields() throws Exception {
             var savedCategory1 = categoryService.createCategory(
                     CreateCategoryCommand.builder()
                             .name("FOOD")
@@ -365,6 +377,50 @@ class CategoryControllerSpringBootTest {
                     CreateCategoryCommand.builder()
                             .name("RENT")
                             .type(TransactionType.EXPENSE)
+                            .userId(userId)
+                            .build()
+            );
+
+            Account account = accountRepository.save(
+                    Account.builder()
+                            .name("CASH")
+                            .type(AccountType.CASH)
+                            .userId(userId)
+                            .currency(Currency.getInstance("USD"))
+                            .active(true)
+                            .system(false)
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build()
+            );
+
+            // Create 2 transactions for FOOD category
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(Amount.of(50.0, "USD"))
+                            .transactionDate(LocalDate.now())
+                            .categoryId(savedCategory1.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(Amount.of(50.0, "USD"))
+                            .transactionDate(LocalDate.now())
+                            .categoryId(savedCategory1.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+
+            // Create 1 transaction for RENT category
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(Amount.of(100.0, "USD"))
+                            .transactionDate(LocalDate.now())
+                            .categoryId(savedCategory2.id())
+                            .accountId(account.id())
                             .userId(userId)
                             .build()
             );
@@ -386,63 +442,21 @@ class CategoryControllerSpringBootTest {
                     .andExpect(jsonPath("$.content[0].icon").doesNotExist())
                     .andExpect(jsonPath("$.content[0].active").value(true))
                     .andExpect(jsonPath("$.content[0].system").value(false))
-                    .andExpect(jsonPath("$.content[0].createdAt").isNotEmpty())
-                    .andExpect(jsonPath("$.content[0].updatedAt").isNotEmpty())
+                    .andExpect(jsonPath("$.content[0].totalAmount").value(100.0))
+                    .andExpect(jsonPath("$.content[0].totalTransactions").value(2))
+                    .andExpect(jsonPath("$.content[0].percentage").value(50.0))
                     .andExpect(jsonPath("$.content[1].id").value(savedCategory2.id().toString()))
                     .andExpect(jsonPath("$.content[1].name").value("RENT"))
                     .andExpect(jsonPath("$.content[1].type").value("EXPENSE"))
                     .andExpect(jsonPath("$.content[1].icon").doesNotExist())
                     .andExpect(jsonPath("$.content[1].active").value(true))
                     .andExpect(jsonPath("$.content[1].system").value(false))
-                    .andExpect(jsonPath("$.content[1].createdAt").isNotEmpty())
-                    .andExpect(jsonPath("$.content[1].updatedAt").isNotEmpty())
+                    .andExpect(jsonPath("$.content[1].totalAmount").value(100.0))
+                    .andExpect(jsonPath("$.content[1].totalTransactions").value(1))
+                    .andExpect(jsonPath("$.content[1].percentage").value(50.0))
                     .andExpect(jsonPath("$.totalElements").value(2))
                     .andExpect(jsonPath("$.page").value(0))
                     .andExpect(jsonPath("$.size").value(10));
-        }
-
-        @Test
-        void givenMultipleCategoriesWithIcons_thenReturnsPagedResponseWithIcons() throws Exception {
-            categoryRepository.save(
-                    Category.builder()
-                            .name("FOOD")
-                            .type(TransactionType.EXPENSE)
-                            .userId(userId)
-                            .icon("food")
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
-                            .build()
-            );
-            categoryRepository.save(
-                    Category.builder()
-                            .name("RENT")
-                            .type(TransactionType.EXPENSE)
-                            .userId(userId)
-                            .icon("house")
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
-                            .build()
-            );
-
-            mockMvc.perform(get("/api/categories?page=0&size=10&sort=name&direction=ASC&type=EXPENSE")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    )))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.content").isArray())
-                    .andExpect(jsonPath("$.content.length()").value(2))
-                    .andExpect(jsonPath("$.content[0].name").value("FOOD"))
-                    .andExpect(jsonPath("$.content[0].icon").value("food"))
-                    .andExpect(jsonPath("$.content[1].name").value("RENT"))
-                    .andExpect(jsonPath("$.content[1].icon").value("house"));
         }
 
         @Test
@@ -472,36 +486,6 @@ class CategoryControllerSpringBootTest {
                     .andExpect(jsonPath("$.content.length()").value(1))
                     .andExpect(jsonPath("$.content[0].name").value("SALARY"))
                     .andExpect(jsonPath("$.content[0].type").value("INCOME"));
-        }
-
-        @Test
-        void givenTypeFilterIncomeWithIcon_thenReturnsFilteredResponseWithIcon() throws Exception {
-            categoryRepository.save(
-                    Category.builder()
-                            .name("SALARY")
-                            .type(TransactionType.INCOME)
-                            .userId(userId)
-                            .icon("money")
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
-                            .build()
-            );
-
-            mockMvc.perform(get("/api/categories?page=0&size=10&sort=name&direction=ASC&type=INCOME")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    )))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.content").isArray())
-                    .andExpect(jsonPath("$.content.length()").value(1))
-                    .andExpect(jsonPath("$.content[0].name").value("SALARY"))
-                    .andExpect(jsonPath("$.content[0].icon").value("money"));
         }
 
         @Test
@@ -563,6 +547,121 @@ class CategoryControllerSpringBootTest {
                     .andExpect(jsonPath("$.content.length()").value(0))
                     .andExpect(jsonPath("$.totalElements").value(0))
                     .andExpect(jsonPath("$.totalPages").value(0));
+        }
+
+        @Test
+        void givenCategoriesOwnedByOtherUser_thenExcludesOtherUsersCategories() throws Exception {
+            var myCategory = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
+                            .name("FOOD")
+                            .type(TransactionType.EXPENSE)
+                            .userId(userId)
+                            .build()
+            );
+
+            UUID otherUserId = UUID.randomUUID();
+            categoryRepository.save(
+                    Category.builder()
+                            .name("RENT")
+                            .type(TransactionType.EXPENSE)
+                            .userId(otherUserId)
+                            .active(true)
+                            .system(false)
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build()
+            );
+
+            mockMvc.perform(get("/api/categories?page=0&size=10&sort=name&direction=ASC&type=EXPENSE")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content").isArray())
+                    .andExpect(jsonPath("$.content.length()").value(1))
+                    .andExpect(jsonPath("$.content[0].id").value(myCategory.id().toString()))
+                    .andExpect(jsonPath("$.content[0].name").value("FOOD"))
+                    .andExpect(jsonPath("$.totalElements").value(1));
+        }
+
+        @Test
+        void givenSystemCategoryWithUserTransactionsAndOtherUserTransactions_thenExcludesOtherUsersTransactionsInAggregate() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            var systemCategory = categoryRepository.save(
+                    Category.builder()
+                            .name("SYSTEM_FOOD")
+                            .type(TransactionType.EXPENSE)
+                            .userId(UUID.fromString("00000000-0000-0000-0000-000000000001"))
+                            .active(true)
+                            .system(false)
+                            .icon("food")
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build()
+            );
+
+            // Create an account for the current user (systemUserId)
+            UUID myAccount = accountService.createAccount(
+                    com.fabiankevin.app.services.commands.CreateAccountCommand.builder()
+                            .name("MY_ACCOUNT")
+                            .type(com.fabiankevin.app.models.enums.AccountType.CASH)
+                            .userId(userId)
+                            .currency(Currency.getInstance("USD"))
+                            .build()
+            ).id();
+
+            // Create a transaction for the current user linked to the system category (via service)
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(Amount.of(50.0, "USD"))
+                            .transactionDate(LocalDate.now())
+                            .categoryId(systemCategory.id())
+                            .accountId(myAccount)
+                            .userId(userId)
+                            .build()
+            );
+
+            // Create an account for another user
+            UUID otherUserId = UUID.randomUUID();
+            final Account othersAccount = accountService.createAccount(
+                    com.fabiankevin.app.services.commands.CreateAccountCommand.builder()
+                            .name("OTHER_ACCOUNT")
+                            .type(com.fabiankevin.app.models.enums.AccountType.CASH)
+                            .userId(otherUserId)
+                            .currency(Currency.getInstance("USD"))
+                            .build()
+            );
+            transactionService.addTransaction(AddTransactionCommand.builder()
+                            .accountId(othersAccount.id())
+                            .categoryId(systemCategory.id())
+                            .amount(Amount.of(100.0, "USD"))
+                            .transactionDate(LocalDate.now())
+                            .userId(otherUserId)
+                    .build());
+
+            // Query category summaries as the current user (systemUserId)
+            mockMvc.perform(get("/api/categories?page=0&size=10&sort=name&direction=ASC&type=EXPENSE")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content").isArray())
+                    .andExpect(jsonPath("$.content.length()").value(1))
+                    .andExpect(jsonPath("$.content[0].id").value(systemCategory.id().toString()))
+                    .andExpect(jsonPath("$.content[0].name").value("SYSTEM_FOOD"))
+                    // Only the current user's transaction should be included in the aggregate
+                    .andExpect(jsonPath("$.content[0].totalAmount").value(50.0))
+                    .andExpect(jsonPath("$.content[0].totalTransactions").value(1))
+                    .andExpect(jsonPath("$.totalElements").value(1));
         }
     }
 

@@ -119,9 +119,14 @@ Key models: `Account`, `Transaction`, `Amount`, `Category`, `User`, `Page`, `Acc
 
 ## Build & test
 
-- Full app test suite: `./mvnw -pl app test 2>&1 | grep -E "FAILED|PASSED|SKIPPED|FAILURE|BUILD SUCCESS|BUILD FAILED"`
-- Targeted tests: `./mvnw -pl app -Dtest=StatsControllerTest,DefaultTransactionRepositoryTest test 2>&1 | grep -E "FAILED|PASSED|SKIPPED|FAILURE|BUILD SUCCESSFUL|BUILD FAILED"`
+### Run Tests
+```bash
+# Full app test suit
+./mvnw -pl app test 2>&1 | grep -E "Tests run:|BUILD"
 
+# Targeted tests:
+./mvnw -pl app test -Dtest=CategoryControllerSpringBootTest 2>&1 | grep -E "Tests run:|BUILD"
+```
 - Default profile `local` → file-based H2 (`application-local.yaml`).
 - PostgreSQL: `application-local-pg.yaml` + `docker-compose/docker-compose.yaml`.
 - Runtime uses `financial_tracker_apps`; Liquibase uses `financial_tracker_user`.

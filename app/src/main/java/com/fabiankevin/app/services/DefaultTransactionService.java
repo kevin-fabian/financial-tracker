@@ -87,7 +87,7 @@ public class DefaultTransactionService implements TransactionService {
                 .filter(acc -> acc.userId().equals(userId))
                 .orElseThrow(AccountNotFoundException::new);
         Category category = categoryRepository.findById(command.categoryId())
-                .filter(cat -> cat.userId().equals(userId))
+                .filter(cat -> cat.userId().equals(userId) || cat.isSystem())
                 .orElseThrow(CategoryNotFoundException::new);
 
         Transaction transaction = Transaction.builder()

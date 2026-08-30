@@ -27,6 +27,7 @@ public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUI
     Optional<CategoryEntity> findFirstByNameAndTransactionTypeAndUserId(String name, TransactionType type, UUID userId);
 
     List<CategoryEntity> findAllByNameIn(List<String> names);
+
     @Query("""
             SELECT c.id, c.name, c.transactionType, c.userId, c.icon, c.active, c.system,
                 COALESCE(SUM(t.amount), 0.0),
@@ -35,7 +36,8 @@ public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUI
             LEFT JOIN TransactionEntity t ON t.category.id = c.id
                 AND t.transactionDate >= :monthStart
                 AND t.transactionDate <= :monthEnd
-            WHERE c.userId = :userId
+                AND t.account.userId = c.userId
+            WHERE c.userId = :userId OR c.system = true
             AND (:type IS NULL OR c.transactionType = :type)
             GROUP BY c
             """)
