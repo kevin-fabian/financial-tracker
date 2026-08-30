@@ -95,6 +95,8 @@ class CategoryControllerSpringBootTest {
     @BeforeEach
     void setup() {
         userId = UUID.randomUUID();
+        jpaTransactionRepository.deleteAll();
+        jpaCategoryRepository.deleteAll();
     }
 
     @Nested
@@ -662,6 +664,79 @@ class CategoryControllerSpringBootTest {
                     // Only the current user's transaction should be included in the aggregate
                     .andExpect(jsonPath("$.content[0].totalAmount").value(50.0))
                     .andExpect(jsonPath("$.content[0].totalTransactions").value(1))
+                    .andExpect(jsonPath("$.totalElements").value(1));
+        }
+
+        @Test
+        void givenTransactionsFromLastMonthAndCurrentMonth_thenOnlyCurrentMonthTransactionsReflectOnCategoryAggregation() throws Exception {
+            var savedCategory = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
+                            .name("FOOD")
+                            .type(TransactionType.EXPENSE)
+                            .userId(userId)
+                            .build()
+            );
+
+            Account account = accountService.createAccount(
+                    CreateAccountCommand.builder()
+                            .name("CASH")
+                            .type(AccountType.CASH)
+                            .userId(userId)
+                            .currency(Currency.getInstance("USD"))
+                            .build()
+            );
+
+            // Create 2 transactions from last month — these should NOT appear in the aggregate
+            LocalDate lastMonthDate = LocalDate.now().minusMonths(1).withDayOfMonth(15);
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(Amount.of(200.0, "USD"))
+                            .transactionDate(lastMonthDate)
+                            .categoryId(savedCategory.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(Amount.of(100.0, "USD"))
+                            .transactionDate(lastMonthDate)
+                            .categoryId(savedCategory.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+
+            // Create 1 transaction from the current month — this SHOULD appear in the aggregate
+            LocalDate currentMonthDate = LocalDate.now().withDayOfMonth(10);
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(Amount.of(50.0, "USD"))
+                            .transactionDate(currentMonthDate)
+                            .categoryId(savedCategory.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+
+            mockMvc.perform(get("/api/categories?page=0&size=10&sort=name&direction=ASC&type=EXPENSE")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content").isArray())
+                    .andExpect(jsonPath("$.content.length()").value(1))
+                    .andExpect(jsonPath("$.content[0].id").value(savedCategory.id().toString()))
+                    .andExpect(jsonPath("$.content[0].name").value("FOOD"))
+                    .andExpect(jsonPath("$.content[0].type").value("EXPENSE"))
+                    // Only the current month transaction should be aggregated
+                    .andExpect(jsonPath("$.content[0].totalAmount").value(50.0))
+                    .andExpect(jsonPath("$.content[0].totalTransactions").value(1))
+                    .andExpect(jsonPath("$.content[0].percentage").value(100.0))
                     .andExpect(jsonPath("$.totalElements").value(1));
         }
     }
