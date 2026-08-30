@@ -4,6 +4,8 @@ import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.persistence.AccountRepository;
+import com.fabiankevin.app.services.AccountService;
+import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateAccountRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchAccountRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +32,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import static com.fabiankevin.app.models.enums.AccountType.CREDIT_CARD;
 import static com.fabiankevin.app.models.enums.AccountType.E_WALLET;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -57,6 +60,9 @@ class AccountControllerSpringBootTest {
 
     @Autowired
     private AccountRepository accountRepository;
+
+    @Autowired
+    private AccountService accountService;
 
     @Autowired
     private JsonMapper jsonMapper;
@@ -408,22 +414,20 @@ class AccountControllerSpringBootTest {
     class PatchAccount {
 
         @Test
-        void givenValidPatchRequest_thenReturnsUpdatedAccount() throws Exception {
-            Account account = accountRepository.save(
-                    Account.builder()
+        void givenFullPatchRequest_thenReturnsUpdatedAccount() throws Exception {
+            Account account = accountService.createAccount(
+                    CreateAccountCommand.builder()
                             .name("GCASH")
                             .userId(userId)
                             .currency(Currency.getInstance("PHP"))
                             .type(E_WALLET)
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
                             .build()
             );
 
             PatchAccountRequest request = PatchAccountRequest.builder()
                     .name("GCASH_MAIN")
+                    .currency("USD")
+                    .type(CREDIT_CARD)
                     .build();
 
             mockMvc.perform(patch("/api/accounts/" + account.id())
@@ -439,8 +443,46 @@ class AccountControllerSpringBootTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(account.id().toString()))
                     .andExpect(jsonPath("$.name").value("GCASH_MAIN"))
-                    .andExpect(jsonPath("$.currency").value("PHP"))
-                    .andExpect(jsonPath("$.type").value("E_WALLET"));
+                    .andExpect(jsonPath("$.currency").value("USD"))
+                    .andExpect(jsonPath("$.type").value("CREDIT_CARD"));
+        }
+
+        @ParameterizedTest
+        @MethodSource("invalidPatchAccountRequestTestCases")
+        void givenInvalidPatchAccountRequest_thenReturnsBadRequest(String name, String currency, com.fabiankevin.app.models.enums.AccountType type) throws Exception {
+            Account account = accountService.createAccount(
+                    CreateAccountCommand.builder()
+                            .name("GCASH")
+                            .userId(userId)
+                            .currency(Currency.getInstance("PHP"))
+                            .type(E_WALLET)
+                            .build()
+            );
+
+            PatchAccountRequest request = PatchAccountRequest.builder()
+                    .name(name)
+                    .currency(currency)
+                    .type(type)
+                    .build();
+
+            mockMvc.perform(patch("/api/accounts/" + account.id())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        private static Stream<Arguments> invalidPatchAccountRequestTestCases() {
+            return Stream.of(
+                    Arguments.of("12345".repeat(100), null, null),
+                    Arguments.of(null, "12345".repeat(100), null)
+            );
         }
 
         @Test
@@ -480,16 +522,12 @@ class AccountControllerSpringBootTest {
 
         @Test
         void givenPartialPatch_thenOnlyUpdatesProvidedFields() throws Exception {
-            Account account = accountRepository.save(
-                    Account.builder()
+            Account account = accountService.createAccount(
+                    CreateAccountCommand.builder()
                             .name("GCASH")
                             .userId(userId)
                             .currency(Currency.getInstance("PHP"))
                             .type(E_WALLET)
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
                             .build()
             );
 

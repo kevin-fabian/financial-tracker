@@ -139,7 +139,7 @@ public class  AccountController {
             }
     )
     @PatchMapping("/{accountId}")
-    public AccountResponse patchAccount(@PathVariable UUID accountId, @RequestBody PatchAccountRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
+    public AccountResponse patchAccount(@PathVariable UUID accountId, @Valid @RequestBody PatchAccountRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         Account updated = accountService.patchAccount(request.toCommand(accountId, userId));
         return AccountResponse.from(updated);
