@@ -5,6 +5,7 @@ import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.services.CategoryService;
+import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchCategoryRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -402,26 +403,18 @@ class CategoryControllerSpringBootTest {
 
         @Test
         void givenMultipleCategories_thenReturnsPagedResponse() throws Exception {
-            categoryRepository.save(
-                    Category.builder()
+            var savedCategory1 = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
                             .name("FOOD")
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
                             .build()
             );
-            categoryRepository.save(
-                    Category.builder()
+            var savedCategory2 = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
                             .name("RENT")
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
                             .build()
             );
 
@@ -436,8 +429,22 @@ class CategoryControllerSpringBootTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isArray())
                     .andExpect(jsonPath("$.content.length()").value(2))
+                    .andExpect(jsonPath("$.content[0].id").value(savedCategory1.id().toString()))
                     .andExpect(jsonPath("$.content[0].name").value("FOOD"))
+                    .andExpect(jsonPath("$.content[0].type").value("EXPENSE"))
+                    .andExpect(jsonPath("$.content[0].icon").doesNotExist())
+                    .andExpect(jsonPath("$.content[0].active").value(true))
+                    .andExpect(jsonPath("$.content[0].system").value(false))
+                    .andExpect(jsonPath("$.content[0].createdAt").isNotEmpty())
+                    .andExpect(jsonPath("$.content[0].updatedAt").isNotEmpty())
+                    .andExpect(jsonPath("$.content[1].id").value(savedCategory2.id().toString()))
                     .andExpect(jsonPath("$.content[1].name").value("RENT"))
+                    .andExpect(jsonPath("$.content[1].type").value("EXPENSE"))
+                    .andExpect(jsonPath("$.content[1].icon").doesNotExist())
+                    .andExpect(jsonPath("$.content[1].active").value(true))
+                    .andExpect(jsonPath("$.content[1].system").value(false))
+                    .andExpect(jsonPath("$.content[1].createdAt").isNotEmpty())
+                    .andExpect(jsonPath("$.content[1].updatedAt").isNotEmpty())
                     .andExpect(jsonPath("$.totalElements").value(2))
                     .andExpect(jsonPath("$.page").value(0))
                     .andExpect(jsonPath("$.size").value(10));
