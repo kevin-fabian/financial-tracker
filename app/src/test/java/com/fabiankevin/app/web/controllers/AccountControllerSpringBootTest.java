@@ -9,6 +9,9 @@ import com.fabiankevin.app.web.controllers.dtos.PatchAccountRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -25,6 +28,7 @@ import java.time.Instant;
 import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static com.fabiankevin.app.models.enums.AccountType.E_WALLET;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -107,75 +111,28 @@ class AccountControllerSpringBootTest {
                     .andExpect(status().isUnauthorized());
         }
 
-        @Test
-        void givenNullName_thenReturnsBadRequest() throws Exception {
-            CreateAccountRequest request = CreateAccountRequest.builder()
-                    .name(null)
-                    .currency("PHP")
-                    .type(E_WALLET)
-                    .build();
-
-            mockMvc.perform(post("/api/accounts")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
+        static Stream<Arguments> invalidCreateAccountRequestTestCases() {
+            return Stream.of(
+                    Arguments.of("", "PHP", E_WALLET),
+                    Arguments.of(" ", "PHP", E_WALLET),
+                    Arguments.of("   ", "PHP", E_WALLET),
+                    Arguments.of("GCASH", null, E_WALLET),
+                    Arguments.of("12345".repeat(100), "PHP", E_WALLET),
+                    Arguments.of((String) null, "PHP", E_WALLET),
+                    Arguments.of("GCASH", "", E_WALLET),
+                    Arguments.of("GCASH", "   ", E_WALLET),
+                    Arguments.of("GCASH", "12345".repeat(100), E_WALLET),
+                    Arguments.of("GCASH", "PHP", (AccountType) null)
+            );
         }
 
-        @Test
-        void givenEmptyName_thenReturnsBadRequest() throws Exception {
+        @ParameterizedTest
+        @MethodSource("invalidCreateAccountRequestTestCases")
+        void givenInvalidCreateAccountRequest_thenReturnsBadRequest(String name, String currency, AccountType type) throws Exception {
             CreateAccountRequest request = CreateAccountRequest.builder()
-                    .name("")
-                    .currency("PHP")
-                    .type(E_WALLET)
-                    .build();
-
-            mockMvc.perform(post("/api/accounts")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
-        }
-
-        @Test
-        void givenNullCurrency_thenReturnsBadRequest() throws Exception {
-            CreateAccountRequest request = CreateAccountRequest.builder()
-                    .name("GCASH")
-                    .currency(null)
-                    .type(E_WALLET)
-                    .build();
-
-            mockMvc.perform(post("/api/accounts")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
-        }
-
-        @Test
-        void givenEmptyCurrency_thenReturnsBadRequest() throws Exception {
-            CreateAccountRequest request = CreateAccountRequest.builder()
-                    .name("GCASH")
-                    .currency("")
-                    .type(E_WALLET)
+                    .name(name)
+                    .currency(currency)
+                    .type(type)
                     .build();
 
             mockMvc.perform(post("/api/accounts")
