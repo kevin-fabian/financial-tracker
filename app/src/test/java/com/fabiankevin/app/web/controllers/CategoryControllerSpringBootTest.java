@@ -4,6 +4,7 @@ import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.CategoryRepository;
+import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchCategoryRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,6 +51,9 @@ class CategoryControllerSpringBootTest {
 
     @Autowired
     private CategoryRepository categoryRepository;
+
+    @Autowired
+    private CategoryService categoryService;
 
     @Autowired
     private JsonMapper jsonMapper;
@@ -137,6 +141,46 @@ class CategoryControllerSpringBootTest {
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(firstRequest)))
                     .andExpect(status().isConflict());
+        }
+
+        @Test
+        void givenInactiveCategoryWithDifferentIcon_thenReactivatesWithNewDetails() throws Exception {
+            Category inactiveCategory = categoryRepository.save(
+                    Category.builder()
+                            .name("FOOD")
+                            .type(TransactionType.EXPENSE)
+                            .icon(null)
+                            .userId(userId)
+                            .active(false)
+                            .system(false)
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build()
+            );
+
+            CreateCategoryRequest request = CreateCategoryRequest.builder()
+                    .name("FOOD")
+                    .type(TransactionType.EXPENSE)
+                    .icon("food-new")
+                    .build();
+
+            mockMvc.perform(post("/api/categories")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").value(inactiveCategory.id().toString()))
+                    .andExpect(jsonPath("$.name").value("FOOD"))
+                    .andExpect(jsonPath("$.type").value("EXPENSE"))
+                    .andExpect(jsonPath("$.icon").value("food-new"))
+                    .andExpect(jsonPath("$.active").value(true))
+                    .andExpect(jsonPath("$.system").value(false));
         }
     }
 
