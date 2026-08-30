@@ -1,6 +1,5 @@
 # Project Architecture Guidelines
 
-## Project Architecture Overview
 This project follows light hexagonal architecture principles with DDD-light modeling. Keep domain models valid by construction: a model should not exist if it cannot be in a valid state.
 
 **Architecture reference**

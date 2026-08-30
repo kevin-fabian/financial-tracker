@@ -1,31 +1,5 @@
 ## IntelliJ MCP Tools
 
-Always prefer IntelliJ MCP over grep/regex/file tools.
-
-```
-# Search: symbol, text, regex, file, unified
-tool: mcp__intellij__search_symbol(q="PasswordChangeService")
-tool: mcp__intellij__search_text(q="PasswordChangeController")
-tool: mcp__intellij__search_regex(q="class.*PasswordChange.*Service")
-tool: mcp__intellij__search_file(q="PasswordChangeController.java")
-tool: mcp__intellij__skill_search(mode="text", q="PasswordChangeService")
-
-# Navigate: symbol info, call hierarchy
-tool: mcp__intellij__get_symbol_info(filePath="app/src/.../File.java", line=5, column=1)
-tool: mcp__intellij__analyze_calls(symbolFqn="com.fabiankevin.app.services.DefaultUserService.create", analysisKind="INCOMING_CALLS")
-
-# Edit: rename, format, lint, create
-tool: mcp__intellij__rename_refactoring(pathInProject="app/src/.../File.java", symbolName="OldName", newName="NewName")
-tool: mcp__intellij__reformat_file(files=["app/src/.../File.java"])
-tool: mcp__intellij__lint_files(files=["app/src/.../File.java"])
-tool: mcp__intellij__get_file_problems(filePath="app/src/.../File.java")
-tool: mcp__intellij__create_new_file(pathInProject="app/src/.../NewFile.java", text="// content")
-
-# Read: file, directory
-tool: mcp__intellij__read_file(file_path="app/src/.../File.java")
-tool: mcp__intellij__list_directory_tree(directoryPath="app/src/main/java/com/fabiankevin/app/web")
-```
-
 Personal financial tracker: multi-currency accounts, transactions, categories, aggregated statistics, budgets, recurring transactions, shopping lists, and party collaboration. Spring Boot 3 + Spring Security OAuth2 resource server, backed by PostgreSQL (local H2 for tests).
 
 Entry point: `app/src/main/java/com/fabiankevin/app/App.java`. Single-module build (`app`); multi-module parent is scaffolding for future use.

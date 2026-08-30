@@ -65,7 +65,7 @@ class AccountControllerSpringBootTest {
     }
 
     @Nested
-    class Create {
+    class CreateAccount {
 
         @Test
         void givenValidRequest_thenReturnsCreatedWithAccountResponse() throws Exception {
