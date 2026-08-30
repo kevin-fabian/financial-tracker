@@ -25,7 +25,5 @@ public record CategorySummary(
                 .orElseThrow(() -> new IllegalArgumentException("Category name is required"));
         Optional.ofNullable(type)
                 .orElseThrow(() -> new IllegalArgumentException("Category type is required"));
-        Optional.ofNullable(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User ID is required"));
     }
 }

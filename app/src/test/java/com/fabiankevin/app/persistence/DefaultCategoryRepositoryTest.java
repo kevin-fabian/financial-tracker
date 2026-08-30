@@ -700,6 +700,78 @@ class DefaultCategoryRepositoryTest {
             Assertions.assertThat(entertainmentSummary.totalTransactions()).isZero();
             Assertions.assertThat(entertainmentSummary.percentage()).isZero();
         }
+
+        @Test
+        void givenSystemCategoryWithUserTransactionsAndOtherUserTransactions_thenExcludesOtherUsersTransactionsInAggregate() {
+            UUID currentUserId = UUID.randomUUID();
+            UUID otherUserId = UUID.randomUUID();
+
+            CategoryEntity food = CategoryEntity.builder()
+                    .name("FOOD")
+                    .transactionType(TransactionType.EXPENSE)
+                    .system(true)
+                    .userId(null)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            CategoryEntity insertedCategory = jpaCategoryRepository.saveAndFlush(food);
+            assertEquals("FOOD", insertedCategory.getName(), "name should be FOOD");
+            assertTrue(insertedCategory.isSystem(), "system should be true");
+
+            var currentAccount = AccountEntity.builder()
+                    .userId(currentUserId)
+                    .name("CASH")
+                    .currency("PHP")
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            currentAccount = jpaAccountRepository.saveAndFlush(currentAccount);
+
+            var otherAccount = AccountEntity.builder()
+                    .userId(otherUserId)
+                    .name("CASH")
+                    .currency("PHP")
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            otherAccount = jpaAccountRepository.saveAndFlush(otherAccount);
+
+            var currentUserIdTx = TransactionEntity.builder()
+                    .account(currentAccount)
+                    .category(food)
+                    .amount(300.0)
+                    .currency("PHP")
+                    .transactionDate(LocalDate.now())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            var otherUserIdTx = TransactionEntity.builder()
+                    .account(otherAccount)
+                    .category(food)
+                    .amount(700.0)
+                    .currency("PHP")
+                    .transactionDate(LocalDate.now())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            jpaTransactionRepository.saveAndFlush(currentUserIdTx);
+            jpaTransactionRepository.saveAndFlush(otherUserIdTx);
+
+            Page<CategorySummary> page = categoryRepository.findAllByPageQueryWithSummary(
+                    new PageQuery(0, 10, "name", "ASC"), currentUserId, TransactionType.EXPENSE);
+
+            Assertions.assertThat(page.content()).hasSize(1);
+
+            var foodSummary = page.content().stream()
+                    .filter(c -> "FOOD".equals(c.name()))
+                    .filter(CategorySummary::system)
+                    .findFirst().orElseThrow();
+            Assertions.assertThat(foodSummary.totalAmount()).isEqualTo(300.0);
+            Assertions.assertThat(foodSummary.totalTransactions()).isEqualTo(1);
+            Assertions.assertThat(foodSummary.percentage()).isCloseTo(100.0, Assertions.within(0.01));
+        }
     }
 
     @Nested
