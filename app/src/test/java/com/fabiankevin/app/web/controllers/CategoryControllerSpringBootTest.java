@@ -103,8 +103,8 @@ class CategoryControllerSpringBootTest {
         }
 
         @ParameterizedTest
-        @MethodSource("blankNameTestCases")
-        void givenBlankName_thenReturnsBadRequest(String name, TransactionType type) throws Exception {
+        @MethodSource("invalidCreateCategoryRequestTestCases")
+        void givenInvalidCreateCategoryRequest_thenReturnsBadRequest(String name, TransactionType type) throws Exception {
             CreateCategoryRequest request = CreateCategoryRequest.builder()
                     .name(name)
                     .type(type)
@@ -123,52 +123,14 @@ class CategoryControllerSpringBootTest {
                     .andExpect(status().isBadRequest());
         }
 
-        static Stream<Arguments> blankNameTestCases() {
+        static Stream<Arguments> invalidCreateCategoryRequestTestCases() {
             return Stream.of(
                     Arguments.of("", TransactionType.EXPENSE),
                     Arguments.of(" ", TransactionType.EXPENSE),
-                    Arguments.of("   ", TransactionType.EXPENSE)
+                    Arguments.of("   ", TransactionType.EXPENSE),
+                    Arguments.of((String) null, TransactionType.EXPENSE),
+                    Arguments.of("FOOD", (TransactionType) null)
             );
-        }
-
-        @Test
-        void givenNullName_thenReturnsBadRequest() throws Exception {
-            CreateCategoryRequest request = CreateCategoryRequest.builder()
-                    .name(null)
-                    .type(TransactionType.EXPENSE)
-                    .build();
-
-            mockMvc.perform(post("/api/categories")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
-        }
-
-        @Test
-        void givenNullType_thenReturnsBadRequest() throws Exception {
-            CreateCategoryRequest request = CreateCategoryRequest.builder()
-                    .name("FOOD")
-                    .type(null)
-                    .build();
-
-            mockMvc.perform(post("/api/categories")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
         }
 
         @Test
