@@ -6,7 +6,7 @@ This project follows light hexagonal architecture principles with DDD-light mode
 **Architecture reference**
 controllers -> services -> repositories -> jpa_repositories -> entities
 
-This file is intentionally repo agnostic. For concrete package names, module layout, infrastructure choices, profiles, and known exceptions in the current repository, consult `AGENTS.md`.
+This file is intentionally repo agnostic. For concrete package names, module layout, infrastructure choices, profiles, and known exceptions in the current repository, consult `QWEN.md`.
 
 ---
 

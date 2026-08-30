@@ -17,3 +17,9 @@ spring:
     clients:
       connect-timeout: 30s
       read-timeout: 30s
+
+
+app:
+  clients:
+    identity-service:
+      base-url:

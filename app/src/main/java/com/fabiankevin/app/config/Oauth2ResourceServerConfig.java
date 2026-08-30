@@ -8,6 +8,7 @@ import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -28,15 +29,13 @@ public class Oauth2ResourceServerConfig {
                                            InvalidTokenAuthenticationEntryPoint invalidTokenAuthenticationEntryPoint,
                                            BearerAccessDeniedHandler bearerAccessDeniedHandler) {
         http
-                .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/api/users")
-                )
+                .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
                                 "/api/accounts", "/api/accounts/**",
                                 "/api/categories", "/api/categories/**",
                                 "/api/stats", "/api/stats*",
-                                "/api/parties", "/api/party/**",
+                                "/api/parties", "/api/parties/**",
                                 "/api/budgets", "/api/budgets/**",
                                 "/api/shopping-lists/**"
                                 ).hasAnyAuthority(USER_ROLE)

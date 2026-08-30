@@ -13,6 +13,6 @@ public class UserClientConfig {
     UserClient userClient(RestClient restClient) {
         return new DefaultUserClient(restClient,
                 "http://localhost:9000/api",
-                "zeny-service");
+                "financial-tracker-client");
     }
 }
