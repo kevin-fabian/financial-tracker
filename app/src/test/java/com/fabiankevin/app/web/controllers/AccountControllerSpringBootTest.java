@@ -479,7 +479,7 @@ class AccountControllerSpringBootTest {
     class GetAccounts {
 
         @Test
-        void givenValidParams_thenReturnsPagedSummaryResponse() throws Exception {
+        void givenExistingUserAccounts_thenReturnsPagedSummaryResponse() throws Exception {
             accountRepository.save(
                     Account.builder()
                             .name("GCASH")
@@ -505,7 +505,7 @@ class AccountControllerSpringBootTest {
                             .build()
             );
 
-            mockMvc.perform(get("/api/accounts/summaries?page=0&size=2&sort=name&direction=ASC")
+            mockMvc.perform(get("/api/accounts?page=0&size=2&sort=name&direction=ASC")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -528,13 +528,13 @@ class AccountControllerSpringBootTest {
 
         @Test
         void givenNoJwt_thenReturnsUnauthorized() throws Exception {
-            mockMvc.perform(get("/api/accounts/summaries?page=0&size=10&sort=name&direction=ASC"))
+            mockMvc.perform(get("/api/accounts?page=0&size=10&sort=name&direction=ASC"))
                     .andExpect(status().isUnauthorized());
         }
 
         @Test
         void givenNoContent_thenReturnsEmptyPage() throws Exception {
-            mockMvc.perform(get("/api/accounts/summaries?page=0&size=10&sort=name&direction=ASC")
+            mockMvc.perform(get("/api/accounts?page=0&size=10&sort=name&direction=ASC")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
