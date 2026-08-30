@@ -449,7 +449,7 @@ class AccountControllerSpringBootTest {
 
         @ParameterizedTest
         @MethodSource("invalidPatchAccountRequestTestCases")
-        void givenInvalidPatchAccountRequest_thenReturnsBadRequest(String name, String currency, com.fabiankevin.app.models.enums.AccountType type) throws Exception {
+        void givenInvalidPatchAccountRequest_thenReturnsBadRequest(String name, String currency, AccountType type) throws Exception {
             Account account = accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")
