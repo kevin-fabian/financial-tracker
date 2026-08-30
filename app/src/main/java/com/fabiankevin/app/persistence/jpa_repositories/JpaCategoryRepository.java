@@ -36,7 +36,7 @@ public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUI
             LEFT JOIN TransactionEntity t ON t.category.id = c.id
                 AND t.transactionDate >= :monthStart
                 AND t.transactionDate <= :monthEnd
-                AND t.account.userId = c.userId
+                AND t.account.userId = :userId
             WHERE (c.userId = :userId OR c.system = true)
             AND (:type IS NULL OR c.transactionType = :type)
             GROUP BY c
