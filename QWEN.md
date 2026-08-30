@@ -119,7 +119,7 @@ Key models: `Account`, `Transaction`, `Amount`, `Category`, `User`, `Page`, `Acc
 
 ## Build & test
 
-- Full app test suite: `./mvnw -pl app test 2>&1 | grep -E "FAILED|PASSED|SKIPPED|FAILURE|BUILD SUCCESSFUL|BUILD FAILED"`
+- Full app test suite: `./mvnw -pl app test 2>&1 | grep -E "FAILED|PASSED|SKIPPED|FAILURE|BUILD SUCCESS|BUILD FAILED"`
 - Targeted tests: `./mvnw -pl app -Dtest=StatsControllerTest,DefaultTransactionRepositoryTest test 2>&1 | grep -E "FAILED|PASSED|SKIPPED|FAILURE|BUILD SUCCESSFUL|BUILD FAILED"`
 
 - Default profile `local` → file-based H2 (`application-local.yaml`).

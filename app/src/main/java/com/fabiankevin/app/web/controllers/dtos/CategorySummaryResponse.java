@@ -20,6 +20,8 @@ public record CategorySummaryResponse(
         String icon,
         @Schema(description = "Whether the category is active", example = "true")
         boolean active,
+        @Schema(description = "Whether the category is a system category", example = "false")
+        boolean system,
         @Schema(description = "Total totalAmount for this category", example = "150.75")
         double totalAmount,
         @Schema(description = "Percentage of total transactions for this category", example = "25.5")
@@ -34,6 +36,7 @@ public record CategorySummaryResponse(
                 .type(categorySummary.type())
                 .icon(categorySummary.icon())
                 .active(categorySummary.active())
+                .system(categorySummary.system())
                 .totalAmount(categorySummary.totalAmount())
                 .percentage(categorySummary.percentage())
                 .totalTransactions(categorySummary.totalTransactions())

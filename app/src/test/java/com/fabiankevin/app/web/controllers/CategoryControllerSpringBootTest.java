@@ -68,6 +68,7 @@ class CategoryControllerSpringBootTest {
         void givenValidRequest_thenReturnsCreatedWithCategoryResponse() throws Exception {
             CreateCategoryRequest request = CreateCategoryRequest.builder()
                     .name("FOOD")
+                    .icon("food")
                     .type(TransactionType.EXPENSE)
                     .build();
 
@@ -86,36 +87,11 @@ class CategoryControllerSpringBootTest {
                     .andExpect(jsonPath("$.id").isNotEmpty())
                     .andExpect(jsonPath("$.name").value("FOOD"))
                     .andExpect(jsonPath("$.type").value("EXPENSE"))
-                    .andExpect(jsonPath("$.icon").doesNotExist())
+                    .andExpect(jsonPath("$.icon").value("food"))
                     .andExpect(jsonPath("$.active").value(true))
+                    .andExpect(jsonPath("$.system").value(false))
                     .andExpect(jsonPath("$.createdAt").isNotEmpty())
                     .andExpect(jsonPath("$.updatedAt").isNotEmpty());
-        }
-
-        @Test
-        void givenValidRequestWithIcon_thenReturnsCreatedWithIcon() throws Exception {
-            CreateCategoryRequest request = CreateCategoryRequest.builder()
-                    .name("FOOD")
-                    .type(TransactionType.EXPENSE)
-                    .icon("food")
-                    .build();
-
-            mockMvc.perform(post("/api/categories")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.id").isNotEmpty())
-                    .andExpect(jsonPath("$.name").value("FOOD"))
-                    .andExpect(jsonPath("$.type").value("EXPENSE"))
-                    .andExpect(jsonPath("$.icon").value("food"))
-                    .andExpect(jsonPath("$.active").value(true));
         }
 
         @Test
@@ -175,6 +151,7 @@ class CategoryControllerSpringBootTest {
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
                             .active(true)
+                            .system(false)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build()
@@ -192,7 +169,8 @@ class CategoryControllerSpringBootTest {
                     .andExpect(jsonPath("$.id").value(category.id().toString()))
                     .andExpect(jsonPath("$.name").value("FOOD"))
                     .andExpect(jsonPath("$.type").value("EXPENSE"))
-                    .andExpect(jsonPath("$.active").value(true));
+                    .andExpect(jsonPath("$.active").value(true))
+                    .andExpect(jsonPath("$.system").value(false));
         }
 
         @Test
@@ -204,6 +182,7 @@ class CategoryControllerSpringBootTest {
                             .userId(userId)
                             .icon("food")
                             .active(true)
+                            .system(false)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build()
@@ -221,7 +200,8 @@ class CategoryControllerSpringBootTest {
                     .andExpect(jsonPath("$.id").value(category.id().toString()))
                     .andExpect(jsonPath("$.name").value("FOOD"))
                     .andExpect(jsonPath("$.icon").value("food"))
-                    .andExpect(jsonPath("$.active").value(true));
+                    .andExpect(jsonPath("$.active").value(true))
+                    .andExpect(jsonPath("$.system").value(false));
         }
 
         @Test
@@ -256,6 +236,7 @@ class CategoryControllerSpringBootTest {
                             .type(TransactionType.EXPENSE)
                             .userId(otherUserId)
                             .active(true)
+                            .system(false)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build()
@@ -284,6 +265,7 @@ class CategoryControllerSpringBootTest {
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
                             .active(true)
+                            .system(false)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build()
@@ -346,6 +328,7 @@ class CategoryControllerSpringBootTest {
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
                             .active(true)
+                            .system(false)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build()
@@ -356,6 +339,7 @@ class CategoryControllerSpringBootTest {
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
                             .active(true)
+                            .system(false)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build()
@@ -388,6 +372,7 @@ class CategoryControllerSpringBootTest {
                             .userId(userId)
                             .icon("food")
                             .active(true)
+                            .system(false)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build()
@@ -399,6 +384,7 @@ class CategoryControllerSpringBootTest {
                             .userId(userId)
                             .icon("house")
                             .active(true)
+                            .system(false)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build()
@@ -429,6 +415,7 @@ class CategoryControllerSpringBootTest {
                             .type(TransactionType.INCOME)
                             .userId(userId)
                             .active(true)
+                            .system(false)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build()
@@ -458,6 +445,7 @@ class CategoryControllerSpringBootTest {
                             .userId(userId)
                             .icon("money")
                             .active(true)
+                            .system(false)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build()
@@ -486,6 +474,7 @@ class CategoryControllerSpringBootTest {
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
                             .active(true)
+                            .system(false)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build()
@@ -496,6 +485,7 @@ class CategoryControllerSpringBootTest {
                             .type(TransactionType.INCOME)
                             .userId(userId)
                             .active(true)
+                            .system(false)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build()
@@ -549,6 +539,7 @@ class CategoryControllerSpringBootTest {
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
                             .active(true)
+                            .system(false)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build()
@@ -572,7 +563,8 @@ class CategoryControllerSpringBootTest {
                     .andExpect(jsonPath("$.id").value(category.id().toString()))
                     .andExpect(jsonPath("$.name").value("GROCERIES"))
                     .andExpect(jsonPath("$.type").value("EXPENSE"))
-                    .andExpect(jsonPath("$.active").value(true));
+                    .andExpect(jsonPath("$.active").value(true))
+                    .andExpect(jsonPath("$.system").value(false));
         }
 
         @Test
@@ -583,6 +575,7 @@ class CategoryControllerSpringBootTest {
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
                             .active(true)
+                            .system(false)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build()
@@ -607,7 +600,8 @@ class CategoryControllerSpringBootTest {
                     .andExpect(jsonPath("$.id").value(category.id().toString()))
                     .andExpect(jsonPath("$.name").value("GROCERIES"))
                     .andExpect(jsonPath("$.icon").value("groceries"))
-                    .andExpect(jsonPath("$.active").value(true));
+                    .andExpect(jsonPath("$.active").value(true))
+                    .andExpect(jsonPath("$.system").value(false));
         }
 
         @Test
@@ -654,6 +648,7 @@ class CategoryControllerSpringBootTest {
                             .userId(userId)
                             .icon("food")
                             .active(true)
+                            .system(false)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build()
@@ -691,6 +686,7 @@ class CategoryControllerSpringBootTest {
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
                             .active(true)
+                            .system(false)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build()
@@ -755,6 +751,7 @@ class CategoryControllerSpringBootTest {
                             .userId(userId)
                             .icon("food")
                             .active(true)
+                            .system(false)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build()
@@ -766,6 +763,7 @@ class CategoryControllerSpringBootTest {
                             .userId(userId)
                             .icon("house")
                             .active(true)
+                            .system(false)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build()

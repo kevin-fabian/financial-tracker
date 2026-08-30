@@ -80,6 +80,7 @@ class CategoryControllerTest {
                         .userId(userId)
                         .icon(command.icon())
                         .active(true)
+                        .system(false)
                         .createdAt(Instant.now())
                         .updatedAt(Instant.now())
                         .build();
@@ -119,6 +120,7 @@ class CategoryControllerTest {
                         .userId(userId)
                         .icon(command.icon())
                         .active(true)
+                        .system(false)
                         .createdAt(Instant.now())
                         .updatedAt(Instant.now())
                         .build();
@@ -185,6 +187,7 @@ class CategoryControllerTest {
                 .userId(userId)
                 .icon(null)
                 .active(true)
+                .system(false)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build());
@@ -212,6 +215,7 @@ class CategoryControllerTest {
                 .userId(userId)
                 .icon("food")
                 .active(true)
+                .system(false)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build());
@@ -272,6 +276,7 @@ class CategoryControllerTest {
                 .userId(userId)
                 .icon(null)
                 .active(true)
+                .system(false)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -283,6 +288,7 @@ class CategoryControllerTest {
                 .userId(userId)
                 .icon(null)
                 .active(true)
+                .system(false)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -318,6 +324,7 @@ class CategoryControllerTest {
                 .userId(userId)
                 .icon("food")
                 .active(true)
+                .system(false)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -329,6 +336,7 @@ class CategoryControllerTest {
                 .userId(userId)
                 .icon("house")
                 .active(true)
+                .system(false)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -366,6 +374,7 @@ class CategoryControllerTest {
                 .userId(userId)
                 .icon(null)
                 .active(true)
+                .system(false)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -398,6 +407,7 @@ class CategoryControllerTest {
                 .userId(userId)
                 .icon("money")
                 .active(true)
+                .system(false)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -430,6 +440,7 @@ class CategoryControllerTest {
                 .userId(userId)
                 .icon(null)
                 .active(true)
+                .system(false)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -441,6 +452,7 @@ class CategoryControllerTest {
                 .userId(userId)
                 .icon(null)
                 .active(true)
+                .system(false)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -473,6 +485,7 @@ class CategoryControllerTest {
                 .userId(userId)
                 .icon("food")
                 .active(true)
+                .system(false)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -484,6 +497,7 @@ class CategoryControllerTest {
                 .userId(userId)
                 .icon("money")
                 .active(true)
+                .system(false)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -555,6 +569,7 @@ class CategoryControllerTest {
                     .userId(userId)
                     .icon(cmd.icon())
                     .active(true)
+                .system(false)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -593,6 +608,7 @@ class CategoryControllerTest {
                     .userId(userId)
                     .icon(cmd.icon())
                     .active(true)
+                .system(false)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -666,6 +682,7 @@ class CategoryControllerTest {
                 .userId(userId)
                 .icon("food")
                 .active(true)
+                .system(false)
                 .totalAmount(150.75)
                 .percentage(25.5)
                 .totalTransactions(10)
@@ -678,6 +695,7 @@ class CategoryControllerTest {
                 .userId(userId)
                 .icon("house")
                 .active(true)
+                .system(false)
                 .totalAmount(1200.00)
                 .percentage(50.0)
                 .totalTransactions(2)

@@ -17,6 +17,7 @@ public record Category(
         UUID userId,
         String icon,
         boolean active,
+        boolean system,
         Instant createdAt,
         Instant updatedAt
 ) {

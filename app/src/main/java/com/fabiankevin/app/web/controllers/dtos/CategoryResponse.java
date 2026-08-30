@@ -21,6 +21,8 @@ public record CategoryResponse(
         String icon,
         @Schema(description = "Whether the category is active", example = "true")
         boolean active,
+        @Schema(description = "Whether the category is a system category", example = "false")
+        boolean system,
         @Schema(description = "Timestamp when the category was created")
         Instant createdAt,
         @Schema(description = "Timestamp when the category was last updated")
@@ -34,6 +36,7 @@ public record CategoryResponse(
                 .type(category.type())
                 .icon(icon)
                 .active(category.active())
+                .system(category.system())
                 .createdAt(category.createdAt())
                 .updatedAt(category.updatedAt())
                 .build();
