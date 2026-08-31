@@ -132,6 +132,10 @@ public class DefaultTransactionService implements TransactionService {
         Transaction existing = transactionRepository.findById(id)
                 .orElseThrow(TransactionNotFoundException::new);
 
+        if (command.amount() != null && command.amount() <= 0) {
+            throw new InvalidAmountException("amount must be greater than zero");
+        }
+
         // validate and fetch new account if provided
         Account newAccount = null;
         if (command.accountId() != null) {

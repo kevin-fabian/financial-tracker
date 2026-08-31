@@ -25,6 +25,7 @@ Primary goal: write test cases that are readable, behavior-focused, and consiste
 
 ## Mandatory Rules
 
+- Do not update the expected test cases output just to pass the test cases, when you are in doubt, just confirm it with the user.
 - **Happy-path field coverage (all layers):** the first test case for every method MUST be the happy path and MUST assert **every field** of the returned result — no exceptions. This applies to controller (`@WebMvcTest`, `@SpringBootTest`), service (unit), and repository (`@DataJpaTest`) layers. Use `jsonPath` for controller tests, direct field access for service tests, and entity field assertions for repository tests. Subsequent (non-happy-path) scenarios assert only what the scenario verifies — scenario-based assertions, not full-field enumeration.
 - Always group a method's test scenarios under a `@Nested` class. Never leave multiple top-level `@Test` methods for the same method under test un-nested.
 - Name the `@Nested` class in PascalCase, derived from the method under test (e.g. `organize` → `OrganizeParty`, `sendInvitation` → `SendInvitation`).

@@ -2,6 +2,7 @@ package com.fabiankevin.app.web.controllers.dtos;
 
 import com.fabiankevin.app.services.commands.PatchTransactionCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.DecimalMin;
 import lombok.Builder;
 
 import java.time.LocalDate;
@@ -13,6 +14,7 @@ public record PatchTransactionRequest(
         String description,
         UUID categoryId,
         @Schema(description = "Transaction amount", example = "100.00")
+        @DecimalMin(value = "0.01", inclusive = false, message = "amount must be greater than zero")
         Double amount,
         LocalDate transactionDate
 ) {

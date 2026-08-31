@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -803,7 +804,75 @@ class TransactionControllerIntegrationTest {
     class PatchTransaction {
 
         @Test
-        void givenValidPatchRequest_thenReturnsUpdatedTransaction() throws Exception {
+        void givenPatchAllFields_thenReturnsUpdatedTransaction() throws Exception {
+            User mockUser = User.builder()
+                    .id(userId)
+                    .firstName("John")
+                    .lastName("Doe")
+                    .build();
+
+            when(userClient.getUsersByIds(any())).thenReturn(List.of(mockUser));
+
+            Category newCategory = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
+                            .name("TRANSPORT")
+                            .type(TransactionType.EXPENSE)
+                            .userId(userId)
+                            .build()
+            );
+
+            Transaction created = transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(100)
+                            .description("original")
+                            .transactionDate(LocalDate.of(2026, 1, 1))
+                            .categoryId(category.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+
+            PatchTransactionRequest request = PatchTransactionRequest.builder()
+                    .amount(250.0)
+                    .description("Fully updated description")
+                    .transactionDate(LocalDate.of(2026, 6, 15))
+                    .categoryId(newCategory.id())
+                    .build();
+
+            mockMvc.perform(patch("/api/transactions/" + created.id())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(created.id().toString()))
+                    .andExpect(jsonPath("$.description").value("Fully updated description"))
+                    .andExpect(jsonPath("$.amount.value").value(250))
+                    .andExpect(jsonPath("$.amount.currency").value("PHP"))
+                    .andExpect(jsonPath("$.type").value("EXPENSE"))
+                    .andExpect(jsonPath("$.transactionDate").value("2026-06-15"))
+                    .andExpect(jsonPath("$.account.id").value(account.id().toString()))
+                    .andExpect(jsonPath("$.account.user.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.account.user.firstName").value("John"))
+                    .andExpect(jsonPath("$.account.user.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.category.id").value(newCategory.id().toString()))
+                    .andExpect(jsonPath("$.category.name").value("TRANSPORT"))
+                    .andExpect(jsonPath("$.addedBy.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.addedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$.addedBy.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.updatedBy.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.updatedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$.updatedBy.lastName").value("Doe"));
+        }
+
+        @ParameterizedTest
+        @ValueSource(doubles = {0.0, -100.0})
+        void givenPatchWithNonPositiveAmount_thenReturnsBadRequest(Double amount) throws Exception {
             User mockUser = User.builder()
                     .id(userId)
                     .firstName("John")
@@ -824,7 +893,7 @@ class TransactionControllerIntegrationTest {
             );
 
             PatchTransactionRequest request = PatchTransactionRequest.builder()
-                    .description("Updated description")
+                    .amount(amount)
                     .build();
 
             mockMvc.perform(patch("/api/transactions/" + created.id())
@@ -837,24 +906,83 @@ class TransactionControllerIntegrationTest {
                                     ))
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.id").value(created.id().toString()))
-                    .andExpect(jsonPath("$.description").value("Updated description"))
-                    .andExpect(jsonPath("$.amount.value").value(100))
-                    .andExpect(jsonPath("$.amount.currency").value("PHP"))
-                    .andExpect(jsonPath("$.type").value("EXPENSE"))
-                    .andExpect(jsonPath("$.transactionDate").value("2026-01-01"))
-                    .andExpect(jsonPath("$.account.id").value(account.id().toString()))
-                    .andExpect(jsonPath("$.account.user.id").value(userId.toString()))
-                    .andExpect(jsonPath("$.account.user.firstName").value("John"))
-                    .andExpect(jsonPath("$.account.user.lastName").value("Doe"))
-                    .andExpect(jsonPath("$.category.id").value(category.id().toString()))
-                    .andExpect(jsonPath("$.addedBy.id").value(userId.toString()))
-                    .andExpect(jsonPath("$.addedBy.firstName").value("John"))
-                    .andExpect(jsonPath("$.addedBy.lastName").value("Doe"))
-                    .andExpect(jsonPath("$.updatedBy.id").value(userId.toString()))
-                    .andExpect(jsonPath("$.updatedBy.firstName").value("John"))
-                    .andExpect(jsonPath("$.updatedBy.lastName").value("Doe"));
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void givenPatchNonExistentAccount_thenReturnsNotFound() throws Exception {
+            User mockUser = User.builder()
+                    .id(userId)
+                    .firstName("John")
+                    .lastName("Doe")
+                    .build();
+
+            when(userClient.getUsersByIds(any())).thenReturn(List.of(mockUser));
+
+            Transaction created = transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(100)
+                            .description("original")
+                            .transactionDate(LocalDate.of(2026, 1, 1))
+                            .categoryId(category.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+
+            PatchTransactionRequest request = PatchTransactionRequest.builder()
+                    .accountId(UUID.randomUUID())
+                    .build();
+
+            mockMvc.perform(patch("/api/transactions/" + created.id())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void givenPatchNonExistentCategory_thenReturnsNotFound() throws Exception {
+            User mockUser = User.builder()
+                    .id(userId)
+                    .firstName("John")
+                    .lastName("Doe")
+                    .build();
+
+            when(userClient.getUsersByIds(any())).thenReturn(List.of(mockUser));
+
+            Transaction created = transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(100)
+                            .description("original")
+                            .transactionDate(LocalDate.of(2026, 1, 1))
+                            .categoryId(category.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+
+            PatchTransactionRequest request = PatchTransactionRequest.builder()
+                    .categoryId(UUID.randomUUID())
+                    .build();
+
+            mockMvc.perform(patch("/api/transactions/" + created.id())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound());
         }
 
         @Test
@@ -900,7 +1028,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenPatchAmountAndCategory_thenReturnsUpdatedFields() throws Exception {
+        void givenPatchPartialFields_thenReturnsUpdatedFields() throws Exception {
             Category newCategory = categoryService.createCategory(
                     CreateCategoryCommand.builder()
                             .name("TRANSPORT")
