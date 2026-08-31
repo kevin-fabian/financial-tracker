@@ -1,5 +1,6 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.events.EventPublisher;
 import com.fabiankevin.app.exceptions.*;
 import com.fabiankevin.app.models.*;
@@ -24,6 +25,7 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 public class DefaultTransactionService implements TransactionService {
@@ -34,6 +36,7 @@ public class DefaultTransactionService implements TransactionService {
     private final PartyRepository partyRepository;
     private final EventPublisher<Transaction> compositeEventPublisher;
     private final int dailyTransactionLimit;
+    private final UserClient userClient;
 
     public DefaultTransactionService(
             AccountRepository accountRepository,
@@ -42,7 +45,8 @@ public class DefaultTransactionService implements TransactionService {
             List<SummaryGenerator> generators,
             PartyRepository partyRepository,
             EventPublisher<Transaction> compositeEventPublisher,
-            int dailyTransactionLimit) {
+            int dailyTransactionLimit,
+            UserClient userClient) {
         this.accountRepository = accountRepository;
         this.categoryRepository = categoryRepository;
         this.transactionRepository = transactionRepository;
@@ -54,6 +58,7 @@ public class DefaultTransactionService implements TransactionService {
         this.partyRepository = partyRepository;
         this.compositeEventPublisher = compositeEventPublisher;
         this.dailyTransactionLimit = dailyTransactionLimit;
+        this.userClient = userClient;
     }
 
     @Transactional
@@ -172,6 +177,75 @@ public class DefaultTransactionService implements TransactionService {
     public Page<Transaction> getTransactionsByPageQuery(PageQuery query, UUID userId, TransactionType type) {
         Set<UUID> userIds = new HashSet<>(partyRepository.findPartyMembersPlayerIdsByPlayerId(userId));
         userIds.add(userId);
-        return transactionRepository.getTransactionsByPageAndUserIdAndType(query, userIds, type);
+        Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, userIds, type);
+
+        Set<UUID> allUserIds = page.content().stream()
+                .flatMap(t -> Stream.of(
+                        (UUID) t.addedBy().id(),
+                        (UUID) t.updatedBy().id(),
+                        (UUID) t.account().user().id()
+                ))
+                .distinct()
+                .collect(Collectors.toSet());
+
+        if (allUserIds.isEmpty()) {
+            return page;
+        }
+
+        Map<UUID, User> usersById = userClient.getUsersByIds(new ArrayList<>(allUserIds)).stream()
+                .collect(Collectors.toMap(User::id, u -> u));
+
+        List<Transaction> enriched = page.content().stream()
+                .map(t -> {
+                    User addedBy = usersById.get(t.addedBy().id());
+                    User updatedBy = usersById.get(t.updatedBy().id());
+                    User accountUser = usersById.get(t.account().user().id());
+
+                    Transaction.TransactionBuilder builder = t.toBuilder();
+                    if (addedBy != null) {
+                        builder.addedBy(User.builder()
+                                .id(addedBy.id())
+                                .firstName(addedBy.firstName())
+                                .lastName(addedBy.lastName())
+                                .build());
+                    }
+                    if (updatedBy != null) {
+                        builder.updatedBy(User.builder()
+                                .id(updatedBy.id())
+                                .firstName(updatedBy.firstName())
+                                .lastName(updatedBy.lastName())
+                                .build());
+                    }
+                    if (accountUser != null) {
+                        Account enrichedAccount = Account.builder()
+                                .id(t.account().id())
+                                .name(t.account().name())
+                                .currency(t.account().currency())
+                                .type(t.account().type())
+                                .active(t.account().active())
+                                .user(User.builder()
+                                        .id(accountUser.id())
+                                        .firstName(accountUser.firstName())
+                                        .lastName(accountUser.lastName())
+                                        .build())
+                                .createdAt(t.account().createdAt())
+                                .updatedAt(t.account().updatedAt())
+                                .build();
+                        builder.account(enrichedAccount);
+                    }
+
+                    return builder.build();
+                })
+                .toList();
+
+        return new com.fabiankevin.app.models.Page<>(
+                enriched,
+                page.page(),
+                page.size(),
+                page.totalElements(),
+                page.totalPages(),
+                page.last(),
+                page.first()
+        );
     }
 }

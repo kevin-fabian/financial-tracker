@@ -1,5 +1,6 @@
 package com.fabiankevin.app.config;
 
+import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.events.CompositeTransactionEventPublisher;
 import com.fabiankevin.app.events.StatsEventPublisher;
 import com.fabiankevin.app.events.TransactionEventPublisher;
@@ -55,7 +56,8 @@ public class AppConfig {
             List<SummaryGenerator> generators,
             PartyRepository partyRepository,
             CompositeTransactionEventPublisher compositeTransactionEventPublisher,
-            @Value("${transaction.daily-limit:100}") int dailyTransactionLimit) {
+            @Value("${transaction.daily-limit:100}") int dailyTransactionLimit,
+            UserClient userClient) {
         return new DefaultTransactionService(
                 accountRepository,
                 categoryRepository,
@@ -63,6 +65,7 @@ public class AppConfig {
                 generators,
                 partyRepository,
                 compositeTransactionEventPublisher,
-                dailyTransactionLimit);
+                dailyTransactionLimit,
+                userClient);
     }
 }

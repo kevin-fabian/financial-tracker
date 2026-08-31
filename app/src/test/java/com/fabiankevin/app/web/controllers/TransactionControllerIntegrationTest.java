@@ -4,6 +4,7 @@ import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.Transaction;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
@@ -40,6 +41,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static com.fabiankevin.app.models.enums.AccountType.E_WALLET;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -345,6 +348,14 @@ class TransactionControllerIntegrationTest {
 
         @Test
         void givenTransactionsExist_thenReturnsPagedResponse() throws Exception {
+            User mockUser = User.builder()
+                    .id(userId)
+                    .firstName("John")
+                    .lastName("Doe")
+                    .build();
+
+            when(userClient.getUsersByIds(any())).thenReturn(List.of(mockUser));
+
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
                             .amount(100)
@@ -392,14 +403,26 @@ class TransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.content[0].account.name").value("GCASH"))
                     .andExpect(jsonPath("$.content[0].account.currency").value("PHP"))
                     .andExpect(jsonPath("$.content[0].account.user.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.content[0].account.user.firstName").value("John"))
+                    .andExpect(jsonPath("$.content[0].account.user.lastName").value("Doe"))
                     .andExpect(jsonPath("$.content[0].addedBy.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.content[0].addedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$.content[0].addedBy.lastName").value("Doe"))
                     .andExpect(jsonPath("$.content[0].updatedBy.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.content[0].updatedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$.content[0].updatedBy.lastName").value("Doe"))
                     .andExpect(jsonPath("$.content[1].account.id").value(account.id().toString()))
                     .andExpect(jsonPath("$.content[1].account.name").value("GCASH"))
                     .andExpect(jsonPath("$.content[1].account.currency").value("PHP"))
                     .andExpect(jsonPath("$.content[1].account.user.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.content[1].account.user.firstName").value("John"))
+                    .andExpect(jsonPath("$.content[1].account.user.lastName").value("Doe"))
                     .andExpect(jsonPath("$.content[1].addedBy.id").value(userId.toString()))
-                    .andExpect(jsonPath("$.content[1].updatedBy.id").value(userId.toString()));
+                    .andExpect(jsonPath("$.content[1].addedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$.content[1].addedBy.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.content[1].updatedBy.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.content[1].updatedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$.content[1].updatedBy.lastName").value("Doe"));
         }
 
         @Test

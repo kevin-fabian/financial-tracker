@@ -1,5 +1,6 @@
 package com.fabiankevin.app.persistence;
 
+import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.events.CompositeTransactionEventPublisher;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.SummaryPoint;
@@ -79,11 +80,17 @@ class DefaultTransactionRepositoryTest {
         }
 
         @Bean
+        public UserClient userClient() {
+            return mock(UserClient.class);
+        }
+
+        @Bean
         public TransactionService transactionService(
                 AccountRepository accountRepository,
                 CategoryRepository categoryRepository,
                 TransactionRepository transactionRepository,
-                PartyRepository partyRepository) {
+                PartyRepository partyRepository,
+                UserClient userClient) {
             return new DefaultTransactionService(
                     accountRepository,
                     categoryRepository,
@@ -91,7 +98,8 @@ class DefaultTransactionRepositoryTest {
                     List.of(),
                     partyRepository,
                     new CompositeTransactionEventPublisher(List.of()),
-                    100);
+                    100,
+                    userClient);
         }
     }
 

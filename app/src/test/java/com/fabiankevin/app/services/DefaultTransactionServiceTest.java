@@ -1,5 +1,6 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.events.EventPublisher;
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
@@ -48,6 +49,8 @@ class DefaultTransactionServiceTest {
     private PartyRepository partyRepository;
     @Mock
     private EventPublisher<Transaction> eventPublisher;
+    @Mock
+    private UserClient userClient;
     private DefaultTransactionService transactionService;
 
     @BeforeEach
@@ -61,7 +64,8 @@ class DefaultTransactionServiceTest {
                 summaryGenerators,
                 partyRepository,
                 eventPublisher,
-                100
+                100,
+                userClient
         );
     }
 
