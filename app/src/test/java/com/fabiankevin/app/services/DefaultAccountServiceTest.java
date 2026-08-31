@@ -6,6 +6,7 @@ import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.persistence.AccountRepository;
+import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.PatchAccountCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
@@ -34,6 +35,9 @@ class DefaultAccountServiceTest {
 
     @Mock
     private UserClient userClient;
+
+    @Mock
+    private TransactionRepository transactionRepository;
 
     @InjectMocks
     private DefaultAccountService accountService;
@@ -297,6 +301,7 @@ class DefaultAccountServiceTest {
                 .updatedAt(Instant.now())
                 .build();
 
+        when(transactionRepository.countByAccountId(existing.id())).thenReturn(2L);
         when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
         when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -361,6 +366,7 @@ class DefaultAccountServiceTest {
                 .updatedAt(Instant.now())
                 .build();
 
+        when(transactionRepository.countByAccountId(existing.id())).thenReturn(2L);
         when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
         when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
