@@ -182,4 +182,11 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
     long countByUserIdAndCreatedAtBetween(@Param("userId") UUID userId,
                                           @Param("startInclusive") Instant startInclusive,
                                           @Param("endExclusive") Instant endExclusive);
+
+    @Query("""
+            SELECT COUNT(t)
+            FROM TransactionEntity t
+            WHERE t.account.id = :accountId
+            """)
+    long countByAccountId(@Param("accountId") UUID accountId);
 }

@@ -20,6 +20,8 @@ public record AccountResponse(
         String currency,
         @Schema(description = "Type of the account", example = "E_WALLET")
         AccountType type,
+        @Schema(description = "Whether the account is active", example = "true")
+        boolean active,
         @Schema(description = "Timestamp when the account was created")
         Instant createdAt,
         @Schema(description = "Timestamp when the account was last updated")
@@ -32,6 +34,7 @@ public record AccountResponse(
                 .name(account.name())
                 .currency(account.currency().getCurrencyCode())
                 .type(account.type())
+                .active(account.active())
                 .createdAt(account.createdAt())
                 .updatedAt(account.updatedAt())
                 .user(UserResponse.from(account.user()))
@@ -44,6 +47,7 @@ public record AccountResponse(
                 .name(account.name())
                 .currency(account.currency().getCurrencyCode())
                 .type(account.type())
+                .active(account.active())
                 .createdAt(account.createdAt())
                 .updatedAt(account.updatedAt())
                 .user(UserResponse.from(user))

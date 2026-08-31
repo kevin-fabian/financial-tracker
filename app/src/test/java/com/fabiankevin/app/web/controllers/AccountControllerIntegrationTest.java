@@ -529,13 +529,13 @@ class AccountControllerIntegrationTest {
     class DisableAccount {
 
         @Test
-        void givenExistingId_thenShouldDisableAccount() throws Exception {
+        void givenAccountWithNoTransactions_thenHardDeletes() throws Exception {
             Account account = accountService.createAccount(
                     CreateAccountCommand.builder()
-                            .name("GCASH")
+                            .name("BDO")
                             .userId(userId)
                             .currency(Currency.getInstance("PHP"))
-                            .type(E_WALLET)
+                            .type(AccountType.BANK_ACCOUNT)
                             .build()
             );
 
@@ -549,11 +549,68 @@ class AccountControllerIntegrationTest {
                                     )))
                     .andExpect(status().isOk());
 
-            // Verify account is now inactive
-            Account updated = accountRepository.findById(account.id()).orElseThrow();
-            if (!updated.active()) {
-                // Account is disabled as expected
-            }
+            // Verify account was hard-deleted (no transactions → hard delete)
+            mockMvc.perform(get("/api/accounts/" + account.id())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void givenAccountWithTransactions_thenSoftDeletes() throws Exception {
+            Account account = accountService.createAccount(
+                    CreateAccountCommand.builder()
+                            .name("GCASH")
+                            .userId(userId)
+                            .currency(Currency.getInstance("PHP"))
+                            .type(E_WALLET)
+                            .build()
+            );
+
+            var incomeCategory = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
+                            .name("SALARY")
+                            .type(TransactionType.INCOME)
+                            .userId(userId)
+                            .build()
+            );
+
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(5000.0)
+                            .transactionDate(LocalDate.now())
+                            .categoryId(incomeCategory.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+
+            mockMvc.perform(post("/api/accounts/" + account.id() + "/disable")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk());
+
+            // Verify account was soft-deleted (has transactions → active=false)
+            mockMvc.perform(get("/api/accounts/" + account.id())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.active").value(false));
         }
 
         @Test

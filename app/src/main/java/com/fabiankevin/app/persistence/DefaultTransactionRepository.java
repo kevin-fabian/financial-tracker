@@ -191,4 +191,9 @@ public class DefaultTransactionRepository implements TransactionRepository {
         Instant endExclusive = date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
         return jpaTransactionRepository.countByUserIdAndCreatedAtBetween(userId, startInclusive, endExclusive);
     }
+
+    @Override
+    public long countByAccountId(UUID accountId) {
+        return jpaTransactionRepository.countByAccountId(accountId);
+    }
 }

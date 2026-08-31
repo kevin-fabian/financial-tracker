@@ -9,6 +9,7 @@ import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.persistence.AccountRepository;
+import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.PatchAccountCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 @Service
 public class DefaultAccountService implements AccountService {
     private final AccountRepository accountRepository;
+    private final TransactionRepository transactionRepository;
     private final UserClient userClient;
 
     @Override
@@ -139,7 +141,14 @@ public class DefaultAccountService implements AccountService {
         accountRepository.findById(id)
                 .filter(a -> a.user().id().equals(userId))
                 .ifPresentOrElse(
-                        account -> accountRepository.save(account.toBuilder().active(false).build()),
+                        account -> {
+                            long transactionCount = transactionRepository.countByAccountId(id);
+                            if (transactionCount == 0) {
+                                accountRepository.deleteById(id);
+                            } else {
+                                accountRepository.save(account.toBuilder().active(false).build());
+                            }
+                        },
                         () -> { throw new AccountNotFoundException(); }
                 );
     }

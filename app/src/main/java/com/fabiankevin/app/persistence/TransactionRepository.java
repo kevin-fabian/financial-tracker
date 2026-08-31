@@ -36,4 +36,5 @@ public interface TransactionRepository {
     Optional<Transaction> findByRecurringTransactionId(UUID id);
     long countByCategoryIdAndUserId(UUID categoryId, UUID userId);
     long countByUserIdAndCreatedAtOnDate(UUID userId, LocalDate date);
+    long countByAccountId(UUID accountId);
 }
