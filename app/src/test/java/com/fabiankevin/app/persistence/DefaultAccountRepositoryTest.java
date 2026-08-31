@@ -241,7 +241,7 @@ class DefaultAccountRepositoryTest {
             Assertions.assertThat(page.size()).isEqualTo(10);
 
             Map<String, AccountSummary> byName = page.content().stream()
-                    .collect(Collectors.toMap(AccountSummary::name, s -> s));
+                    .collect(Collectors.toMap(accountSummary -> accountSummary.account().name(), s -> s));
 
             AccountSummary s1 = byName.get("Account 1");
             AccountSummary s2 = byName.get("Account 2");

@@ -1,5 +1,6 @@
 package com.fabiankevin.app.web.controllers.dtos;
 
+import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.AccountSummary;
 import com.fabiankevin.app.models.enums.AccountType;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -28,12 +29,13 @@ public record AccountSummaryResponse(
         @Schema(description = "User details associated with the account")
         UserResponse user) {
     public static AccountSummaryResponse from(final AccountSummary accountSummary) {
+        Account account = accountSummary.account();
         return AccountSummaryResponse.builder()
-                .id(accountSummary.id())
-                .name(accountSummary.name())
-                .currency(accountSummary.currency().getCurrencyCode())
-                .type(accountSummary.type())
-                .active(accountSummary.active())
+                .id(account.id())
+                .name(account.name())
+                .currency(account.currency().getCurrencyCode())
+                .type(account.type())
+                .active(account.active())
                 .totalBalance(accountSummary.totalBalance())
                 .totalTransactions(accountSummary.totalTransactions())
                 .user(Optional.ofNullable(accountSummary.user())

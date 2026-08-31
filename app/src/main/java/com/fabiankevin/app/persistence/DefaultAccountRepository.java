@@ -13,7 +13,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
-import java.util.Currency;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -74,12 +73,7 @@ public class DefaultAccountRepository implements AccountRepository {
 
         List<AccountSummary> content = entityPage.getContent().stream()
                 .map(projection -> AccountSummary.builder()
-                        .id(projection.id())
-                        .name(projection.name())
-                        .userIds(List.of(projection.userId()))
-                        .currency(Currency.getInstance(projection.currency()))
-                        .type(AccountType.valueOf(projection.type()))
-                        .active(projection.active())
+                        .account(projection.account().toModel())
                         .totalBalance(projection.totalBalance())
                         .totalTransactions(projection.totalTransactions())
                         .build())
@@ -100,12 +94,7 @@ public class DefaultAccountRepository implements AccountRepository {
     public Optional<AccountSummary> findSummaryByIdAndUserId(UUID accountId, UUID userId) {
         return jpaAccountRepository.findSummaryByIdAndUserId(accountId, userId)
                 .map(projection -> AccountSummary.builder()
-                        .id(projection.id())
-                        .name(projection.name())
-                        .userIds(List.of(projection.userId()))
-                        .currency(Currency.getInstance(projection.currency()))
-                        .type(AccountType.valueOf(projection.type()))
-                        .active(projection.active())
+                        .account(projection.account().toModel())
                         .totalBalance(projection.totalBalance())
                         .totalTransactions(projection.totalTransactions())
                         .build());

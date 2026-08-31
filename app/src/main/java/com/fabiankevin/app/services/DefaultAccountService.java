@@ -174,7 +174,7 @@ public class DefaultAccountService implements AccountService {
 
     private List<AccountSummary> enrichWithUserData(List<AccountSummary> summaries) {
         List<UUID> userIds = summaries.stream()
-                .flatMap(s -> s.userIds().stream())
+                .map(accountSummary -> accountSummary.account().user().id())
                 .distinct()
                 .toList();
 
@@ -187,7 +187,8 @@ public class DefaultAccountService implements AccountService {
 
         return summaries.stream()
                 .map(summary -> {
-                    User user = usersById.get(summary.userIds().getFirst());
+                    UUID userId = summary.account().user().id();
+                    User user = usersById.get(userId);
                     return Optional.ofNullable(user)
                             .map(u -> summary.toBuilder()
                                     .user(User.builder()
