@@ -1,5 +1,6 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.BudgetAlreadyExistException;
 import com.fabiankevin.app.exceptions.BudgetNotFoundException;
 import com.fabiankevin.app.models.Category;
@@ -19,8 +20,10 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +31,7 @@ public class DefaultBudgetService implements BudgetService {
     private final BudgetRepository budgetRepository;
     private final TransactionRepository transactionRepository;
     private final CategoryService categoryService;
+    private final UserClient userClient;
 
     @Transactional
     @Override
@@ -39,9 +43,10 @@ public class DefaultBudgetService implements BudgetService {
         Instant now = Instant.now();
 
         Category category = categoryService.getCategoryById(command.categoryId(), command.userId());
+        User user = User.of(command.userId());
         Budget budget = Budget.builder()
-                .user(User.of(command.userId()))
-                .updatedBy(User.of(command.userId()))
+                .user(user)
+                .updatedBy(user)
                 .period(command.period())
                 .category(category)
                 .allocated(command.allocated())
@@ -69,8 +74,50 @@ public class DefaultBudgetService implements BudgetService {
     public List<BudgetSummary> getBudgetsByUserId(UUID userId) {
         LocalDate monthStart = ZonedDateTime.now(ZoneOffset.UTC).withDayOfMonth(1).toLocalDate();
         LocalDate monthEnd = monthStart.plusMonths(1);
-        return budgetRepository.findAllBudgetSummaryByUserId(
+        List<BudgetSummary> summaries = budgetRepository.findAllBudgetSummaryByUserId(
                 List.of(userId), monthStart, monthEnd);
+        return enrichWithUserData(summaries);
+    }
+
+    private List<BudgetSummary> enrichWithUserData(List<BudgetSummary> summaries) {
+        List<UUID> userIds = summaries.stream()
+                .map(summary -> summary.budget().user().id())
+                .distinct()
+                .toList();
+
+        if (userIds.isEmpty()) {
+            return summaries;
+        }
+
+        Map<UUID, User> usersById = userClient.getUsersByIds(userIds).stream()
+                .collect(Collectors.toMap(User::id, u -> u));
+
+        return summaries.stream()
+                .map(summary -> {
+                    UUID userId = summary.budget().user().id();
+                    User enrichedUser = usersById.get(userId);
+                    if (enrichedUser == null) {
+                        return summary;
+                    }
+                    Budget enrichedBudget = summary.budget().toBuilder()
+                            .user(User.builder()
+                                    .id(enrichedUser.id())
+                                    .firstName(enrichedUser.firstName())
+                                    .lastName(enrichedUser.lastName())
+                                    .build())
+                            .updatedBy(User.builder()
+                                    .id(enrichedUser.id())
+                                    .firstName(enrichedUser.firstName())
+                                    .lastName(enrichedUser.lastName())
+                                    .build())
+                            .build();
+                    return BudgetSummary.builder()
+                            .budget(enrichedBudget)
+                            .spent(summary.spent())
+                            .spentPercentage(summary.spentPercentage())
+                            .build();
+                })
+                .toList();
     }
 
     @Transactional
@@ -104,8 +151,9 @@ public class DefaultBudgetService implements BudgetService {
         Budget existing = budgetRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(BudgetNotFoundException::new);
 
+        User user = User.of(userId);
         Budget.BudgetBuilder builder = existing.toBuilder()
-                .updatedBy(User.of(userId))
+                .updatedBy(user)
                 .updatedAt(Instant.now());
 
         Optional.ofNullable(command.categoryId())

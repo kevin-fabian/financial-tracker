@@ -39,6 +39,7 @@ import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -83,6 +84,9 @@ class BudgetControllerIntegrationTest {
             createTransaction(account, category, 50.0);
             createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
 
+            when(userClient.getUsersByIds(anyList()))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
             mockMvc.perform(get("/api/budgets")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -94,13 +98,13 @@ class BudgetControllerIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(1))
                     .andExpect(jsonPath("$[0].user.id").value(userId.toString()))
-                    .andExpect(jsonPath("$[0].user.firstName").isEmpty())
-                    .andExpect(jsonPath("$[0].user.lastName").isEmpty())
-                    .andExpect(jsonPath("$[0].user.initial").isEmpty())
+                    .andExpect(jsonPath("$[0].user.firstName").value("John"))
+                    .andExpect(jsonPath("$[0].user.lastName").value("Doe"))
+                    .andExpect(jsonPath("$[0].user.initial").value("JD"))
                     .andExpect(jsonPath("$[0].updatedBy.id").value(userId.toString()))
-                    .andExpect(jsonPath("$[0].updatedBy.firstName").isEmpty())
-                    .andExpect(jsonPath("$[0].updatedBy.lastName").isEmpty())
-                    .andExpect(jsonPath("$[0].updatedBy.initial").isEmpty())
+                    .andExpect(jsonPath("$[0].updatedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$[0].updatedBy.lastName").value("Doe"))
+                    .andExpect(jsonPath("$[0].updatedBy.initial").value("JD"))
                     .andExpect(jsonPath("$[0].createdAt").exists())
                     .andExpect(jsonPath("$[0].updatedAt").exists())
                     .andExpect(jsonPath("$[0].period").value("MONTHLY"))
@@ -137,6 +141,9 @@ class BudgetControllerIntegrationTest {
             createTransaction(account, category, 50.0, lastMonth);
             createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
 
+            when(userClient.getUsersByIds(anyList()))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
             mockMvc.perform(get("/api/budgets")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -148,13 +155,13 @@ class BudgetControllerIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(1))
                     .andExpect(jsonPath("$[0].user.id").value(userId.toString()))
-                    .andExpect(jsonPath("$[0].user.firstName").isEmpty())
-                    .andExpect(jsonPath("$[0].user.lastName").isEmpty())
-                    .andExpect(jsonPath("$[0].user.initial").isEmpty())
+                    .andExpect(jsonPath("$[0].user.firstName").value("John"))
+                    .andExpect(jsonPath("$[0].user.lastName").value("Doe"))
+                    .andExpect(jsonPath("$[0].user.initial").value("JD"))
                     .andExpect(jsonPath("$[0].updatedBy.id").value(userId.toString()))
-                    .andExpect(jsonPath("$[0].updatedBy.firstName").isEmpty())
-                    .andExpect(jsonPath("$[0].updatedBy.lastName").isEmpty())
-                    .andExpect(jsonPath("$[0].updatedBy.initial").isEmpty())
+                    .andExpect(jsonPath("$[0].updatedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$[0].updatedBy.lastName").value("Doe"))
+                    .andExpect(jsonPath("$[0].updatedBy.initial").value("JD"))
                     .andExpect(jsonPath("$[0].createdAt").exists())
                     .andExpect(jsonPath("$[0].updatedAt").exists())
                     .andExpect(jsonPath("$[0].period").value("MONTHLY"))
@@ -193,9 +200,6 @@ class BudgetControllerIntegrationTest {
                     .categoryId(category.id())
                     .allocated(500.0)
                     .build();
-
-            when(userClient.getUsersByIds(List.of(userId)))
-                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
 
             mockMvc.perform(post("/api/budgets")
                             .with(jwt()
@@ -344,9 +348,6 @@ class BudgetControllerIntegrationTest {
                     .allocated(1000.0)
                     .build();
 
-            when(userClient.getUsersByIds(List.of(userId)))
-                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
-
             mockMvc.perform(patch("/api/budgets/" + budget.id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -390,9 +391,6 @@ class BudgetControllerIntegrationTest {
             PatchBudgetRequest request = PatchBudgetRequest.builder()
                     .allocated(1000.0)
                     .build();
-
-            when(userClient.getUsersByIds(List.of(userId)))
-                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
 
             mockMvc.perform(patch("/api/budgets/" + budget.id())
                             .with(jwt()
