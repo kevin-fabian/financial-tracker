@@ -154,7 +154,7 @@ class DefaultRecurringTransactionServiceTest {
             ArgumentCaptor<RecurringTransaction> captor = ArgumentCaptor.forClass(RecurringTransaction.class);
             verify(recurringTransactionRepository).save(captor.capture());
             RecurringTransaction saved = captor.getValue();
-            assertEquals(command.userId(), saved.userId(), "saved userId should match command");
+            assertEquals(command.userId(), saved.userId(), "saved user should match command");
             assertEquals(RecurringTransactionStatus.ACTIVE, saved.status(), "saved status should be ACTIVE");
         }
 

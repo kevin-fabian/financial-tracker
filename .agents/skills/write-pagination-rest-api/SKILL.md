@@ -63,7 +63,7 @@ JPA repository (Spring Data JPA)
 - Domain repository methods must accept `PageQuery` and return `Page<DomainModel>`.
 - `DefaultRepository` is the only place that converts `PageQuery` to Spring's `PageRequest` and wraps the result in the domain `Page` record.
 - JPA repository methods must accept `Pageable` and return Spring's `Page<Entity>`.
-- Cross-user isolation: every JPA query must be scoped to `userId` — the user can never see another user's data.
+- Cross-user isolation: every JPA query must be scoped to `user` — the user can never see another user's data.
 - Never accept `page`, `size`, `sort`, or `direction` parameters directly in service or domain repository contracts — always use `PageQuery`.
 - Never expose Spring's `Page<Entity>` or `Pageable` outside the persistence layer.
 - Always map entity pages to domain pages via `.map(EntityEntity::toModel)` before wrapping in `Page<T>`.
@@ -109,7 +109,7 @@ public PageResponse<ResourceResponse> getResources(
 
 Guidance:
 - Extract pagination parameters from `@RequestParam` with the standard defaults.
-- Extract `userId` from the JWT token — never from request payloads.
+- Extract `user` from the JWT token — never from request payloads.
 - Build `PageQuery` inline and pass it to the service.
 - Map the domain `Page<T>` to `PageResponse<T>` using `PageResponse.from()` and stream the content through the response DTO mapper.
 - Use `Page.<ResourceResponse>builder()` generic syntax to reuse the `Page` builder for the response shape.
@@ -203,7 +203,7 @@ Guidance:
 - Use `Optional.ofNullable(filter)` for branching on optional filter parameters (consistent with the Category pattern).
 - Always map entity pages to domain models via `.map(ResourceEntity::toModel)`.
 - Wrap the Spring `Page<Entity>` into the domain `Page<T>` record using the constructor.
-- Cross-user isolation: every JPA call must include `userId` in the query parameters.
+- Cross-user isolation: every JPA call must include `user` in the query parameters.
 
 ---
 
@@ -229,18 +229,18 @@ public interface JpaResourceRepository extends JpaRepository<ResourceEntity, UUI
 public interface JpaResourceRepository extends JpaRepository<ResourceEntity, UUID> {
     @Query("""
         SELECT r FROM ResourceEntity r
-        WHERE r.account.userId = :userId
+        WHERE r.account.user = :user
           AND (:filter IS NULL OR r.someField = :filter)
         """)
     Page<ResourceEntity> findAllByUserIdAndFilter(
-        @Param("userId") UUID userId,
+        @Param("user") UUID userId,
         @Param("filter") SomeFilter filter,
         Pageable pageable);
 }
 ```
 
 Guidance:
-- Always scope queries to `userId` for cross-user isolation.
+- Always scope queries to `user` for cross-user isolation.
 - Use Spring Data derived queries for simple equality filters.
 - Use `@Query` with JPQL for complex filters involving JOINs or nested relationships.
 - Always return Spring's `Page<Entity>` — never the domain model at this layer.
@@ -344,7 +344,7 @@ Guidance:
 - `DefaultRepository` converts `PageQuery` to `PageRequest` with `Sort.by(...)`
 - `DefaultRepository` maps `Page<Entity>` to domain `Page<T>` via constructor
 - JPA repository accepts `Pageable` and returns Spring's `Page<Entity>`
-- cross-user isolation enforced at JPA query level via `userId`
+- cross-user isolation enforced at JPA query level via `user`
 - `PageResponse.from()` used in controller to map domain `Page` to web response
 - controller tests use `@WebMvcTest` with `MockMvc` and `@MockitoBean`
 - repository tests use `@DataJpaTest` with nested `@TestConfiguration`

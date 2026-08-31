@@ -4,6 +4,7 @@ import com.fabiankevin.app.exceptions.BudgetAlreadyExistException;
 import com.fabiankevin.app.exceptions.BudgetNotFoundException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
@@ -81,8 +82,8 @@ class DefaultBudgetServiceTest {
 
             Budget budget = Budget.builder()
                     .id(UUID.randomUUID())
-                    .userId(userId)
-                    .updatedBy(userId)
+                    .user(User.of(userId))
+                    .updatedBy(User.of(userId))
                     .period(BudgetPeriod.MONTHLY)
                     .category(category)
                     .allocated(500.0)
@@ -98,7 +99,7 @@ class DefaultBudgetServiceTest {
             BudgetSummary created = budgetService.createBudget(command);
 
             assertNotNull(created.budget().id(), "id should be generated");
-            assertEquals(userId, created.budget().userId(), "userId should match command");
+            assertEquals(userId, created.budget().user().id(), "user should match command");
             assertEquals(BudgetPeriod.MONTHLY, created.budget().period(), "period should match command");
             assertEquals(categoryId, created.budget().category().id(), "categoryId should match command");
             assertEquals("GROCERIES", created.budget().category().name(), "categoryName should be resolved from category");
@@ -177,8 +178,8 @@ class DefaultBudgetServiceTest {
 
             Budget budget = Budget.builder()
                     .id(budgetId)
-                    .userId(userId)
-                    .updatedBy(userId)
+                    .user(User.of(userId))
+                    .updatedBy(User.of(userId))
                     .period(BudgetPeriod.MONTHLY)
                     .category(category)
                     .allocated(500.0)
@@ -202,7 +203,7 @@ class DefaultBudgetServiceTest {
 
             // identity & ownership fields preserved from nested budget
             assertEquals(budgetId, result.budget().id(), "id should be preserved");
-            assertEquals(userId, result.budget().userId(), "userId should be preserved");
+            assertEquals(userId, result.budget().user().id(), "user should be preserved");
 
             // timestamps & period preserved from nested budget
             assertNotNull(result.budget().createdAt(), "createdAt should be preserved from source budget");
@@ -255,8 +256,8 @@ class DefaultBudgetServiceTest {
             Instant lastMonth = Instant.now().atZone(java.time.ZoneOffset.UTC).minusMonths(1).toInstant();
             Budget lastMonthBudget = Budget.builder()
                     .id(UUID.randomUUID())
-                    .userId(userId)
-                    .updatedBy(userId)
+                    .user(User.of(userId))
+                    .updatedBy(User.of(userId))
                     .period(BudgetPeriod.MONTHLY)
                     .category(category)
                     .allocated(500.0)
@@ -317,8 +318,8 @@ class DefaultBudgetServiceTest {
 
             Budget existing = Budget.builder()
                     .id(id)
-                    .userId(userId)
-                    .updatedBy(userId)
+                    .user(User.of(userId))
+                    .updatedBy(User.of(userId))
                     .period(BudgetPeriod.MONTHLY)
                     .category(Category.builder()
                             .id(UUID.randomUUID())
@@ -351,8 +352,8 @@ class DefaultBudgetServiceTest {
 
             // identity & ownership fields
             assertEquals(id, updated.budget().id(), "id should be preserved");
-            assertEquals(userId, updated.budget().userId(), "userId should be preserved");
-            assertEquals(userId, updated.budget().updatedBy(), "updatedBy should be set");
+            assertEquals(userId, updated.budget().user().id(), "user should be preserved");
+            assertEquals(userId, updated.budget().updatedBy().id(), "updatedBy should be set");
 
             // timestamps
             assertNotNull(updated.budget().createdAt(), "createdAt should be preserved from existing budget");

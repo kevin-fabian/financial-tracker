@@ -53,10 +53,10 @@
 //    @Test
 //    void getTransactionById_cacheMiss_delegatesAndCaches() {
 //        UUID id = UUID.randomUUID();
-//        UUID userId = UUID.randomUUID();
+//        UUID user = UUID.randomUUID();
 //        TransactionResponse expected = TransactionResponse.builder()
 //                .id(id)
-//                .account(AccountResponse.builder().id(userId).name("GCASH").build())
+//                .account(AccountResponse.builder().id(user).name("GCASH").build())
 //                .type(TransactionType.EXPENSE.name())
 //                .category(CategoryResponse.builder().id(UUID.randomUUID()).name("Food").type(TransactionType.EXPENSE).build())
 //                .amount(AmountResponse.builder().value(100.0).currency(Currency.getInstance("PHP")).build())
@@ -67,22 +67,22 @@
 //                .build();
 //
 //        when(cache.get(any(String.class))).thenReturn(null);
-//        when(delegatedService.getTransactionById(id, userId)).thenReturn(expected);
+//        when(delegatedService.getTransactionById(id, user)).thenReturn(expected);
 //
-//        TransactionResponse result = cachedTransactionService.getTransactionById(id, userId);
+//        TransactionResponse result = cachedTransactionService.getTransactionById(id, user);
 //
 //        assertSame(expected, result);
-//        verify(delegatedService, times(1)).getTransactionById(id, userId);
-//        verify(cache, times(1)).put(eq(String.format("transactions:%s:byId:%s", userId, id)), eq(expected));
+//        verify(delegatedService, times(1)).getTransactionById(id, user);
+//        verify(cache, times(1)).put(eq(String.format("transactions:%s:byId:%s", user, id)), eq(expected));
 //    }
 //
 //    @Test
 //    void getTransactionById_cacheHit_returnsCachedValue() {
 //        UUID id = UUID.randomUUID();
-//        UUID userId = UUID.randomUUID();
+//        UUID user = UUID.randomUUID();
 //        TransactionResponse cached = TransactionResponse.builder()
 //                .id(id)
-//                .account(AccountResponse.builder().id(userId).name("GCASH").build())
+//                .account(AccountResponse.builder().id(user).name("GCASH").build())
 //                .type(TransactionType.EXPENSE.name())
 //                .category(CategoryResponse.builder().id(UUID.randomUUID()).name("Food").type(TransactionType.EXPENSE).build())
 //                .amount(AmountResponse.builder().value(100.0).currency(Currency.getInstance("PHP")).build())
@@ -94,7 +94,7 @@
 //        Cache.ValueWrapper wrapper = mockValueWrapper(cached);
 //        when(cache.get(any(String.class))).thenReturn(wrapper);
 //
-//        TransactionResponse result = cachedTransactionService.getTransactionById(id, userId);
+//        TransactionResponse result = cachedTransactionService.getTransactionById(id, user);
 //
 //        assertSame(cached, result);
 //        verify(delegatedService, never()).getTransactionById(any(), any());
@@ -102,12 +102,12 @@
 //
 //    @Test
 //    void getSummary_cacheMiss_delegatesAndCaches() {
-//        UUID userId = UUID.randomUUID();
+//        UUID user = UUID.randomUUID();
 //        SummaryQuery query = SummaryQuery.builder()
 //                .type(SummaryType.DAILY)
 //                .from(LocalDate.of(2026, 7, 1))
 //                .to(LocalDate.of(2026, 7, 7))
-//                .userIds(Set.of(userId))
+//                .userIds(Set.of(user))
 //                .transactionType(TransactionType.EXPENSE)
 //                .build();
 //        SummarySeries expected = new SummarySeries(SummaryType.DAILY, List.of(
@@ -127,12 +127,12 @@
 //
 //    @Test
 //    void getSummary_cacheHit_returnsCachedValue() {
-//        UUID userId = UUID.randomUUID();
+//        UUID user = UUID.randomUUID();
 //        SummaryQuery query = SummaryQuery.builder()
 //                .type(SummaryType.DAILY)
 //                .from(LocalDate.of(2026, 7, 1))
 //                .to(LocalDate.of(2026, 7, 7))
-//                .userIds(Set.of(userId))
+//                .userIds(Set.of(user))
 //                .transactionType(TransactionType.EXPENSE)
 //                .build();
 //        SummarySeries cached = new SummarySeries(SummaryType.DAILY, List.of(
@@ -149,13 +149,13 @@
 //
 //    @Test
 //    void getTransactionsByPageQuery_cacheMiss_delegatesAndCaches() {
-//        UUID userId = UUID.randomUUID();
+//        UUID user = UUID.randomUUID();
 //        PageQuery query = new PageQuery(0, 10, "transactionDate", "DESC");
 //        Transaction tx = Transaction.builder()
 //                .id(UUID.randomUUID())
-//                .account(Account.builder().id(userId).name("GCASH").userId(userId).currency(Currency.getInstance("PHP")).build())
+//                .account(Account.builder().id(user).name("GCASH").user(user).currency(Currency.getInstance("PHP")).build())
 //                .type(TransactionType.EXPENSE)
-//                .category(Category.builder().id(UUID.randomUUID()).name("Food").type(TransactionType.EXPENSE).userId(userId).build())
+//                .category(Category.builder().id(UUID.randomUUID()).name("Food").type(TransactionType.EXPENSE).user(user).build())
 //                .amount(Amount.of(100.0, Currency.getInstance("PHP")))
 //                .description("Lunch")
 //                .transactionDate(LocalDate.now())
@@ -165,24 +165,24 @@
 //        Page<Transaction> expected = new Page<>(List.of(tx), 0, 10, 1L, 1, true, true);
 //
 //        when(cache.get(any(String.class))).thenReturn(null);
-//        when(delegatedService.getTransactionsByPageQuery(query, userId, TransactionType.EXPENSE)).thenReturn(expected);
+//        when(delegatedService.getTransactionsByPageQuery(query, user, TransactionType.EXPENSE)).thenReturn(expected);
 //
-//        Page<Transaction> result = cachedTransactionService.getTransactionsByPageQuery(query, userId, TransactionType.EXPENSE);
+//        Page<Transaction> result = cachedTransactionService.getTransactionsByPageQuery(query, user, TransactionType.EXPENSE);
 //
 //        assertSame(expected, result);
-//        verify(delegatedService, times(1)).getTransactionsByPageQuery(query, userId, TransactionType.EXPENSE);
+//        verify(delegatedService, times(1)).getTransactionsByPageQuery(query, user, TransactionType.EXPENSE);
 //        verify(cache, times(1)).put(any(String.class), eq(expected));
 //    }
 //
 //    @Test
 //    void getTransactionsByPageQuery_cacheHit_returnsCachedValue() {
-//        UUID userId = UUID.randomUUID();
+//        UUID user = UUID.randomUUID();
 //        PageQuery query = new PageQuery(0, 10, "transactionDate", "DESC");
 //        Transaction tx = Transaction.builder()
 //                .id(UUID.randomUUID())
-//                .account(Account.builder().id(userId).name("GCASH").userId(userId).currency(Currency.getInstance("PHP")).build())
+//                .account(Account.builder().id(user).name("GCASH").user(user).currency(Currency.getInstance("PHP")).build())
 //                .type(TransactionType.EXPENSE)
-//                .category(Category.builder().id(UUID.randomUUID()).name("Food").type(TransactionType.EXPENSE).userId(userId).build())
+//                .category(Category.builder().id(UUID.randomUUID()).name("Food").type(TransactionType.EXPENSE).user(user).build())
 //                .amount(Amount.of(100.0, Currency.getInstance("PHP")))
 //                .description("Lunch")
 //                .transactionDate(LocalDate.now())
@@ -193,7 +193,7 @@
 //        Cache.ValueWrapper wrapper = mockValueWrapper(cached);
 //        when(cache.get(any(String.class))).thenReturn(wrapper);
 //
-//        Page<Transaction> result = cachedTransactionService.getTransactionsByPageQuery(query, userId, TransactionType.EXPENSE);
+//        Page<Transaction> result = cachedTransactionService.getTransactionsByPageQuery(query, user, TransactionType.EXPENSE);
 //
 //        assertSame(cached, result);
 //        verify(delegatedService, never()).getTransactionsByPageQuery(any(), any(), any());
@@ -201,19 +201,19 @@
 //
 //    @Test
 //    void addTransaction_givenCacheKeysExist_evictsUserKeys() {
-//        UUID userId = UUID.randomUUID();
+//        UUID user = UUID.randomUUID();
 //        UUID transactionId = UUID.randomUUID();
 //        AddTransactionCommand command = AddTransactionCommand.builder()
 //                .amount(Amount.of(100.0, Currency.getInstance("PHP")))
 //                .description("Lunch")
 //                .transactionDate(LocalDate.now())
 //                .categoryId(UUID.randomUUID())
-//                .accountId(userId)
-//                .userId(userId)
+//                .accountId(user)
+//                .user(user)
 //                .build();
 //        TransactionResponse cachedResponse = TransactionResponse.builder()
 //                .id(transactionId)
-//                .account(AccountResponse.builder().id(userId).name("GCASH").build())
+//                .account(AccountResponse.builder().id(user).name("GCASH").build())
 //                .type(TransactionType.EXPENSE.name())
 //                .category(CategoryResponse.builder().id(UUID.randomUUID()).name("Food").type(TransactionType.EXPENSE).build())
 //                .amount(AmountResponse.builder().value(100.0).currency(Currency.getInstance("PHP")).build())
@@ -225,9 +225,9 @@
 //
 //        Transaction created = Transaction.builder()
 //                .id(transactionId)
-//                .account(Account.builder().id(userId).name("GCASH").userId(userId).currency(Currency.getInstance("PHP")).build())
+//                .account(Account.builder().id(user).name("GCASH").user(user).currency(Currency.getInstance("PHP")).build())
 //                .type(TransactionType.EXPENSE)
-//                .category(Category.builder().id(UUID.randomUUID()).name("Food").type(TransactionType.EXPENSE).userId(userId).build())
+//                .category(Category.builder().id(UUID.randomUUID()).name("Food").type(TransactionType.EXPENSE).user(user).build())
 //                .amount(Amount.of(100.0, Currency.getInstance("PHP")))
 //                .description("Lunch")
 //                .transactionDate(LocalDate.now())
@@ -237,13 +237,13 @@
 //
 //        // Register keys via prior reads
 //        when(cache.get(any(String.class))).thenReturn(null);
-//        when(delegatedService.getTransactionById(eq(transactionId), eq(userId))).thenReturn(cachedResponse);
-//        when(delegatedService.getTransactionsByPageQuery(any(), eq(userId), any())).thenReturn(
+//        when(delegatedService.getTransactionById(eq(transactionId), eq(user))).thenReturn(cachedResponse);
+//        when(delegatedService.getTransactionsByPageQuery(any(), eq(user), any())).thenReturn(
 //                new Page<>(List.of(created), 0, 10, 1L, 1, true, true));
 //        when(delegatedService.addTransaction(command)).thenReturn(created);
 //
-//        cachedTransactionService.getTransactionById(transactionId, userId);
-//        cachedTransactionService.getTransactionsByPageQuery(new PageQuery(0, 10, "transactionDate", "DESC"), userId, TransactionType.EXPENSE);
+//        cachedTransactionService.getTransactionById(transactionId, user);
+//        cachedTransactionService.getTransactionsByPageQuery(new PageQuery(0, 10, "transactionDate", "DESC"), user, TransactionType.EXPENSE);
 //
 //        // addTransaction should evict both registered keys
 //        cachedTransactionService.addTransaction(command);
@@ -258,18 +258,18 @@
 //
 //    @Test
 //    void patchTransaction_givenCacheKeysExist_evictsUserKeys() {
-//        UUID userId = UUID.randomUUID();
+//        UUID user = UUID.randomUUID();
 //        UUID transactionId = UUID.randomUUID();
 //        PatchTransactionCommand command = PatchTransactionCommand.builder()
 //                .id(transactionId)
 //                .description("Dinner")
-//                .userId(userId)
+//                .user(user)
 //                .build();
 //        Transaction patched = Transaction.builder()
 //                .id(transactionId)
-//                .account(Account.builder().id(userId).name("GCASH").userId(userId).currency(Currency.getInstance("PHP")).build())
+//                .account(Account.builder().id(user).name("GCASH").user(user).currency(Currency.getInstance("PHP")).build())
 //                .type(TransactionType.EXPENSE)
-//                .category(Category.builder().id(UUID.randomUUID()).name("Food").type(TransactionType.EXPENSE).userId(userId).build())
+//                .category(Category.builder().id(UUID.randomUUID()).name("Food").type(TransactionType.EXPENSE).user(user).build())
 //                .amount(Amount.of(150.0, Currency.getInstance("PHP")))
 //                .description("Dinner")
 //                .transactionDate(LocalDate.now())
@@ -277,14 +277,14 @@
 //                .updatedAt(Instant.now())
 //                .build();
 //
-//        String key = "transactions:" + userId + ":byId:" + transactionId;
+//        String key = "transactions:" + user + ":byId:" + transactionId;
 //        when(cache.get(any(String.class))).thenReturn(null);
-//        when(delegatedService.getTransactionById(eq(transactionId), eq(userId))).thenReturn(
+//        when(delegatedService.getTransactionById(eq(transactionId), eq(user))).thenReturn(
 //                TransactionResponse.builder().id(transactionId).build());
 //        when(delegatedService.patchTransaction(command)).thenReturn(patched);
 //
 //        // Register key via read
-//        cachedTransactionService.getTransactionById(transactionId, userId);
+//        cachedTransactionService.getTransactionById(transactionId, user);
 //
 //        // patchTransaction should evict the key
 //        cachedTransactionService.patchTransaction(command);
@@ -296,19 +296,19 @@
 //
 //    @Test
 //    void deleteTransaction_givenCacheKeyExist_evictsUserKeys() {
-//        UUID userId = UUID.randomUUID();
+//        UUID user = UUID.randomUUID();
 //        UUID transactionId = UUID.randomUUID();
 //
-//        String key = "transactions:" + userId + ":byId:" + transactionId;
+//        String key = "transactions:" + user + ":byId:" + transactionId;
 //        when(cache.get(any(String.class))).thenReturn(null);
-//        when(delegatedService.getTransactionById(eq(transactionId), eq(userId))).thenReturn(
+//        when(delegatedService.getTransactionById(eq(transactionId), eq(user))).thenReturn(
 //                TransactionResponse.builder().id(transactionId).build());
 //
 //        // Register key via read
-//        cachedTransactionService.getTransactionById(transactionId, userId);
+//        cachedTransactionService.getTransactionById(transactionId, user);
 //
 //        // deleteTransaction should evict the key
-//        cachedTransactionService.deleteTransaction(transactionId, userId);
+//        cachedTransactionService.deleteTransaction(transactionId, user);
 //
 //        ArgumentCaptor<String> evictCaptor = ArgumentCaptor.forClass(String.class);
 //        verify(cache, times(1)).evict(evictCaptor.capture());
@@ -317,10 +317,10 @@
 //
 //    @Test
 //    void evictUserKeys_noKeysRegistered_doesNothing() {
-//        UUID userId = UUID.randomUUID();
+//        UUID user = UUID.randomUUID();
 //        lenient().when(cacheManager.getCache("transactions")).thenReturn(cache);
 //
-//        cachedTransactionService.deleteTransaction(UUID.randomUUID(), userId);
+//        cachedTransactionService.deleteTransaction(UUID.randomUUID(), user);
 //
 //        verify(cache, never()).evict(any());
 //    }
@@ -358,9 +358,9 @@
 //        // Register a paged key for user B
 //        Transaction txB = Transaction.builder()
 //                .id(UUID.randomUUID())
-//                .account(Account.builder().id(userB).name("PAYMAY").userId(userB).currency(Currency.getInstance("PHP")).build())
+//                .account(Account.builder().id(userB).name("PAYMAY").user(userB).currency(Currency.getInstance("PHP")).build())
 //                .type(TransactionType.EXPENSE)
-//                .category(Category.builder().id(UUID.randomUUID()).name("Food").type(TransactionType.EXPENSE).userId(userB).build())
+//                .category(Category.builder().id(UUID.randomUUID()).name("Food").type(TransactionType.EXPENSE).user(userB).build())
 //                .amount(Amount.of(100.0, Currency.getInstance("PHP")))
 //                .description("Snack")
 //                .transactionDate(LocalDate.now())

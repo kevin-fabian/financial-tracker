@@ -1,6 +1,7 @@
 package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
@@ -66,8 +67,8 @@ class DefaultBudgetRepositoryTest {
                 .build();
 
         budget = Budget.builder()
-                .userId(userId)
-                .updatedBy(userId)
+                .user(User.of(userId))
+                .updatedBy(User.of(userId))
                 .period(BudgetPeriod.MONTHLY)
                 .category(category)
                 .allocated(500.0)
@@ -87,7 +88,7 @@ class DefaultBudgetRepositoryTest {
             assertNotNull(saved.id(), "budget id should have been generated");
             assertEquals(budget.period(), saved.period(), "period should match");
             assertEquals(budget.allocated(), saved.allocated(), "allocated should match");
-            assertEquals(budget.userId(), saved.userId(), "userId should match");
+            assertEquals(budget.user(), saved.user(), "user should match");
             assertEquals(budget.updatedBy(), saved.updatedBy(), "updatedBy should match");
             assertEquals(budget.category().icon(), saved.category().icon(), "categoryIcon should match");
             assertNotNull(saved.createdAt(), "createdAt should not be null");
@@ -186,7 +187,7 @@ class DefaultBudgetRepositoryTest {
                     .as("should return one budget summary")
                     .hasSize(1);
             BudgetSummary summary = results.getFirst();
-            assertEquals(userId, summary.budget().userId(), "userId should match");
+            assertEquals(userId, summary.budget().user().id(), "user should match");
             assertEquals(BudgetPeriod.MONTHLY, summary.budget().period(), "period should match");
             assertEquals(500.0, summary.budget().allocated(), "allocated should match");
             assertEquals(200.0, summary.spent(), "spent should be sum of transactions");

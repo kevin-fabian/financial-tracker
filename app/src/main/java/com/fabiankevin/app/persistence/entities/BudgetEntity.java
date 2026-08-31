@@ -1,5 +1,6 @@
 package com.fabiankevin.app.persistence.entities;
 
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import jakarta.persistence.*;
@@ -52,8 +53,8 @@ public class BudgetEntity {
         if (budget == null) return null;
         return BudgetEntity.builder()
                 .id(budget.id())
-                .userId(budget.userId())
-                .updatedBy(budget.updatedBy())
+                .userId(budget.user().id())
+                .updatedBy(budget.updatedBy() != null ? budget.updatedBy().id() : null)
                 .period(budget.period())
                 .category(CategoryEntity.from(budget.category()))
                 .allocated(budget.allocated())
@@ -65,8 +66,8 @@ public class BudgetEntity {
     public Budget toModel() {
         return new Budget(
                 this.id,
-                this.userId,
-                this.updatedBy,
+                User.of(this.userId),
+                this.updatedBy != null ? User.of(this.updatedBy) : null,
                 this.period,
                 this.category != null ? this.category.toModel() : null,
                 this.allocated,

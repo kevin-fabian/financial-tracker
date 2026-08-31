@@ -24,7 +24,7 @@ This file is intentionally repo agnostic. For concrete package names, module lay
 
 ### Web layer
 - Keep controllers in the web layer and keep web DTOs close to controllers.
-- Derive `userId`, tenant id, or similar ownership context from the authenticated principal or another trusted server-side context; clients must never send it in request payloads.
+- Derive `user`, tenant id, or similar ownership context from the authenticated principal or another trusted server-side context; clients must never send it in request payloads.
 - Keep DTO-to-command translation at the web edge. For example, request DTOs should expose `toCommand(...)` methods and controllers should pass commands to services.
 - Prefer converting domain models to response DTOs in controllers.
 
@@ -61,7 +61,7 @@ This file is intentionally repo agnostic. For concrete package names, module lay
 - For pluggable behaviors such as summaries, exporters, or calculators, prefer a strategy pattern keyed by a clear enum or discriminator type.
 
 ### Don’t
-- Don’t accept `userId` from API clients.
+- Don’t accept `user` from API clients.
 - Don’t leak JPA entities or `Jpa*Repository` types outside the persistence layer.
 - Don’t put orchestration timestamps in controllers or repositories.
 - Don’t bypass repository/entity conversion methods by leaking entities into services.

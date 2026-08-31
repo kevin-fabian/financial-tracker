@@ -31,8 +31,8 @@
 //    private final ConcurrentMap<UUID, CopyOnWriteArraySet<String>> userKeys = new ConcurrentHashMap<>();
 //
 //    @Override
-//    public Category getCategoryById(UUID id, UUID userId) {
-//        String key = String.format(KEY_BY_ID, userId, id);
+//    public Category getCategoryById(UUID id, UUID user) {
+//        String key = String.format(KEY_BY_ID, user, id);
 //        Cache cache = cacheManager.getCache(CACHE_NAME);
 //
 //        Cache.ValueWrapper cached = cache.get(key);
@@ -40,8 +40,8 @@
 //            return (Category) cached.get();
 //        }
 //
-//        Category result = delegatedCategoryService.getCategoryById(id, userId);
-//        registerKey(userId, key);
+//        Category result = delegatedCategoryService.getCategoryById(id, user);
+//        registerKey(user, key);
 //        cache.put(key, result);
 //        return result;
 //    }
@@ -49,32 +49,32 @@
 //    @Override
 //    public Category createCategory(CreateCategoryCommand command) {
 //        Category result = delegatedCategoryService.createCategory(command);
-//        evictUserKeys(command.userId());
+//        evictUserKeys(command.user());
 //        return result;
 //    }
 //
 //    @Override
 //    public Category patchCategory(PatchCategoryCommand command) {
 //        Category result = delegatedCategoryService.patchCategory(command);
-//        evictUserKeys(command.userId());
+//        evictUserKeys(command.user());
 //        return result;
 //    }
 //
 //    @Override
-//    public void deleteCategoryById(UUID id, UUID userId) {
-//        delegatedCategoryService.deleteCategoryById(id, userId);
-//        evictUserKeys(userId);
+//    public void deleteCategoryById(UUID id, UUID user) {
+//        delegatedCategoryService.deleteCategoryById(id, user);
+//        evictUserKeys(user);
 //    }
 //
 //    @Override
-//    public void disableCategory(UUID id, UUID userId) {
-//        delegatedCategoryService.disableCategory(id, userId);
-//        evictUserKeys(userId);
+//    public void disableCategory(UUID id, UUID user) {
+//        delegatedCategoryService.disableCategory(id, user);
+//        evictUserKeys(user);
 //    }
 //
 //    @Override
-//    public Page<Category> getCategoriesByPageQuery(PageQuery query, UUID userId, TransactionType type) {
-//        String key = String.format(KEY_PAGED, userId, query.page(), query.size(),
+//    public Page<Category> getCategoriesByPageQuery(PageQuery query, UUID user, TransactionType type) {
+//        String key = String.format(KEY_PAGED, user, query.page(), query.size(),
 //                query.sort(), query.direction(), type);
 //        Cache cache = cacheManager.getCache(CACHE_NAME);
 //
@@ -83,15 +83,15 @@
 //            return (Page<Category>) cached.get();
 //        }
 //
-//        Page<Category> result = delegatedCategoryService.getCategoriesByPageQuery(query, userId, type);
-//        registerKey(userId, key);
+//        Page<Category> result = delegatedCategoryService.getCategoriesByPageQuery(query, user, type);
+//        registerKey(user, key);
 //        cache.put(key, result);
 //        return result;
 //    }
 //
 //    @Override
-//    public Page<CategorySummary> getCategorySummariesByPageQuery(PageQuery query, UUID userId, TransactionType type) {
-//        String key = String.format(KEY_PAGED, userId, query.page(), query.size(),
+//    public Page<CategorySummary> getCategorySummariesByPageQuery(PageQuery query, UUID user, TransactionType type) {
+//        String key = String.format(KEY_PAGED, user, query.page(), query.size(),
 //                query.sort(), query.direction(), type) + ":summary";
 //        Cache cache = cacheManager.getCache(CACHE_NAME);
 //
@@ -100,24 +100,24 @@
 //            return (Page<CategorySummary>) cached.get();
 //        }
 //
-//        Page<CategorySummary> result = delegatedCategoryService.getCategorySummariesByPageQuery(query, userId, type);
-//        registerKey(userId, key);
+//        Page<CategorySummary> result = delegatedCategoryService.getCategorySummariesByPageQuery(query, user, type);
+//        registerKey(user, key);
 //        cache.put(key, result);
 //        return result;
 //    }
 //
 //    @Override
-//    public void deleteAllByUserId(UUID userId) {
-//        evictUserKeys(userId);
-//        delegatedCategoryService.deleteAllByUserId(userId);
+//    public void deleteAllByUserId(UUID user) {
+//        evictUserKeys(user);
+//        delegatedCategoryService.deleteAllByUserId(user);
 //    }
 //
-//    private void registerKey(UUID userId, String key) {
-//        userKeys.computeIfAbsent(userId, k -> new CopyOnWriteArraySet<>()).add(key);
+//    private void registerKey(UUID user, String key) {
+//        userKeys.computeIfAbsent(user, k -> new CopyOnWriteArraySet<>()).add(key);
 //    }
 //
-//    private void evictUserKeys(UUID userId) {
-//        CopyOnWriteArraySet<String> keys = userKeys.remove(userId);
+//    private void evictUserKeys(UUID user) {
+//        CopyOnWriteArraySet<String> keys = userKeys.remove(user);
 //        if (keys == null || keys.isEmpty()) {
 //            return;
 //        }

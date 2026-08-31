@@ -139,7 +139,7 @@ public record AccountSummaryProjection(
 
 Guidance:
 - Entity scalar fields (`name`, `currency`) map to `String`.
-- Entity UUID fields (`id`, `userId`) map to `UUID`.
+- Entity UUID fields (`id`, `user`) map to `UUID`.
 - Entity boolean fields (`active`, `system`) map to `boolean`.
 - Entity enum fields (`type`) map to `String` — use `STR(entity.enumField)` in JPQL if needed.
 - Aggregated fields (`totalAmount`, `totalTransactions`) use `COALESCE` with matching primitive types.
@@ -154,19 +154,19 @@ Write the `@Query` method in the `JpaRepository` interface. Column aliases must 
 
 ```java
 @Query("""
-        SELECT c.id, c.name, STR(c.transactionType), c.userId, c.icon, c.active, c.system,
+        SELECT c.id, c.name, STR(c.transactionType), c.user, c.icon, c.active, c.system,
             COALESCE(SUM(t.amount), 0.0),
             CAST(COALESCE(COUNT(t.id), 0) AS int)
         FROM CategoryEntity c
         LEFT JOIN TransactionEntity t ON t.category.id = c.id
             AND t.transactionDate >= :monthStart
             AND t.transactionDate <= :monthEnd
-        WHERE c.userId = :userId
+        WHERE c.user = :user
         AND (:type IS NULL OR c.transactionType = :type)
         GROUP BY c
         """)
 Page<CategorySummaryProjection> findAllByUserIdAndTransactionTypeWithSummary(
-        @Param("userId") UUID userId,
+        @Param("user") UUID userId,
         @Param("type") TransactionType type,
         @Param("monthStart") LocalDate monthStart,
         @Param("monthEnd") LocalDate monthEnd,
@@ -186,14 +186,14 @@ Guidance:
 @Query("""
         SELECT STR(t.category.transactionType) AS label, COALESCE(SUM(t.amount), 0.0) AS total
         FROM TransactionEntity t
-        WHERE t.account.userId = :userId
+        WHERE t.account.user = :user
           AND t.transactionDate BETWEEN :from AND :to
           AND (:accountId IS NULL OR t.account.id = :accountId)
           AND (:categoryId IS NULL OR t.category.id = :categoryId)
         GROUP BY t.category.transactionType
         """)
 Streamable<SummaryPointProjection> sumByTypeAndDateRange(
-        @Param("userId") UUID userId,
+        @Param("user") UUID userId,
         @Param("from") LocalDate from,
         @Param("to") LocalDate to,
         @Param("accountId") UUID accountId,
@@ -213,7 +213,7 @@ Guidance:
         SELECT MONTH(t.transactionDate) AS label, COALESCE(SUM(t.amount), 0.0) AS sum
         FROM TransactionEntity t
         WHERE t.transactionDate BETWEEN :from AND :to
-          AND t.account.userId IN :userIds
+          AND t.account.user IN :userIds
           AND (:type IS NULL OR t.category.transactionType = :type)
         GROUP BY MONTH(t.transactionDate)
         """)
@@ -297,16 +297,16 @@ public record CategorySummaryProjection(
 
 // JPQL — use STR() to convert enum to String
 @Query("""
-        SELECT c.id, c.name, STR(c.transactionType), c.userId,
+        SELECT c.id, c.name, STR(c.transactionType), c.user,
             COALESCE(SUM(t.amount), 0.0),
             CAST(COALESCE(COUNT(t.id), 0) AS int)
         FROM CategoryEntity c
         LEFT JOIN TransactionEntity t ON t.category.id = c.id
-        WHERE c.userId = :userId
+        WHERE c.user = :user
         GROUP BY c
         """)
 Page<CategorySummaryProjection> findAllByUserIdWithSummary(
-        @Param("userId") UUID userId,
+        @Param("user") UUID userId,
         Pageable pageable);
 ```
 

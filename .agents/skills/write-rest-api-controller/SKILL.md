@@ -36,7 +36,7 @@ References:
 - For `4xx` and `5xx` `@ApiResponse` entries, document the error body with `@Content(schema = @Schema(implementation = ProblemDetail.class))` so the OpenAPI spec reflects the `ProblemDetail` payload returned by the global exception handler.
 - Use explicit mapping: `Request -> Command/Query` and `Domain Model -> Response`.
 - Keep business validation and domain rules in services/domain models, not in controllers.
-- Never accept ownership identifiers (`userId`, tenant id, organization id) from client request payloads when server context is available.
+- Never accept ownership identifiers (`user`, tenant id, organization id) from client request payloads when server context is available.
 - Keep persistence mapping and infrastructure concerns in persistence adapters.
 - Standard CRUD uses HTTP verbs (GET/PUT/PATCH/DELETE), not trailing verbs — see Action Patterns below.
 

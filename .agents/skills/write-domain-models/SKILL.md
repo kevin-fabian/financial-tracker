@@ -51,7 +51,7 @@ public record Category(
     public Category {
         Objects.requireNonNull(name, "Category name is required");
         Objects.requireNonNull(type, "Category type is required");
-        Objects.requireNonNull(type, "userId is required");
+        Objects.requireNonNull(type, "user is required");
     }
 
     public static Category of(String name, TransactionType type, UUID userId, String icon) {
@@ -90,7 +90,7 @@ public record CategorySummary(
     public CategorySummary {
         Objects.requireNonNull(name, "Category name is required");
         Objects.requireNonNull(type, "Category type is required");
-        Objects.requireNonNull(type, "userId is required");
+        Objects.requireNonNull(type, "user is required");
     }
 
     public boolean isExpense() {
@@ -135,7 +135,7 @@ Category updated = category.toBuilder()
 
 // Summary projection from JPQL
 // SELECT new com.fabiankevin.app.models.CategorySummary(
-//     c.id, c.name, c.type, c.userId, c.icon, c.active, c.system,
+//     c.id, c.name, c.type, c.user, c.icon, c.active, c.system,
 //     COALESCE(SUM(t.amount), 0.0), COUNT(t.id),
 //     (COALESCE(SUM(t.amount), 0.0) / :totalUserSpend * 100.0)
 // ) FROM Category c LEFT JOIN Transaction t ...

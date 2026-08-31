@@ -3,6 +3,7 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.exceptions.BudgetAlreadyExistException;
 import com.fabiankevin.app.exceptions.BudgetNotFoundException;
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.persistence.BudgetRepository;
@@ -39,8 +40,8 @@ public class DefaultBudgetService implements BudgetService {
 
         Category category = categoryService.getCategoryById(command.categoryId(), command.userId());
         Budget budget = Budget.builder()
-                .userId(command.userId())
-                .updatedBy(command.userId())
+                .user(User.of(command.userId()))
+                .updatedBy(User.of(command.userId()))
                 .period(command.period())
                 .category(category)
                 .allocated(command.allocated())
@@ -49,7 +50,7 @@ public class DefaultBudgetService implements BudgetService {
                 .build();
 
         Budget saved = budgetRepository.save(budget);
-        double spent = transactionRepository.sumSpentByCategoryIdAndUserId(saved.category().id(), saved.userId());
+        double spent = transactionRepository.sumSpentByCategoryIdAndUserId(saved.category().id(), saved.user().id());
         return toSummary(saved, spent);
     }
 
@@ -104,7 +105,7 @@ public class DefaultBudgetService implements BudgetService {
                 .orElseThrow(BudgetNotFoundException::new);
 
         Budget.BudgetBuilder builder = existing.toBuilder()
-                .updatedBy(userId)
+                .updatedBy(User.of(userId))
                 .updatedAt(Instant.now());
 
         Optional.ofNullable(command.categoryId())
@@ -120,7 +121,7 @@ public class DefaultBudgetService implements BudgetService {
                 .ifPresent(builder::allocated);
 
         Budget saved = budgetRepository.save(builder.build());
-        double spent = transactionRepository.sumSpentByCategoryIdAndUserId(saved.category().id(), saved.userId());
+        double spent = transactionRepository.sumSpentByCategoryIdAndUserId(saved.category().id(), saved.user().id());
         return toSummary(saved, spent);
     }
 

@@ -45,42 +45,42 @@
 //    @Test
 //    void getCategoryById_cacheMiss_delegatesAndCaches() {
 //        UUID id = UUID.randomUUID();
-//        UUID userId = UUID.randomUUID();
+//        UUID user = UUID.randomUUID();
 //        Category expected = Category.builder()
 //                .id(id)
 //                .name("FOOD")
 //                .type(TransactionType.EXPENSE)
-//                .userId(userId)
+//                .user(user)
 //                .createdAt(Instant.now())
 //                .updatedAt(Instant.now())
 //                .build();
 //
 //        when(cache.get(any(String.class))).thenReturn(null);
-//        when(delegatedService.getCategoryById(id, userId)).thenReturn(expected);
+//        when(delegatedService.getCategoryById(id, user)).thenReturn(expected);
 //
-//        Category result = cachedCategoryService.getCategoryById(id, userId);
+//        Category result = cachedCategoryService.getCategoryById(id, user);
 //
 //        assertSame(expected, result);
-//        verify(delegatedService, times(1)).getCategoryById(id, userId);
-//        verify(cache, times(1)).put(eq(String.format("categories:%s:byId:%s", userId, id)), eq(expected));
+//        verify(delegatedService, times(1)).getCategoryById(id, user);
+//        verify(cache, times(1)).put(eq(String.format("categories:%s:byId:%s", user, id)), eq(expected));
 //    }
 //
 //    @Test
 //    void getCategoryById_cacheHit_returnsCachedValue() {
 //        UUID id = UUID.randomUUID();
-//        UUID userId = UUID.randomUUID();
+//        UUID user = UUID.randomUUID();
 //        Category cached = Category.builder()
 //                .id(id)
 //                .name("FOOD")
 //                .type(TransactionType.EXPENSE)
-//                .userId(userId)
+//                .user(user)
 //                .createdAt(Instant.now())
 //                .updatedAt(Instant.now())
 //                .build();
 //        Cache.ValueWrapper wrapper = mockValueWrapper(cached);
 //        when(cache.get(any(String.class))).thenReturn(wrapper);
 //
-//        Category result = cachedCategoryService.getCategoryById(id, userId);
+//        Category result = cachedCategoryService.getCategoryById(id, user);
 //
 //        assertSame(cached, result);
 //        verify(delegatedService, never()).getCategoryById(any(), any());
@@ -88,39 +88,39 @@
 //
 //    @Test
 //    void getCategoriesByPageQuery_cacheMiss_delegatesAndCaches() {
-//        UUID userId = UUID.randomUUID();
+//        UUID user = UUID.randomUUID();
 //        PageQuery query = new PageQuery(0, 10, "name", "ASC");
 //        TransactionType type = TransactionType.EXPENSE;
 //        Category c1 = Category.builder()
 //                .id(UUID.randomUUID())
 //                .name("FOOD")
 //                .type(TransactionType.EXPENSE)
-//                .userId(userId)
+//                .user(user)
 //                .createdAt(Instant.now())
 //                .updatedAt(Instant.now())
 //                .build();
 //        Page<Category> expected = new Page<>(List.of(c1), 0, 10, 1L, 1, true, true);
 //
 //        when(cache.get(any(String.class))).thenReturn(null);
-//        when(delegatedService.getCategoriesByPageQuery(query, userId, type)).thenReturn(expected);
+//        when(delegatedService.getCategoriesByPageQuery(query, user, type)).thenReturn(expected);
 //
-//        Page<Category> result = cachedCategoryService.getCategoriesByPageQuery(query, userId, type);
+//        Page<Category> result = cachedCategoryService.getCategoriesByPageQuery(query, user, type);
 //
 //        assertSame(expected, result);
-//        verify(delegatedService, times(1)).getCategoriesByPageQuery(query, userId, type);
+//        verify(delegatedService, times(1)).getCategoriesByPageQuery(query, user, type);
 //        verify(cache, times(1)).put(any(String.class), eq(expected));
 //    }
 //
 //    @Test
 //    void getCategoriesByPageQuery_cacheHit_returnsCachedValue() {
-//        UUID userId = UUID.randomUUID();
+//        UUID user = UUID.randomUUID();
 //        PageQuery query = new PageQuery(0, 10, "name", "ASC");
 //        TransactionType type = TransactionType.EXPENSE;
 //        Category c1 = Category.builder()
 //                .id(UUID.randomUUID())
 //                .name("FOOD")
 //                .type(TransactionType.EXPENSE)
-//                .userId(userId)
+//                .user(user)
 //                .createdAt(Instant.now())
 //                .updatedAt(Instant.now())
 //                .build();
@@ -128,7 +128,7 @@
 //        Cache.ValueWrapper wrapper = mockValueWrapper(cached);
 //        when(cache.get(any(String.class))).thenReturn(wrapper);
 //
-//        Page<Category> result = cachedCategoryService.getCategoriesByPageQuery(query, userId, type);
+//        Page<Category> result = cachedCategoryService.getCategoriesByPageQuery(query, user, type);
 //
 //        assertSame(cached, result);
 //        verify(delegatedService, never()).getCategoriesByPageQuery(any(), any(), any());
@@ -136,32 +136,32 @@
 //
 //    @Test
 //    void createCategory_evictsUserKeys() {
-//        UUID userId = UUID.randomUUID();
+//        UUID user = UUID.randomUUID();
 //        UUID categoryId = UUID.randomUUID();
 //        CreateCategoryCommand command = CreateCategoryCommand.builder()
 //                .name("FOOD")
 //                .type(TransactionType.EXPENSE)
-//                .userId(userId)
+//                .user(user)
 //                .build();
 //        Category created = Category.builder()
 //                .id(categoryId)
 //                .name("FOOD")
 //                .type(TransactionType.EXPENSE)
-//                .userId(userId)
+//                .user(user)
 //                .createdAt(Instant.now())
 //                .updatedAt(Instant.now())
 //                .build();
 //
 //        // Pre-populate cache with keys for this user
 //        when(cache.get(any(String.class))).thenReturn(null);
-//        when(delegatedService.getCategoryById(eq(categoryId), eq(userId))).thenReturn(created);
-//        when(delegatedService.getCategoriesByPageQuery(any(), eq(userId), any())).thenReturn(
+//        when(delegatedService.getCategoryById(eq(categoryId), eq(user))).thenReturn(created);
+//        when(delegatedService.getCategoriesByPageQuery(any(), eq(user), any())).thenReturn(
 //                new Page<>(List.of(created), 0, 10, 1L, 1, true, true));
 //        when(delegatedService.createCategory(command)).thenReturn(created);
 //
 //        // Register keys via reads
-//        cachedCategoryService.getCategoryById(categoryId, userId);
-//        cachedCategoryService.getCategoriesByPageQuery(new PageQuery(0, 10, "name", "ASC"), userId, TransactionType.EXPENSE);
+//        cachedCategoryService.getCategoryById(categoryId, user);
+//        cachedCategoryService.getCategoriesByPageQuery(new PageQuery(0, 10, "name", "ASC"), user, TransactionType.EXPENSE);
 //
 //        // Now create — should evict both registered keys
 //        cachedCategoryService.createCategory(command);
@@ -177,30 +177,30 @@
 //
 //    @Test
 //    void patchCategory_evictsUserKeys() {
-//        UUID userId = UUID.randomUUID();
+//        UUID user = UUID.randomUUID();
 //        UUID categoryId = UUID.randomUUID();
 //        PatchCategoryCommand command = PatchCategoryCommand.builder()
 //                .id(categoryId)
 //                .name("GROCERIES")
 //                .type(TransactionType.EXPENSE)
-//                .userId(userId)
+//                .user(user)
 //                .build();
 //        Category patched = Category.builder()
 //                .id(categoryId)
 //                .name("GROCERIES")
 //                .type(TransactionType.EXPENSE)
-//                .userId(userId)
+//                .user(user)
 //                .createdAt(Instant.now())
 //                .updatedAt(Instant.now())
 //                .build();
 //
-//        String key = "categories:" + userId + ":byId:" + categoryId;
+//        String key = "categories:" + user + ":byId:" + categoryId;
 //        when(cache.get(any(String.class))).thenReturn(null);
-//        when(delegatedService.getCategoryById(eq(categoryId), eq(userId))).thenReturn(patched);
+//        when(delegatedService.getCategoryById(eq(categoryId), eq(user))).thenReturn(patched);
 //        when(delegatedService.patchCategory(command)).thenReturn(patched);
 //
 //        // Register key via read
-//        cachedCategoryService.getCategoryById(categoryId, userId);
+//        cachedCategoryService.getCategoryById(categoryId, user);
 //
 //        // Patch — should evict the key
 //        cachedCategoryService.patchCategory(command);
@@ -212,20 +212,20 @@
 //
 //    @Test
 //    void deleteCategoryById_evictsUserKeys() {
-//        UUID userId = UUID.randomUUID();
+//        UUID user = UUID.randomUUID();
 //        UUID categoryId = UUID.randomUUID();
 //
-//        String key = "categories:" + userId + ":byId:" + categoryId;
+//        String key = "categories:" + user + ":byId:" + categoryId;
 //        when(cache.get(any(String.class))).thenReturn(null);
-//        when(delegatedService.getCategoryById(eq(categoryId), eq(userId))).thenReturn(
-//                Category.builder().id(categoryId).name("FOOD").type(TransactionType.EXPENSE).userId(userId)
+//        when(delegatedService.getCategoryById(eq(categoryId), eq(user))).thenReturn(
+//                Category.builder().id(categoryId).name("FOOD").type(TransactionType.EXPENSE).user(user)
 //                        .createdAt(Instant.now()).updatedAt(Instant.now()).build());
 //
 //        // Register key via read
-//        cachedCategoryService.getCategoryById(categoryId, userId);
+//        cachedCategoryService.getCategoryById(categoryId, user);
 //
 //        // Delete — should evict the key
-//        cachedCategoryService.deleteCategoryById(categoryId, userId);
+//        cachedCategoryService.deleteCategoryById(categoryId, user);
 //
 //        ArgumentCaptor<String> evictCaptor = ArgumentCaptor.forClass(String.class);
 //        verify(cache, times(1)).evict(evictCaptor.capture());
@@ -234,11 +234,11 @@
 //
 //    @Test
 //    void evictUserKeys_noKeysRegistered_doesNothing() {
-//        UUID userId = UUID.randomUUID();
+//        UUID user = UUID.randomUUID();
 //        // Use lenient stubbing since this test doesn't interact with the cache
 //        lenient().when(cacheManager.getCache("categories")).thenReturn(cache);
 //
-//        cachedCategoryService.deleteCategoryById(UUID.randomUUID(), userId);
+//        cachedCategoryService.deleteCategoryById(UUID.randomUUID(), user);
 //
 //        verify(cache, never()).evict(any());
 //    }
@@ -253,10 +253,10 @@
 //        when(cache.get(any(String.class))).thenReturn(null);
 //
 //        Category catA = Category.builder()
-//                .id(categoryIdA).name("FOOD").type(TransactionType.EXPENSE).userId(userA)
+//                .id(categoryIdA).name("FOOD").type(TransactionType.EXPENSE).user(userA)
 //                .createdAt(Instant.now()).updatedAt(Instant.now()).build();
 //        Category catB = Category.builder()
-//                .id(categoryIdB).name("RENT").type(TransactionType.EXPENSE).userId(userB)
+//                .id(categoryIdB).name("RENT").type(TransactionType.EXPENSE).user(userB)
 //                .createdAt(Instant.now()).updatedAt(Instant.now()).build();
 //
 //        when(delegatedService.getCategoryById(eq(categoryIdA), eq(userA))).thenReturn(catA);

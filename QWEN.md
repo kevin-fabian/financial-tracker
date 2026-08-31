@@ -14,7 +14,7 @@ Layered hexagonal: `controllers -> services -> repositories -> jpa_repositories 
 
 **Commands & queries at the web edge** — Request DTOs convert themselves to service commands/queries in the controller (`CreateTransactionRequest#toCommand`, `StatsQuery`, `PageRequest`).
 
-**User context from JWT** — Controllers extract `userId` from `JwtAuthenticationToken.getToken().getSubject()`. Clients must never send ownership identifiers in payloads; cross-user isolation is enforced in service/repository logic.
+**User context from JWT** — Controllers extract `user` from `JwtAuthenticationToken.getToken().getSubject()`. Clients must never send ownership identifiers in payloads; cross-user isolation is enforced in service/repository logic.
 
 **Summary strategies** — `SummaryType` selects a `SummaryGenerator` implementation (`Daily`, `Monthly`, `Yearly`, `Category`). Curated list is wired manually in `AppConfig` (see `DefaultTransactionService`).
 

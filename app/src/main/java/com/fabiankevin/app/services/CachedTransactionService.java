@@ -36,26 +36,26 @@
 //    @Override
 //    public Transaction addTransaction(AddTransactionCommand command) {
 //        Transaction result = delegatedTransactionService.addTransaction(command);
-//        evictUserKeys(command.userId());
+//        evictUserKeys(command.user());
 //        return result;
 //    }
 //
 //    @Override
 //    public Transaction patchTransaction(PatchTransactionCommand command) {
 //        Transaction result = delegatedTransactionService.patchTransaction(command);
-//        evictUserKeys(command.userId());
+//        evictUserKeys(command.user());
 //        return result;
 //    }
 //
 //    @Override
-//    public void deleteTransaction(UUID transactionId, UUID userId) {
-//        delegatedTransactionService.deleteTransaction(transactionId, userId);
-//        evictUserKeys(userId);
+//    public void deleteTransaction(UUID transactionId, UUID user) {
+//        delegatedTransactionService.deleteTransaction(transactionId, user);
+//        evictUserKeys(user);
 //    }
 //
 //    @Override
-//    public TransactionResponse getTransactionById(UUID id, UUID userId) {
-//        String key = String.format(KEY_BY_ID, userId, id);
+//    public TransactionResponse getTransactionById(UUID id, UUID user) {
+//        String key = String.format(KEY_BY_ID, user, id);
 //        Cache cache = cacheManager.getCache(CACHE_NAME);
 //
 //        Cache.ValueWrapper cached = cache.get(key);
@@ -63,8 +63,8 @@
 //            return (TransactionResponse) cached.get();
 //        }
 //
-//        TransactionResponse result = delegatedTransactionService.getTransactionById(id, userId);
-//        registerKey(userId, key);
+//        TransactionResponse result = delegatedTransactionService.getTransactionById(id, user);
+//        registerKey(user, key);
 //        cache.put(key, result);
 //        return result;
 //    }
@@ -84,8 +84,8 @@
 //            return (SummarySeries) cached.get();
 //        }
 //
-//        for (UUID userId : query.userIds()) {
-//            registerKey(userId, key);
+//        for (UUID user : query.userIds()) {
+//            registerKey(user, key);
 //        }
 //        SummarySeries result = delegatedTransactionService.getSummary(query);
 //        cache.put(key, result);
@@ -93,8 +93,8 @@
 //    }
 //
 //    @Override
-//    public Page<Transaction> getTransactionsByPageQuery(PageQuery query, UUID userId, TransactionType type) {
-//        String key = String.format(KEY_PAGED, userId, query.page(), query.size(),
+//    public Page<Transaction> getTransactionsByPageQuery(PageQuery query, UUID user, TransactionType type) {
+//        String key = String.format(KEY_PAGED, user, query.page(), query.size(),
 //                query.sort(), query.direction(), type);
 //        Cache cache = cacheManager.getCache(CACHE_NAME);
 //
@@ -103,18 +103,18 @@
 //            return (Page<Transaction>) cached.get();
 //        }
 //
-//        Page<Transaction> result = delegatedTransactionService.getTransactionsByPageQuery(query, userId, type);
-//        registerKey(userId, key);
+//        Page<Transaction> result = delegatedTransactionService.getTransactionsByPageQuery(query, user, type);
+//        registerKey(user, key);
 //        cache.put(key, result);
 //        return result;
 //    }
 //
-//    private void registerKey(UUID userId, String key) {
-//        userKeys.computeIfAbsent(userId, _ -> new CopyOnWriteArraySet<>()).add(key);
+//    private void registerKey(UUID user, String key) {
+//        userKeys.computeIfAbsent(user, _ -> new CopyOnWriteArraySet<>()).add(key);
 //    }
 //
-//    private void evictUserKeys(UUID userId) {
-//        CopyOnWriteArraySet<String> keys = userKeys.remove(userId);
+//    private void evictUserKeys(UUID user) {
+//        CopyOnWriteArraySet<String> keys = userKeys.remove(user);
 //        if (keys == null || keys.isEmpty()) {
 //            return;
 //        }
