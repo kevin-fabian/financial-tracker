@@ -1,10 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.events.EventPublisher;
-import com.fabiankevin.app.exceptions.AccountNotFoundException;
-import com.fabiankevin.app.exceptions.CategoryNotFoundException;
-import com.fabiankevin.app.exceptions.DailyTransactionLimitExceededException;
-import com.fabiankevin.app.exceptions.TransactionNotFoundException;
+import com.fabiankevin.app.exceptions.*;
 import com.fabiankevin.app.models.*;
 import com.fabiankevin.app.models.enums.EventAction;
 import com.fabiankevin.app.models.enums.SummaryType;
@@ -82,6 +79,9 @@ public class DefaultTransactionService implements TransactionService {
         long existingCount = transactionRepository.countByUserIdAndCreatedAtOnDate(userId, today);
         if (existingCount >= dailyTransactionLimit) {
             throw new DailyTransactionLimitExceededException(dailyTransactionLimit);
+        }
+        if (command.amount() <= 0) {
+            throw new InvalidAmountException("amount must be greater than zero");
         }
         Account account = accountRepository.findById(command.accountId())
                 .filter(acc -> acc.userId().equals(userId))

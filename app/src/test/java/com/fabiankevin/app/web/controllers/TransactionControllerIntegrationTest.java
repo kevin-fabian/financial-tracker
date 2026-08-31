@@ -197,6 +197,29 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
+        void givenZeroAmount_thenReturnsBadRequest() throws Exception {
+            CreateTransactionRequest request = CreateTransactionRequest.builder()
+                    .amount(0)
+                    .description("Dinner")
+                    .transactionDate(LocalDate.of(2026, 1, 1))
+                    .categoryId(category.id())
+                    .accountId(account.id())
+                    .build();
+
+            mockMvc.perform(post("/api/transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
         void givenNonExistentAccount_thenReturnsNotFound() throws Exception {
             CreateTransactionRequest request = CreateTransactionRequest.builder()
                     .amount(100)
