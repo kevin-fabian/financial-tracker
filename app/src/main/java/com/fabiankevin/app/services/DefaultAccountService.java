@@ -1,10 +1,12 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.AccountAlreadyExistException;
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.AccountSummary;
 import com.fabiankevin.app.models.Page;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Currency;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -24,6 +27,7 @@ import java.util.UUID;
 @Service
 public class DefaultAccountService implements AccountService {
     private final AccountRepository accountRepository;
+    private final UserClient userClient;
 
     @Override
     public Account getAccountById(UUID id, UUID userId) {
@@ -94,6 +98,27 @@ public class DefaultAccountService implements AccountService {
 
     @Transactional
     @Override
+    public AccountSummary createAccountSummary(CreateAccountCommand command) {
+        Account account = createAccount(command);
+        return getAccountSummaryById(account.id(), command.userId());
+    }
+
+    @Transactional
+    @Override
+    public AccountSummary patchAccountSummary(PatchAccountCommand command) {
+        Account account = patchAccount(command);
+        return getAccountSummaryById(account.id(), command.userId());
+    }
+
+    private AccountSummary getAccountSummaryById(UUID accountId, UUID userId) {
+        AccountSummary summary = accountRepository.findSummaryByIdAndUserId(accountId, userId)
+                .orElseThrow(AccountNotFoundException::new);
+
+        return enrichWithUserData(List.of(summary)).get(0);
+    }
+
+    @Transactional
+    @Override
     public void deleteAccountById(UUID id, UUID userId) {
         accountRepository.findById(id)
                 .filter(a -> a.userId().equals(userId))
@@ -120,7 +145,44 @@ public class DefaultAccountService implements AccountService {
 
     @Override
     public Page<AccountSummary> getAccountSummariesByPageQuery(PageQuery query, UUID userId, LocalDate monthStart, LocalDate monthEnd) {
-        return accountRepository.findAllByPageQueryWithSummary(query, userId, monthStart, monthEnd);
+        Page<AccountSummary> summaries = accountRepository.findAllByPageQueryWithSummary(query, userId, monthStart, monthEnd);
+        return Page.<AccountSummary>builder()
+                .content(enrichWithUserData(summaries.content()))
+                .page(summaries.page())
+                .size(summaries.size())
+                .totalElements(summaries.totalElements())
+                .totalPages(summaries.totalPages())
+                .last(summaries.last())
+                .first(summaries.first())
+                .build();
+    }
+
+    private List<AccountSummary> enrichWithUserData(List<AccountSummary> summaries) {
+        List<UUID> userIds = summaries.stream()
+                .flatMap(s -> s.userIds().stream())
+                .distinct()
+                .toList();
+
+        if (userIds.isEmpty()) {
+            return summaries;
+        }
+
+        var usersById = userClient.getUsersByIds(userIds).stream()
+                .collect(java.util.stream.Collectors.toMap(User::id, u -> u));
+
+        return summaries.stream()
+                .map(summary -> {
+                    User user = usersById.get(summary.userIds().get(0));
+                    String firstName = user != null ? user.firstName() : null;
+                    String lastName = user != null ? user.lastName() : null;
+                    String initial = user != null ? user.initial() : null;
+                    return summary.toBuilder()
+                            .firstName(firstName)
+                            .lastName(lastName)
+                            .initial(initial)
+                            .build();
+                })
+                .toList();
     }
 
     @Transactional

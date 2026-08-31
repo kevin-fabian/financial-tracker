@@ -97,6 +97,21 @@ public class DefaultAccountRepository implements AccountRepository {
     }
 
     @Override
+    public Optional<AccountSummary> findSummaryByIdAndUserId(UUID accountId, UUID userId) {
+        return jpaAccountRepository.findSummaryByIdAndUserId(accountId, userId)
+                .map(projection -> AccountSummary.builder()
+                        .id(projection.id())
+                        .name(projection.name())
+                        .userIds(List.of(projection.userId()))
+                        .currency(Currency.getInstance(projection.currency()))
+                        .type(AccountType.valueOf(projection.type()))
+                        .active(projection.active())
+                        .totalBalance(projection.totalBalance())
+                        .totalTransactions(projection.totalTransactions())
+                        .build());
+    }
+
+    @Override
     public Optional<Account> findByNameAndTypeAndUserId(String name, AccountType type, UUID userId) {
         return jpaAccountRepository.findByNameAndTypeAndUserId(name, type.name(), userId)
                 .map(AccountEntity::toModel);

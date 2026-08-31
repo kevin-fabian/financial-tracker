@@ -22,6 +22,8 @@ public interface AccountRepository {
 
     Page<AccountSummary> findAllByPageQueryWithSummary(PageQuery query, UUID userId, LocalDate monthStart, LocalDate monthEnd);
 
+    Optional<AccountSummary> findSummaryByIdAndUserId(UUID accountId, UUID userId);
+
     List<Account> findAllByNamesIn(List<String> accountNames);
 
     Optional<Account> findByNameAndTypeAndUserId(String name, AccountType type, UUID userId);

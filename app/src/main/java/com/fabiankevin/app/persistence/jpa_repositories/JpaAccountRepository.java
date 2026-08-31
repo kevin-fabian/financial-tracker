@@ -42,4 +42,22 @@ public interface JpaAccountRepository extends JpaRepository<AccountEntity, UUID>
             @Param("monthStart") LocalDate monthStart,
             @Param("monthEnd") LocalDate monthEnd,
             Pageable pageable);
+
+    @Query("""
+            SELECT new com.fabiankevin.app.persistence.entities.projections.AccountSummaryProjection(
+                acc.id, acc.name, acc.userId, acc.currency, acc.type, acc.active,
+                COALESCE(SUM(CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amount ELSE -t.amount END), 0.0),
+                CAST(COALESCE(COUNT(t.id), 0) AS int)
+            )
+            FROM AccountEntity acc
+            LEFT JOIN TransactionEntity t ON t.account.id = acc.id
+                AND t.account.userId = :userId
+            LEFT JOIN t.category
+            WHERE acc.id = :accountId
+                AND acc.userId = :userId
+            GROUP BY acc
+            """)
+    Optional<AccountSummaryProjection> findSummaryByIdAndUserId(
+            @Param("accountId") UUID accountId,
+            @Param("userId") UUID userId);
 }

@@ -4,7 +4,7 @@ description: Generate a white-box and black-box test plan for the requested code
 
 **System Instructions:**
 
-Apply `@{.qwen/skills/write-test-cases/SKILL.md}`.
+Apply `@{.agents/skills/write-test-cases/SKILL.md}`.
 
 ## Objective
 

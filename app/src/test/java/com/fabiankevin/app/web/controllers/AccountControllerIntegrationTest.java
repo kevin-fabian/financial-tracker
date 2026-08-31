@@ -3,6 +3,7 @@ package com.fabiankevin.app.web.controllers;
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Amount;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.AccountRepository;
@@ -40,6 +41,7 @@ import java.util.stream.Stream;
 
 import static com.fabiankevin.app.models.enums.AccountType.CREDIT_CARD;
 import static com.fabiankevin.app.models.enums.AccountType.E_WALLET;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -97,6 +99,9 @@ class AccountControllerIntegrationTest {
                     .type(E_WALLET)
                     .build();
 
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
             mockMvc.perform(post("/api/accounts")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -112,7 +117,13 @@ class AccountControllerIntegrationTest {
                     .andExpect(jsonPath("$.id").isNotEmpty())
                     .andExpect(jsonPath("$.name").value("GCASH"))
                     .andExpect(jsonPath("$.currency").value("PHP"))
-                    .andExpect(jsonPath("$.type").value("E_WALLET"));
+                    .andExpect(jsonPath("$.type").value("E_WALLET"))
+                    .andExpect(jsonPath("$.active").value(true))
+                    .andExpect(jsonPath("$.totalBalance").value(0.0))
+                    .andExpect(jsonPath("$.totalTransactions").value(0))
+                    .andExpect(jsonPath("$.firstName").value("John"))
+                    .andExpect(jsonPath("$.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.initial").value("JD"));
         }
 
         @Test
@@ -280,7 +291,6 @@ class AccountControllerIntegrationTest {
 
     @Nested
     class PatchAccount {
-
         @Test
         void givenFullPatchRequest_thenReturnsUpdatedAccount() throws Exception {
             Account account = accountService.createAccount(
@@ -298,6 +308,9 @@ class AccountControllerIntegrationTest {
                     .type(CREDIT_CARD)
                     .build();
 
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
             mockMvc.perform(patch("/api/accounts/" + account.id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -312,7 +325,100 @@ class AccountControllerIntegrationTest {
                     .andExpect(jsonPath("$.id").value(account.id().toString()))
                     .andExpect(jsonPath("$.name").value("GCASH_MAIN"))
                     .andExpect(jsonPath("$.currency").value("USD"))
-                    .andExpect(jsonPath("$.type").value("CREDIT_CARD"));
+                    .andExpect(jsonPath("$.type").value("CREDIT_CARD"))
+                    .andExpect(jsonPath("$.active").value(true))
+                    .andExpect(jsonPath("$.totalBalance").value(0.0))
+                    .andExpect(jsonPath("$.totalTransactions").value(0))
+                    .andExpect(jsonPath("$.firstName").value("John"))
+                    .andExpect(jsonPath("$.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.initial").value("JD"));
+        }
+
+        @Test
+        void givenPatchAccountWithTransactions_thenReturnsUpdatedAccountWithAggregatedData() throws Exception {
+            Account account = accountService.createAccount(
+                    CreateAccountCommand.builder()
+                            .name("GCASH")
+                            .userId(userId)
+                            .currency(Currency.getInstance("PHP"))
+                            .type(E_WALLET)
+                            .build()
+            );
+
+            var incomeCategory = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
+                            .name("SALARY")
+                            .type(TransactionType.INCOME)
+                            .userId(userId)
+                            .build()
+            );
+
+            var expenseCategory = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
+                            .name("FOOD")
+                            .type(TransactionType.EXPENSE)
+                            .userId(userId)
+                            .build()
+            );
+
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(Amount.of(5000.0, "PHP"))
+                            .transactionDate(LocalDate.now())
+                            .categoryId(incomeCategory.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(Amount.of(1500.0, "PHP"))
+                            .transactionDate(LocalDate.now())
+                            .categoryId(expenseCategory.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(Amount.of(500.0, "PHP"))
+                            .transactionDate(LocalDate.now())
+                            .categoryId(expenseCategory.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+
+            PatchAccountRequest request = PatchAccountRequest.builder()
+                    .name("GCASH_MAIN")
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(patch("/api/accounts/" + account.id())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(account.id().toString()))
+                    .andExpect(jsonPath("$.name").value("GCASH_MAIN"))
+                    .andExpect(jsonPath("$.currency").value("PHP"))
+                    .andExpect(jsonPath("$.type").value("E_WALLET"))
+                    .andExpect(jsonPath("$.active").value(true))
+                    .andExpect(jsonPath("$.totalBalance").value(3000.0))
+                    .andExpect(jsonPath("$.totalTransactions").value(3))
+                    .andExpect(jsonPath("$.firstName").value("John"))
+                    .andExpect(jsonPath("$.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.initial").value("JD"));
         }
 
         @ParameterizedTest
@@ -479,7 +585,7 @@ class AccountControllerIntegrationTest {
     class GetAccounts {
 
         @Test
-        void givenExistingUserAccounts_thenReturnsPagedSummaryResponse() throws Exception {
+            void givenExistingUserAccounts_thenReturnsPagedSummaryResponse() throws Exception {
             accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")
@@ -497,6 +603,9 @@ class AccountControllerIntegrationTest {
                             .build()
             );
 
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
             mockMvc.perform(get("/api/accounts?page=0&size=2&sort=name&direction=ASC")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -510,8 +619,14 @@ class AccountControllerIntegrationTest {
                     .andExpect(jsonPath("$.content.length()").value(2))
                     .andExpect(jsonPath("$.content[0].name").value("BDO"))
                     .andExpect(jsonPath("$.content[0].active").value(true))
+                    .andExpect(jsonPath("$.content[0].firstName").value("John"))
+                    .andExpect(jsonPath("$.content[0].lastName").value("Doe"))
+                    .andExpect(jsonPath("$.content[0].initial").value("JD"))
                     .andExpect(jsonPath("$.content[1].name").value("GCASH"))
                     .andExpect(jsonPath("$.content[1].active").value(true))
+                    .andExpect(jsonPath("$.content[1].firstName").value("John"))
+                    .andExpect(jsonPath("$.content[1].lastName").value("Doe"))
+                    .andExpect(jsonPath("$.content[1].initial").value("JD"))
                     .andExpect(jsonPath("$.page").value(0))
                     .andExpect(jsonPath("$.size").value(2))
                     .andExpect(jsonPath("$.totalElements").value(2))

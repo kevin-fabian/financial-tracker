@@ -92,16 +92,16 @@ public class  AccountController {
             description = "Creates a new account and returns the created object",
             responses = {
                     @ApiResponse(responseCode = "201", description = "Created - Resource created successfully",
-                            content = @Content(schema = @Schema(implementation = AccountResponse.class))),
+                            content = @Content(schema = @Schema(implementation = AccountSummaryResponse.class))),
                     @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
                     @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
             }
     )
     @PostMapping
-    public ResponseEntity<AccountResponse> createAccount(@Valid @RequestBody CreateAccountRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
+    public ResponseEntity<AccountSummaryResponse> createAccount(@Valid @RequestBody CreateAccountRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        Account created = accountService.createAccount(request.toCommand(userId));
-        AccountResponse response = AccountResponse.from(created);
+        AccountSummary created = accountService.createAccountSummary(request.toCommand(userId));
+        AccountSummaryResponse response = AccountSummaryResponse.from(created);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(response.id())
@@ -114,17 +114,17 @@ public class  AccountController {
             description = "Updates provided fields of an account and returns the updated object",
             responses = {
                     @ApiResponse(responseCode = "200", description = "OK - Resource updated successfully",
-                            content = @Content(schema = @Schema(implementation = AccountResponse.class))),
+                            content = @Content(schema = @Schema(implementation = AccountSummaryResponse.class))),
                     @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
                     @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
                     @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
             }
     )
     @PatchMapping("/{accountId}")
-    public AccountResponse patchAccount(@PathVariable UUID accountId, @Valid @RequestBody PatchAccountRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
+    public AccountSummaryResponse patchAccount(@PathVariable UUID accountId, @Valid @RequestBody PatchAccountRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        Account updated = accountService.patchAccount(request.toCommand(accountId, userId));
-        return AccountResponse.from(updated);
+        AccountSummary updated = accountService.patchAccountSummary(request.toCommand(accountId, userId));
+        return AccountSummaryResponse.from(updated);
     }
 
     @Operation(

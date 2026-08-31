@@ -23,8 +23,13 @@ public record AccountSummaryResponse(
         @Schema(description = "Total balance for this account", example = "5000.00")
         double totalBalance,
         @Schema(description = "Total number of transactions for this account", example = "25")
-        int totalTransactions
-) {
+        int totalTransactions,
+        @Schema(description = "First name of the account owner", example = "John")
+        String firstName,
+        @Schema(description = "Last name of the account owner", example = "Doe")
+        String lastName,
+        @Schema(description = "Initials of the account owner", example = "JD")
+        String initial) {
     public static AccountSummaryResponse from(final AccountSummary accountSummary) {
         return AccountSummaryResponse.builder()
                 .id(accountSummary.id())
@@ -34,6 +39,9 @@ public record AccountSummaryResponse(
                 .active(accountSummary.active())
                 .totalBalance(accountSummary.totalBalance())
                 .totalTransactions(accountSummary.totalTransactions())
+                .firstName(accountSummary.firstName())
+                .lastName(accountSummary.lastName())
+                .initial(accountSummary.initial())
                 .build();
     }
 }
