@@ -73,7 +73,8 @@ public class DefaultTransactionService implements TransactionService {
                 .filter(t -> t.account().user().id().equals(userId))
                 .orElseThrow(TransactionNotFoundException::new);
 
-        return TransactionResponse.from(transaction);
+        List<Transaction> enrichedList = enrichWithUserData(List.of(transaction));
+        return TransactionResponse.from(enrichedList.get(0));
     }
 
     @Transactional
@@ -115,11 +116,11 @@ public class DefaultTransactionService implements TransactionService {
             compositeEventPublisher.publish(party.id(), new ItemEvent<>(
                     userId,
                     EventAction.ADDED,
-                    transaction
+                    savedTransaction
             ));
         });
 
-        return savedTransaction;
+        return enrichWithUserData(List.of(savedTransaction)).get(0);
     }
 
     @Transactional
@@ -157,7 +158,7 @@ public class DefaultTransactionService implements TransactionService {
         Optional.ofNullable(command.amount()).ifPresent(builder::amount);
         Optional.ofNullable(command.transactionDate()).ifPresent(builder::transactionDate);
 
-        return transactionRepository.save(builder.build());
+        return enrichWithUserData(List.of(transactionRepository.save(builder.build()))).get(0);
     }
 
     @Override
@@ -179,64 +180,11 @@ public class DefaultTransactionService implements TransactionService {
         userIds.add(userId);
         Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, userIds, type);
 
-        Set<UUID> allUserIds = page.content().stream()
-                .flatMap(t -> Stream.of(
-                        (UUID) t.addedBy().id(),
-                        (UUID) t.updatedBy().id(),
-                        (UUID) t.account().user().id()
-                ))
-                .distinct()
-                .collect(Collectors.toSet());
+        return enrichWithUserData(page);
+    }
 
-        if (allUserIds.isEmpty()) {
-            return page;
-        }
-
-        Map<UUID, User> usersById = userClient.getUsersByIds(new ArrayList<>(allUserIds)).stream()
-                .collect(Collectors.toMap(User::id, u -> u));
-
-        List<Transaction> enriched = page.content().stream()
-                .map(t -> {
-                    User addedBy = usersById.get(t.addedBy().id());
-                    User updatedBy = usersById.get(t.updatedBy().id());
-                    User accountUser = usersById.get(t.account().user().id());
-
-                    Transaction.TransactionBuilder builder = t.toBuilder();
-                    if (addedBy != null) {
-                        builder.addedBy(User.builder()
-                                .id(addedBy.id())
-                                .firstName(addedBy.firstName())
-                                .lastName(addedBy.lastName())
-                                .build());
-                    }
-                    if (updatedBy != null) {
-                        builder.updatedBy(User.builder()
-                                .id(updatedBy.id())
-                                .firstName(updatedBy.firstName())
-                                .lastName(updatedBy.lastName())
-                                .build());
-                    }
-                    if (accountUser != null) {
-                        Account enrichedAccount = Account.builder()
-                                .id(t.account().id())
-                                .name(t.account().name())
-                                .currency(t.account().currency())
-                                .type(t.account().type())
-                                .active(t.account().active())
-                                .user(User.builder()
-                                        .id(accountUser.id())
-                                        .firstName(accountUser.firstName())
-                                        .lastName(accountUser.lastName())
-                                        .build())
-                                .createdAt(t.account().createdAt())
-                                .updatedAt(t.account().updatedAt())
-                                .build();
-                        builder.account(enrichedAccount);
-                    }
-
-                    return builder.build();
-                })
-                .toList();
+    private Page<Transaction> enrichWithUserData(Page<Transaction> page) {
+        List<Transaction> enriched = enrichWithUserData(page.content());
 
         return new com.fabiankevin.app.models.Page<>(
                 enriched,
@@ -247,5 +195,42 @@ public class DefaultTransactionService implements TransactionService {
                 page.last(),
                 page.first()
         );
+    }
+
+    private List<Transaction> enrichWithUserData(List<Transaction> transactions) {
+        Set<UUID> allUserIds = transactions.stream()
+                .flatMap(t -> Stream.of(
+                        t.addedBy().id(),
+                        t.updatedBy().id(),
+                        t.account().user().id()
+                ))
+                .collect(Collectors.toSet());
+
+        if (allUserIds.isEmpty()) {
+            return transactions;
+        }
+
+        Map<UUID, User> usersById = userClient.getUsersByIds(new ArrayList<>(allUserIds)).stream()
+                .collect(Collectors.toMap(User::id, u -> u));
+
+        return transactions.stream()
+                .map(t -> {
+                    User addedBy = usersById.get(t.addedBy().id());
+                    User updatedBy = usersById.get(t.updatedBy().id());
+                    User accountUser = usersById.get(t.account().user().id());
+
+                    Transaction.TransactionBuilder builder = t.toBuilder();
+
+                    Optional.ofNullable(addedBy).ifPresent(builder::addedBy);
+                    Optional.ofNullable(updatedBy).ifPresent(builder::updatedBy);
+                    Optional.ofNullable(accountUser).ifPresent(user -> {
+                        builder.account(t.account().toBuilder()
+                                .user(user)
+                                .build());
+                    });
+
+                    return builder.build();
+                })
+                .toList();
     }
 }
