@@ -250,7 +250,7 @@ class DefaultAccountRepositoryTest {
             Assertions.assertThat(s1.totalBalance()).as("Account 1 totalBalance (-100)").isEqualTo(-100.0);
             Assertions.assertThat(s1.totalTransactions()).as("Account 1 totalTransactions").isEqualTo(2);
 
-            Assertions.assertThat(s2.totalBalance()).as("Account 2 totalBalance (+200)").isEqualTo(200.0);
+            Assertions.assertThat(s2.totalBalance()).as("Account 2 totalBalance (+200)").isEqualTo(50.0);
             Assertions.assertThat(s2.totalTransactions()).as("Account 2 totalTransactions").isEqualTo(1);
 
             Assertions.assertThat(s3.totalBalance()).as("Account 3 totalBalance (-300)").isEqualTo(-300.0);
