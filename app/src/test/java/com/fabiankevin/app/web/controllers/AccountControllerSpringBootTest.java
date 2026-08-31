@@ -32,7 +32,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Currency;
 import java.util.List;
@@ -208,16 +207,12 @@ class AccountControllerSpringBootTest {
 
         @Test
         void givenExistingId_thenReturnsAccount() throws Exception {
-            Account account = accountRepository.save(
-                    Account.builder()
+            Account account = accountService.createAccount(
+                    CreateAccountCommand.builder()
                             .name("GCASH")
                             .userId(userId)
                             .currency(Currency.getInstance("PHP"))
                             .type(E_WALLET)
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
                             .build()
             );
 
@@ -262,16 +257,12 @@ class AccountControllerSpringBootTest {
         @Test
         void givenAccountBelongsToOtherUser_thenReturnNotFound() throws Exception {
             UUID otherUserId = UUID.randomUUID();
-            Account account = accountRepository.save(
-                    Account.builder()
+            Account account = accountService.createAccount(
+                    CreateAccountCommand.builder()
                             .name("GCASH")
                             .userId(otherUserId)
                             .currency(Currency.getInstance("PHP"))
                             .type(E_WALLET)
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
                             .build()
             );
 
@@ -434,16 +425,12 @@ class AccountControllerSpringBootTest {
 
         @Test
         void givenExistingId_thenShouldDisableAccount() throws Exception {
-            Account account = accountRepository.save(
-                    Account.builder()
+            Account account = accountService.createAccount(
+                    CreateAccountCommand.builder()
                             .name("GCASH")
                             .userId(userId)
                             .currency(Currency.getInstance("PHP"))
                             .type(E_WALLET)
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
                             .build()
             );
 
@@ -493,28 +480,20 @@ class AccountControllerSpringBootTest {
 
         @Test
         void givenExistingUserAccounts_thenReturnsPagedSummaryResponse() throws Exception {
-            accountRepository.save(
-                    Account.builder()
+            accountService.createAccount(
+                    CreateAccountCommand.builder()
                             .name("GCASH")
                             .userId(userId)
                             .currency(Currency.getInstance("PHP"))
                             .type(E_WALLET)
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
                             .build()
             );
-            accountRepository.save(
-                    Account.builder()
+            accountService.createAccount(
+                    CreateAccountCommand.builder()
                             .name("BDO")
                             .userId(userId)
                             .currency(Currency.getInstance("PHP"))
                             .type(AccountType.BANK_ACCOUNT)
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
                             .build()
             );
 
