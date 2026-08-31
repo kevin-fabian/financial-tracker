@@ -83,9 +83,9 @@ public class DefaultBudgetRepository implements BudgetRepository {
                 .createdAt(projection.createdAt())
                 .period(BudgetPeriod.valueOf(projection.period()))
                 .allocated(allocated)
-                .categoryId(projection.categoryId())
-                .categoryName(projection.categoryName())
-                .categoryIcon(projection.categoryIcon())
+                .categoryId(projection.category().getId())
+                .categoryName(projection.category().getName())
+                .categoryIcon(projection.category().getIcon())
                 .spent(spent)
                 .spentPercentage(spentPercentage)
                 .build();

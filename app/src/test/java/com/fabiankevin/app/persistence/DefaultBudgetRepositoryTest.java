@@ -226,7 +226,7 @@ class DefaultBudgetRepositoryTest {
             Assertions.assertThat(results)
                     .as("should return one budget summary")
                     .hasSize(1);
-            BudgetSummary summary = results.get(0);
+            BudgetSummary summary = results.getFirst();
             assertEquals(1000.0, summary.allocated(), "allocated should match");
             assertEquals(0.0, summary.spent(), "spent should be zero with no transactions");
             assertEquals(0.0, summary.spentPercentage(), "spentPercentage should be zero with no spent");

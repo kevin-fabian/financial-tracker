@@ -1,5 +1,6 @@
 package com.fabiankevin.app.persistence.entities.projections;
 
+import com.fabiankevin.app.persistence.entities.CategoryEntity;
 import lombok.Builder;
 
 import java.time.Instant;
@@ -14,9 +15,6 @@ public record BudgetSummaryProjection(
         Instant createdAt,
         String period,
         double allocated,
-        UUID categoryId,
-        String categoryName,
-        String categoryIcon,
-        double spent
-) {
+        CategoryEntity category,
+        double spent) {
 }
