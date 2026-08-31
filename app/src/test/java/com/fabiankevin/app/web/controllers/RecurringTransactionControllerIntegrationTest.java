@@ -58,7 +58,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class RecurringTransactionControllerSpringBootTest {
+class RecurringTransactionControllerIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;

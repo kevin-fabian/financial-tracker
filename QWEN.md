@@ -133,7 +133,7 @@ Key models: `Account`, `Transaction`, `Amount`, `Category`, `User`, `Page`, `Acc
 
 ### Testing conventions
 
-- Controller: `@WebMvcTest` + `@MockitoBean` + `MockMvc` + `jwt()` post-processor (see `StatsControllerTest`). Some controllers use full `@SpringBootTest` (see `PartyControllerTest`, `BudgetControllerSpringBootTest`).
+- Controller: `@WebMvcTest` + `@MockitoBean` + `MockMvc` + `jwt()` post-processor (see `StatsControllerTest`). Some controllers use full `@SpringBootTest` (see `PartyControllerTest`, `BudgetControllerIntegrationTest`).
 - Repository: `@DataJpaTest` + nested `@TestConfiguration` (see `DefaultTransactionRepositoryTest`). Some slices use `local`; repository tests typically use `@ActiveProfiles("test")` — verify per test.
 - Service/strategy tests live next to tested class under `app/src/test/java/.../services/`.
 - Cache config: `CacheConfig`.

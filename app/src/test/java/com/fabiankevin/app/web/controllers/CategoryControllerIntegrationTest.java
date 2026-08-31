@@ -50,7 +50,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class CategoryControllerSpringBootTest {
+class CategoryControllerIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 

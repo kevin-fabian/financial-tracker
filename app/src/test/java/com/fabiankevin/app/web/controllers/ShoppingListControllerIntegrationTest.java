@@ -49,7 +49,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class ShoppingListControllerSpringBootTest {
+class ShoppingListControllerIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
