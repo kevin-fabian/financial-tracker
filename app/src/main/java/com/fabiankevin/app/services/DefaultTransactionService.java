@@ -65,7 +65,7 @@ public class DefaultTransactionService implements TransactionService {
     @Override
     public TransactionResponse getTransactionById(UUID id, UUID userId) {
         Transaction transaction = transactionRepository.findById(id)
-                .filter(t -> t.account().userId().equals(userId))
+                .filter(t -> t.account().user().id().equals(userId))
                 .orElseThrow(TransactionNotFoundException::new);
 
         return TransactionResponse.from(transaction);
@@ -84,7 +84,7 @@ public class DefaultTransactionService implements TransactionService {
             throw new InvalidAmountException("amount must be greater than zero");
         }
         Account account = accountRepository.findById(command.accountId())
-                .filter(acc -> acc.userId().equals(userId))
+                .filter(acc -> acc.user().id().equals(userId))
                 .orElseThrow(AccountNotFoundException::new);
         Category category = categoryRepository.findById(command.categoryId())
                 .filter(cat -> userId.equals(cat.userId()) || cat.system())
@@ -128,7 +128,7 @@ public class DefaultTransactionService implements TransactionService {
         Account newAccount = null;
         if (command.accountId() != null) {
             newAccount = accountRepository.findById(command.accountId())
-                    .filter(a -> a.userId().equals(userId))
+                    .filter(a -> a.user().id().equals(userId))
                     .orElseThrow(AccountNotFoundException::new);
         }
 

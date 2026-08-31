@@ -10,8 +10,12 @@ public record User(
         String firstName,
         String lastName) {
 
+    public static User of(UUID userId) {
+        return User.builder().id(userId).build();
+    }
+
     public String fullName() {
-         return String.format("%s %s", firstName, lastName);
+        return String.format("%s %s", firstName, lastName);
     }
 
     public String initial() {

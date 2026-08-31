@@ -3,6 +3,7 @@ package com.fabiankevin.app.persistence;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.AccountSummary;
 import com.fabiankevin.app.models.Page;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.entities.CategoryEntity;
@@ -57,7 +58,7 @@ class DefaultAccountRepositoryTest {
     void setUp() {
         account = Account.builder()
                 .name("GCASH")
-                .userId(UUID.randomUUID())
+                .user(User.of(UUID.randomUUID()))
                 .currency(Currency.getInstance("PHP"))
                 .type(AccountType.E_WALLET)
                 .active(true)
@@ -124,7 +125,7 @@ class DefaultAccountRepositoryTest {
         for (int i = 0; i < 5; i++) {
             Account a = Account.builder()
                     .name("Account " + i)
-                    .userId(userId)
+                    .user(User.of(userId))
                     .currency(java.util.Currency.getInstance("PHP"))
                     .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
                     .createdAt(Instant.now())
@@ -159,7 +160,7 @@ class DefaultAccountRepositoryTest {
             // create accounts
             Account acc1 = Account.builder()
                     .name("Account 1")
-                    .userId(userId)
+                    .user(User.of(userId))
                     .currency(java.util.Currency.getInstance("PHP"))
                     .type(BANK_ACCOUNT)
                     .active(true)
@@ -168,7 +169,7 @@ class DefaultAccountRepositoryTest {
                     .build();
             Account acc2 = Account.builder()
                     .name("Account 2")
-                    .userId(userId)
+                    .user(User.of(userId))
                     .currency(java.util.Currency.getInstance("PHP"))
                     .type(BANK_ACCOUNT)
                     .active(true)
@@ -177,7 +178,7 @@ class DefaultAccountRepositoryTest {
                     .build();
             Account acc3 = Account.builder()
                     .name("Account 3")
-                    .userId(userId)
+                    .user(User.of(userId))
                     .currency(java.util.Currency.getInstance("PHP"))
                     .type(BANK_ACCOUNT)
                     .active(true)
@@ -262,7 +263,7 @@ class DefaultAccountRepositoryTest {
 
             Account account = Account.builder()
                     .name("Solo Account")
-                    .userId(userId)
+                    .user(User.of(userId))
                     .currency(java.util.Currency.getInstance("USD"))
                     .type(AccountType.CASH)
                     .active(true)
@@ -326,7 +327,7 @@ class DefaultAccountRepositoryTest {
             for (int i = 0; i < 3; i++) {
                 Account a = Account.builder()
                         .name("Account " + i)
-                        .userId(userId)
+                        .user(User.of(userId))
                         .currency(java.util.Currency.getInstance("PHP"))
                         .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
                         .createdAt(Instant.now())

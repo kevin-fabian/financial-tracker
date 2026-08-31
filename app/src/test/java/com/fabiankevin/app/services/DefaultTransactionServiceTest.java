@@ -82,7 +82,7 @@ class DefaultTransactionServiceTest {
                    .id(command.accountId())
                    .name("GCASH")
                    .currency(Currency.getInstance("PHP"))
-                   .userId(userId)
+                   .user(User.of(userId))
                    .build()));
            when(categoryRepository.findById(command.categoryId())).thenReturn(Optional.of(Category.builder()
                    .id(command.categoryId())
@@ -144,7 +144,7 @@ class DefaultTransactionServiceTest {
                    .id(command.accountId())
                    .name("GCASH")
                    .currency(Currency.getInstance("PHP"))
-                   .userId(otherUserId)
+                   .user(User.of(otherUserId))
                    .build()));
 
            assertThrows(AccountNotFoundException.class, () -> transactionService.addTransaction(command));
@@ -169,7 +169,7 @@ class DefaultTransactionServiceTest {
                    .id(command.accountId())
                    .name("GCASH")
                    .currency(Currency.getInstance("PHP"))
-                   .userId(userId)
+                   .user(User.of(userId))
                    .build()));
            when(categoryRepository.findById(command.categoryId())).thenReturn(Optional.empty());
 
@@ -196,7 +196,7 @@ class DefaultTransactionServiceTest {
                    .id(command.accountId())
                    .name("GCASH")
                    .currency(Currency.getInstance("PHP"))
-                   .userId(userId)
+                   .user(User.of(userId))
                    .build()));
            when(categoryRepository.findById(command.categoryId())).thenReturn(Optional.of(Category.builder()
                    .id(command.categoryId())
@@ -228,7 +228,7 @@ class DefaultTransactionServiceTest {
                    .id(command.accountId())
                    .name("GCASH")
                    .currency(Currency.getInstance("PHP"))
-                   .userId(userId)
+                   .user(User.of(userId))
                    .build()));
            when(categoryRepository.findById(command.categoryId())).thenReturn(Optional.of(Category.builder()
                    .id(command.categoryId())
@@ -264,7 +264,7 @@ class DefaultTransactionServiceTest {
                    .id(command.accountId())
                    .name("GCASH")
                    .currency(Currency.getInstance("PHP"))
-                   .userId(userId)
+                   .user(User.of(userId))
                    .build()));
            when(categoryRepository.findById(command.categoryId())).thenReturn(Optional.of(Category.builder()
                    .id(command.categoryId())
@@ -314,7 +314,7 @@ class DefaultTransactionServiceTest {
 
         Transaction existing = Transaction.builder()
                 .id(transactionId)
-                .account(Account.builder().id(UUID.randomUUID()).userId(userId).name("GCASH").currency(java.util.Currency.getInstance("PHP")).build())
+                .account(Account.builder().id(UUID.randomUUID()).user(User.of(userId)).name("GCASH").currency(java.util.Currency.getInstance("PHP")).build())
                 .category(Category.builder().id(UUID.randomUUID()).type(TransactionType.EXPENSE).userId(userId).name("FOOD").build())
                 .type(TransactionType.EXPENSE)
                 .amount(100)
@@ -333,7 +333,7 @@ class DefaultTransactionServiceTest {
                 .build();
 
         when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(existing));
-        when(accountRepository.findById(newAccountId)).thenReturn(Optional.of(Account.builder().id(newAccountId).userId(userId).name("NEW").currency(java.util.Currency.getInstance("PHP")).build()));
+        when(accountRepository.findById(newAccountId)).thenReturn(Optional.of(Account.builder().id(newAccountId).user(User.of(userId)).name("NEW").currency(java.util.Currency.getInstance("PHP")).build()));
         when(categoryRepository.findById(newCategoryId)).thenReturn(Optional.of(Category.builder().id(newCategoryId).type(TransactionType.EXPENSE).userId(userId).name("NEWCAT").build()));
         when(transactionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -383,7 +383,7 @@ class DefaultTransactionServiceTest {
 
         Transaction tx = Transaction.builder()
                 .id(transactionId)
-                .account(Account.builder().id(UUID.randomUUID()).userId(userId).name("ACCT").currency(java.util.Currency.getInstance("PHP")).build())
+                .account(Account.builder().id(UUID.randomUUID()).user(User.of(userId)).name("ACCT").currency(java.util.Currency.getInstance("PHP")).build())
                 .category(Category.builder().id(UUID.randomUUID()).type(TransactionType.EXPENSE).userId(userId).name("CAT").build())
                 .type(TransactionType.EXPENSE)
                 .amount(100)
@@ -513,7 +513,7 @@ class DefaultTransactionServiceTest {
 
         Transaction tx = Transaction.builder()
                 .id(transactionId)
-                .account(Account.builder().id(UUID.randomUUID()).userId(userId).name("ACCT").currency(java.util.Currency.getInstance("PHP")).build())
+                .account(Account.builder().id(UUID.randomUUID()).user(User.of(userId)).name("ACCT").currency(java.util.Currency.getInstance("PHP")).build())
                 .category(Category.builder().id(UUID.randomUUID()).type(TransactionType.INCOME).userId(userId).name("SALARY").build())
                 .type(TransactionType.INCOME)
                 .amount(5000)

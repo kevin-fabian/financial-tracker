@@ -1,8 +1,10 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Page;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.PatchAccountCommand;
@@ -30,6 +32,9 @@ class DefaultAccountServiceTest {
     @Mock
     private AccountRepository accountRepository;
 
+    @Mock
+    private UserClient userClient;
+
     @InjectMocks
     private DefaultAccountService accountService;
 
@@ -53,7 +58,7 @@ class DefaultAccountServiceTest {
         Account created = accountService.createAccount(command);
 
         assertEquals("GCASH", created.name());
-        assertEquals(userId, created.userId());
+        assertEquals(userId, created.user().id());
         assertTrue(created.active());
         verify(accountRepository, times(1)).save(any());
     }
@@ -72,7 +77,7 @@ class DefaultAccountServiceTest {
         Account inactive = Account.builder()
                 .id(existingId)
                 .name("GCASH")
-                .userId(userId)
+                .user(User.of(userId))
                 .currency(Currency.getInstance("PHP"))
                 .type(E_WALLET)
                 .active(false)
@@ -107,7 +112,7 @@ class DefaultAccountServiceTest {
         Account active = Account.builder()
                 .id(UUID.randomUUID())
                 .name("GCASH")
-                .userId(userId)
+                .user(User.of(userId))
                 .currency(Currency.getInstance("PHP"))
                 .type(E_WALLET)
                 .active(true)
@@ -130,7 +135,7 @@ class DefaultAccountServiceTest {
         when(accountRepository.findById(id)).thenReturn(Optional.of(Account.builder()
                 .id(id)
                 .name("GCASH")
-                .userId(userId)
+                .user(User.of(userId))
                 .currency(Currency.getInstance("PHP"))
                 .type(E_WALLET)
                 .createdAt(Instant.now())
@@ -140,7 +145,7 @@ class DefaultAccountServiceTest {
         Account found = accountService.getAccountById(id, userId);
 
         assertEquals(id, found.id());
-        assertEquals(userId, found.userId());
+        assertEquals(userId, found.user().id());
         verify(accountRepository, times(1)).findById(id);
     }
 
@@ -150,7 +155,7 @@ class DefaultAccountServiceTest {
         when(accountRepository.findById(id)).thenReturn(Optional.of(Account.builder()
                 .id(id)
                 .name("GCASH")
-                .userId(UUID.randomUUID())
+                .user(User.of(UUID.randomUUID()))
                 .currency(Currency.getInstance("PHP"))
                 .type(E_WALLET)
                 .createdAt(Instant.now())
@@ -179,7 +184,7 @@ class DefaultAccountServiceTest {
         when(accountRepository.findById(id)).thenReturn(Optional.of(Account.builder()
                 .id(id)
                 .name("GCASH")
-                .userId(userId)
+                .user(User.of(userId))
                 .currency(Currency.getInstance("PHP"))
                 .type(E_WALLET)
                 .createdAt(Instant.now())
@@ -207,8 +212,8 @@ class DefaultAccountServiceTest {
     void getAccountsByPageAndUserId_givenUserId_thenShouldReturnPagedAccounts() {
         UUID userId = UUID.randomUUID();
         var accounts = List.of(
-                Account.builder().id(UUID.randomUUID()).name("A1").userId(userId).currency(Currency.getInstance("PHP")).type(E_WALLET).createdAt(Instant.now()).updatedAt(Instant.now()).build(),
-                Account.builder().id(UUID.randomUUID()).name("A2").userId(userId).currency(Currency.getInstance("PHP")).type(E_WALLET).createdAt(Instant.now()).updatedAt(Instant.now()).build()
+                Account.builder().id(UUID.randomUUID()).name("A1").user(User.of(userId)).currency(Currency.getInstance("PHP")).type(E_WALLET).createdAt(Instant.now()).updatedAt(Instant.now()).build(),
+                Account.builder().id(UUID.randomUUID()).name("A2").user(User.of(userId)).currency(Currency.getInstance("PHP")).type(E_WALLET).createdAt(Instant.now()).updatedAt(Instant.now()).build()
         );
 
         Page<Account> page = new Page<>(accounts, 0, 10, accounts.size(), 1, true, true);
@@ -231,7 +236,7 @@ class DefaultAccountServiceTest {
         Account existing = Account.builder()
                 .id(id)
                 .name("GCASH")
-                .userId(userId)
+                .user(User.of(userId))
                 .currency(Currency.getInstance("PHP"))
                 .type(E_WALLET)
                 .createdAt(Instant.now())
@@ -284,7 +289,7 @@ class DefaultAccountServiceTest {
         Account existing = Account.builder()
                 .id(id)
                 .name("GCASH")
-                .userId(userId)
+                .user(User.of(userId))
                 .currency(Currency.getInstance("PHP"))
                 .type(E_WALLET)
                 .active(true)
@@ -325,7 +330,7 @@ class DefaultAccountServiceTest {
         Account existing = Account.builder()
                 .id(id)
                 .name("GCASH")
-                .userId(otherUserId)
+                .user(User.of(otherUserId))
                 .currency(Currency.getInstance("PHP"))
                 .type(E_WALLET)
                 .active(true)
@@ -348,7 +353,7 @@ class DefaultAccountServiceTest {
         Account existing = Account.builder()
                 .id(id)
                 .name("GCASH")
-                .userId(userId)
+                .user(User.of(userId))
                 .currency(Currency.getInstance("PHP"))
                 .type(E_WALLET)
                 .active(false)

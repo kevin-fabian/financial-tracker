@@ -593,7 +593,7 @@ class BudgetControllerIntegrationTest {
                 .transactionDate(date)
                 .categoryId(category.id())
                 .accountId(account.id())
-                .userId(account.userId())
+                .userId(account.user().id())
                 .build());
     }
 

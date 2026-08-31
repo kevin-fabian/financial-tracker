@@ -1,6 +1,7 @@
 package com.fabiankevin.app.persistence.entities;
 
 import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.AccountType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -40,7 +41,7 @@ public class AccountEntity {
         return AccountEntity.builder()
                 .id(account.id())
                 .name(account.name())
-                .userId(account.userId())
+                .userId(account.user().id())
                 .currency(Optional.ofNullable(account.currency()).map(Currency::getCurrencyCode).orElse(null))
                 .type(account.type() != null ? account.type().name() : null)
                 .active(account.active())
@@ -53,7 +54,7 @@ public class AccountEntity {
         return Account.builder()
                 .id(this.id)
                 .name(this.name)
-                .userId(this.userId)
+                .user(User.of(this.userId))
                 .currency(Optional.ofNullable(this.currency).map(Currency::getInstance).orElse(null))
                 .type(Optional.ofNullable(this.type).map(AccountType::valueOf).orElse(null))
                 .active(this.active)

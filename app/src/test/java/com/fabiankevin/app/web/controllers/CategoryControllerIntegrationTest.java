@@ -3,6 +3,7 @@ package com.fabiankevin.app.web.controllers;
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.AccountRepository;
@@ -387,7 +388,7 @@ class CategoryControllerIntegrationTest {
                     Account.builder()
                             .name("CASH")
                             .type(AccountType.CASH)
-                            .userId(userId)
+                            .user(User.of(userId))
                             .currency(Currency.getInstance("USD"))
                             .active(true)
                             .createdAt(Instant.now())

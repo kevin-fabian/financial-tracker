@@ -74,7 +74,7 @@ class DefaultRecurringTransactionServiceTest {
         account = Account.builder()
                 .id(UUID.randomUUID())
                 .name("Checking")
-                .userId(userId)
+                .user(User.of(userId))
                 .currency(Currency.getInstance("USD"))
                 .type(AccountType.CASH)
                 .active(true)
@@ -279,7 +279,7 @@ class DefaultRecurringTransactionServiceTest {
 
         @Test
         void givenDueRecurringTransactions_thenCreatesTransactionsWithRecurringTransactionId() {
-            UUID userId = account.userId();
+            UUID userId = account.user().id();
             UUID recurringId1 = UUID.randomUUID();
             UUID recurringId2 = UUID.randomUUID();
 
@@ -358,7 +358,7 @@ class DefaultRecurringTransactionServiceTest {
         void givenBatchExceedsLimit_thenFlushesInBatches() {
             RecurringTransaction recurring = RecurringTransaction.builder()
                     .id(UUID.randomUUID())
-                    .userId(account.userId())
+                    .userId(account.user().id())
                     .description("Subscription")
                     .amount(10.0)
                     .variableAmount(false)

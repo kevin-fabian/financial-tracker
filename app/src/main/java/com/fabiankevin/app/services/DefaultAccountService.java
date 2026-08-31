@@ -32,9 +32,14 @@ public class DefaultAccountService implements AccountService {
 
     @Override
     public Account getAccountById(UUID id, UUID userId) {
-        return accountRepository.findById(id)
-                .filter(a -> a.userId().equals(userId))
+        Account account = accountRepository.findById(id)
+                .filter(a -> a.user().id().equals(userId))
                 .orElseThrow(AccountNotFoundException::new);
+        Account.AccountBuilder builder = account.toBuilder();
+        userClient.getUsersByIds(List.of(userId)).stream().findFirst()
+                .ifPresent(builder::user);
+
+        return builder.build();
     }
 
     @Transactional
@@ -49,7 +54,7 @@ public class DefaultAccountService implements AccountService {
         Account account = Account.builder()
                 .name(command.name())
                 .active(true)
-                .userId(command.userId())
+                .user(User.of(command.userId()))
                 .currency(command.currency())
                 .type(command.type())
                 .createdAt(Instant.now())
@@ -76,7 +81,7 @@ public class DefaultAccountService implements AccountService {
         UUID userId = command.userId();
 
         Account existing = accountRepository.findById(id)
-                .filter(a -> a.userId().equals(userId))
+                .filter(a -> a.user().id().equals(userId))
                 .orElseThrow(AccountNotFoundException::new);
 
         String newName = command.name();
@@ -122,7 +127,7 @@ public class DefaultAccountService implements AccountService {
     @Override
     public void deleteAccountById(UUID id, UUID userId) {
         accountRepository.findById(id)
-                .filter(a -> a.userId().equals(userId))
+                .filter(a -> a.user().id().equals(userId))
                 .orElseThrow(AccountNotFoundException::new);
 
         accountRepository.deleteById(id);
@@ -132,7 +137,7 @@ public class DefaultAccountService implements AccountService {
     @Override
     public void disableAccount(UUID id, UUID userId) {
         accountRepository.findById(id)
-                .filter(a -> a.userId().equals(userId))
+                .filter(a -> a.user().id().equals(userId))
                 .ifPresentOrElse(
                         account -> accountRepository.save(account.toBuilder().active(false).build()),
                         () -> { throw new AccountNotFoundException(); }

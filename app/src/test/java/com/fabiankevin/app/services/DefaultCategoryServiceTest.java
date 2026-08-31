@@ -240,11 +240,9 @@ class DefaultCategoryServiceTest {
     void deleteCategoryById_givenNonExistingId_thenShouldThrow() {
         UUID id = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
-        when(categoryRepository.deleteByIdAndUserId(id, userId)).thenReturn(0);
+        assertThrows(CategoryNotFoundException.class, () -> categoryService.deleteCategoryById(id, userId));
 
-        categoryService.deleteCategoryById(id, userId);
-
-        verify(categoryRepository, times(1)).deleteByIdAndUserId(id, userId);
+        verify(categoryRepository, times(0)).deleteByIdAndUserId(any(), any());
     }
 
     @Test

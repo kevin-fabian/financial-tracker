@@ -15,14 +15,15 @@ import java.util.UUID;
 public record Account(
         UUID id,
         String name,
-        UUID userId,
         Currency currency,
         AccountType type,
         boolean active,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        User user) {
     public Account {
-        Objects.requireNonNull(userId, "User ID is required");
+        Objects.requireNonNull(user, "User object is required");
+        Objects.requireNonNull(user.id(), "User ID is required");
         Optional.ofNullable(currency).orElseThrow(() -> new IllegalArgumentException("Currency is required"));
     }
 }

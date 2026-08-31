@@ -895,7 +895,7 @@ public class DefaultPartyServiceSpringBootTest {
 
     private Category createOrGetCategory(UUID userId) {
         List<Category> allByNamesIn = categoryRepository.findAllByNamesIn(List.of("Food & Drinks")).stream()
-                .filter(acc -> acc.userId().equals(userId))
+                .filter(cat -> cat.userId().equals(userId))
                 .toList();
         if (allByNamesIn.isEmpty()) {
             return categoryRepository.save(Category.builder()
@@ -915,14 +915,14 @@ public class DefaultPartyServiceSpringBootTest {
     private Account createOrGetAccount(UUID userId) {
         List<Account> cashWallet = accountRepository.findAllByNamesIn(List.of("Cash Wallet"))
                 .stream()
-                .filter(acc -> acc.userId().equals(userId))
+                .filter(acc -> acc.user().id().equals(userId))
                 .toList();
 
         if (cashWallet.isEmpty()) {
             return accountRepository.save(Account.builder()
                     .name("Cash Wallet")
                     .type(AccountType.CASH)
-                    .userId(userId)
+                    .user(User.of(userId))
                     .currency(Currency.getInstance("PHP"))
                     .active(true)
                     .createdAt(Instant.now())

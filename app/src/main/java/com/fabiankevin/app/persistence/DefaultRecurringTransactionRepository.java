@@ -2,6 +2,7 @@ package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransaction;
@@ -83,7 +84,7 @@ public class DefaultRecurringTransactionRepository implements RecurringTransacti
                 .account(Account.builder()
                         .id(p.accountId())
                         .name(p.accountName())
-                        .userId(p.accountUserId())
+                        .user(User.of(p.accountUserId()))
                         .currency(Currency.getInstance(p.accountCurrency()))
                         .type(AccountType.valueOf(p.accountType()))
                         .active(p.accountActive())

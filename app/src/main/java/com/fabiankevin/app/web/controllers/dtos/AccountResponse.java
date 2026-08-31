@@ -1,6 +1,7 @@
 package com.fabiankevin.app.web.controllers.dtos;
 
 import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.AccountType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
@@ -22,8 +23,9 @@ public record AccountResponse(
         @Schema(description = "Timestamp when the account was created")
         Instant createdAt,
         @Schema(description = "Timestamp when the account was last updated")
-        Instant updatedAt
-) {
+        Instant updatedAt,
+        @Schema(description = "User who owns the account")
+        UserResponse user) {
     public static AccountResponse from(final Account account) {
         return AccountResponse.builder()
                 .id(account.id())
@@ -32,6 +34,19 @@ public record AccountResponse(
                 .type(account.type())
                 .createdAt(account.createdAt())
                 .updatedAt(account.updatedAt())
+                .user(UserResponse.from(account.user()))
+                .build();
+    }
+
+    public static AccountResponse from(final Account account, final User user) {
+        return AccountResponse.builder()
+                .id(account.id())
+                .name(account.name())
+                .currency(account.currency().getCurrencyCode())
+                .type(account.type())
+                .createdAt(account.createdAt())
+                .updatedAt(account.updatedAt())
+                .user(UserResponse.from(user))
                 .build();
     }
 }
