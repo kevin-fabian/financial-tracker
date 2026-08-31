@@ -112,7 +112,7 @@ public class CategoryController {
             }
     )
     @PatchMapping("/{categoryId}")
-    public CategoryResponse patchCategory(@PathVariable UUID categoryId, @RequestBody PatchCategoryRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
+    public CategoryResponse patchCategory(@PathVariable UUID categoryId, @RequestBody @Valid PatchCategoryRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         Category updated = categoryService.patchCategory(request.toCommand(categoryId, userId));
         return CategoryResponse.from(updated);

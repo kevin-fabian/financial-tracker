@@ -3,6 +3,7 @@ package com.fabiankevin.app.web.controllers.dtos;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.commands.PatchCategoryCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Size;
 import lombok.Builder;
 
 import java.util.UUID;
@@ -10,10 +11,12 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 @Schema(description = "Request DTO for patching a category. All fields are optional.")
 public record PatchCategoryRequest(
+        @Size(max = 128, message = "Name must not exceed 128 characters")
         @Schema(description = "Name of the category", example = "FOOD")
         String name,
         @Schema(description = "Transaction type of the category", example = "EXPENSE")
         TransactionType type,
+        @Size(max = 128, message = "Icon must not exceed 128 characters")
         @Schema(description = "Icon for the category", example = "attach_money")
         String icon
 ) {

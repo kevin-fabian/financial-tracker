@@ -816,6 +816,48 @@ class CategoryControllerSpringBootTest {
                     .andExpect(jsonPath("$.system").value(false));
         }
 
+        private static Stream<Arguments> invalidPatchCategoryRequestTestCases() {
+            return Stream.of(
+                    Arguments.of("12345".repeat(100), null, null),
+                    Arguments.of(null, null, "12345".repeat(100)),
+                    Arguments.of("", null, "12345".repeat(100))
+            );
+        }
+
+        @ParameterizedTest
+        @MethodSource("invalidPatchCategoryRequestTestCases")
+        void givenInvalidPatchCategoryRequest_thenReturnsBadRequest(String name, TransactionType type, String icon) throws Exception {
+            Category category = categoryRepository.save(
+                    Category.builder()
+                            .name("FOOD")
+                            .type(TransactionType.EXPENSE)
+                            .userId(userId)
+                            .active(true)
+                            .system(false)
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build()
+            );
+
+            PatchCategoryRequest request = PatchCategoryRequest.builder()
+                    .name(name)
+                    .type(type)
+                    .icon(icon)
+                    .build();
+
+            mockMvc.perform(patch("/api/categories/" + category.id())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
         @Test
         void givenNoJwt_thenReturnsUnauthorized() throws Exception {
             UUID id = UUID.randomUUID();
