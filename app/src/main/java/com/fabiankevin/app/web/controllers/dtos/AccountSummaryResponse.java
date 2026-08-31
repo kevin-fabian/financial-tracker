@@ -5,6 +5,7 @@ import com.fabiankevin.app.models.enums.AccountType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
@@ -24,12 +25,8 @@ public record AccountSummaryResponse(
         double totalBalance,
         @Schema(description = "Total number of transactions for this account", example = "25")
         int totalTransactions,
-        @Schema(description = "First name of the account owner", example = "John")
-        String firstName,
-        @Schema(description = "Last name of the account owner", example = "Doe")
-        String lastName,
-        @Schema(description = "Initials of the account owner", example = "JD")
-        String initial) {
+        @Schema(description = "User details associated with the account")
+        UserResponse user) {
     public static AccountSummaryResponse from(final AccountSummary accountSummary) {
         return AccountSummaryResponse.builder()
                 .id(accountSummary.id())
@@ -39,9 +36,9 @@ public record AccountSummaryResponse(
                 .active(accountSummary.active())
                 .totalBalance(accountSummary.totalBalance())
                 .totalTransactions(accountSummary.totalTransactions())
-                .firstName(accountSummary.firstName())
-                .lastName(accountSummary.lastName())
-                .initial(accountSummary.initial())
+                .user(Optional.ofNullable(accountSummary.user())
+                        .map(UserResponse::from)
+                        .orElse(null))
                 .build();
     }
 }

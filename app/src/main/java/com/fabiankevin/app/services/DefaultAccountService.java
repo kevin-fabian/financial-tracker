@@ -115,7 +115,7 @@ public class DefaultAccountService implements AccountService {
         AccountSummary summary = accountRepository.findSummaryByIdAndUserId(accountId, userId)
                 .orElseThrow(AccountNotFoundException::new);
 
-        return enrichWithUserData(List.of(summary)).get(0);
+        return enrichWithUserData(List.of(summary)).getFirst();
     }
 
     @Transactional
@@ -176,9 +176,10 @@ public class DefaultAccountService implements AccountService {
                     User user = usersById.get(summary.userIds().getFirst());
                     return Optional.ofNullable(user)
                             .map(u -> summary.toBuilder()
-                                    .firstName(u.firstName())
-                                    .lastName(u.lastName())
-                                    .initial(u.initial())
+                                    .user(User.builder()
+                                            .firstName(u.firstName())
+                                            .lastName(u.lastName())
+                                            .build())
                                     .build())
                             .orElse(summary);
                 })

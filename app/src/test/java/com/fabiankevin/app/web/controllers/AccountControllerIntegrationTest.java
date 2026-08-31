@@ -121,9 +121,9 @@ class AccountControllerIntegrationTest {
                     .andExpect(jsonPath("$.active").value(true))
                     .andExpect(jsonPath("$.totalBalance").value(0.0))
                     .andExpect(jsonPath("$.totalTransactions").value(0))
-                    .andExpect(jsonPath("$.firstName").value("John"))
-                    .andExpect(jsonPath("$.lastName").value("Doe"))
-                    .andExpect(jsonPath("$.initial").value("JD"));
+                    .andExpect(jsonPath("$.user.firstName").value("John"))
+                    .andExpect(jsonPath("$.user.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.user.initial").value("JD"));
         }
 
         @Test
@@ -329,9 +329,9 @@ class AccountControllerIntegrationTest {
                     .andExpect(jsonPath("$.active").value(true))
                     .andExpect(jsonPath("$.totalBalance").value(0.0))
                     .andExpect(jsonPath("$.totalTransactions").value(0))
-                    .andExpect(jsonPath("$.firstName").value("John"))
-                    .andExpect(jsonPath("$.lastName").value("Doe"))
-                    .andExpect(jsonPath("$.initial").value("JD"));
+                    .andExpect(jsonPath("$.user.firstName").value("John"))
+                    .andExpect(jsonPath("$.user.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.user.initial").value("JD"));
         }
 
         @Test
@@ -416,9 +416,9 @@ class AccountControllerIntegrationTest {
                     .andExpect(jsonPath("$.active").value(true))
                     .andExpect(jsonPath("$.totalBalance").value(3000.0))
                     .andExpect(jsonPath("$.totalTransactions").value(3))
-                    .andExpect(jsonPath("$.firstName").value("John"))
-                    .andExpect(jsonPath("$.lastName").value("Doe"))
-                    .andExpect(jsonPath("$.initial").value("JD"));
+                    .andExpect(jsonPath("$.user.firstName").value("John"))
+                    .andExpect(jsonPath("$.user.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.user.initial").value("JD"));
         }
 
         @ParameterizedTest
@@ -619,14 +619,14 @@ class AccountControllerIntegrationTest {
                     .andExpect(jsonPath("$.content.length()").value(2))
                     .andExpect(jsonPath("$.content[0].name").value("BDO"))
                     .andExpect(jsonPath("$.content[0].active").value(true))
-                    .andExpect(jsonPath("$.content[0].firstName").value("John"))
-                    .andExpect(jsonPath("$.content[0].lastName").value("Doe"))
-                    .andExpect(jsonPath("$.content[0].initial").value("JD"))
+                    .andExpect(jsonPath("$.content[0].user.firstName").value("John"))
+                    .andExpect(jsonPath("$.content[0].user.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.content[0].user.initial").value("JD"))
                     .andExpect(jsonPath("$.content[1].name").value("GCASH"))
                     .andExpect(jsonPath("$.content[1].active").value(true))
-                    .andExpect(jsonPath("$.content[1].firstName").value("John"))
-                    .andExpect(jsonPath("$.content[1].lastName").value("Doe"))
-                    .andExpect(jsonPath("$.content[1].initial").value("JD"))
+                    .andExpect(jsonPath("$.content[1].user.firstName").value("John"))
+                    .andExpect(jsonPath("$.content[1].user.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.content[1].user.initial").value("JD"))
                     .andExpect(jsonPath("$.page").value(0))
                     .andExpect(jsonPath("$.size").value(2))
                     .andExpect(jsonPath("$.totalElements").value(2))

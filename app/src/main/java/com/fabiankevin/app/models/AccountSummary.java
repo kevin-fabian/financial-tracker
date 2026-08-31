@@ -18,9 +18,7 @@ public record AccountSummary(
         boolean active,
         double totalBalance,
         int totalTransactions,
-        String firstName,
-        String lastName,
-        String initial) {
+        User user) {
     public AccountSummary {
         Optional.ofNullable(userIds).orElseThrow(() -> new IllegalArgumentException("User IDs are required"));
         Optional.ofNullable(currency).orElseThrow(() -> new IllegalArgumentException("Currency is required"));
