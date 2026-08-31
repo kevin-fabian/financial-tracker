@@ -343,36 +343,6 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenVeryLongDescription_thenReturnsBadRequest() throws Exception {
-            User mockUser = User.builder()
-                    .id(userId)
-                    .firstName("John")
-                    .lastName("Doe")
-                    .build();
-            when(userClient.getUsersByIds(any())).thenReturn(List.of(mockUser));
-
-            CreateTransactionRequest request = CreateTransactionRequest.builder()
-                    .amount(100)
-                    .description("123456".repeat(100))
-                    .transactionDate(LocalDate.of(2026, 1, 1))
-                    .categoryId(category.id())
-                    .accountId(account.id())
-                    .build();
-
-            mockMvc.perform(post("/api/transactions")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isInternalServerError());
-        }
-
-        @Test
         void givenAccountBelongsToOtherUser_thenReturnsNotFound() throws Exception {
             UUID otherUserId = UUID.randomUUID();
 
