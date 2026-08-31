@@ -72,7 +72,7 @@ public class DefaultBudgetRepository implements BudgetRepository {
         double allocated = projection.allocated();
         double spentPercentage = allocated > 0 ? (spent / allocated) * 100.0 : 0.0;
         UUID userId = projection.userId();
-        UUID lastUpdatedBy = projection.lastUpdatedBy();
+        UUID lastUpdatedBy = projection.updatedBy();
 
         return BudgetSummary.builder()
                 .id(projection.id())

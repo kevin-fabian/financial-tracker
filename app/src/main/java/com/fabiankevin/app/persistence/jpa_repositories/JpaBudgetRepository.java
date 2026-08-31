@@ -34,7 +34,7 @@ public interface JpaBudgetRepository extends JpaRepository<BudgetEntity, UUID> {
                                                           @Param("endExclusive") Instant endExclusive);
 
     @Query("""
-                SELECT b.id, b.userId, b.lastUpdatedBy, b.updatedAt, b.createdAt, STR(b.period), b.allocated as allocated,
+                SELECT b.id, b.userId, b.updatedBy, b.updatedAt, b.createdAt, STR(b.period), b.allocated as allocated,
                        c.id as categoryId, c.name as categoryName, c.icon as categoryIcon,
                        COALESCE(SUM(t.amount), 0) AS spent
                 FROM BudgetEntity b

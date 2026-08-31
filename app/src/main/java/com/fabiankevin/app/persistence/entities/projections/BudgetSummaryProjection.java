@@ -9,7 +9,7 @@ import java.util.UUID;
 public record BudgetSummaryProjection(
         UUID id,
         UUID userId,
-        UUID lastUpdatedBy,
+        UUID updatedBy,
         Instant updatedAt,
         Instant createdAt,
         String period,
