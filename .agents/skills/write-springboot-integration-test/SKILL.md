@@ -1,5 +1,5 @@
 ---
-name: write-springboot-controller-test
+name: write-springboot-integration-test
 description: Procedure and patterns for writing full @SpringBootTest integration tests for controller layers in this project, including JWT auth setup, required MockitoBean overrides, and test data helpers.
 ---
 
