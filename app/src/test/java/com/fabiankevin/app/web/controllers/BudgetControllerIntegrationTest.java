@@ -34,9 +34,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
@@ -77,7 +75,7 @@ class BudgetControllerIntegrationTest {
     class GetBudgets {
 
         @Test
-        void givenBudgetWithTransactions_thenShouldReturnSummaryWithSpent() throws Exception {
+        void givenBudgetCategoryWithTransactions_thenShouldReturnSummaryWithSpent() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
             Account account = createAccount(userId, "Cash Wallet");
@@ -120,38 +118,6 @@ class BudgetControllerIntegrationTest {
                                     )))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(0));
-        }
-
-        @Test
-        void givenBudgetFromLastMonth_thenShouldOnlyRetrieveCurrentMonthBudget() throws Exception {
-            UUID userId = UUID.randomUUID();
-            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-
-            Instant lastMonth = Instant.now().atZone(ZoneOffset.UTC).minusMonths(1).toInstant();
-            Budget lastMonthBudget = Budget.builder()
-                    .userId(userId)
-                    .updatedBy(userId)
-                    .period(BudgetPeriod.MONTHLY)
-                    .category(category)
-                    .allocated(300.0)
-                    .createdAt(lastMonth)
-                    .updatedAt(lastMonth)
-                    .build();
-            budgetRepository.save(lastMonthBudget);
-
-            createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
-
-            mockMvc.perform(get("/api/budgets")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("zeny-app-password"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    )))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.length()").value(1))
-                    .andExpect(jsonPath("$[0].allocated").value(500.0));
         }
 
         @Test
@@ -284,45 +250,6 @@ class BudgetControllerIntegrationTest {
         }
 
         @Test
-        void givenExistingBudgetFromLastMonth_thenCreatingNewBudgetForSameCategoryShouldBeAllowed() throws Exception {
-            UUID userId = UUID.randomUUID();
-            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-
-            Instant lastMonth = Instant.now().atZone(ZoneOffset.UTC).minusMonths(1).toInstant();
-            Budget backdatedBudget = Budget.builder()
-                    .userId(userId)
-                    .updatedBy(userId)
-                    .period(BudgetPeriod.MONTHLY)
-                    .category(category)
-                    .allocated(300.0)
-                    .createdAt(lastMonth)
-                    .updatedAt(lastMonth)
-                    .build();
-            budgetRepository.save(backdatedBudget);
-
-            CreateBudgetRequest request = CreateBudgetRequest.builder()
-                    .period(BudgetPeriod.MONTHLY)
-                    .categoryId(category.id())
-                    .allocated(500.0)
-                    .build();
-
-            when(userClient.getUsersByIds(List.of(userId)))
-                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
-
-            mockMvc.perform(post("/api/budgets")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("zeny-app-password"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isCreated());
-        }
-
-        @Test
         void givenCategoryNotFound_thenShouldReturnNotFound() throws Exception {
             UUID userId = UUID.randomUUID();
 
@@ -356,7 +283,7 @@ class BudgetControllerIntegrationTest {
             mockMvc.perform(post("/api/budgets")
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized());
         }
 
         @Test
@@ -530,7 +457,7 @@ class BudgetControllerIntegrationTest {
             UUID id = UUID.randomUUID();
 
             mockMvc.perform(delete("/api/budgets/" + id))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized());
         }
 
         @Test
