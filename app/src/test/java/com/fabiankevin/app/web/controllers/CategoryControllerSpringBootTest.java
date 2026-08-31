@@ -745,15 +745,11 @@ class CategoryControllerSpringBootTest {
 
         @Test
         void givenValidPatchRequest_thenReturnsUpdatedCategory() throws Exception {
-            Category category = categoryRepository.save(
-                    Category.builder()
+            Category category = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
                             .name("FOOD")
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
                             .build()
             );
 
@@ -781,15 +777,11 @@ class CategoryControllerSpringBootTest {
 
         @Test
         void givenValidPatchRequestWithIcon_thenReturnsUpdatedWithIcon() throws Exception {
-            Category category = categoryRepository.save(
-                    Category.builder()
+            Category category = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
                             .name("FOOD")
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
                             .build()
             );
 
@@ -827,15 +819,11 @@ class CategoryControllerSpringBootTest {
         @ParameterizedTest
         @MethodSource("invalidPatchCategoryRequestTestCases")
         void givenInvalidPatchCategoryRequest_thenReturnsBadRequest(String name, TransactionType type, String icon) throws Exception {
-            Category category = categoryRepository.save(
-                    Category.builder()
+            Category category = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
                             .name("FOOD")
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
                             .build()
             );
 
@@ -895,16 +883,12 @@ class CategoryControllerSpringBootTest {
 
         @Test
         void givenPartialPatch_thenOnlyUpdatesProvidedFields() throws Exception {
-            Category category = categoryRepository.save(
-                    Category.builder()
+            Category category = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
                             .name("FOOD")
                             .type(TransactionType.EXPENSE)
-                            .userId(userId)
                             .icon("food")
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
+                            .userId(userId)
                             .build()
             );
 
@@ -934,15 +918,11 @@ class CategoryControllerSpringBootTest {
 
         @Test
         void givenCategoryWithoutTransactions_thenHardDeletes() throws Exception {
-            Category category = categoryRepository.save(
-                    Category.builder()
+            Category category = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
                             .name("FOOD")
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
                             .build()
             );
 
@@ -969,27 +949,20 @@ class CategoryControllerSpringBootTest {
 
         @Test
         void givenCategoryWithTransactions_thenSoftDisables() throws Exception {
-            Category category = categoryRepository.save(
-                    Category.builder()
+            Category category = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
                             .name("FOOD")
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
                             .build()
             );
 
-            Account account = accountRepository.save(
-                    Account.builder()
+            Account account = accountService.createAccount(
+                    CreateAccountCommand.builder()
                             .name("CASH")
                             .type(AccountType.CASH)
                             .userId(userId)
                             .currency(Currency.getInstance("USD"))
-                            .active(true)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
                             .build()
             );
 
