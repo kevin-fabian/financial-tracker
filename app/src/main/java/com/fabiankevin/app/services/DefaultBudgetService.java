@@ -43,7 +43,7 @@ public class DefaultBudgetService implements BudgetService {
         Category category = categoryService.getCategoryById(command.categoryId(), command.userId());
         Budget budget = Budget.builder()
                 .userId(command.userId())
-                .lastUpdatedBy(command.userId())
+                .updatedBy(command.userId())
                 .period(command.period())
                 .category(category)
                 .allocated(command.allocated())
@@ -143,7 +143,7 @@ public class DefaultBudgetService implements BudgetService {
                 .orElseThrow(BudgetNotFoundException::new);
 
         Budget.BudgetBuilder builder = existing.toBuilder()
-                .lastUpdatedBy(userId)
+                .updatedBy(userId)
                 .updatedAt(Instant.now());
 
         Optional.ofNullable(command.categoryId())

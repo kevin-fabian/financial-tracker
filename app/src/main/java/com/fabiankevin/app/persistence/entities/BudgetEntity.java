@@ -28,8 +28,8 @@ public class BudgetEntity {
     @Column(name = "user_id", nullable = false)
     private UUID userId;
 
-    @Column(name = "last_updated_by")
-    private UUID lastUpdatedBy;
+    @Column(name = "updated_by")
+    private UUID updatedBy;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
@@ -53,7 +53,7 @@ public class BudgetEntity {
         return BudgetEntity.builder()
                 .id(budget.id())
                 .userId(budget.userId())
-                .lastUpdatedBy(budget.lastUpdatedBy())
+                .updatedBy(budget.updatedBy())
                 .period(budget.period())
                 .category(CategoryEntity.from(budget.category()))
                 .allocated(budget.allocated())
@@ -66,7 +66,7 @@ public class BudgetEntity {
         return new Budget(
                 this.id,
                 this.userId,
-                this.lastUpdatedBy,
+                this.updatedBy,
                 this.period,
                 this.category != null ? this.category.toModel() : null,
                 this.allocated,

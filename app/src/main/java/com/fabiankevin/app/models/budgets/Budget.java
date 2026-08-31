@@ -10,7 +10,7 @@ import java.util.UUID;
 public record Budget(
         UUID id,
         UUID userId,
-        UUID lastUpdatedBy,
+        UUID updatedBy,
         BudgetPeriod period,
         Category category,
         double allocated,

@@ -67,7 +67,7 @@ class DefaultBudgetRepositoryTest {
 
         budget = Budget.builder()
                 .userId(userId)
-                .lastUpdatedBy(userId)
+                .updatedBy(userId)
                 .period(BudgetPeriod.MONTHLY)
                 .category(category)
                 .allocated(500.0)
@@ -88,7 +88,7 @@ class DefaultBudgetRepositoryTest {
             assertEquals(budget.period(), saved.period(), "period should match");
             assertEquals(budget.allocated(), saved.allocated(), "allocated should match");
             assertEquals(budget.userId(), saved.userId(), "userId should match");
-            assertEquals(budget.lastUpdatedBy(), saved.lastUpdatedBy(), "lastUpdatedBy should match");
+            assertEquals(budget.updatedBy(), saved.updatedBy(), "updatedBy should match");
             assertEquals(budget.category().icon(), saved.category().icon(), "categoryIcon should match");
             assertNotNull(saved.createdAt(), "createdAt should not be null");
             assertNotNull(saved.updatedAt(), "updatedAt should not be null");
@@ -155,7 +155,7 @@ class DefaultBudgetRepositoryTest {
                     .build());
             jpaBudgetRepository.saveAndFlush(BudgetEntity.builder()
                     .userId(userId)
-                    .lastUpdatedBy(userId)
+                    .updatedBy(userId)
                     .period(BudgetPeriod.MONTHLY)
                     .category(category)
                     .allocated(500.0)
@@ -210,7 +210,7 @@ class DefaultBudgetRepositoryTest {
                     .build());
             jpaBudgetRepository.saveAndFlush(BudgetEntity.builder()
                     .userId(userId)
-                    .lastUpdatedBy(userId)
+                    .updatedBy(userId)
                     .period(BudgetPeriod.MONTHLY)
                     .category(category)
                     .allocated(1000.0)
@@ -250,7 +250,7 @@ class DefaultBudgetRepositoryTest {
                     .build());
             jpaBudgetRepository.saveAndFlush(BudgetEntity.builder()
                     .userId(userId)
-                    .lastUpdatedBy(userId)
+                    .updatedBy(userId)
                     .period(BudgetPeriod.MONTHLY)
                     .category(category)
                     .allocated(800.0)
