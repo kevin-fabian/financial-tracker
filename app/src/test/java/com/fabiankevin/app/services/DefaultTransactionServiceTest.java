@@ -322,6 +322,8 @@ class DefaultTransactionServiceTest {
                 .transactionDate(LocalDate.now())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
+                .addedBy(User.of(userId))
+                .updatedBy(User.of(userId))
                 .build();
 
         PatchTransactionCommand command = PatchTransactionCommand.builder()
@@ -391,6 +393,8 @@ class DefaultTransactionServiceTest {
                 .transactionDate(LocalDate.now())
                 .createdAt(java.time.Instant.now())
                 .updatedAt(java.time.Instant.now())
+                .addedBy(User.of(userId))
+                .updatedBy(User.of(userId))
                 .build();
 
         when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(tx));
@@ -521,6 +525,8 @@ class DefaultTransactionServiceTest {
                 .transactionDate(LocalDate.now())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
+                .addedBy(User.of(userId))
+                .updatedBy(User.of(userId))
                 .build();
 
         Page<Transaction> expectedPage = Page.<Transaction>builder()

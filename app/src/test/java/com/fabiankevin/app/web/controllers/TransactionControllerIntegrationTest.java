@@ -387,7 +387,19 @@ class TransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.totalElements").value(2))
                     .andExpect(jsonPath("$.totalPages").value(1))
                     .andExpect(jsonPath("$.content[0].description").value("t1"))
-                    .andExpect(jsonPath("$.content[1].description").value("t2"));
+                    .andExpect(jsonPath("$.content[1].description").value("t2"))
+                    .andExpect(jsonPath("$.content[0].account.id").value(account.id().toString()))
+                    .andExpect(jsonPath("$.content[0].account.name").value("GCASH"))
+                    .andExpect(jsonPath("$.content[0].account.currency").value("PHP"))
+                    .andExpect(jsonPath("$.content[0].account.user.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.content[0].addedBy.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.content[0].updatedBy.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.content[1].account.id").value(account.id().toString()))
+                    .andExpect(jsonPath("$.content[1].account.name").value("GCASH"))
+                    .andExpect(jsonPath("$.content[1].account.currency").value("PHP"))
+                    .andExpect(jsonPath("$.content[1].account.user.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.content[1].addedBy.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.content[1].updatedBy.id").value(userId.toString()));
         }
 
         @Test

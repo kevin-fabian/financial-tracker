@@ -18,6 +18,9 @@ public record UserResponse(
         @Schema(description = "Initials of the user", example = "JD")
         String initial) {
     public static UserResponse from(final User user) {
+        if (user == null) {
+            return null;
+        }
         return UserResponse.builder()
                 .id(user.id())
                 .firstName(user.firstName())

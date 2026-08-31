@@ -45,3 +45,16 @@ databaseChangeLog:
           dbms: postgresql
           path: rollbacks/U1.0.3_drop_transaction_currency.sql
           relativeToChangelogFile: true
+
+  - changeSet:
+      author: kevin.fabian
+      id: 1.0.4
+      sqlFile:
+        dbms: 'postgresql'
+        path: rollouts/V1.0.4_add_transaction_audit_columns.sql
+        relativeToChangelogFile: true
+      rollback:
+        sqlFile:
+          dbms: postgresql
+          path: rollbacks/U1.0.4_add_transaction_audit_columns.sql
+          relativeToChangelogFile: true

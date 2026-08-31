@@ -19,7 +19,9 @@ public record Transaction(
         LocalDate transactionDate,
         UUID recurringTransactionId,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        User addedBy,
+        User updatedBy
 ) {
     public Transaction {
         Optional.ofNullable(category).orElseThrow(() -> new IllegalArgumentException("Category is required"));

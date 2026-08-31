@@ -245,6 +245,8 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
                         .recurringTransactionId(recurring.id())
                         .createdAt(instantNow)
                         .updatedAt(instantNow)
+                        .addedBy(User.of(recurring.account().user().id()))
+                        .updatedBy(User.of(recurring.account().user().id()))
                         .build();
                 batch.add(transaction);
 

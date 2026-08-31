@@ -11,7 +11,7 @@ public record PatchTransactionCommand(
         UUID accountId,
         String description,
         UUID categoryId,
-        double amount,
+        Double amount,
         LocalDate transactionDate,
         UUID userId
 ) {

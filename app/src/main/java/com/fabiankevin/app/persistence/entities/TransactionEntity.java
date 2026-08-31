@@ -2,6 +2,7 @@ package com.fabiankevin.app.persistence.entities;
 
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.Transaction;
+import com.fabiankevin.app.models.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -39,6 +40,10 @@ public class TransactionEntity {
     private UUID recurringTransactionId;
     private Instant createdAt;
     private Instant updatedAt;
+    @Column(name = "added_by_user_id")
+    private UUID addedBy;
+    @Column(name = "updated_by_user_id")
+    private UUID updatedBy;
 
     public static TransactionEntity from(Transaction transaction) {
         if (transaction == null) return null;
@@ -52,6 +57,8 @@ public class TransactionEntity {
                 .recurringTransactionId(transaction.recurringTransactionId())
                 .createdAt(transaction.createdAt())
                 .updatedAt(transaction.updatedAt())
+                .addedBy(transaction.addedBy() != null ? transaction.addedBy().id() : null)
+                .updatedBy(transaction.updatedBy() != null ? transaction.updatedBy().id() : null)
                 .build();
     }
 
@@ -67,6 +74,8 @@ public class TransactionEntity {
                 .recurringTransactionId(this.recurringTransactionId)
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)
+                .addedBy(this.addedBy != null ? User.of(this.addedBy) : null)
+                .updatedBy(this.updatedBy != null ? User.of(this.updatedBy) : null)
                 .build();
     }
 }

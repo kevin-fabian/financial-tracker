@@ -100,6 +100,8 @@ public class DefaultTransactionService implements TransactionService {
                 .recurringTransactionId(command.recurringTransactionId())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
+                .addedBy(User.of(userId))
+                .updatedBy(User.of(userId))
                 .build();
 
         Transaction savedTransaction = transactionRepository.save(transaction);
@@ -141,7 +143,8 @@ public class DefaultTransactionService implements TransactionService {
         }
 
         Transaction.TransactionBuilder builder = existing.toBuilder()
-                .updatedAt(Instant.now());
+                .updatedAt(Instant.now())
+                .updatedBy(User.of(userId));
 
         Optional.ofNullable(newAccount).ifPresent(builder::account);
         Optional.ofNullable(command.description()).ifPresent(builder::description);

@@ -36,7 +36,13 @@ public record TransactionResponse(
         Instant createdAt,
 
         @Schema(description = "Timestamp when the transaction was last updated")
-        Instant updatedAt) {
+        Instant updatedAt,
+
+        @Schema(description = "User who created the transaction")
+        UserResponse addedBy,
+
+        @Schema(description = "User who last updated the transaction")
+        UserResponse updatedBy) {
     public static TransactionResponse from(Transaction t) {
         return TransactionResponse.builder()
                 .id(t.id())
@@ -48,6 +54,8 @@ public record TransactionResponse(
                 .transactionDate(t.transactionDate())
                 .createdAt(t.createdAt())
                 .updatedAt(t.updatedAt())
+                .addedBy(UserResponse.from(t.addedBy()))
+                .updatedBy(UserResponse.from(t.updatedBy()))
                 .build();
     }
 }
