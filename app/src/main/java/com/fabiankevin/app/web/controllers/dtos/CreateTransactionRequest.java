@@ -3,6 +3,7 @@ package com.fabiankevin.app.web.controllers.dtos;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Builder;
 
 import java.time.LocalDate;
@@ -16,6 +17,7 @@ public record CreateTransactionRequest(
         double amount,
 
         @Schema(description = "Transaction description", example = "Dinner with friends")
+        @Size(min = 1, max = 256)
         String description,
 
         @NotNull(message = "Transaction date is required")

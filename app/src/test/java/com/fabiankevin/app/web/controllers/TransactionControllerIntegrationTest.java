@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -195,51 +196,6 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenMissingAmount_thenReturnsBadRequest() throws Exception {
-            CreateTransactionRequest invalidRequest = CreateTransactionRequest.builder()
-                    .description("Dinner")
-                    .transactionDate(LocalDate.now())
-                    .categoryId(category.id())
-                    .accountId(account.id())
-                    .build();
-
-            mockMvc.perform(post("/api/transactions")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(invalidRequest)))
-                    .andExpect(status().isBadRequest());
-        }
-
-        @Test
-        void givenZeroAmount_thenReturnsBadRequest() throws Exception {
-            CreateTransactionRequest request = CreateTransactionRequest.builder()
-                    .amount(0)
-                    .description("Dinner")
-                    .transactionDate(LocalDate.of(2026, 1, 1))
-                    .categoryId(category.id())
-                    .accountId(account.id())
-                    .build();
-
-            mockMvc.perform(post("/api/transactions")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
-        }
-
-        @Test
         void givenNonExistentAccount_thenReturnsNotFound() throws Exception {
             CreateTransactionRequest request = CreateTransactionRequest.builder()
                     .amount(100)
@@ -283,6 +239,288 @@ class TransactionControllerIntegrationTest {
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void givenValidRequestWithMinimalFields_thenReturnsCreated() throws Exception {
+            User mockUser = User.builder()
+                    .id(userId)
+                    .firstName("John")
+                    .lastName("Doe")
+                    .build();
+
+            when(userClient.getUsersByIds(any())).thenReturn(List.of(mockUser));
+
+            CreateTransactionRequest request = CreateTransactionRequest.builder()
+                    .amount(100)
+                    .transactionDate(LocalDate.of(2026, 1, 1))
+                    .categoryId(category.id())
+                    .accountId(account.id())
+                    .build();
+
+            mockMvc.perform(post("/api/transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/transactions/[-a-f0-9]{36}")))
+                    .andExpect(jsonPath("$.id").isNotEmpty())
+                    .andExpect(jsonPath("$.description").isEmpty())
+                    .andExpect(jsonPath("$.amount.value").value(100))
+                    .andExpect(jsonPath("$.type").value("EXPENSE"))
+                    .andExpect(jsonPath("$.transactionDate").value("2026-01-01"))
+                    .andExpect(jsonPath("$.account.id").value(account.id().toString()))
+                    .andExpect(jsonPath("$.category.id").value(category.id().toString()));
+        }
+
+        @ParameterizedTest
+        @MethodSource("badInputRequests")
+        void givenBadInputs_thenReturnsBadRequest(CreateTransactionRequest request) throws Exception {
+            mockMvc.perform(post("/api/transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        static CreateTransactionRequest[] badInputRequests() {
+            return new CreateTransactionRequest[]{
+                    CreateTransactionRequest.builder()
+                            .amount(0)
+                            .description("Dinner")
+                            .transactionDate(LocalDate.of(2026, 1, 1))
+                            .categoryId(UUID.randomUUID())
+                            .accountId(UUID.randomUUID())
+                            .build(),
+                    CreateTransactionRequest.builder()
+                            .amount(-100)
+                            .description("Dinner")
+                            .transactionDate(LocalDate.of(2026, 1, 1))
+                            .categoryId(UUID.randomUUID())
+                            .accountId(UUID.randomUUID())
+                            .build(),
+                    CreateTransactionRequest.builder()
+                            .amount(100)
+                            .description("Dinner")
+                            .transactionDate(null)
+                            .categoryId(UUID.randomUUID())
+                            .accountId(UUID.randomUUID())
+                            .build(),
+                    CreateTransactionRequest.builder()
+                            .amount(100)
+                            .description("Dinner")
+                            .transactionDate(LocalDate.of(2026, 1, 1))
+                            .categoryId(null)
+                            .accountId(UUID.randomUUID())
+                            .build(),
+                    CreateTransactionRequest.builder()
+                            .amount(100)
+                            .description("Dinner")
+                            .transactionDate(LocalDate.of(2026, 1, 1))
+                            .categoryId(UUID.randomUUID())
+                            .accountId(null)
+                            .build(),
+                    CreateTransactionRequest.builder()
+                            .amount(100)
+                            .description("Dinner".repeat(100))
+                            .transactionDate(LocalDate.of(2026, 1, 1))
+                            .categoryId(UUID.randomUUID())
+                            .accountId(UUID.randomUUID())
+                            .build()
+            };
+        }
+
+        @Test
+        void givenVeryLongDescription_thenReturnsBadRequest() throws Exception {
+            User mockUser = User.builder()
+                    .id(userId)
+                    .firstName("John")
+                    .lastName("Doe")
+                    .build();
+            when(userClient.getUsersByIds(any())).thenReturn(List.of(mockUser));
+
+            CreateTransactionRequest request = CreateTransactionRequest.builder()
+                    .amount(100)
+                    .description("123456".repeat(100))
+                    .transactionDate(LocalDate.of(2026, 1, 1))
+                    .categoryId(category.id())
+                    .accountId(account.id())
+                    .build();
+
+            mockMvc.perform(post("/api/transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isInternalServerError());
+        }
+
+        @Test
+        void givenAccountBelongsToOtherUser_thenReturnsNotFound() throws Exception {
+            UUID otherUserId = UUID.randomUUID();
+
+            Account otherUserAccount = accountService.createAccount(
+                    CreateAccountCommand.builder()
+                            .name("OTHER WALLET")
+                            .userId(otherUserId)
+                            .currency(Currency.getInstance("PHP"))
+                            .type(E_WALLET)
+                            .build()
+            );
+
+            CreateTransactionRequest request = CreateTransactionRequest.builder()
+                    .amount(100)
+                    .description("Dinner")
+                    .transactionDate(LocalDate.of(2026, 1, 1))
+                    .categoryId(category.id())
+                    .accountId(otherUserAccount.id())
+                    .build();
+
+            mockMvc.perform(post("/api/transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void givenCategoryBelongsToOtherUserAndNotSystem_thenReturnsNotFound() throws Exception {
+            UUID otherUserId = UUID.randomUUID();
+
+            Category otherUserCategory = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
+                            .name("ENTERTAINMENT")
+                            .type(TransactionType.EXPENSE)
+                            .userId(otherUserId)
+                            .build()
+            );
+
+            CreateTransactionRequest request = CreateTransactionRequest.builder()
+                    .amount(100)
+                    .description("Movie")
+                    .transactionDate(LocalDate.of(2026, 1, 1))
+                    .categoryId(otherUserCategory.id())
+                    .accountId(account.id())
+                    .build();
+
+            mockMvc.perform(post("/api/transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void givenSystemCategory_thenReturnsCreated() throws Exception {
+            UUID otherUserId = UUID.randomUUID();
+
+            Category systemCategory = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
+                            .name("SYSTEM FOOD")
+                            .type(TransactionType.EXPENSE)
+                            .userId(otherUserId)
+                            .build()
+            );
+
+            Category systemCategoryWithFlag = systemCategory.withSystem(true);
+            categoryRepository.save(systemCategoryWithFlag);
+
+            User mockUser = User.builder()
+                    .id(userId)
+                    .firstName("Jane")
+                    .lastName("Smith")
+                    .build();
+
+            when(userClient.getUsersByIds(any())).thenReturn(List.of(mockUser));
+
+            CreateTransactionRequest request = CreateTransactionRequest.builder()
+                    .amount(50)
+                    .description("System food purchase")
+                    .transactionDate(LocalDate.of(2026, 1, 1))
+                    .categoryId(systemCategory.id())
+                    .accountId(account.id())
+                    .build();
+
+            mockMvc.perform(post("/api/transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/transactions/[-a-f0-9]{36}")))
+                    .andExpect(jsonPath("$.id").isNotEmpty())
+                    .andExpect(jsonPath("$.amount.value").value(50))
+                    .andExpect(jsonPath("$.type").value("EXPENSE"))
+                    .andExpect(jsonPath("$.category.id").value(systemCategory.id().toString()))
+                    .andExpect(jsonPath("$.category.name").value("SYSTEM FOOD"));
+        }
+
+        @Test
+        void givenRequestWithSpecialCharactersInDescription_thenReturnsCreated() throws Exception {
+            User mockUser = User.builder()
+                    .id(userId)
+                    .firstName("John")
+                    .lastName("Doe")
+                    .build();
+
+            when(userClient.getUsersByIds(any())).thenReturn(List.of(mockUser));
+
+            String specialDescription = "Dinner @ restaurant & bar (₱100) — <special> chars!";
+
+            CreateTransactionRequest request = CreateTransactionRequest.builder()
+                    .amount(100)
+                    .description(specialDescription)
+                    .transactionDate(LocalDate.of(2026, 1, 1))
+                    .categoryId(category.id())
+                    .accountId(account.id())
+                    .build();
+
+            mockMvc.perform(post("/api/transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.description").value(specialDescription));
         }
     }
 
