@@ -101,25 +101,20 @@ public class DefaultCategoryRepository implements CategoryRepository {
 
         // Calculate percentages for each category
         double expenseTotalAmount = entityPage.getContent().stream()
-                .filter(category -> category.type() == TransactionType.EXPENSE)
+                .filter(summary -> summary.category().getTransactionType() == TransactionType.EXPENSE)
                 .mapToDouble(CategorySummaryProjection::amount)
                 .sum();
         double incomeTotalAmount = entityPage.getContent().stream()
-                .filter(category -> category.type() == TransactionType.INCOME)
+                .filter(summary -> summary.category().getTransactionType() == TransactionType.INCOME)
                 .mapToDouble(CategorySummaryProjection::amount)
                 .sum();
 
         List<CategorySummary> content = entityPage.getContent().stream()
                 .map(projection -> {
-                    double percentage = getPercentage(projection, projection.type() == TransactionType.EXPENSE ? expenseTotalAmount : incomeTotalAmount);
+                    CategoryEntity category = projection.category();
+                    double percentage = getPercentage(projection, category.getTransactionType() == TransactionType.EXPENSE ? expenseTotalAmount : incomeTotalAmount);
                     return CategorySummary.builder()
-                            .id(projection.id())
-                            .name(projection.name())
-                            .type(projection.type())
-                            .userId(projection.userId() != null ? projection.userId() : userId)
-                            .icon(projection.icon())
-                            .active(projection.active())
-                            .system(projection.system())
+                            .category(category.toModel())
                             .totalAmount(projection.amount())
                             .percentage(percentage)
                             .totalTransactions(projection.totalTransactions())

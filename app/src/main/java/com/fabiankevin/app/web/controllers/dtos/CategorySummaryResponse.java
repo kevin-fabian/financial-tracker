@@ -1,5 +1,6 @@
 package com.fabiankevin.app.web.controllers.dtos;
 
+import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.CategorySummary;
 import com.fabiankevin.app.models.enums.TransactionType;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -30,13 +31,14 @@ public record CategorySummaryResponse(
         int totalTransactions
 ) {
     public static CategorySummaryResponse from(final CategorySummary categorySummary) {
+        Category category = categorySummary.category();
         return CategorySummaryResponse.builder()
-                .id(categorySummary.id())
-                .name(categorySummary.name())
-                .type(categorySummary.type())
-                .icon(categorySummary.icon())
-                .active(categorySummary.active())
-                .system(categorySummary.system())
+                .id(category.id())
+                .name(category.name())
+                .type(category.type())
+                .icon(category.icon())
+                .active(category.active())
+                .system(category.system())
                 .totalAmount(categorySummary.totalAmount())
                 .percentage(categorySummary.percentage())
                 .totalTransactions(categorySummary.totalTransactions())

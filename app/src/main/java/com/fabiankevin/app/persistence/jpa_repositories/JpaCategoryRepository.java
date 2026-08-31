@@ -29,7 +29,7 @@ public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUI
     List<CategoryEntity> findAllByNameIn(List<String> names);
 
     @Query("""
-            SELECT c.id, c.name, c.transactionType, c.userId, c.icon, c.active, c.system,
+            SELECT c,
                 COALESCE(SUM(t.amount), 0.0),
                 CAST(COALESCE(COUNT(t.id), 0) AS int)
             FROM CategoryEntity c
