@@ -4,6 +4,7 @@ import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -23,5 +24,5 @@ public interface BudgetRepository {
 
     List<Budget> findAllByUserIdAndCreatedAtBetween(UUID userId, Instant startInclusive, Instant endExclusive);
 
-    List<BudgetSummary> findAllBudgetSummaryByUserId(List<UUID> usersId, Instant startInclusive, Instant endExclusive);
+    List<BudgetSummary> findAllBudgetSummaryByUserId(List<UUID> usersId, LocalDate startMonth, LocalDate endMonth);
 }

@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -33,12 +34,11 @@ public class DefaultBudgetService implements BudgetService {
     @Transactional
     @Override
     public BudgetSummary createBudget(CreateBudgetCommand command) {
-        Instant now = Instant.now();
-        ZonedDateTime monthStart = now.atZone(ZoneOffset.UTC).withDayOfMonth(1).toLocalDate().atStartOfDay(ZoneOffset.UTC);
-        if (budgetRepository.existsByCategoryIdAndUserIdAndCreatedAtBetween(
-                command.categoryId(), command.userId(), monthStart.toInstant(), monthStart.plusMonths(1).toInstant())) {
+        if (budgetRepository.existsByCategoryIdAndUserId(
+                command.categoryId(), command.userId())) {
             throw new BudgetAlreadyExistException("A budget already exists for this category this month");
         }
+        Instant now = Instant.now();
 
         Category category = categoryService.getCategoryById(command.categoryId(), command.userId());
         Budget budget = Budget.builder()
@@ -57,22 +57,17 @@ public class DefaultBudgetService implements BudgetService {
     }
 
     private BudgetSummary toSummary(Budget budget, double spent) {
-        Optional<User> user = userClient.getUsersByIds(List.of(budget.userId())).stream().findFirst();
-        String lastUpdatedByName = user.map(User::fullName).orElse(null);
-        String firstName = user.map(User::firstName).orElse(null);
-        String lastName = user.map(User::lastName).orElse(null);
-        String initial = user.map(User::initial).orElse(null);
+        List<User> users = userClient.getUsersByIds(List.of(budget.userId()));
+        User user = users.stream().findFirst().orElse(null);
+        User updatedBy = users.stream().findFirst().orElse(null);
         double allocated = budget.allocated();
         double spentPercentage = allocated > 0 ? (spent / allocated) * 100.0 : 0.0;
 
         return BudgetSummary.builder()
                 .id(budget.id())
                 .userId(budget.userId())
-                .lastUpdatedBy(budget.lastUpdatedBy())
-                .lastUpdatedByName(lastUpdatedByName)
-                .firstName(firstName)
-                .lastName(lastName)
-                .initial(initial)
+                .user(user)
+                .updatedBy(updatedBy)
                 .updatedAt(budget.updatedAt())
                 .createdAt(budget.createdAt())
                 .period(budget.period())
@@ -88,10 +83,10 @@ public class DefaultBudgetService implements BudgetService {
 
     @Override
     public List<BudgetSummary> getBudgetsByUserId(UUID userId) {
-        Instant now = Instant.now();
-        ZonedDateTime monthStart = now.atZone(ZoneOffset.UTC).withDayOfMonth(1).toLocalDate().atStartOfDay(ZoneOffset.UTC);
+        LocalDate monthStart = ZonedDateTime.now(ZoneOffset.UTC).withDayOfMonth(1).toLocalDate();
+        LocalDate monthEnd = monthStart.plusMonths(1);
         List<BudgetSummary> summaries = budgetRepository.findAllBudgetSummaryByUserId(
-                List.of(userId), monthStart.toInstant(), monthStart.plusMonths(1).toInstant());
+                List.of(userId), monthStart, monthEnd);
         return enrichWithLastUpdatedByName(summaries);
     }
 
@@ -118,27 +113,21 @@ public class DefaultBudgetService implements BudgetService {
     }
 
     private List<BudgetSummary> enrichWithLastUpdatedByName(List<BudgetSummary> summaries) {
-        Set<UUID> lastUpdatedByIds = summaries.stream()
-                .map(BudgetSummary::lastUpdatedBy)
+        Set<UUID> userIds = summaries.stream()
+                .map(BudgetSummary::userId)
                 .collect(Collectors.toSet());
 
-        Map<UUID, User> usersById = lastUpdatedByIds.isEmpty()
+        Map<UUID, User> usersById = userIds.isEmpty()
                 ? Map.of()
-                : userClient.getUsersByIds(new ArrayList<>(lastUpdatedByIds)).stream()
+                : userClient.getUsersByIds(new ArrayList<>(userIds)).stream()
                 .collect(Collectors.toMap(User::id, Function.identity()));
 
         return summaries.stream()
                 .map(summary -> {
-                    Optional<User> user = Optional.ofNullable(usersById.get(summary.lastUpdatedBy()));
-                    String name = user.map(User::fullName).orElse(null);
-                    String firstName = user.map(User::firstName).orElse(null);
-                    String lastName = user.map(User::lastName).orElse(null);
-                    String initial = user.map(User::initial).orElse(null);
+                    User user = usersById.get(summary.userId());
                     return summary.toBuilder()
-                            .lastUpdatedByName(name)
-                            .firstName(firstName)
-                            .lastName(lastName)
-                            .initial(initial)
+                            .user(user)
+                            .updatedBy(user)
                             .build();
                 })
                 .toList();

@@ -22,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -88,13 +89,15 @@ class DefaultBudgetServiceTest {
             // identity & ownership fields
             assertEquals(generatedId, created.id(), "budget id should have been generated");
             assertEquals(userId, created.userId(), "userId should match command");
-            assertEquals(userId, created.lastUpdatedBy(), "lastUpdatedBy should be set to userId");
+            assertNotNull(created.user(), "user should be enriched from UserClient");
+            assertEquals(userId, created.user().id(), "user id should match command");
+            assertEquals(userId, created.updatedBy().id(), "updatedBy should be set to userId");
 
-            // user fields enriched from UserClient
-            assertEquals("John Doe", created.lastUpdatedByName(), "lastUpdatedByName should be enriched from UserClient");
-            assertEquals("John", created.firstName(), "firstName should be enriched from UserClient");
-            assertEquals("Doe", created.lastName(), "lastName should be enriched from UserClient");
-            assertEquals("JD", created.initial(), "initial should be enriched from UserClient");
+            // user fields from User model
+            assertEquals("John Doe", created.user().fullName(), "user fullName should be enriched from UserClient");
+            assertEquals("John", created.user().firstName(), "user firstName should be enriched from UserClient");
+            assertEquals("Doe", created.user().lastName(), "user lastName should be enriched from UserClient");
+            assertEquals("JD", created.user().initial(), "user initial should be enriched from UserClient");
 
             // timestamps
             assertNotNull(created.createdAt(), "createdAt should not be null");
@@ -154,13 +157,13 @@ class DefaultBudgetServiceTest {
                     .allocated(500.0)
                     .build();
 
-            when(budgetRepository.existsByCategoryIdAndUserIdAndCreatedAtBetween(eq(categoryId), eq(userId), any(Instant.class), any(Instant.class)))
+            when(budgetRepository.existsByCategoryIdAndUserId(categoryId, userId))
                     .thenReturn(true);
 
             assertThatThrownBy(() -> budgetService.createBudget(command))
                     .isInstanceOf(BudgetAlreadyExistException.class);
 
-            verify(budgetRepository, times(1)).existsByCategoryIdAndUserIdAndCreatedAtBetween(eq(categoryId), eq(userId), any(Instant.class), any(Instant.class));
+            verify(budgetRepository, times(1)).existsByCategoryIdAndUserId(categoryId, userId);
             verify(categoryService, never()).getCategoryById(any(), any());
             verify(budgetRepository, never()).save(any());
         }
@@ -176,7 +179,6 @@ class DefaultBudgetServiceTest {
             BudgetSummary summary = BudgetSummary.builder()
                     .id(UUID.randomUUID())
                     .userId(userId)
-                    .lastUpdatedBy(userId)
                     .period(BudgetPeriod.MONTHLY)
                     .categoryId(categoryId)
                     .categoryName("GROCERIES")
@@ -192,7 +194,7 @@ class DefaultBudgetServiceTest {
                     .lastName("Doe")
                     .build();
 
-            when(budgetRepository.findAllBudgetSummaryByUserId(eq(List.of(userId)), any(Instant.class), any(Instant.class)))
+            when(budgetRepository.findAllBudgetSummaryByUserId(eq(List.of(userId)), any(LocalDate.class), any(LocalDate.class)))
                     .thenReturn(List.of(summary));
             when(userClient.getUsersByIds(List.of(userId))).thenReturn(List.of(user));
 
@@ -204,13 +206,16 @@ class DefaultBudgetServiceTest {
             // identity & ownership fields preserved from source summary
             assertEquals(summary.id(), result.id(), "id should be preserved");
             assertEquals(summary.userId(), result.userId(), "userId should be preserved");
-            assertEquals(summary.lastUpdatedBy(), result.lastUpdatedBy(), "lastUpdatedBy should be preserved");
+            assertNotNull(result.user(), "user should be enriched from UserClient");
+            assertEquals(userId, result.user().id(), "user id should match");
+            assertNotNull(result.updatedBy(), "updatedBy should be enriched from UserClient");
+            assertEquals(userId, result.updatedBy().id(), "updatedBy id should match");
 
-            // user fields enriched from UserClient
-            assertEquals("John Doe", result.lastUpdatedByName(), "lastUpdatedByName should be enriched from UserClient");
-            assertEquals("John", result.firstName(), "firstName should be enriched from UserClient");
-            assertEquals("Doe", result.lastName(), "lastName should be enriched from UserClient");
-            assertEquals("JD", result.initial(), "initial should be enriched from UserClient");
+            // user fields from User model
+            assertEquals("John Doe", result.user().fullName(), "user fullName should be enriched from UserClient");
+            assertEquals("John", result.user().firstName(), "user firstName should be enriched from UserClient");
+            assertEquals("Doe", result.user().lastName(), "user lastName should be enriched from UserClient");
+            assertEquals("JD", result.user().initial(), "user initial should be enriched from UserClient");
 
             // timestamps & period preserved from source summary
             assertNull(result.updatedAt(), "updatedAt should be preserved from source summary");
@@ -231,7 +236,7 @@ class DefaultBudgetServiceTest {
             assertEquals(200.0, result.spent(), "spent should be preserved");
             assertEquals(40.0, result.spentPercentage(), "spentPercentage should be preserved");
 
-            verify(budgetRepository, times(1)).findAllBudgetSummaryByUserId(eq(List.of(userId)), any(Instant.class), any(Instant.class));
+            verify(budgetRepository, times(1)).findAllBudgetSummaryByUserId(eq(List.of(userId)), any(LocalDate.class), any(LocalDate.class));
             verify(userClient, times(1)).getUsersByIds(List.of(userId));
         }
 
@@ -239,13 +244,13 @@ class DefaultBudgetServiceTest {
         void givenNoBudgets_thenReturnsEmptyListAndDoesNotCallUserClient() {
             UUID userId = UUID.randomUUID();
 
-            when(budgetRepository.findAllBudgetSummaryByUserId(eq(List.of(userId)), any(Instant.class), any(Instant.class)))
+            when(budgetRepository.findAllBudgetSummaryByUserId(eq(List.of(userId)), any(LocalDate.class), any(LocalDate.class)))
                     .thenReturn(List.of());
 
             List<BudgetSummary> results = budgetService.getBudgetsByUserId(userId);
 
             assertThat(results).isEmpty();
-            verify(budgetRepository, times(1)).findAllBudgetSummaryByUserId(eq(List.of(userId)), any(Instant.class), any(Instant.class));
+            verify(budgetRepository, times(1)).findAllBudgetSummaryByUserId(eq(List.of(userId)), any(LocalDate.class), any(LocalDate.class));
             verify(userClient, never()).getUsersByIds(any());
         }
     }
@@ -280,8 +285,6 @@ class DefaultBudgetServiceTest {
 
             when(budgetRepository.findAllByUserIdAndCreatedAtBetween(eq(userId), any(Instant.class), any(Instant.class)))
                     .thenReturn(List.of(lastMonthBudget));
-            when(budgetRepository.existsByCategoryIdAndUserIdAndCreatedAtBetween(eq(categoryId), eq(userId), any(Instant.class), any(Instant.class)))
-                    .thenReturn(false);
             when(categoryService.getCategoryById(categoryId, userId)).thenReturn(category);
             when(budgetRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(List.of(userId)))
@@ -295,7 +298,8 @@ class DefaultBudgetServiceTest {
             assertEquals(BudgetPeriod.MONTHLY, recreated.period());
             assertEquals(500.0, recreated.allocated());
             assertEquals(0.0, recreated.spent());
-            assertEquals("John Doe", recreated.lastUpdatedByName());
+            assertNotNull(recreated.user(), "user should be enriched from UserClient");
+            assertEquals("John Doe", recreated.user().fullName(), "user fullName should be enriched from UserClient");
             verify(budgetRepository, times(1)).findAllByUserIdAndCreatedAtBetween(eq(userId), any(Instant.class), any(Instant.class));
             verify(budgetRepository, times(1)).save(any());
         }
@@ -372,13 +376,16 @@ class DefaultBudgetServiceTest {
             // identity & ownership fields
             assertEquals(id, updated.id(), "id should be preserved");
             assertEquals(userId, updated.userId(), "userId should be preserved");
-            assertEquals(userId, updated.lastUpdatedBy(), "lastUpdatedBy should be set to userId");
+            assertNotNull(updated.user(), "user should be enriched from UserClient");
+            assertEquals(userId, updated.user().id(), "user id should match");
+            assertNotNull(updated.updatedBy(), "updatedBy should be enriched from UserClient");
+            assertEquals(userId, updated.updatedBy().id(), "updatedBy id should match");
 
             // user fields enriched from UserClient
-            assertEquals("John Doe", updated.lastUpdatedByName(), "lastUpdatedByName should be enriched from UserClient");
-            assertEquals("John", updated.firstName(), "firstName should be enriched from UserClient");
-            assertEquals("Doe", updated.lastName(), "lastName should be enriched from UserClient");
-            assertEquals("JD", updated.initial(), "initial should be enriched from UserClient");
+            assertEquals("John Doe", updated.user().fullName(), "user fullName should be enriched from UserClient");
+            assertEquals("John", updated.user().firstName(), "user firstName should be enriched from UserClient");
+            assertEquals("Doe", updated.user().lastName(), "user lastName should be enriched from UserClient");
+            assertEquals("JD", updated.user().initial(), "user initial should be enriched from UserClient");
 
             // timestamps
             assertNotNull(updated.createdAt(), "createdAt should be preserved from existing budget");

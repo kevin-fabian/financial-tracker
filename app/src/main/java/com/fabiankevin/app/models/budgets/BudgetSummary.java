@@ -11,11 +11,8 @@ import java.util.UUID;
 public record BudgetSummary(
         UUID id,
         UUID userId,
-        UUID lastUpdatedBy,
-        String lastUpdatedByName,
-        String firstName,
-        String lastName,
-        String initial,
+        User user,
+        User updatedBy,
         Instant updatedAt,
         Instant createdAt,
         String budgetMonth,

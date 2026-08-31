@@ -178,7 +178,9 @@ class DefaultBudgetRepositoryTest {
                     .build());
 
             ZonedDateTime monthStart = Instant.now().atZone(ZoneOffset.UTC).withDayOfMonth(1).toLocalDate().atStartOfDay(ZoneOffset.UTC);
-            List<BudgetSummary> results = budgetRepository.findAllBudgetSummaryByUserId(List.of(userId), monthStart.toInstant(), monthStart.plusMonths(1).toInstant());
+            LocalDate startMonth = monthStart.toLocalDate();
+            LocalDate endMonth = startMonth.plusMonths(1);
+            List<BudgetSummary> results = budgetRepository.findAllBudgetSummaryByUserId(List.of(userId), startMonth, endMonth);
 
             Assertions.assertThat(results)
                     .as("should return one budget summary")
@@ -217,7 +219,9 @@ class DefaultBudgetRepositoryTest {
                     .build());
 
             ZonedDateTime monthStart = Instant.now().atZone(ZoneOffset.UTC).withDayOfMonth(1).toLocalDate().atStartOfDay(ZoneOffset.UTC);
-            List<BudgetSummary> results = budgetRepository.findAllBudgetSummaryByUserId(List.of(userId), monthStart.toInstant(), monthStart.plusMonths(1).toInstant());
+            LocalDate startMonth = monthStart.toLocalDate();
+            LocalDate endMonth = startMonth.plusMonths(1);
+            List<BudgetSummary> results = budgetRepository.findAllBudgetSummaryByUserId(List.of(userId), startMonth, endMonth);
 
             Assertions.assertThat(results)
                     .as("should return one budget summary")
@@ -226,6 +230,68 @@ class DefaultBudgetRepositoryTest {
             assertEquals(1000.0, summary.allocated(), "allocated should match");
             assertEquals(0.0, summary.spent(), "spent should be zero with no transactions");
             assertEquals(0.0, summary.spentPercentage(), "spentPercentage should be zero with no spent");
+        }
+
+        @Test
+        void givenTransactionsFromPreviousAndCurrentMonth_returnsOnlyCurrentMonthSpent() {
+            UUID userId = UUID.randomUUID();
+            Instant now = Instant.now();
+            LocalDate today = LocalDate.now();
+            LocalDate previousMonthStart = today.withDayOfMonth(1).minusMonths(1);
+
+            CategoryEntity category = jpaCategoryRepository.saveAndFlush(CategoryEntity.builder()
+                    .name("DINING")
+                    .transactionType(TransactionType.EXPENSE)
+                    .userId(userId)
+                    .icon("restaurant")
+                    .active(true)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+            jpaBudgetRepository.saveAndFlush(BudgetEntity.builder()
+                    .userId(userId)
+                    .lastUpdatedBy(userId)
+                    .period(BudgetPeriod.MONTHLY)
+                    .category(category)
+                    .allocated(800.0)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+            // Previous month transaction — should NOT be included
+            jpaTransactionRepository.saveAndFlush(TransactionEntity.builder()
+                    .category(category)
+                    .amount(300.0)
+                    .transactionDate(previousMonthStart)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+            // Current month transactions — should be included
+            jpaTransactionRepository.saveAndFlush(TransactionEntity.builder()
+                    .category(category)
+                    .amount(100.0)
+                    .transactionDate(today)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+            jpaTransactionRepository.saveAndFlush(TransactionEntity.builder()
+                    .category(category)
+                    .amount(50.0)
+                    .transactionDate(today.minusDays(1))
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+
+            LocalDate startMonth = today.withDayOfMonth(1);
+            LocalDate endMonth = startMonth.plusMonths(1);
+            List<BudgetSummary> results = budgetRepository.findAllBudgetSummaryByUserId(List.of(userId), startMonth, endMonth);
+
+            Assertions.assertThat(results)
+                    .as("should return one budget summary")
+                    .hasSize(1);
+            BudgetSummary summary = results.getFirst();
+            assertEquals(800.0, summary.allocated(), "allocated should match");
+            assertEquals(150.0, summary.spent(), "spent should only include current month transactions (100 + 50), excluding previous month (300)");
+            assertEquals(18.75, summary.spentPercentage(), "spentPercentage should be 150/800*100 = 18.75");
         }
     }
 }

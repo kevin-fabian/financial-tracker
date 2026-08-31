@@ -1,5 +1,6 @@
 package com.fabiankevin.app.persistence;
 
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -58,8 +60,8 @@ public class DefaultBudgetRepository implements BudgetRepository {
     }
 
     @Override
-    public List<BudgetSummary> findAllBudgetSummaryByUserId(List<UUID> usersId, Instant startInclusive, Instant endExclusive) {
-        return jpaBudgetRepository.findAllBudgetSummaryByUserIds(usersId, startInclusive, endExclusive)
+    public List<BudgetSummary> findAllBudgetSummaryByUserId(List<UUID> usersId, LocalDate startMonth, LocalDate endMonth) {
+        return jpaBudgetRepository.findAllBudgetSummaryByUserIds(usersId, startMonth, endMonth)
                 .stream()
                 .map(this::toSummary)
                 .toList();
@@ -69,11 +71,14 @@ public class DefaultBudgetRepository implements BudgetRepository {
         double spent = projection.spent();
         double allocated = projection.allocated();
         double spentPercentage = allocated > 0 ? (spent / allocated) * 100.0 : 0.0;
+        UUID userId = projection.userId();
+        UUID lastUpdatedBy = projection.lastUpdatedBy();
 
         return BudgetSummary.builder()
                 .id(projection.id())
-                .userId(projection.userId())
-                .lastUpdatedBy(projection.lastUpdatedBy())
+                .userId(userId)
+                .user(User.of(userId))
+                .updatedBy(User.of(lastUpdatedBy))
                 .updatedAt(projection.updatedAt())
                 .createdAt(projection.createdAt())
                 .period(BudgetPeriod.valueOf(projection.period()))
