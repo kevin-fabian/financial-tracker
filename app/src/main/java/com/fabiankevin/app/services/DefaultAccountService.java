@@ -22,6 +22,7 @@ import java.util.Currency;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -168,19 +169,18 @@ public class DefaultAccountService implements AccountService {
         }
 
         var usersById = userClient.getUsersByIds(userIds).stream()
-                .collect(java.util.stream.Collectors.toMap(User::id, u -> u));
+                .collect(Collectors.toMap(User::id, u -> u));
 
         return summaries.stream()
                 .map(summary -> {
-                    User user = usersById.get(summary.userIds().get(0));
-                    String firstName = user != null ? user.firstName() : null;
-                    String lastName = user != null ? user.lastName() : null;
-                    String initial = user != null ? user.initial() : null;
-                    return summary.toBuilder()
-                            .firstName(firstName)
-                            .lastName(lastName)
-                            .initial(initial)
-                            .build();
+                    User user = usersById.get(summary.userIds().getFirst());
+                    return Optional.ofNullable(user)
+                            .map(u -> summary.toBuilder()
+                                    .firstName(u.firstName())
+                                    .lastName(u.lastName())
+                                    .initial(u.initial())
+                                    .build())
+                            .orElse(summary);
                 })
                 .toList();
     }
