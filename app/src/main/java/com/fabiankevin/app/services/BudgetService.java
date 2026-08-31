@@ -17,4 +17,6 @@ public interface BudgetService {
     BudgetSummary patchBudget(PatchBudgetCommand command);
 
     void deleteBudgetById(UUID id, UUID userId);
+
+    BudgetSummary getBudgetSummaryByIdAndUserId(UUID id, UUID userId);
 }

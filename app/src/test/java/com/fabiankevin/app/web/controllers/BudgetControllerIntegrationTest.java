@@ -191,7 +191,7 @@ class BudgetControllerIntegrationTest {
     @Nested
     class CreateBudget {
         @Test
-        void givenValidRequest_thenShouldReturnCreated() throws Exception {
+        void givenValidRequest_thenShouldReturnCreatedAndAllFields() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
 
@@ -337,7 +337,7 @@ class BudgetControllerIntegrationTest {
     @Nested
     class PatchBudget {
         @Test
-        void givenValidRequest_thenShouldReturnUpdatedBudget() throws Exception {
+        void givenValidRequest_thenShouldReturnUpdatedBudgetAndAllFields() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
             BudgetSummary budgetSummary = createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);

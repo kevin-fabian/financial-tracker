@@ -8,7 +8,6 @@ import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.persistence.BudgetRepository;
-import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.budgets.CreateBudgetCommand;
 import com.fabiankevin.app.services.commands.budgets.PatchBudgetCommand;
 import jakarta.transaction.Transactional;
@@ -29,7 +28,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DefaultBudgetService implements BudgetService {
     private final BudgetRepository budgetRepository;
-    private final TransactionRepository transactionRepository;
     private final CategoryService categoryService;
     private final UserClient userClient;
 
@@ -55,19 +53,7 @@ public class DefaultBudgetService implements BudgetService {
                 .build();
 
         Budget saved = budgetRepository.save(budget);
-        double spent = transactionRepository.sumSpentByCategoryIdAndUserId(saved.category().id(), saved.user().id());
-        return toSummary(saved, spent);
-    }
-
-    private BudgetSummary toSummary(Budget budget, double spent) {
-        double allocated = budget.allocated();
-        double spentPercentage = allocated > 0 ? (spent / allocated) * 100.0 : 0.0;
-
-        return BudgetSummary.builder()
-                .budget(budget)
-                .spent(spent)
-                .spentPercentage(spentPercentage)
-                .build();
+        return getBudgetSummaryByIdAndUserId(saved.id(), saved.user().id());
     }
 
     @Override
@@ -169,13 +155,20 @@ public class DefaultBudgetService implements BudgetService {
                 .ifPresent(builder::allocated);
 
         Budget saved = budgetRepository.save(builder.build());
-        double spent = transactionRepository.sumSpentByCategoryIdAndUserId(saved.category().id(), saved.user().id());
-        return toSummary(saved, spent);
+        return getBudgetSummaryByIdAndUserId(saved.id(), saved.user().id());
     }
 
     @Transactional
     @Override
     public void deleteBudgetById(UUID id, UUID userId) {
         budgetRepository.deleteByIdAndUserId(id, userId);
+    }
+
+    @Override
+    public BudgetSummary getBudgetSummaryByIdAndUserId(UUID id, UUID userId) {
+        return budgetRepository.findBudgetSummaryById(id)
+                .filter(summary -> summary.budget().user().id().equals(userId))
+                .map(summary -> enrichWithUserData(List.of(summary)).getFirst())
+                .orElseThrow(BudgetNotFoundException::new);
     }
 }

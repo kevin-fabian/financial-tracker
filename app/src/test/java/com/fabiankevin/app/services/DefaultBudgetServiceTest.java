@@ -1,5 +1,6 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.BudgetAlreadyExistException;
 import com.fabiankevin.app.exceptions.BudgetNotFoundException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
@@ -10,7 +11,6 @@ import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.BudgetRepository;
-import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.budgets.CreateBudgetCommand;
 import com.fabiankevin.app.services.commands.budgets.PatchBudgetCommand;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,10 +42,10 @@ class DefaultBudgetServiceTest {
     private BudgetRepository budgetRepository;
 
     @Mock
-    private TransactionRepository transactionRepository;
+    private CategoryService categoryService;
 
     @Mock
-    private CategoryService categoryService;
+    private UserClient userClient;
 
     @InjectMocks
     private DefaultBudgetService budgetService;
@@ -93,8 +93,31 @@ class DefaultBudgetServiceTest {
 
             when(budgetRepository.existsByCategoryIdAndUserId(categoryId, userId)).thenReturn(false);
             when(categoryService.getCategoryById(categoryId, userId)).thenReturn(category);
-            when(budgetRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-            when(transactionRepository.sumSpentByCategoryIdAndUserId(eq(categoryId), eq(userId))).thenReturn(200.0);
+            when(budgetRepository.save(any())).thenAnswer(invocation -> {
+                Budget original = invocation.getArgument(0);
+                UUID generatedId = UUID.randomUUID();
+                Budget saved = Budget.builder()
+                        .id(generatedId)
+                        .user(original.user())
+                        .updatedBy(original.updatedBy())
+                        .period(original.period())
+                        .category(original.category())
+                        .allocated(original.allocated())
+                        .createdAt(original.createdAt())
+                        .updatedAt(original.updatedAt())
+                        .build();
+                when(budgetRepository.findBudgetSummaryById(generatedId)).thenReturn(Optional.of(
+                        BudgetSummary.builder()
+                                .budget(saved)
+                                .spent(200.0)
+                                .spentPercentage(40.0)
+                                .build()
+                ));
+                return saved;
+            });
+            when(userClient.getUsersByIds(List.of(userId))).thenReturn(
+                    List.of(User.builder().id(userId).firstName("John").lastName("Doe").build())
+            );
 
             BudgetSummary created = budgetService.createBudget(command);
 
@@ -110,7 +133,8 @@ class DefaultBudgetServiceTest {
 
             verify(categoryService, times(1)).getCategoryById(categoryId, userId);
             verify(budgetRepository, times(1)).save(any());
-            verify(transactionRepository, times(1)).sumSpentByCategoryIdAndUserId(eq(categoryId), eq(userId));
+            verify(budgetRepository, times(1)).findBudgetSummaryById(any());
+            verify(userClient, times(1)).getUsersByIds(List.of(userId));
         }
 
         @Test
@@ -268,8 +292,31 @@ class DefaultBudgetServiceTest {
             when(budgetRepository.findAllByUserIdAndCreatedAtBetween(eq(userId), any(Instant.class), any(Instant.class)))
                     .thenReturn(List.of(lastMonthBudget));
             when(categoryService.getCategoryById(categoryId, userId)).thenReturn(category);
-            when(budgetRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-            when(transactionRepository.sumSpentByCategoryIdAndUserId(eq(categoryId), eq(userId))).thenReturn(0.0);
+            when(budgetRepository.save(any())).thenAnswer(invocation -> {
+                Budget original = invocation.getArgument(0);
+                UUID generatedId = UUID.randomUUID();
+                Budget saved = Budget.builder()
+                        .id(generatedId)
+                        .user(original.user())
+                        .updatedBy(original.updatedBy())
+                        .period(original.period())
+                        .category(original.category())
+                        .allocated(original.allocated())
+                        .createdAt(original.createdAt())
+                        .updatedAt(original.updatedAt())
+                        .build();
+                when(budgetRepository.findBudgetSummaryById(generatedId)).thenReturn(Optional.of(
+                        BudgetSummary.builder()
+                                .budget(saved)
+                                .spent(0.0)
+                                .spentPercentage(0.0)
+                                .build()
+                ));
+                return saved;
+            });
+            when(userClient.getUsersByIds(List.of(userId))).thenReturn(
+                    List.of(User.builder().id(userId).firstName("John").lastName("Doe").build())
+            );
 
             List<BudgetSummary> results = budgetService.recreateBudgetsFromLastMonth(userId);
 
@@ -281,6 +328,8 @@ class DefaultBudgetServiceTest {
             assertEquals(0.0, recreated.spent());
             verify(budgetRepository, times(1)).findAllByUserIdAndCreatedAtBetween(eq(userId), any(Instant.class), any(Instant.class));
             verify(budgetRepository, times(1)).save(any());
+            verify(budgetRepository, atLeastOnce()).findBudgetSummaryById(any());
+            verify(userClient, atLeastOnce()).getUsersByIds(List.of(userId));
         }
 
         @Test
@@ -345,8 +394,30 @@ class DefaultBudgetServiceTest {
 
             when(budgetRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(existing));
             when(categoryService.getCategoryById(newCategoryId, userId)).thenReturn(newCategory);
-            when(budgetRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-            when(transactionRepository.sumSpentByCategoryIdAndUserId(eq(newCategoryId), eq(userId))).thenReturn(200.0);
+            when(budgetRepository.save(any())).thenAnswer(invocation -> {
+                Budget original = invocation.getArgument(0);
+                Budget saved = Budget.builder()
+                        .id(original.id())
+                        .user(original.user())
+                        .updatedBy(original.updatedBy())
+                        .period(original.period())
+                        .category(original.category())
+                        .allocated(original.allocated())
+                        .createdAt(original.createdAt())
+                        .updatedAt(original.updatedAt())
+                        .build();
+                when(budgetRepository.findBudgetSummaryById(original.id())).thenReturn(Optional.of(
+                        BudgetSummary.builder()
+                                .budget(saved)
+                                .spent(200.0)
+                                .spentPercentage(20.0)
+                                .build()
+                ));
+                return saved;
+            });
+            when(userClient.getUsersByIds(List.of(userId))).thenReturn(
+                    List.of(User.builder().id(userId).firstName("John").lastName("Doe").build())
+            );
 
             BudgetSummary updated = budgetService.patchBudget(command);
 
@@ -373,6 +444,8 @@ class DefaultBudgetServiceTest {
             verify(budgetRepository, times(1)).findByIdAndUserId(id, userId);
             verify(categoryService, times(1)).getCategoryById(newCategoryId, userId);
             verify(budgetRepository, times(1)).save(any());
+            verify(budgetRepository, times(1)).findBudgetSummaryById(any());
+            verify(userClient, times(1)).getUsersByIds(List.of(userId));
         }
 
         @Test
@@ -405,6 +478,105 @@ class DefaultBudgetServiceTest {
             budgetService.deleteBudgetById(id, userId);
 
             verify(budgetRepository, times(1)).deleteByIdAndUserId(id, userId);
+        }
+    }
+
+    @Nested
+    class GetBudgetSummaryByIdAndUserId {
+        @Test
+        void givenExistingBudgetWithMatchingUserId_thenReturnsEnrichedSummary() {
+            UUID userId = UUID.randomUUID();
+            UUID budgetId = UUID.randomUUID();
+            UUID categoryId = UUID.randomUUID();
+
+            Category category = Category.builder()
+                    .id(categoryId)
+                    .name("GROCERIES")
+                    .type(TransactionType.EXPENSE)
+                    .userId(userId)
+                    .icon("local_grocery_store")
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            Budget budget = Budget.builder()
+                    .id(budgetId)
+                    .user(User.of(userId))
+                    .updatedBy(User.of(userId))
+                    .period(BudgetPeriod.MONTHLY)
+                    .category(category)
+                    .allocated(500.0)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            BudgetSummary summary = BudgetSummary.builder()
+                    .budget(budget)
+                    .spent(200.0)
+                    .spentPercentage(40.0)
+                    .build();
+
+            when(budgetRepository.findBudgetSummaryById(budgetId)).thenReturn(Optional.of(summary));
+            User enrichedUser = User.builder()
+                    .id(userId)
+                    .firstName("John")
+                    .lastName("Doe")
+                    .build();
+            when(userClient.getUsersByIds(List.of(userId))).thenReturn(List.of(enrichedUser));
+
+            BudgetSummary result = budgetService.getBudgetSummaryByIdAndUserId(budgetId, userId);
+
+            assertEquals(budgetId, result.budget().id(), "id should match");
+            assertEquals(userId, result.budget().user().id(), "user should match");
+            assertEquals("John", result.budget().user().firstName(), "firstName should be enriched");
+            assertEquals("Doe", result.budget().user().lastName(), "lastName should be enriched");
+            assertEquals(500.0, result.budget().allocated(), "allocated should match");
+            assertEquals(200.0, result.spent(), "spent should match");
+            assertEquals(40.0, result.spentPercentage(), "spentPercentage should match");
+
+            verify(budgetRepository, times(1)).findBudgetSummaryById(budgetId);
+            verify(userClient, times(1)).getUsersByIds(List.of(userId));
+        }
+
+        @Test
+        void givenExistingBudgetWithDifferentUserId_thenThrowsBudgetNotFoundException() {
+            UUID budgetId = UUID.randomUUID();
+            UUID correctUserId = UUID.randomUUID();
+            UUID wrongUserId = UUID.randomUUID();
+
+            Category category = Category.builder()
+                    .id(UUID.randomUUID())
+                    .name("GROCERIES")
+                    .type(TransactionType.EXPENSE)
+                    .userId(correctUserId)
+                    .icon("local_grocery_store")
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            Budget budget = Budget.builder()
+                    .id(budgetId)
+                    .user(User.of(correctUserId))
+                    .updatedBy(User.of(correctUserId))
+                    .period(BudgetPeriod.MONTHLY)
+                    .category(category)
+                    .allocated(500.0)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            BudgetSummary summary = BudgetSummary.builder()
+                    .budget(budget)
+                    .spent(200.0)
+                    .spentPercentage(40.0)
+                    .build();
+
+            when(budgetRepository.findBudgetSummaryById(budgetId)).thenReturn(Optional.of(summary));
+
+            assertThatThrownBy(() -> budgetService.getBudgetSummaryByIdAndUserId(budgetId, wrongUserId))
+                    .isInstanceOf(BudgetNotFoundException.class);
+
+            verify(budgetRepository, times(1)).findBudgetSummaryById(budgetId);
         }
     }
 }
