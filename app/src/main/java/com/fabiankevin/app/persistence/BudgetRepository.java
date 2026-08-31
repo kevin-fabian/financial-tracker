@@ -25,4 +25,6 @@ public interface BudgetRepository {
     List<Budget> findAllByUserIdAndCreatedAtBetween(UUID userId, Instant startInclusive, Instant endExclusive);
 
     List<BudgetSummary> findAllBudgetSummaryByUserId(List<UUID> usersId, LocalDate startMonth, LocalDate endMonth);
+
+    Optional<BudgetSummary> findBudgetSummaryById(UUID id);
 }

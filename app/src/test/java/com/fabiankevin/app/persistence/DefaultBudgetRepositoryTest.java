@@ -140,6 +140,113 @@ class DefaultBudgetRepositoryTest {
     }
 
     @Nested
+    class FindBudgetSummaryById {
+        @Test
+        void givenExistingIdWithTransactions_returnsSummaryWithSpent() {
+            // Arrange: save category entity first, then budget, then transactions
+            CategoryEntity savedCategory = jpaCategoryRepository.save(CategoryEntity.from(budget.category()));
+
+            BudgetEntity savedBudgetEntity = jpaBudgetRepository.save(BudgetEntity.builder()
+                    .id(budget.id())
+                    .userId(budget.user().id())
+                    .updatedBy(budget.updatedBy() != null ? budget.updatedBy().id() : null)
+                    .period(BudgetPeriod.MONTHLY)
+                    .category(savedCategory)
+                    .allocated(500.0)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build());
+
+            Instant now = Instant.now();
+            LocalDate today = LocalDate.now();
+            LocalDate monthStart = today.withDayOfMonth(1);
+            LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
+
+            TransactionEntity transaction1 = TransactionEntity.builder()
+                    .amount(150.0)
+                    .transactionDate(monthStart.plusDays(5))
+                    .category(savedCategory)
+                    .addedBy(budget.user().id())
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            TransactionEntity transaction2 = TransactionEntity.builder()
+                    .amount(200.0)
+                    .transactionDate(monthStart.plusDays(10))
+                    .category(savedCategory)
+                    .addedBy(budget.user().id())
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            jpaTransactionRepository.saveAll(List.of(transaction1, transaction2));
+
+            // Act
+            Optional<BudgetSummary> summaryOpt = budgetRepository.findBudgetSummaryById(savedBudgetEntity.getId());
+
+            // Assert
+            Assertions.assertThat(summaryOpt)
+                    .as("budget summary should be found")
+                    .isPresent();
+
+            BudgetSummary summary = summaryOpt.get();
+            assertNotNull(summary.budget(), "budget should not be null");
+            assertEquals(350.0, summary.spent(), "spent should be sum of transactions in current month");
+            assertEquals(500.0, summary.budget().allocated(), "allocated should match budget");
+            assertEquals(70.0, summary.spentPercentage(), "spentPercentage should be (350/500)*100");
+
+            verify(jpaBudgetRepository, times(1)).findByBudgetId(savedBudgetEntity.getId(), monthStart, monthEnd);
+        }
+
+        @Test
+        void givenExistingIdWithoutTransactions_returnsSummaryWithZeroSpent() {
+            // Arrange: save budget directly via JPA without any transactions
+            Instant now = Instant.now();
+            CategoryEntity savedCategory = jpaCategoryRepository.save(CategoryEntity.from(budget.category()));
+            BudgetEntity savedBudgetEntity = jpaBudgetRepository.save(BudgetEntity.builder()
+                    .id(budget.id())
+                    .userId(budget.user().id())
+                    .updatedBy(budget.updatedBy() != null ? budget.updatedBy().id() : null)
+                    .period(BudgetPeriod.MONTHLY)
+                    .category(savedCategory)
+                    .allocated(500.0)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+
+            // Act
+            Optional<BudgetSummary> summaryOpt = budgetRepository.findBudgetSummaryById(savedBudgetEntity.getId());
+
+            // Assert
+            Assertions.assertThat(summaryOpt)
+                    .as("budget summary should be found even without transactions")
+                    .isPresent();
+
+            BudgetSummary summary = summaryOpt.get();
+            assertNotNull(summary.budget(), "budget should not be null");
+            assertEquals(0.0, summary.spent(), "spent should be zero when no transactions exist");
+            assertEquals(500.0, summary.budget().allocated(), "allocated should match budget");
+            assertEquals(0.0, summary.spentPercentage(), "spentPercentage should be zero when no spending");
+
+            verify(jpaBudgetRepository, times(1)).findByBudgetId(savedBudgetEntity.getId(), LocalDate.now().withDayOfMonth(1), LocalDate.now().withDayOfMonth(LocalDate.now().lengthOfMonth()));
+        }
+
+        @Test
+        void givenNonExistingId_returnsEmptyOptional() {
+            // Act
+            Optional<BudgetSummary> summaryOpt = budgetRepository.findBudgetSummaryById(UUID.randomUUID());
+
+            // Assert
+            Assertions.assertThat(summaryOpt)
+                    .as("non-existing budget id should return empty optional")
+                    .isEmpty();
+
+            verify(jpaBudgetRepository, times(1)).findByBudgetId(any(), any(), any());
+        }
+    }
+
+    @Nested
     class FindAllBudgetSummaryByUserId {
         @Test
         void givenBudgetsWithTransactions_returnsSummariesWithSpentAndPercentage() {

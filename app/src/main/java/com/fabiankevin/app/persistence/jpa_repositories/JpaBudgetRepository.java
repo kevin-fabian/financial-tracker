@@ -46,4 +46,18 @@ public interface JpaBudgetRepository extends JpaRepository<BudgetEntity, UUID> {
     Streamable<BudgetSummaryProjection> findAllBudgetSummaryByUserIds(@Param("userIds") List<UUID> userIds,
                                                                        @Param("monthStart") LocalDate monthStart,
                                                                        @Param("monthEnd") LocalDate monthEnd);
+
+    @Query("""
+                SELECT b, COALESCE(SUM(t.amount), 0)
+                FROM BudgetEntity b
+                JOIN b.category c
+                LEFT JOIN TransactionEntity t ON t.category.id = c.id
+                        AND t.transactionDate >= :monthStart
+                        AND t.transactionDate <= :monthEnd
+                WHERE b.id = :budgetId
+                GROUP BY b.id, c.id
+            """)
+    Optional<BudgetSummaryProjection> findByBudgetId(@Param("budgetId") UUID budgetId,
+                                                     @Param("monthStart") LocalDate monthStart,
+                                                     @Param("monthEnd") LocalDate monthEnd);
 }

@@ -65,6 +65,16 @@ public class DefaultBudgetRepository implements BudgetRepository {
                 .toList();
     }
 
+    @Override
+    public Optional<BudgetSummary> findBudgetSummaryById(UUID id) {
+        LocalDate today = LocalDate.now();
+        LocalDate startMonth = today.withDayOfMonth(1);
+        LocalDate endMonth = today.withDayOfMonth(today.lengthOfMonth());
+
+        return jpaBudgetRepository.findByBudgetId(id, startMonth, endMonth)
+                .map(this::toSummary);
+    }
+
     private BudgetSummary toSummary(BudgetSummaryProjection projection) {
         double spent = projection.spent();
         Budget budget = projection.budget().toModel();
