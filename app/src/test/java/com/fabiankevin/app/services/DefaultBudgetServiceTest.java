@@ -1,11 +1,9 @@
 package com.fabiankevin.app.services;
 
-import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.BudgetAlreadyExistException;
 import com.fabiankevin.app.exceptions.BudgetNotFoundException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.models.Category;
-import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
@@ -14,6 +12,7 @@ import com.fabiankevin.app.persistence.BudgetRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.budgets.CreateBudgetCommand;
 import com.fabiankevin.app.services.commands.budgets.PatchBudgetCommand;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,19 +22,21 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultBudgetServiceTest {
+
     @Mock
     private BudgetRepository budgetRepository;
 
@@ -45,28 +46,32 @@ class DefaultBudgetServiceTest {
     @Mock
     private CategoryService categoryService;
 
-    @Mock
-    private UserClient userClient;
-
     @InjectMocks
     private DefaultBudgetService budgetService;
+
+    private UUID userId;
+    private UUID categoryId;
+    private Category category;
+
+    @BeforeEach
+    void setUp() {
+        userId = UUID.randomUUID();
+        categoryId = UUID.randomUUID();
+        category = Category.builder()
+                .id(categoryId)
+                .name("GROCERIES")
+                .type(TransactionType.EXPENSE)
+                .userId(userId)
+                .icon("local_grocery_store")
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+    }
 
     @Nested
     class CreateBudget {
         @Test
         void givenValidCommand_thenCreatesAndReturnsBudgetSummary() {
-            UUID userId = UUID.randomUUID();
-            UUID categoryId = UUID.randomUUID();
-            Category category = Category.builder()
-                    .id(categoryId)
-                    .name("GROCERIES")
-                    .type(TransactionType.EXPENSE)
-                    .userId(userId)
-                    .icon("local_grocery_store")
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
-                    .build();
-
             CreateBudgetCommand command = CreateBudgetCommand.builder()
                     .userId(userId)
                     .period(BudgetPeriod.MONTHLY)
@@ -74,54 +79,37 @@ class DefaultBudgetServiceTest {
                     .allocated(500.0)
                     .build();
 
-            UUID generatedId = UUID.randomUUID();
+            Budget budget = Budget.builder()
+                    .id(UUID.randomUUID())
+                    .userId(userId)
+                    .updatedBy(userId)
+                    .period(BudgetPeriod.MONTHLY)
+                    .category(category)
+                    .allocated(500.0)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(budgetRepository.existsByCategoryIdAndUserId(categoryId, userId)).thenReturn(false);
             when(categoryService.getCategoryById(categoryId, userId)).thenReturn(category);
-            when(budgetRepository.save(any())).thenAnswer(invocation -> {
-                Budget b = invocation.getArgument(0);
-                return b.toBuilder().id(generatedId).build();
-            });
+            when(budgetRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
             when(transactionRepository.sumSpentByCategoryIdAndUserId(eq(categoryId), eq(userId))).thenReturn(200.0);
-            when(userClient.getUsersByIds(List.of(userId)))
-                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
 
             BudgetSummary created = budgetService.createBudget(command);
 
-            // identity & ownership fields
-            assertEquals(generatedId, created.id(), "budget id should have been generated");
-            assertEquals(userId, created.userId(), "userId should match command");
-            assertNotNull(created.user(), "user should be enriched from UserClient");
-            assertEquals(userId, created.user().id(), "user id should match command");
-            assertEquals(userId, created.updatedBy().id(), "updatedBy should be set to userId");
-
-            // user fields from User model
-            assertEquals("John Doe", created.user().fullName(), "user fullName should be enriched from UserClient");
-            assertEquals("John", created.user().firstName(), "user firstName should be enriched from UserClient");
-            assertEquals("Doe", created.user().lastName(), "user lastName should be enriched from UserClient");
-            assertEquals("JD", created.user().initial(), "user initial should be enriched from UserClient");
-
-            // timestamps
-            assertNotNull(created.createdAt(), "createdAt should not be null");
-            assertNotNull(created.updatedAt(), "updatedAt should not be null");
-            assertNull(created.budgetMonth(), "budgetMonth should not be set");
-
-            // period & category fields
-            assertEquals(BudgetPeriod.MONTHLY, created.period(), "period should match command");
-            assertEquals(categoryId, created.categoryId(), "categoryId should be resolved from category");
-            assertEquals("GROCERIES", created.categoryName(), "categoryName should be resolved from category");
-            assertEquals("local_grocery_store", created.categoryIcon(), "categoryIcon should be resolved from category");
-
-            // members
-            assertEquals(List.of(), created.members(), "members should be empty");
-
-            // amount fields
-            assertEquals(500.0, created.allocated(), "allocated should match command");
+            assertNotNull(created.budget().id(), "id should be generated");
+            assertEquals(userId, created.budget().userId(), "userId should match command");
+            assertEquals(BudgetPeriod.MONTHLY, created.budget().period(), "period should match command");
+            assertEquals(categoryId, created.budget().category().id(), "categoryId should match command");
+            assertEquals("GROCERIES", created.budget().category().name(), "categoryName should be resolved from category");
+            assertEquals("local_grocery_store", created.budget().category().icon(), "categoryIcon should be resolved from category");
+            assertEquals(500.0, created.budget().allocated(), "allocated should match command");
             assertEquals(200.0, created.spent(), "spent should reflect summed transactions for the category");
             assertEquals(40.0, created.spentPercentage(), "spentPercentage should be spent/allocated*100");
 
             verify(categoryService, times(1)).getCategoryById(categoryId, userId);
             verify(budgetRepository, times(1)).save(any());
             verify(transactionRepository, times(1)).sumSpentByCategoryIdAndUserId(eq(categoryId), eq(userId));
-            verify(userClient, times(1)).getUsersByIds(List.of(userId));
         }
 
         @Test
@@ -172,76 +160,70 @@ class DefaultBudgetServiceTest {
     @Nested
     class GetBudgetsByUserId {
         @Test
-        void givenExistingBudgets_thenReturnsSummariesEnrichedWithLastUpdatedByName() {
+        void givenExistingBudgets_thenReturnsSummaries() {
             UUID userId = UUID.randomUUID();
+            UUID budgetId = UUID.randomUUID();
             UUID categoryId = UUID.randomUUID();
 
-            BudgetSummary summary = BudgetSummary.builder()
-                    .id(UUID.randomUUID())
+            Category category = Category.builder()
+                    .id(categoryId)
+                    .name("GROCERIES")
+                    .type(TransactionType.EXPENSE)
                     .userId(userId)
+                    .icon("local_grocery_store")
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            Budget budget = Budget.builder()
+                    .id(budgetId)
+                    .userId(userId)
+                    .updatedBy(userId)
                     .period(BudgetPeriod.MONTHLY)
-                    .categoryId(categoryId)
-                    .categoryName("GROCERIES")
-                    .categoryIcon("local_grocery_store")
+                    .category(category)
                     .allocated(500.0)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            BudgetSummary summary = BudgetSummary.builder()
+                    .budget(budget)
                     .spent(200.0)
                     .spentPercentage(40.0)
                     .build();
 
-            User user = User.builder()
-                    .id(userId)
-                    .firstName("John")
-                    .lastName("Doe")
-                    .build();
-
             when(budgetRepository.findAllBudgetSummaryByUserId(eq(List.of(userId)), any(LocalDate.class), any(LocalDate.class)))
                     .thenReturn(List.of(summary));
-            when(userClient.getUsersByIds(List.of(userId))).thenReturn(List.of(user));
 
             List<BudgetSummary> results = budgetService.getBudgetsByUserId(userId);
 
             assertThat(results).hasSize(1);
             BudgetSummary result = results.getFirst();
 
-            // identity & ownership fields preserved from source summary
-            assertEquals(summary.id(), result.id(), "id should be preserved");
-            assertEquals(summary.userId(), result.userId(), "userId should be preserved");
-            assertNotNull(result.user(), "user should be enriched from UserClient");
-            assertEquals(userId, result.user().id(), "user id should match");
-            assertNotNull(result.updatedBy(), "updatedBy should be enriched from UserClient");
-            assertEquals(userId, result.updatedBy().id(), "updatedBy id should match");
+            // identity & ownership fields preserved from nested budget
+            assertEquals(budgetId, result.budget().id(), "id should be preserved");
+            assertEquals(userId, result.budget().userId(), "userId should be preserved");
 
-            // user fields from User model
-            assertEquals("John Doe", result.user().fullName(), "user fullName should be enriched from UserClient");
-            assertEquals("John", result.user().firstName(), "user firstName should be enriched from UserClient");
-            assertEquals("Doe", result.user().lastName(), "user lastName should be enriched from UserClient");
-            assertEquals("JD", result.user().initial(), "user initial should be enriched from UserClient");
+            // timestamps & period preserved from nested budget
+            assertNotNull(result.budget().createdAt(), "createdAt should be preserved from source budget");
+            assertNotNull(result.budget().updatedAt(), "updatedAt should be preserved from source budget");
+            assertEquals(BudgetPeriod.MONTHLY, result.budget().period(), "period should be preserved");
 
-            // timestamps & period preserved from source summary
-            assertNull(result.updatedAt(), "updatedAt should be preserved from source summary");
-            assertNull(result.createdAt(), "createdAt should be preserved from source summary");
-            assertNull(result.budgetMonth(), "budgetMonth should be preserved from source summary");
-            assertEquals(BudgetPeriod.MONTHLY, result.period(), "period should be preserved");
+            // category fields preserved from nested budget
+            assertEquals(categoryId, result.budget().category().id(), "categoryId should be preserved");
+            assertEquals("GROCERIES", result.budget().category().name(), "categoryName should be preserved");
+            assertEquals("local_grocery_store", result.budget().category().icon(), "categoryIcon should be preserved");
 
-            // category fields preserved from source summary
-            assertEquals(categoryId, result.categoryId(), "categoryId should be preserved");
-            assertEquals("GROCERIES", result.categoryName(), "categoryName should be preserved");
-            assertEquals("local_grocery_store", result.categoryIcon(), "categoryIcon should be preserved");
-
-            // members preserved from source summary
-            assertNull(result.members(), "members should be preserved from source summary");
-
-            // amount fields preserved from source summary
-            assertEquals(500.0, result.allocated(), "allocated should be preserved");
+            // amount fields
+            assertEquals(500.0, result.budget().allocated(), "allocated should be preserved");
             assertEquals(200.0, result.spent(), "spent should be preserved");
             assertEquals(40.0, result.spentPercentage(), "spentPercentage should be preserved");
 
             verify(budgetRepository, times(1)).findAllBudgetSummaryByUserId(eq(List.of(userId)), any(LocalDate.class), any(LocalDate.class));
-            verify(userClient, times(1)).getUsersByIds(List.of(userId));
         }
 
         @Test
-        void givenNoBudgets_thenReturnsEmptyListAndDoesNotCallUserClient() {
+        void givenNoBudgets_thenReturnsEmptyList() {
             UUID userId = UUID.randomUUID();
 
             when(budgetRepository.findAllBudgetSummaryByUserId(eq(List.of(userId)), any(LocalDate.class), any(LocalDate.class)))
@@ -251,7 +233,6 @@ class DefaultBudgetServiceTest {
 
             assertThat(results).isEmpty();
             verify(budgetRepository, times(1)).findAllBudgetSummaryByUserId(eq(List.of(userId)), any(LocalDate.class), any(LocalDate.class));
-            verify(userClient, never()).getUsersByIds(any());
         }
     }
 
@@ -271,7 +252,7 @@ class DefaultBudgetServiceTest {
                     .updatedAt(Instant.now())
                     .build();
 
-            Instant lastMonth = Instant.now().atZone(ZoneOffset.UTC).minusMonths(1).toInstant();
+            Instant lastMonth = Instant.now().atZone(java.time.ZoneOffset.UTC).minusMonths(1).toInstant();
             Budget lastMonthBudget = Budget.builder()
                     .id(UUID.randomUUID())
                     .userId(userId)
@@ -287,19 +268,16 @@ class DefaultBudgetServiceTest {
                     .thenReturn(List.of(lastMonthBudget));
             when(categoryService.getCategoryById(categoryId, userId)).thenReturn(category);
             when(budgetRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-            when(userClient.getUsersByIds(List.of(userId)))
-                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+            when(transactionRepository.sumSpentByCategoryIdAndUserId(eq(categoryId), eq(userId))).thenReturn(0.0);
 
             List<BudgetSummary> results = budgetService.recreateBudgetsFromLastMonth(userId);
 
             assertThat(results).hasSize(1);
             BudgetSummary recreated = results.getFirst();
-            assertEquals(categoryId, recreated.categoryId());
-            assertEquals(BudgetPeriod.MONTHLY, recreated.period());
-            assertEquals(500.0, recreated.allocated());
+            assertEquals(categoryId, recreated.budget().category().id());
+            assertEquals(BudgetPeriod.MONTHLY, recreated.budget().period());
+            assertEquals(500.0, recreated.budget().allocated());
             assertEquals(0.0, recreated.spent());
-            assertNotNull(recreated.user(), "user should be enriched from UserClient");
-            assertEquals("John Doe", recreated.user().fullName(), "user fullName should be enriched from UserClient");
             verify(budgetRepository, times(1)).findAllByUserIdAndCreatedAtBetween(eq(userId), any(Instant.class), any(Instant.class));
             verify(budgetRepository, times(1)).save(any());
         }
@@ -323,7 +301,7 @@ class DefaultBudgetServiceTest {
     @Nested
     class PatchBudget {
         @Test
-        void givenValidCommand_thenUpdatesProvidedFieldsAndReturnsBudget() {
+        void givenValidCommand_thenUpdatesProvidedFieldsAndReturnsBudgetSummary() {
             UUID userId = UUID.randomUUID();
             UUID id = UUID.randomUUID();
             UUID newCategoryId = UUID.randomUUID();
@@ -368,49 +346,32 @@ class DefaultBudgetServiceTest {
             when(categoryService.getCategoryById(newCategoryId, userId)).thenReturn(newCategory);
             when(budgetRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
             when(transactionRepository.sumSpentByCategoryIdAndUserId(eq(newCategoryId), eq(userId))).thenReturn(200.0);
-            when(userClient.getUsersByIds(List.of(userId)))
-                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
 
             BudgetSummary updated = budgetService.patchBudget(command);
 
             // identity & ownership fields
-            assertEquals(id, updated.id(), "id should be preserved");
-            assertEquals(userId, updated.userId(), "userId should be preserved");
-            assertNotNull(updated.user(), "user should be enriched from UserClient");
-            assertEquals(userId, updated.user().id(), "user id should match");
-            assertNotNull(updated.updatedBy(), "updatedBy should be enriched from UserClient");
-            assertEquals(userId, updated.updatedBy().id(), "updatedBy id should match");
-
-            // user fields enriched from UserClient
-            assertEquals("John Doe", updated.user().fullName(), "user fullName should be enriched from UserClient");
-            assertEquals("John", updated.user().firstName(), "user firstName should be enriched from UserClient");
-            assertEquals("Doe", updated.user().lastName(), "user lastName should be enriched from UserClient");
-            assertEquals("JD", updated.user().initial(), "user initial should be enriched from UserClient");
+            assertEquals(id, updated.budget().id(), "id should be preserved");
+            assertEquals(userId, updated.budget().userId(), "userId should be preserved");
+            assertEquals(userId, updated.budget().updatedBy(), "updatedBy should be set");
 
             // timestamps
-            assertNotNull(updated.createdAt(), "createdAt should be preserved from existing budget");
-            assertNotNull(updated.updatedAt(), "updatedAt should not be null");
-            assertNull(updated.budgetMonth(), "budgetMonth should not be set");
+            assertNotNull(updated.budget().createdAt(), "createdAt should be preserved from existing budget");
+            assertNotNull(updated.budget().updatedAt(), "updatedAt should not be null");
 
             // period & category fields
-            assertEquals(BudgetPeriod.YEARLY, updated.period(), "period should be updated");
-            assertEquals(newCategoryId, updated.categoryId(), "categoryId should be updated");
-            assertEquals("RENT", updated.categoryName(), "categoryName should be updated");
-            assertEquals("home", updated.categoryIcon(), "categoryIcon should be updated");
-
-            // members
-            assertEquals(List.of(), updated.members(), "members should be empty");
+            assertEquals(BudgetPeriod.YEARLY, updated.budget().period(), "period should be updated");
+            assertEquals(newCategoryId, updated.budget().category().id(), "categoryId should be updated");
+            assertEquals("RENT", updated.budget().category().name(), "categoryName should be updated");
+            assertEquals("home", updated.budget().category().icon(), "categoryIcon should be updated");
 
             // amount fields
-            assertEquals(1000.0, updated.allocated(), "allocated should be updated");
-            assertEquals(200.0, updated.spent(), "spent should reflect summed transactions for the category");
-            assertEquals(20.0, updated.spentPercentage(), "spentPercentage should be spent/allocated*100");
+            assertEquals(1000.0, updated.budget().allocated(), "allocated should be updated");
+            assertEquals(200.0, updated.spent(), "spent should reflect summed transactions");
+            assertEquals(20.0, updated.spentPercentage(), "spentPercentage should be 200/1000*100");
 
             verify(budgetRepository, times(1)).findByIdAndUserId(id, userId);
             verify(categoryService, times(1)).getCategoryById(newCategoryId, userId);
             verify(budgetRepository, times(1)).save(any());
-            verify(transactionRepository, times(1)).sumSpentByCategoryIdAndUserId(eq(newCategoryId), eq(userId));
-            verify(userClient, times(1)).getUsersByIds(List.of(userId));
         }
 
         @Test
@@ -420,7 +381,6 @@ class DefaultBudgetServiceTest {
 
             PatchBudgetCommand command = PatchBudgetCommand.builder()
                     .id(id)
-                    .allocated(1000.0)
                     .userId(userId)
                     .build();
 
@@ -430,74 +390,16 @@ class DefaultBudgetServiceTest {
                     .isInstanceOf(BudgetNotFoundException.class);
 
             verify(budgetRepository, times(1)).findByIdAndUserId(id, userId);
-            verify(categoryService, never()).getCategoryById(any(), any());
-            verify(budgetRepository, never()).save(any());
-        }
-
-        @Test
-        void givenCategoryAlreadyHasBudget_thenThrowsBudgetAlreadyExistException() {
-            UUID userId = UUID.randomUUID();
-            UUID id = UUID.randomUUID();
-            UUID newCategoryId = UUID.randomUUID();
-
-            Budget existing = Budget.builder()
-                    .id(id)
-                    .userId(userId)
-                    .updatedBy(userId)
-                    .period(BudgetPeriod.MONTHLY)
-                    .category(Category.builder()
-                            .id(UUID.randomUUID())
-                            .name("GROCERIES")
-                            .type(TransactionType.EXPENSE)
-                            .userId(userId)
-                            .icon("local_grocery_store")
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
-                            .build())
-                    .allocated(500.0)
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
-                    .build();
-
-            PatchBudgetCommand command = PatchBudgetCommand.builder()
-                    .id(id)
-                    .categoryId(newCategoryId)
-                    .userId(userId)
-                    .build();
-
-            when(budgetRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(existing));
-            when(budgetRepository.existsByCategoryIdAndUserId(newCategoryId, userId)).thenReturn(true);
-
-            assertThatThrownBy(() -> budgetService.patchBudget(command))
-                    .isInstanceOf(BudgetAlreadyExistException.class);
-
-            verify(budgetRepository, times(1)).findByIdAndUserId(id, userId);
-            verify(budgetRepository, times(1)).existsByCategoryIdAndUserId(newCategoryId, userId);
-            verify(categoryService, never()).getCategoryById(any(), any());
             verify(budgetRepository, never()).save(any());
         }
     }
 
     @Nested
-    class DeleteBudgetById {
+    class DeleteBudget {
         @Test
-        void givenExistingBudget_thenDeletesBudget() {
-            UUID userId = UUID.randomUUID();
+        void givenValidIdAndUserId_thenDeletesBudget() {
             UUID id = UUID.randomUUID();
-
-            when(budgetRepository.deleteByIdAndUserId(id, userId)).thenReturn(1);
-
-            budgetService.deleteBudgetById(id, userId);
-
-            verify(budgetRepository, times(1)).deleteByIdAndUserId(id, userId);
-        }
-
-        @Test
-        void givenNonExistingBudget_thenReturnsWithoutError() {
             UUID userId = UUID.randomUUID();
-            UUID id = UUID.randomUUID();
-
-            when(budgetRepository.deleteByIdAndUserId(id, userId)).thenReturn(0);
 
             budgetService.deleteBudgetById(id, userId);
 

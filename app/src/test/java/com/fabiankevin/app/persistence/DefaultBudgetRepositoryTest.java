@@ -186,13 +186,13 @@ class DefaultBudgetRepositoryTest {
                     .as("should return one budget summary")
                     .hasSize(1);
             BudgetSummary summary = results.getFirst();
-            assertEquals(userId, summary.userId(), "userId should match");
-            assertEquals(BudgetPeriod.MONTHLY, summary.period(), "period should match");
-            assertEquals(500.0, summary.allocated(), "allocated should match");
+            assertEquals(userId, summary.budget().userId(), "userId should match");
+            assertEquals(BudgetPeriod.MONTHLY, summary.budget().period(), "period should match");
+            assertEquals(500.0, summary.budget().allocated(), "allocated should match");
             assertEquals(200.0, summary.spent(), "spent should be sum of transactions");
             assertEquals(40.0, summary.spentPercentage(), "spentPercentage should be spent/allocated*100");
-            assertNotNull(summary.id(), "category should not be null");
-            assertEquals("GROCERIES", summary.categoryName(), "category name should match");
+            assertNotNull(summary.budget().id(), "budget id should not be null");
+            assertEquals("GROCERIES", summary.budget().category().name(), "category name should match");
         }
 
         @Test
@@ -227,7 +227,7 @@ class DefaultBudgetRepositoryTest {
                     .as("should return one budget summary")
                     .hasSize(1);
             BudgetSummary summary = results.getFirst();
-            assertEquals(1000.0, summary.allocated(), "allocated should match");
+            assertEquals(1000.0, summary.budget().allocated(), "allocated should match");
             assertEquals(0.0, summary.spent(), "spent should be zero with no transactions");
             assertEquals(0.0, summary.spentPercentage(), "spentPercentage should be zero with no spent");
         }
@@ -289,7 +289,7 @@ class DefaultBudgetRepositoryTest {
                     .as("should return one budget summary")
                     .hasSize(1);
             BudgetSummary summary = results.getFirst();
-            assertEquals(800.0, summary.allocated(), "allocated should match");
+            assertEquals(800.0, summary.budget().allocated(), "allocated should match");
             assertEquals(150.0, summary.spent(), "spent should only include current month transactions (100 + 50), excluding previous month (300)");
             assertEquals(18.75, summary.spentPercentage(), "spentPercentage should be 150/800*100 = 18.75");
         }

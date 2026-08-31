@@ -1,10 +1,8 @@
 package com.fabiankevin.app.services;
 
-import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.BudgetAlreadyExistException;
 import com.fabiankevin.app.exceptions.BudgetNotFoundException;
 import com.fabiankevin.app.models.Category;
-import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.persistence.BudgetRepository;
@@ -19,9 +17,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +27,6 @@ public class DefaultBudgetService implements BudgetService {
     private final BudgetRepository budgetRepository;
     private final TransactionRepository transactionRepository;
     private final CategoryService categoryService;
-    private final UserClient userClient;
 
     @Transactional
     @Override
@@ -57,25 +54,11 @@ public class DefaultBudgetService implements BudgetService {
     }
 
     private BudgetSummary toSummary(Budget budget, double spent) {
-        List<User> users = userClient.getUsersByIds(List.of(budget.userId()));
-        User user = users.stream().findFirst().orElse(null);
-        User updatedBy = users.stream().findFirst().orElse(null);
         double allocated = budget.allocated();
         double spentPercentage = allocated > 0 ? (spent / allocated) * 100.0 : 0.0;
 
         return BudgetSummary.builder()
-                .id(budget.id())
-                .userId(budget.userId())
-                .user(user)
-                .updatedBy(updatedBy)
-                .updatedAt(budget.updatedAt())
-                .createdAt(budget.createdAt())
-                .period(budget.period())
-                .categoryId(budget.category().id())
-                .categoryName(budget.category().name())
-                .categoryIcon(budget.category().icon())
-                .members(List.of())
-                .allocated(allocated)
+                .budget(budget)
                 .spent(spent)
                 .spentPercentage(spentPercentage)
                 .build();
@@ -85,9 +68,8 @@ public class DefaultBudgetService implements BudgetService {
     public List<BudgetSummary> getBudgetsByUserId(UUID userId) {
         LocalDate monthStart = ZonedDateTime.now(ZoneOffset.UTC).withDayOfMonth(1).toLocalDate();
         LocalDate monthEnd = monthStart.plusMonths(1);
-        List<BudgetSummary> summaries = budgetRepository.findAllBudgetSummaryByUserId(
+        return budgetRepository.findAllBudgetSummaryByUserId(
                 List.of(userId), monthStart, monthEnd);
-        return enrichWithLastUpdatedByName(summaries);
     }
 
     @Transactional
@@ -108,27 +90,6 @@ public class DefaultBudgetService implements BudgetService {
                             .allocated(budget.allocated())
                             .build();
                     return createBudget(command);
-                })
-                .toList();
-    }
-
-    private List<BudgetSummary> enrichWithLastUpdatedByName(List<BudgetSummary> summaries) {
-        Set<UUID> userIds = summaries.stream()
-                .map(BudgetSummary::userId)
-                .collect(Collectors.toSet());
-
-        Map<UUID, User> usersById = userIds.isEmpty()
-                ? Map.of()
-                : userClient.getUsersByIds(new ArrayList<>(userIds)).stream()
-                .collect(Collectors.toMap(User::id, Function.identity()));
-
-        return summaries.stream()
-                .map(summary -> {
-                    User user = usersById.get(summary.userId());
-                    return summary.toBuilder()
-                            .user(user)
-                            .updatedBy(user)
-                            .build();
                 })
                 .toList();
     }

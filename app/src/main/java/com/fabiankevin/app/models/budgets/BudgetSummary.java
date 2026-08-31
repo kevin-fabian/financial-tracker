@@ -1,27 +1,10 @@
 package com.fabiankevin.app.models.budgets;
 
-import com.fabiankevin.app.models.User;
 import lombok.Builder;
-
-import java.time.Instant;
-import java.util.List;
-import java.util.UUID;
 
 @Builder(toBuilder = true)
 public record BudgetSummary(
-        UUID id,
-        UUID userId,
-        User user,
-        User updatedBy,
-        Instant updatedAt,
-        Instant createdAt,
-        String budgetMonth,
-        BudgetPeriod period,
-        UUID categoryId,
-        String categoryName,
-        String categoryIcon,
-        List<User> members,
-        double allocated,
+        Budget budget,
         double spent,
         double spentPercentage) {
 }

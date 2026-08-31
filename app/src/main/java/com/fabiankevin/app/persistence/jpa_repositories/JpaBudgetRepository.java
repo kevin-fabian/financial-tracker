@@ -34,9 +34,7 @@ public interface JpaBudgetRepository extends JpaRepository<BudgetEntity, UUID> {
                                                           @Param("endExclusive") Instant endExclusive);
 
     @Query("""
-                SELECT new com.fabiankevin.app.persistence.entities.projections.BudgetSummaryProjection(
-                       b.id, b.userId, b.updatedBy, b.updatedAt, b.createdAt, STR(b.period), b.allocated, c,
-                       COALESCE(SUM(t.amount), 0))
+                SELECT b, COALESCE(SUM(t.amount), 0)
                 FROM BudgetEntity b
                 JOIN b.category c
                 LEFT JOIN TransactionEntity t ON t.category.id = c.id

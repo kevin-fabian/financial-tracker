@@ -1,8 +1,6 @@
 package com.fabiankevin.app.persistence;
 
-import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.budgets.Budget;
-import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.persistence.entities.BudgetEntity;
 import com.fabiankevin.app.persistence.entities.projections.BudgetSummaryProjection;
@@ -69,23 +67,12 @@ public class DefaultBudgetRepository implements BudgetRepository {
 
     private BudgetSummary toSummary(BudgetSummaryProjection projection) {
         double spent = projection.spent();
-        double allocated = projection.allocated();
+        Budget budget = projection.budget().toModel();
+        double allocated = budget.allocated();
         double spentPercentage = allocated > 0 ? (spent / allocated) * 100.0 : 0.0;
-        UUID userId = projection.userId();
-        UUID lastUpdatedBy = projection.updatedBy();
 
         return BudgetSummary.builder()
-                .id(projection.id())
-                .userId(userId)
-                .user(User.of(userId))
-                .updatedBy(User.of(lastUpdatedBy))
-                .updatedAt(projection.updatedAt())
-                .createdAt(projection.createdAt())
-                .period(BudgetPeriod.valueOf(projection.period()))
-                .allocated(allocated)
-                .categoryId(projection.category().getId())
-                .categoryName(projection.category().getName())
-                .categoryIcon(projection.category().getIcon())
+                .budget(budget)
                 .spent(spent)
                 .spentPercentage(spentPercentage)
                 .build();

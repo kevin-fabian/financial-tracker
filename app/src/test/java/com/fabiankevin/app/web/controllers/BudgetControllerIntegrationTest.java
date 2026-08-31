@@ -85,9 +85,6 @@ class BudgetControllerIntegrationTest {
             createTransaction(account, category, 50.0);
             createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
 
-            when(userClient.getUsersByIds(List.of(userId)))
-                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
-
             mockMvc.perform(get("/api/budgets")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -99,10 +96,6 @@ class BudgetControllerIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(1))
                     .andExpect(jsonPath("$[0].updatedBy").value(userId.toString()))
-                    .andExpect(jsonPath("$[0].lastUpdatedByName").value("John Doe"))
-                    .andExpect(jsonPath("$[0].firstName").value("John"))
-                    .andExpect(jsonPath("$[0].lastName").value("Doe"))
-                    .andExpect(jsonPath("$[0].initial").value("JD"))
                     .andExpect(jsonPath("$[0].createdAt").exists())
                     .andExpect(jsonPath("$[0].updatedAt").exists())
                     .andExpect(jsonPath("$[0].period").value("MONTHLY"))
@@ -148,9 +141,6 @@ class BudgetControllerIntegrationTest {
 
             createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
 
-            when(userClient.getUsersByIds(List.of(userId)))
-                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
-
             mockMvc.perform(get("/api/budgets")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -174,9 +164,6 @@ class BudgetControllerIntegrationTest {
             createTransaction(account, category, 50.0, lastMonth);
             createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
 
-            when(userClient.getUsersByIds(List.of(userId)))
-                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
-
             mockMvc.perform(get("/api/budgets")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -188,7 +175,6 @@ class BudgetControllerIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(1))
                     .andExpect(jsonPath("$[0].updatedBy").value(userId.toString()))
-                    .andExpect(jsonPath("$[0].lastUpdatedByName").value("John Doe"))
                     .andExpect(jsonPath("$[0].createdAt").exists())
                     .andExpect(jsonPath("$[0].updatedAt").exists())
                     .andExpect(jsonPath("$[0].period").value("MONTHLY"))
@@ -244,7 +230,6 @@ class BudgetControllerIntegrationTest {
                     .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/budgets/[-a-f0-9]{36}")))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.id").isNotEmpty())
-                    .andExpect(jsonPath("$.lastUpdatedByName").value("John Doe"))
                     .andExpect(jsonPath("$.updatedBy").value(userId.toString()))
                     .andExpect(jsonPath("$.updatedAt").exists())
                     .andExpect(jsonPath("$.createdAt").exists())
@@ -287,7 +272,6 @@ class BudgetControllerIntegrationTest {
                     .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/budgets/[-a-f0-9]{36}")))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.id").isNotEmpty())
-                    .andExpect(jsonPath("$.lastUpdatedByName").value("John Doe"))
                     .andExpect(jsonPath("$.updatedAt").exists())
                     .andExpect(jsonPath("$.createdAt").exists())
                     .andExpect(jsonPath("$.period").value("MONTHLY"))
@@ -404,7 +388,8 @@ class BudgetControllerIntegrationTest {
         void givenValidRequest_thenShouldReturnUpdatedBudget() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-            BudgetSummary budget = createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+            BudgetSummary budgetSummary = createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+            Budget budget = budgetSummary.budget();
 
             PatchBudgetRequest request = PatchBudgetRequest.builder()
                     .period(BudgetPeriod.YEARLY)
@@ -445,8 +430,8 @@ class BudgetControllerIntegrationTest {
             Account account = createAccount(userId, "Cash Wallet");
             createTransaction(account, category, 150.0);
             createTransaction(account, category, 50.0);
-            BudgetSummary budget = createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
-
+            BudgetSummary budgetSummary = createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+            Budget budget = budgetSummary.budget();
             PatchBudgetRequest request = PatchBudgetRequest.builder()
                     .allocated(1000.0)
                     .build();
@@ -466,7 +451,6 @@ class BudgetControllerIntegrationTest {
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(budget.id().toString()))
-                    .andExpect(jsonPath("$.lastUpdatedByName").value("John Doe"))
                     .andExpect(jsonPath("$.updatedAt").exists())
                     .andExpect(jsonPath("$.createdAt").exists())
                     .andExpect(jsonPath("$.period").value("MONTHLY"))
@@ -528,9 +512,9 @@ class BudgetControllerIntegrationTest {
         void givenExistingBudget_thenShouldReturnNoContent() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-            BudgetSummary budget = createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+            BudgetSummary summary = createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
 
-            mockMvc.perform(delete("/api/budgets/" + budget.id())
+            mockMvc.perform(delete("/api/budgets/" + summary.budget().id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
