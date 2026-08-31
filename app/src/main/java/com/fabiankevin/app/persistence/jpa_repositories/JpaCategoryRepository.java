@@ -15,7 +15,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUID> {
-    Optional<CategoryEntity> findByIdAndUserId(UUID id, UUID userId);
+    @Query("""
+            SELECT c FROM CategoryEntity c
+            WHERE c.id = :id
+            AND (c.userId = :userId OR c.system = true)
+            """)
+    Optional<CategoryEntity> findByIdAndUserId(@Param("id") UUID id, @Param("userId") UUID userId);
+
     boolean existsByNameAndTransactionTypeAndUserId(String name, TransactionType type, UUID userId);
     int deleteByIdAndUserId(UUID id, UUID userId);
 

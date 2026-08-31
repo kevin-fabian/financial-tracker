@@ -10,6 +10,8 @@ import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.BudgetRepository;
+import com.fabiankevin.app.persistence.CategoryRepository;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.BudgetService;
 import com.fabiankevin.app.services.CategoryService;
@@ -37,6 +39,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Currency;
 import java.util.List;
@@ -73,6 +76,10 @@ class BudgetControllerIntegrationTest {
     private BudgetService budgetService;
     @Autowired
     private BudgetRepository budgetRepository;
+    @Autowired
+    private JpaCategoryRepository jpaCategoryRepository;
+    @Autowired
+    private CategoryRepository categoryRepository;
     @Autowired
     private JsonMapper jsonMapper;
 
@@ -460,6 +467,43 @@ class BudgetControllerIntegrationTest {
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.allocated").value(123.45));
         }
+
+        @Test
+        void givenSystemCategory_thenReturnsCreated() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category systemCategory = createSystemCategory("GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+
+            CreateBudgetRequest request = CreateBudgetRequest.builder()
+                    .period(BudgetPeriod.MONTHLY)
+                    .categoryId(systemCategory.id())
+                    .allocated(500.0)
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(post("/api/budgets")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/budgets/[-a-f0-9]{36}")))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").isNotEmpty())
+                    .andExpect(jsonPath("$.user.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.period").value("MONTHLY"))
+                    .andExpect(jsonPath("$.categoryId").value(systemCategory.id().toString()))
+                    .andExpect(jsonPath("$.categoryName").value("GROCERIES"))
+                    .andExpect(jsonPath("$.categoryIcon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$.allocated").value(500.0))
+                    .andExpect(jsonPath("$.spent").value(0.0))
+                    .andExpect(jsonPath("$.spentPercentage").value(0.0));
+        }
     }
 
     @Nested
@@ -832,6 +876,21 @@ class BudgetControllerIntegrationTest {
                 .icon(icon)
                 .userId(userId)
                 .build());
+    }
+
+    private Category createSystemCategory(String name, TransactionType type, String icon) {
+        var entity = com.fabiankevin.app.persistence.entities.CategoryEntity.builder()
+                .name(name)
+                .transactionType(type)
+                .icon(icon)
+                .userId(null)
+                .active(true)
+                .system(true)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+        var saved = jpaCategoryRepository.save(entity);
+        return saved.toModel();
     }
 
     private Account createAccount(UUID userId, String name) {
