@@ -43,7 +43,7 @@ public record TransactionResponse(
                 .account(AccountResponse.from(t.account()))
                 .type(t.category().type().name())
                 .category(CategoryResponse.from(t.category()))
-                .amount(AmountResponse.from(t.amount()))
+                .amount(new AmountResponse(t.amount(), t.account().currency()))
                 .description(t.description())
                 .transactionDate(t.transactionDate())
                 .createdAt(t.createdAt())

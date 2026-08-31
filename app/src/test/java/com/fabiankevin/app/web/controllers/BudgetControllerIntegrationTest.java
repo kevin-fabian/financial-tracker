@@ -2,7 +2,6 @@ package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.Account;
-import com.fabiankevin.app.models.Amount;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.budgets.Budget;
@@ -590,7 +589,7 @@ class BudgetControllerIntegrationTest {
 
     private void createTransaction(Account account, Category category, double amount, LocalDate date) {
         transactionService.addTransaction(AddTransactionCommand.builder()
-                .amount(Amount.of(amount, "USD"))
+                .amount(amount)
                 .transactionDate(date)
                 .categoryId(category.id())
                 .accountId(account.id())

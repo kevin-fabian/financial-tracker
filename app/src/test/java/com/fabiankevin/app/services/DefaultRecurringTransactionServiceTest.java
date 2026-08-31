@@ -331,8 +331,7 @@ class DefaultRecurringTransactionServiceTest {
             Transaction first = saved.get(0);
             assertEquals(recurringId1, first.recurringTransactionId(), "first transaction should reference recurring txn 1");
             assertEquals("Netflix", first.description(), "first description should match recurring");
-            assertEquals(15.99, first.amount().value(), "first amount should match recurring");
-            assertEquals(account.currency(), first.amount().currency(), "first currency should match account");
+            assertEquals(15.99, first.amount(), "first amount should match recurring");
             assertEquals(category, first.category(), "first category should match recurring");
             assertEquals(account, first.account(), "first account should match recurring");
             assertEquals(category.type(), first.type(), "first type should derive from category");
@@ -340,7 +339,7 @@ class DefaultRecurringTransactionServiceTest {
             Transaction second = saved.get(1);
             assertEquals(recurringId2, second.recurringTransactionId(), "second transaction should reference recurring txn 2");
             assertEquals("Spotify", second.description(), "second description should match recurring");
-            assertEquals(9.99, second.amount().value(), "second amount should match recurring");
+            assertEquals(9.99, second.amount(), "second amount should match recurring");
 
             verify(transactionRepository, times(1)).flush();
         }

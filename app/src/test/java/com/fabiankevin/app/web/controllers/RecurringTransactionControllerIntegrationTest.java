@@ -394,7 +394,6 @@ class RecurringTransactionControllerIntegrationTest {
                     .account(AccountEntity.from(account))
                     .category(CategoryEntity.from(category))
                     .amount(15.99)
-                    .currency(account.currency().getCurrencyCode())
                     .description("Monthly subscription")
                     .transactionDate(today)
                     .recurringTransactionId(saved.id())

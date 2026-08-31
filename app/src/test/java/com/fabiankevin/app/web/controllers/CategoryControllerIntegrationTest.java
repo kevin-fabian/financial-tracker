@@ -2,7 +2,6 @@ package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.Account;
-import com.fabiankevin.app.models.Amount;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
@@ -399,7 +398,7 @@ class CategoryControllerIntegrationTest {
             // Create 2 transactions for FOOD category
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(50.0, "USD"))
+                            .amount(50)
                             .transactionDate(LocalDate.now())
                             .categoryId(savedCategory1.id())
                             .accountId(account.id())
@@ -408,7 +407,7 @@ class CategoryControllerIntegrationTest {
             );
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(50.0, "USD"))
+                            .amount(50)
                             .transactionDate(LocalDate.now())
                             .categoryId(savedCategory1.id())
                             .accountId(account.id())
@@ -419,7 +418,7 @@ class CategoryControllerIntegrationTest {
             // Create 1 transaction for RENT category
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(100.0, "USD"))
+                            .amount(100)
                             .transactionDate(LocalDate.now())
                             .categoryId(savedCategory2.id())
                             .accountId(account.id())
@@ -620,7 +619,7 @@ class CategoryControllerIntegrationTest {
             // Create a transaction for the current user linked to the system category (via service)
            transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(50.0, "PHP"))
+                            .amount(50)
                             .transactionDate(LocalDate.now())
                             .categoryId(systemCategory.id())
                             .accountId(myAccount)
@@ -641,7 +640,7 @@ class CategoryControllerIntegrationTest {
             transactionService.addTransaction(AddTransactionCommand.builder()
                             .accountId(othersAccount.id())
                             .categoryId(systemCategory.id())
-                            .amount(Amount.of(100.0, "USD"))
+                            .amount(100)
                             .transactionDate(LocalDate.now())
                             .userId(otherUserId)
                     .build());
@@ -689,7 +688,7 @@ class CategoryControllerIntegrationTest {
             LocalDate lastMonthDate = LocalDate.now().minusMonths(1).withDayOfMonth(15);
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(200.0, "USD"))
+                            .amount(200)
                             .transactionDate(lastMonthDate)
                             .categoryId(savedCategory.id())
                             .accountId(account.id())
@@ -698,7 +697,7 @@ class CategoryControllerIntegrationTest {
             );
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(100.0, "USD"))
+                            .amount(100)
                             .transactionDate(lastMonthDate)
                             .categoryId(savedCategory.id())
                             .accountId(account.id())
@@ -710,7 +709,7 @@ class CategoryControllerIntegrationTest {
             LocalDate currentMonthDate = LocalDate.now().withDayOfMonth(10);
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(50.0, "USD"))
+                            .amount(50)
                             .transactionDate(currentMonthDate)
                             .categoryId(savedCategory.id())
                             .accountId(account.id())
@@ -969,7 +968,7 @@ class CategoryControllerIntegrationTest {
             // Create a transaction linked to this category
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(100.0, "USD"))
+                            .amount(100)
                             .transactionDate(LocalDate.now())
                             .categoryId(category.id())
                             .accountId(account.id())

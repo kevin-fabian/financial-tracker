@@ -1,23 +1,4 @@
-## IntelliJ MCP Tools
-
-Always prefer IntelliJ MCP over grep/regex/file tools.
-
-```
-# Search: symbol
-tool: mcp__intellij__search_symbol(q="PasswordChangeService")
-
-# Navigate: symbol info, call hierarchy
-tool: mcp__intellij__get_symbol_info(filePath="app/src/.../File.java", line=5, column=1)
-tool: mcp__intellij__analyze_calls(symbolFqn="com.fabiankevin.app.services.DefaultUserService.create", analysisKind="INCOMING_CALLS")
-
-# Analyze: file problems, lint
-tool: mcp__intellij__get_file_problems(filePath="app/src/.../File.java")
-tool: mcp__intellij__lint_files(files=["app/src/.../File.java"])
-
-# Edit: rename, format
-tool: mcp__intellij__rename_refactoring(pathInProject="app/src/.../File.java", symbolName="OldName", newName="NewName")
-tool: mcp__intellij__reformat_file(files=["app/src/.../File.java"])
-```
+# QWEN.md
 
 Personal financial tracker: multi-currency accounts, transactions, categories, aggregated statistics, budgets, recurring transactions, shopping lists, and party collaboration. Spring Boot 3 + Spring Security OAuth2 resource server, backed by PostgreSQL (local H2 for tests).
 

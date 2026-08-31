@@ -209,19 +209,23 @@ class DefaultAccountRepositoryTest {
             // acc3: 1x EXPENSE 300 => totalBalance = -300
             // net total = -200 (absolute sum for percentage = 600)
             jpaTransactionRepository.save(TransactionEntity.builder()
-                    .amount(50).currency("PHP").transactionDate(today)
+                    .amount(50)
+                    .transactionDate(today)
                     .account(jpaAccountRepository.findById(acc1.id()).orElseThrow())
                     .category(expenseCategory1).build());
             jpaTransactionRepository.save(TransactionEntity.builder()
-                    .amount(50).currency("PHP").transactionDate(today)
+                    .amount(50)
+                    .transactionDate(today)
                     .account(jpaAccountRepository.findById(acc1.id()).orElseThrow())
                     .category(expenseCategory1).build());
             jpaTransactionRepository.save(TransactionEntity.builder()
-                    .amount(200).currency("PHP").transactionDate(today)
+                    .amount(50)
+                    .transactionDate(today)
                     .account(jpaAccountRepository.findById(acc2.id()).orElseThrow())
                     .category(incomeCategory).build());
             jpaTransactionRepository.save(TransactionEntity.builder()
-                    .amount(300).currency("PHP").transactionDate(today)
+                    .amount(300)
+                    .transactionDate(today)
                     .account(jpaAccountRepository.findById(acc3.id()).orElseThrow())
                     .category(expenseCategory3).build());
 
@@ -276,11 +280,13 @@ class DefaultAccountRepositoryTest {
 
             // 2 EXPENSE transactions: 100 + 50 => totalBalance = -150
             jpaTransactionRepository.save(TransactionEntity.builder()
-                    .amount(100).currency("USD").transactionDate(today)
+                    .amount(100)
+                    .transactionDate(today)
                     .account(jpaAccountRepository.findById(account.id()).orElseThrow())
                     .category(expenseCategory).build());
             jpaTransactionRepository.save(TransactionEntity.builder()
-                    .amount(50).currency("USD").transactionDate(today)
+                    .amount(50)
+                    .transactionDate(today)
                     .account(jpaAccountRepository.findById(account.id()).orElseThrow())
                     .category(expenseCategory).build());
 

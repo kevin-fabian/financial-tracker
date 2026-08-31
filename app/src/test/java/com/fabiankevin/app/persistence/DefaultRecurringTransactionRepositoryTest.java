@@ -160,7 +160,6 @@ class DefaultRecurringTransactionRepositoryTest {
                             .transactionType(category.type()).userId(category.userId()).icon(category.icon())
                             .active(category.active()).createdAt(now).updatedAt(now).build())
                     .amount(15.99)
-                    .currency("USD")
                     .description("Monthly subscription")
                     .transactionDate(LocalDate.of(2026, 1, 15))
                     .recurringTransactionId(saved.id())

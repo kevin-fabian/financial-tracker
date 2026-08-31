@@ -2,7 +2,6 @@ package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.Account;
-import com.fabiankevin.app.models.Amount;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.models.enums.TransactionType;
@@ -16,7 +15,6 @@ import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
-import com.fabiankevin.app.web.controllers.dtos.AmountRequest;
 import com.fabiankevin.app.web.controllers.dtos.CreateTransactionRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchTransactionRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -125,7 +123,7 @@ class TransactionControllerIntegrationTest {
         @Test
         void givenValidRequest_thenReturnsCreatedWithTransactionResponse() throws Exception {
             CreateTransactionRequest request = CreateTransactionRequest.builder()
-                    .amount(Amount.of(100, "PHP"))
+                    .amount(100)
                     .description("Dinner")
                     .transactionDate(LocalDate.of(2026, 1, 1))
                     .categoryId(category.id())
@@ -163,7 +161,7 @@ class TransactionControllerIntegrationTest {
         @Test
         void givenNoJwt_thenReturnsUnauthorized() throws Exception {
             CreateTransactionRequest request = CreateTransactionRequest.builder()
-                    .amount(Amount.of(100, "PHP"))
+                    .amount(100)
                     .description("Dinner")
                     .transactionDate(LocalDate.of(2026, 1, 1))
                     .categoryId(category.id())
@@ -201,7 +199,7 @@ class TransactionControllerIntegrationTest {
         @Test
         void givenNonExistentAccount_thenReturnsNotFound() throws Exception {
             CreateTransactionRequest request = CreateTransactionRequest.builder()
-                    .amount(Amount.of(100, "PHP"))
+                    .amount(100)
                     .description("Dinner")
                     .transactionDate(LocalDate.of(2026, 1, 1))
                     .categoryId(category.id())
@@ -224,7 +222,7 @@ class TransactionControllerIntegrationTest {
         @Test
         void givenNonExistentCategory_thenReturnsNotFound() throws Exception {
             CreateTransactionRequest request = CreateTransactionRequest.builder()
-                    .amount(Amount.of(100, "PHP"))
+                    .amount(100)
                     .description("Dinner")
                     .transactionDate(LocalDate.of(2026, 1, 1))
                     .categoryId(UUID.randomUUID())
@@ -252,7 +250,7 @@ class TransactionControllerIntegrationTest {
         void givenValidParams_thenReturnsSummary() throws Exception {
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(50, "PHP"))
+                            .amount(50)
                             .description("Lunch")
                             .transactionDate(LocalDate.of(2026, 1, 15))
                             .categoryId(category.id())
@@ -263,7 +261,7 @@ class TransactionControllerIntegrationTest {
 
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(73, "PHP"))
+                            .amount(73)
                             .description("Dinner")
                             .transactionDate(LocalDate.of(2026, 6, 20))
                             .categoryId(category.id())
@@ -326,7 +324,7 @@ class TransactionControllerIntegrationTest {
         void givenTransactionsExist_thenReturnsPagedResponse() throws Exception {
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(100, "PHP"))
+                            .amount(100)
                             .description("t1")
                             .transactionDate(LocalDate.of(2026, 1, 1))
                             .categoryId(category.id())
@@ -337,7 +335,7 @@ class TransactionControllerIntegrationTest {
 
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(200, "PHP"))
+                            .amount(200)
                             .description("t2")
                             .transactionDate(LocalDate.of(2026, 1, 2))
                             .categoryId(category.id())
@@ -414,7 +412,7 @@ class TransactionControllerIntegrationTest {
 
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(100, "PHP"))
+                            .amount(100)
                             .description("expense")
                             .transactionDate(LocalDate.of(2026, 1, 1))
                             .categoryId(category.id())
@@ -425,7 +423,7 @@ class TransactionControllerIntegrationTest {
 
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(500, "PHP"))
+                            .amount(500)
                             .description("income")
                             .transactionDate(LocalDate.of(2026, 1, 2))
                             .categoryId(incomeCategory.id())
@@ -462,7 +460,7 @@ class TransactionControllerIntegrationTest {
         void givenExistingId_thenReturnsTransaction() throws Exception {
             Transaction created = transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(100, "PHP"))
+                            .amount(100)
                             .description("test transaction")
                             .transactionDate(LocalDate.of(2026, 1, 1))
                             .categoryId(category.id())
@@ -525,7 +523,7 @@ class TransactionControllerIntegrationTest {
         void givenValidPatchRequest_thenReturnsUpdatedTransaction() throws Exception {
             Transaction created = transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(100, "PHP"))
+                            .amount(100)
                             .description("original")
                             .transactionDate(LocalDate.of(2026, 1, 1))
                             .categoryId(category.id())
@@ -563,7 +561,7 @@ class TransactionControllerIntegrationTest {
         void givenNoJwt_thenReturnsUnauthorized() throws Exception {
             Transaction created = transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(100, "PHP"))
+                            .amount(100)
                             .description("original")
                             .transactionDate(LocalDate.of(2026, 1, 1))
                             .categoryId(category.id())
@@ -613,7 +611,7 @@ class TransactionControllerIntegrationTest {
 
             Transaction created = transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(100, "PHP"))
+                            .amount(100)
                             .description("original")
                             .transactionDate(LocalDate.of(2026, 1, 1))
                             .categoryId(category.id())
@@ -623,7 +621,7 @@ class TransactionControllerIntegrationTest {
             );
 
             PatchTransactionRequest request = PatchTransactionRequest.builder()
-                    .amount(new AmountRequest(250, Currency.getInstance("PHP")))
+                    .amount(250.0)
                     .categoryId(newCategory.id())
                     .transactionDate(LocalDate.of(2026, 3, 15))
                     .build();
@@ -657,7 +655,7 @@ class TransactionControllerIntegrationTest {
         void givenExistingTransaction_thenReturnsNoContent() throws Exception {
             Transaction created = transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(100, "PHP"))
+                            .amount(100)
                             .description("to delete")
                             .transactionDate(LocalDate.of(2026, 1, 1))
                             .categoryId(category.id())
@@ -684,7 +682,7 @@ class TransactionControllerIntegrationTest {
         void givenNoJwt_thenReturnsUnauthorized() throws Exception {
             Transaction created = transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(100, "PHP"))
+                            .amount(100)
                             .description("to delete")
                             .transactionDate(LocalDate.of(2026, 1, 1))
                             .categoryId(category.id())
@@ -733,7 +731,7 @@ class TransactionControllerIntegrationTest {
 
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(100, "PHP"))
+                            .amount(100)
                             .description("expense")
                             .transactionDate(LocalDate.of(2026, 1, 1))
                             .categoryId(category.id())
@@ -744,7 +742,7 @@ class TransactionControllerIntegrationTest {
 
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(500, "PHP"))
+                            .amount(500)
                             .description("income")
                             .transactionDate(LocalDate.of(2026, 1, 2))
                             .categoryId(incomeCategory.id())

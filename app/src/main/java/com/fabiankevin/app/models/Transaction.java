@@ -14,7 +14,7 @@ public record Transaction(
         Account account,
         TransactionType type,
         Category category,
-        Amount amount,
+        double amount,
         String description,
         LocalDate transactionDate,
         UUID recurringTransactionId,

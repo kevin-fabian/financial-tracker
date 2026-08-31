@@ -851,7 +851,7 @@ public class DefaultPartyServiceSpringBootTest {
         Category category = createOrGetCategory(userId);
 
         transactionService.addTransaction(AddTransactionCommand.builder()
-                .amount(Amount.of(amount))
+                .amount(amount)
                 .description("Ramen")
                 .userId(userId)
                 .accountId(account.id())
@@ -865,7 +865,7 @@ public class DefaultPartyServiceSpringBootTest {
         Category category = createOrGetIncomeCategory(userId);
 
         transactionService.addTransaction(AddTransactionCommand.builder()
-                .amount(Amount.of(amount))
+                .amount(amount)
                 .description("Salary")
                 .userId(userId)
                 .accountId(account.id())

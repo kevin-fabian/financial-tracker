@@ -129,6 +129,7 @@ Classify each test case as:
 Avoid generating tests merely to increase test count.
 
 ### 7. Create the test plan
+This will be reviewed by the user and the `test_plan.md` will be modified to correct the specs.
 
 Create:
 

@@ -2,7 +2,6 @@ package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.Account;
-import com.fabiankevin.app.models.Amount;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
@@ -363,7 +362,7 @@ class AccountControllerIntegrationTest {
 
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(5000.0, "PHP"))
+                            .amount(5000.0)
                             .transactionDate(LocalDate.now())
                             .categoryId(incomeCategory.id())
                             .accountId(account.id())
@@ -373,7 +372,7 @@ class AccountControllerIntegrationTest {
 
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(1500.0, "PHP"))
+                            .amount(1500.0)
                             .transactionDate(LocalDate.now())
                             .categoryId(expenseCategory.id())
                             .accountId(account.id())
@@ -383,7 +382,7 @@ class AccountControllerIntegrationTest {
 
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(500.0, "PHP"))
+                            .amount(500)
                             .transactionDate(LocalDate.now())
                             .categoryId(expenseCategory.id())
                             .accountId(account.id())
@@ -687,7 +686,7 @@ class AccountControllerIntegrationTest {
 
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(1000.0, "PHP"))
+                            .amount(1000.0)
                             .transactionDate(LocalDate.now())
                             .categoryId(incomeCategory.id())
                             .accountId(account.id())
@@ -697,7 +696,7 @@ class AccountControllerIntegrationTest {
 
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(200.0, "PHP"))
+                            .amount(200)
                             .transactionDate(LocalDate.now())
                             .categoryId(expenseCategory.id())
                             .accountId(account.id())
@@ -707,7 +706,7 @@ class AccountControllerIntegrationTest {
 
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(300.0, "PHP"))
+                            .amount(300)
                             .transactionDate(LocalDate.now())
                             .categoryId(expenseCategory.id())
                             .accountId(account.id())
@@ -762,7 +761,7 @@ class AccountControllerIntegrationTest {
             LocalDate lastMonthDate = LocalDate.now().minusMonths(1).withDayOfMonth(15);
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(500.0, "PHP"))
+                            .amount(500)
                             .transactionDate(lastMonthDate)
                             .categoryId(incomeCategory.id())
                             .accountId(account.id())
@@ -771,7 +770,7 @@ class AccountControllerIntegrationTest {
             );
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(100.0, "PHP"))
+                            .amount(100)
                             .transactionDate(lastMonthDate)
                             .categoryId(expenseCategory.id())
                             .accountId(account.id())
@@ -783,7 +782,7 @@ class AccountControllerIntegrationTest {
             LocalDate currentMonthDate = LocalDate.now().withDayOfMonth(10);
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(1000.0, "PHP"))
+                            .amount(1000)
                             .transactionDate(currentMonthDate)
                             .categoryId(incomeCategory.id())
                             .accountId(account.id())
@@ -792,7 +791,7 @@ class AccountControllerIntegrationTest {
             );
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
-                            .amount(Amount.of(200.0, "PHP"))
+                            .amount(200)
                             .transactionDate(currentMonthDate)
                             .categoryId(expenseCategory.id())
                             .accountId(account.id())

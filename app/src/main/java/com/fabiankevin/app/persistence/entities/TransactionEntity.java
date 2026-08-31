@@ -1,6 +1,5 @@
 package com.fabiankevin.app.persistence.entities;
 
-import com.fabiankevin.app.models.Amount;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.Transaction;
 import jakarta.persistence.*;
@@ -11,7 +10,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.Currency;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -36,8 +34,6 @@ public class TransactionEntity {
     private CategoryEntity category;
     @Column(nullable = false)
     private double amount;
-    @Column(nullable = false, length = 3)
-    private String currency;
     private String description;
     private LocalDate transactionDate;
     private UUID recurringTransactionId;
@@ -50,8 +46,7 @@ public class TransactionEntity {
                 .id(transaction.id())
                 .account(AccountEntity.from(transaction.account()))
                 .category(CategoryEntity.from(transaction.category()))
-                .amount(transaction.amount().value())
-                .currency(transaction.amount().currency().getCurrencyCode())
+                .amount(transaction.amount())
                 .description(transaction.description())
                 .transactionDate(transaction.transactionDate())
                 .recurringTransactionId(transaction.recurringTransactionId())
@@ -66,10 +61,7 @@ public class TransactionEntity {
                 .account(Optional.ofNullable(this.account).map(AccountEntity::toModel).orElse(null))
                 .type(Optional.ofNullable(this.category).map(CategoryEntity::toModel).map(Category::type).orElse(null))
                 .category(Optional.ofNullable(this.category).map(CategoryEntity::toModel).orElse(null))
-                .amount(Amount.of(
-                        this.amount,
-                        Currency.getInstance(this.currency)
-                ))
+                .amount(this.amount)
                 .description(this.description)
                 .transactionDate(this.transactionDate)
                 .recurringTransactionId(this.recurringTransactionId)

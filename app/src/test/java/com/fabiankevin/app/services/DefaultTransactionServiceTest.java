@@ -72,7 +72,7 @@ class DefaultTransactionServiceTest {
            UUID userId = UUID.randomUUID();
            AddTransactionCommand command = AddTransactionCommand.builder()
                    .userId(userId)
-                   .amount(Amount.of(100, Currency.getInstance("PHP")))
+                   .amount(100)
                    .accountId(UUID.randomUUID())
                    .description("Food and drinks")
                    .categoryId(UUID.randomUUID())
@@ -113,7 +113,7 @@ class DefaultTransactionServiceTest {
            UUID userId = UUID.randomUUID();
            AddTransactionCommand command = AddTransactionCommand.builder()
                    .userId(userId)
-                   .amount(Amount.of(100, Currency.getInstance("PHP")))
+                   .amount(100)
                    .accountId(UUID.randomUUID())
                    .description("Food and drinks")
                    .categoryId(UUID.randomUUID())
@@ -134,7 +134,7 @@ class DefaultTransactionServiceTest {
            UUID otherUserId = UUID.randomUUID();
            AddTransactionCommand command = AddTransactionCommand.builder()
                    .userId(userId)
-                   .amount(Amount.of(100, Currency.getInstance("PHP")))
+                   .amount(100)
                    .accountId(UUID.randomUUID())
                    .description("Food and drinks")
                    .categoryId(UUID.randomUUID())
@@ -159,7 +159,7 @@ class DefaultTransactionServiceTest {
            UUID userId = UUID.randomUUID();
            AddTransactionCommand command = AddTransactionCommand.builder()
                    .userId(userId)
-                   .amount(Amount.of(100, Currency.getInstance("PHP")))
+                   .amount(100)
                    .accountId(UUID.randomUUID())
                    .description("Food and drinks")
                    .categoryId(UUID.randomUUID())
@@ -186,7 +186,7 @@ class DefaultTransactionServiceTest {
            UUID otherUserId = UUID.randomUUID();
            AddTransactionCommand command = AddTransactionCommand.builder()
                    .userId(userId)
-                   .amount(Amount.of(100, Currency.getInstance("PHP")))
+                   .amount(100)
                    .accountId(UUID.randomUUID())
                    .description("Food and drinks")
                    .categoryId(UUID.randomUUID())
@@ -218,7 +218,7 @@ class DefaultTransactionServiceTest {
            UUID sharedSpaceId = UUID.randomUUID();
            AddTransactionCommand command = AddTransactionCommand.builder()
                    .userId(userId)
-                   .amount(Amount.of(100, Currency.getInstance("PHP")))
+                   .amount(100)
                    .accountId(UUID.randomUUID())
                    .description("Food and drinks")
                    .categoryId(UUID.randomUUID())
@@ -254,7 +254,7 @@ class DefaultTransactionServiceTest {
            UUID userId = UUID.randomUUID();
            AddTransactionCommand command = AddTransactionCommand.builder()
                    .userId(userId)
-                   .amount(Amount.of(100, Currency.getInstance("PHP")))
+                   .amount(100)
                    .accountId(UUID.randomUUID())
                    .description("Food and drinks")
                    .categoryId(UUID.randomUUID())
@@ -289,7 +289,7 @@ class DefaultTransactionServiceTest {
            LocalDate today = LocalDate.now();
            AddTransactionCommand command = AddTransactionCommand.builder()
                    .userId(userId)
-                   .amount(Amount.of(100, Currency.getInstance("PHP")))
+                   .amount(100)
                    .accountId(UUID.randomUUID())
                    .description("Food and drinks")
                    .categoryId(UUID.randomUUID())
@@ -317,7 +317,7 @@ class DefaultTransactionServiceTest {
                 .account(Account.builder().id(UUID.randomUUID()).userId(userId).name("GCASH").currency(java.util.Currency.getInstance("PHP")).build())
                 .category(Category.builder().id(UUID.randomUUID()).type(TransactionType.EXPENSE).userId(userId).name("FOOD").build())
                 .type(TransactionType.EXPENSE)
-                .amount(Amount.of(100, java.util.Currency.getInstance("PHP")))
+                .amount(100)
                 .description("old")
                 .transactionDate(LocalDate.now())
                 .createdAt(Instant.now())
@@ -386,7 +386,7 @@ class DefaultTransactionServiceTest {
                 .account(Account.builder().id(UUID.randomUUID()).userId(userId).name("ACCT").currency(java.util.Currency.getInstance("PHP")).build())
                 .category(Category.builder().id(UUID.randomUUID()).type(TransactionType.EXPENSE).userId(userId).name("CAT").build())
                 .type(TransactionType.EXPENSE)
-                .amount(Amount.of(100, java.util.Currency.getInstance("PHP")))
+                .amount(100)
                 .description("desc")
                 .transactionDate(LocalDate.now())
                 .createdAt(java.time.Instant.now())
@@ -516,7 +516,7 @@ class DefaultTransactionServiceTest {
                 .account(Account.builder().id(UUID.randomUUID()).userId(userId).name("ACCT").currency(java.util.Currency.getInstance("PHP")).build())
                 .category(Category.builder().id(UUID.randomUUID()).type(TransactionType.INCOME).userId(userId).name("SALARY").build())
                 .type(TransactionType.INCOME)
-                .amount(Amount.of(5000, java.util.Currency.getInstance("PHP")))
+                .amount(5000)
                 .description("Salary")
                 .transactionDate(LocalDate.now())
                 .createdAt(Instant.now())

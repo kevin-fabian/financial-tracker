@@ -1,6 +1,5 @@
 package com.fabiankevin.app.services.commands;
 
-import com.fabiankevin.app.models.Amount;
 import lombok.Builder;
 
 import java.time.LocalDate;
@@ -12,7 +11,7 @@ public record PatchTransactionCommand(
         UUID accountId,
         String description,
         UUID categoryId,
-        Amount amount,
+        double amount,
         LocalDate transactionDate,
         UUID userId
 ) {

@@ -1,6 +1,5 @@
 package com.fabiankevin.app.web.controllers.dtos;
 
-import com.fabiankevin.app.models.Amount;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
@@ -13,8 +12,8 @@ import java.util.UUID;
 @Schema(description = "Request DTO for creating a transaction")
 public record CreateTransactionRequest(
         @NotNull(message = "Amount is required")
-        @Schema(description = "Amount object")
-        Amount amount,
+        @Schema(description = "Transaction amount", example = "100.00")
+        double amount,
 
         @Schema(description = "Transaction description", example = "Dinner with friends")
         String description,
@@ -33,11 +32,11 @@ public record CreateTransactionRequest(
 ) {
     public AddTransactionCommand toCommand(UUID userId) {
         return AddTransactionCommand.builder()
-                .amount(this.amount())
-                .description(this.description())
-                .transactionDate(this.transactionDate())
-                .categoryId(this.categoryId())
-                .accountId(this.accountId())
+                .amount(this.amount)
+                .description(this.description)
+                .transactionDate(this.transactionDate)
+                .categoryId(this.categoryId)
+                .accountId(this.accountId)
                 .userId(userId)
                 .build();
     }

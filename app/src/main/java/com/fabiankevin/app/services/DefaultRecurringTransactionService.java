@@ -2,7 +2,10 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.*;
-import com.fabiankevin.app.models.*;
+import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.Transaction;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransaction;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionSummary;
@@ -236,7 +239,7 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
                         .account(recurring.account())
                         .category(recurring.category())
                         .type(recurring.category().type())
-                        .amount(Amount.of(recurring.amount(), recurring.account().currency()))
+                        .amount(recurring.amount())
                         .description(recurring.description())
                         .transactionDate(today)
                         .recurringTransactionId(recurring.id())
