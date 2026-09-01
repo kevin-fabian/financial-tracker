@@ -20,7 +20,7 @@ public interface AccountRepository {
 
     Page<Account> getAccountsByPageAndUserId(PageQuery query, UUID userId);
 
-    Page<AccountSummary> findAllByPageQueryWithSummary(PageQuery query, UUID userId, LocalDate monthStart, LocalDate monthEnd);
+    Page<AccountSummary> findAllByPageQueryWithSummary(PageQuery query, List<UUID> userIds, LocalDate monthStart, LocalDate monthEnd);
 
     Optional<AccountSummary> findSummaryByIdAndUserId(UUID accountId, UUID userId);
 

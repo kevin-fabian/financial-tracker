@@ -63,13 +63,13 @@ public class DefaultAccountRepository implements AccountRepository {
     }
 
     @Override
-    public Page<AccountSummary> findAllByPageQueryWithSummary(PageQuery query, UUID userId, LocalDate monthStart, LocalDate monthEnd) {
+    public Page<AccountSummary> findAllByPageQueryWithSummary(PageQuery query, List<UUID> userIds, LocalDate monthStart, LocalDate monthEnd) {
         var pageable = PageRequest.of(
                 query.page(),
                 query.size(),
                 Sort.by(Sort.Direction.fromString(query.direction()), query.sort())
         );
-        var entityPage = jpaAccountRepository.findAllByUserIdWithSummary(userId, monthStart, monthEnd, pageable);
+        var entityPage = jpaAccountRepository.findAllByUserIdsWithSummary(userIds, monthStart, monthEnd, pageable);
 
         List<AccountSummary> content = entityPage.getContent().stream()
                 .map(projection -> AccountSummary.builder()

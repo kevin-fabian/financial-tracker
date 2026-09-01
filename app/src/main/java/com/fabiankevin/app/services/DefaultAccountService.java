@@ -160,7 +160,7 @@ public class DefaultAccountService implements AccountService {
 
     @Override
     public Page<AccountSummary> getAccountSummariesByPageQuery(PageQuery query, UUID userId, LocalDate monthStart, LocalDate monthEnd) {
-        Page<AccountSummary> summaries = accountRepository.findAllByPageQueryWithSummary(query, userId, monthStart, monthEnd);
+        Page<AccountSummary> summaries = accountRepository.findAllByPageQueryWithSummary(query, List.of(userId), monthStart, monthEnd);
         return Page.<AccountSummary>builder()
                 .content(enrichWithUserData(summaries.content()))
                 .page(summaries.page())

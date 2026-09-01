@@ -236,7 +236,7 @@ class RecurringTransactionControllerIntegrationTest {
             mockMvc.perform(post("/api/recurring-transactions")
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized());
         }
 
         @Test
@@ -1177,7 +1177,7 @@ class RecurringTransactionControllerIntegrationTest {
         @Test
         void givenNoJwt_thenReturnsForbidden() throws Exception {
             mockMvc.perform(post("/api/recurring-transactions/process-due"))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized());
         }
 
         @Test

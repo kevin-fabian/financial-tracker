@@ -32,13 +32,13 @@ public interface JpaAccountRepository extends JpaRepository<AccountEntity, UUID>
             LEFT JOIN TransactionEntity t ON t.account.id = acc.id
                 AND t.transactionDate >= :monthStart
                 AND t.transactionDate <= :monthEnd
-                AND t.account.userId = :userId
+                AND t.account.userId IN (:userIds)
             LEFT JOIN t.category
-            WHERE acc.userId = :userId
+            WHERE acc.userId IN (:userIds)
             GROUP BY acc
             """)
-    Page<AccountSummaryProjection> findAllByUserIdWithSummary(
-            @Param("userId") UUID userId,
+    Page<AccountSummaryProjection> findAllByUserIdsWithSummary(
+            @Param("userIds") List<UUID> userIds,
             @Param("monthStart") LocalDate monthStart,
             @Param("monthEnd") LocalDate monthEnd,
             Pageable pageable);

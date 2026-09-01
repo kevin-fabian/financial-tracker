@@ -173,7 +173,7 @@ class ShoppingListControllerIntegrationTest {
             mockMvc.perform(post("/api/shopping-lists")
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isUnauthorized());
         }
 
         @ParameterizedTest

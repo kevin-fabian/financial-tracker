@@ -233,7 +233,7 @@ class DefaultAccountRepositoryTest {
             PageQuery query = new PageQuery(0, 10, "name", "ASC");
             LocalDate monthStart = today.withDayOfMonth(1);
             LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
-            Page<AccountSummary> page = accountRepository.findAllByPageQueryWithSummary(query, userId, monthStart, monthEnd);
+            Page<AccountSummary> page = accountRepository.findAllByPageQueryWithSummary(query, List.of(userId), monthStart, monthEnd);
 
             Assertions.assertThat(page.content()).as("page should contain 3 summaries").hasSize(3);
             Assertions.assertThat(page.totalElements()).isEqualTo(3);
@@ -294,7 +294,7 @@ class DefaultAccountRepositoryTest {
             PageQuery query = new PageQuery(0, 10, "name", "ASC");
             LocalDate monthStart = today.withDayOfMonth(1);
             LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
-            Page<AccountSummary> page = accountRepository.findAllByPageQueryWithSummary(query, userId, monthStart, monthEnd);
+            Page<AccountSummary> page = accountRepository.findAllByPageQueryWithSummary(query, List.of(userId), monthStart, monthEnd);
 
             Assertions.assertThat(page.content()).as("page should contain 1 summary").hasSize(1);
             AccountSummary summary = page.content().getFirst();
@@ -310,7 +310,7 @@ class DefaultAccountRepositoryTest {
             LocalDate today = LocalDate.now();
             LocalDate monthStart = today.withDayOfMonth(1);
             LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
-            Page<AccountSummary> page = accountRepository.findAllByPageQueryWithSummary(query, userId, monthStart, monthEnd);
+            Page<AccountSummary> page = accountRepository.findAllByPageQueryWithSummary(query, List.of(userId), monthStart, monthEnd);
 
             Assertions.assertThat(page.content()).as("page should be empty when no accounts exist").isEmpty();
             Assertions.assertThat(page.totalElements()).isZero();
