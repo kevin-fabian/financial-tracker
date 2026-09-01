@@ -193,6 +193,51 @@ class BudgetControllerIntegrationTest {
         }
 
         @Test
+        void givenTwoUsersWithBudgetsNoParty_thenReturnsOnlyOwnBudgets() throws Exception {
+            UUID userId = UUID.randomUUID();
+            UUID otherUserId = UUID.randomUUID();
+
+            Category userCategory = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Category otherCategory = createCategory(otherUserId, "DINING", TransactionType.EXPENSE, "restaurant");
+            createBudget(userId, userCategory, BudgetPeriod.MONTHLY, 500.0);
+            createBudget(otherUserId, otherCategory, BudgetPeriod.MONTHLY, 300.0);
+
+            // Mock user client for both users (enrichment still needs both)
+            when(userClient.getUsersByIds(argThat(ids -> ids.contains(userId))))
+                    .thenReturn(
+                            List.of(
+                                    User.builder().id(userId).firstName("Alice").lastName("Smith").build(),
+                                    User.builder().id(otherUserId).firstName("Bob").lastName("Jones").build()
+                            )
+                    );
+
+            mockMvc.perform(get("/api/budgets")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].user.id").value(userId.toString()))
+                    .andExpect(jsonPath("$[0].user.firstName").value("Alice"))
+                    .andExpect(jsonPath("$[0].user.lastName").value("Smith"))
+                    .andExpect(jsonPath("$[0].user.initial").value("AS"))
+                    .andExpect(jsonPath("$[0].updatedBy.id").value(userId.toString()))
+                    .andExpect(jsonPath("$[0].updatedBy.firstName").value("Alice"))
+                    .andExpect(jsonPath("$[0].updatedBy.lastName").value("Smith"))
+                    .andExpect(jsonPath("$[0].updatedBy.initial").value("AS"))
+                    .andExpect(jsonPath("$[0].period").value("MONTHLY"))
+                    .andExpect(jsonPath("$[0].categoryName").value("GROCERIES"))
+                    .andExpect(jsonPath("$[0].categoryIcon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$[0].allocated").value(500.0))
+                    .andExpect(jsonPath("$[0].spent").value(0.0))
+                    .andExpect(jsonPath("$[0].spentPercentage").value(0.0));
+        }
+
+        @Test
         void givenUserWithPartyMembers_thenReturnsConsolidatedBudgets() throws Exception {
             UUID userId = UUID.randomUUID();
             UUID otherUserId = UUID.randomUUID();
