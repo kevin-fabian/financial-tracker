@@ -2,20 +2,22 @@
 
 ## Overview
 
-Bill Split enables party members to split transactions across multiple users and settle outstanding obligations. A single transaction (e.g., a dinner paid by one person) is allocated across party members via **splits**, and each member's net obligation is tracked through **settlements**.
+Bill Split enables users to split transactions across multiple participants and settle outstanding obligations. A single transaction (e.g., a dinner paid by one person) is allocated across participants via **splits**, and each participant's net obligation is tracked through **settlements**.
+
+This feature is **party agnostic** — it works without requiring the party schema. Participants are identified by player IDs; no party membership validation is performed.
 
 ## Primary Resource
 
-**Split** — an allocation of a transaction's cost across party members.
+**Split** — an allocation of a transaction's cost across participants.
 
 | Attribute | Detail |
 |-----------|--------|
-| Purpose | Record how much each party member owes for a shared transaction |
+| Purpose | Record how much each participant owes for a shared transaction |
 | Source of truth | `splits` database table |
 | Inputs | Transaction reference, participant (playerId), share amount, split type |
 | Outputs | Per-member obligation, aggregate balance, settlement targets |
-| Business rules | Sum of shares ≤ transaction amount; participant must be a party member; owner auto-included if not explicitly split |
-| Relationships | Belongs to one `Party`; references one `Transaction`; each participant has zero or more splits |
+| Business rules | Sum of shares ≤ transaction amount; at least one participant required |
+| Relationships | References one `Transaction`; each participant has zero or more splits |
 
 ## Supporting Resources
 
@@ -23,12 +25,12 @@ Bill Split enables party members to split transactions across multiple users and
 
 | Attribute | Detail |
 |-----------|--------|
-| Purpose | Record when one party member pays another to reduce their obligation |
+| Purpose | Record when one participant pays another to reduce their obligation |
 | Source of truth | `settlements` database table |
 | Inputs | Payer (playerId), payee (playerId), amount, optional description, optional related split IDs |
 | Outputs | Updated net balance between payer and payee |
-| Business rules | Both must be party members; amount > 0; settlement reduces the payer's net obligation to the payee |
-| Relationships | Belongs to one `Party`; references two `PlayerId`s (payer, payee); optionally references splits |
+| Business rules | amount > 0; settlement reduces the payer's net obligation to the payee |
+| Relationships | References two `PlayerId`s (payer, payee); optionally references splits; optionally references a transaction (Q4) |
 
 ### SplitTransaction (extension of Transaction)
 
@@ -39,7 +41,7 @@ Bill Split enables party members to split transactions across multiple users and
 | Inputs | `is_split` flag on transaction; split records in `splits` table |
 | Outputs | Transaction participates in split calculations |
 | Business rules | A split transaction must have at least one split record; total split amount ≤ transaction amount |
-| Relationships | One-to-many with `splits`; belongs to one `Party` (inferred from first split's party) |
+| Relationships | One-to-many with `splits` |
 
 ### Balance (derived, not persisted)
 
@@ -89,23 +91,20 @@ Bill Split enables party members to split transactions across multiple users and
 
 **Trade-off**: Equal splits are a convenience layer on top of custom splits — the system still creates individual `splits` rows.
 
-### AD-4: Party boundary
+### AD-4: Party-agnostic design
 
-**Decision**: Splits and settlements are party-agnostic (not scoped to a `Party`).
+**Decision**: Splits and settlements are party-agnostic. No `party_id` columns. No party membership validation.
 
 **Why**:
-- Human decision: bill-split is party agnostic. The feature works without requiring the party schema.
-- The `party_id` columns exist in the data model for future party-scoped queries, but are not required for core functionality.
-- Splits reference transactions (which have an `addedBy` user), not party memberships.
+- Human decision: bill-split works without requiring the party schema.
+- Participants are identified by player IDs directly.
+- Splits reference transactions (which have an `addedBy` user) for payee identification.
 - Settlements reference player IDs directly.
 
-**Contradiction note**: AD-4 as originally written stated splits/settlements are scoped to a Party. This contradicts the human decision that bill-split is party agnostic. The data model (party_id columns), data flows (party-scoped queries), and use cases (UC-3 party membership validation) all reference parties, but the human decision is to make bill-split work without requiring the party schema.
-
 **How it works**:
-- `party_id` columns exist in `splits` and `settlements` tables for referential integrity but are nullable.
-- Split participants are validated against party membership only if a party_id is provided.
-- Settlements can be created between any two player IDs (party membership validation is optional).
-- When party schema migrations (V1.0.5) are created, party-scoped queries can be enabled.
+- No `party_id` columns in `splits` or `settlements` tables.
+- No party membership validation for split participants or settlement parties.
+- Payee identification comes from the transaction's `addedBy` field (Q1 resolved).
 
 ### AD-5: Transaction ownership vs. split ownership
 
@@ -114,16 +113,16 @@ Bill Split enables party members to split transactions across multiple users and
 **Why**:
 - The transaction's payer (the account owner) is distinct from the split participants (who owe money).
 - Example: Alice pays $100 at a restaurant (transaction owner = Alice). The split allocates $33.33 each to Alice, Bob, and Carol. Bob and Carol each owe Alice $33.33.
-- Settlements flow from non-owning participants back to the transaction owner (or between any two party members).
+- Settlements flow from non-owning participants back to the transaction owner (or between any two participants).
 
 ## Use Cases
 
 ### UC-1: Split a transaction equally
 
 1. User creates a transaction (e.g., $90 dinner).
-2. User marks the transaction as split and selects party members to include.
-3. System creates equal splits: $30 each for 3 members (including the owner).
-4. Non-owner members now owe the owner their share.
+2. User marks the transaction as split and selects participants to include.
+3. System creates equal splits: $30 each for 3 participants (including the owner).
+4. Non-owner participants now owe the owner their share.
 
 ### UC-2: Split a transaction with custom amounts
 
@@ -139,15 +138,15 @@ Bill Split enables party members to split transactions across multiple users and
 3. System creates a settlement record: payer=Bob, payee=Alice, amount=$30.
 4. Bob's balance with Alice is updated to $0.
 
-### UC-4: View party balances
+### UC-4: View balances
 
-1. User requests party balance summary.
-2. System computes net balance for each pair of party members.
+1. User requests balance summary.
+2. System computes net balance for each pair of participants.
 3. Result: who owes whom, and how much.
 
 ### UC-5: View split history
 
-1. User requests splits for a transaction or for the party.
+1. User requests splits for a transaction.
 2. System returns split records with participant, amount, and status.
 
 ## Boundaries
@@ -155,20 +154,20 @@ Bill Split enables party members to split transactions across multiple users and
 ### In scope
 
 - Split creation (equal and custom amounts).
-- Split listing (by transaction, by party, by participant).
+- Split listing (by transaction, by participant).
 - Split modification (adjust amounts before settlement).
 - Settlement creation and listing.
 - Balance computation (derived, not persisted).
-- Party-scoped split/settlement queries.
 
 ### Out of scope (future)
 
 - Partial settlements (settle only $10 of a $30 obligation).
-- Split status transitions (e.g., pending → confirmed → settled).
+- Split status transitions (e.g., pending → confirmed → settled) — deferred to v2 (Q11).
 - Multi-currency splits (all amounts in the transaction's currency).
 - Split reminders/notifications.
 - External payment integration (Venmo, PayPal, etc.).
 - Split approval workflow (no approval gate — splits are created directly).
+- Party-scoped split/settlement queries.
 
 ## Source of Truth Summary
 
@@ -178,7 +177,40 @@ Bill Split enables party members to split transactions across multiple users and
 | Split allocation | Split creator | `splits` (new) |
 | Settlement | Payer | `settlements` (new) |
 | Balance | Derived | Computed from splits + settlements |
-| Party membership | Party leader | `party_members` (existing) |
+
+## Architecture Decisions (continued)
+
+### AD-6: Split amount uses `BigDecimal` (not `double`)
+
+**Decision**: All amount fields use `BigDecimal` via the project's `Amount` model convention.
+
+**Why**: Floating-point `double` introduces rounding errors in financial calculations. The existing `Transaction` model uses `Amount` (backed by `BigDecimal`); splits and settlements must match.
+
+**Alternatives considered**:
+- `double` — rejected: rounding errors in currency arithmetic.
+- `NUMERIC` mapped to `double` in JPA — rejected: same precision loss.
+
+### AD-7: Settlement always creates a transaction
+
+**Decision**: Every settlement row creates a corresponding `TransactionEntity` record (expense type, payer's account, description referencing the settlement).
+
+**Why**:
+- Audit trail: the transaction ledger must reflect all money movements.
+- Balance consistency: the user's account balance decreases when they settle an obligation.
+- Existing `TransactionService` handles the creation; `SettlementService` delegates to it.
+
+**Trade-off**: Introduces a dependency from `SettlementService` → `TransactionService`. This is acceptable because settlement is a higher-level operation that composes transaction creation.
+
+### AD-8: `user_id` is a plain UUID (no FK constraint)
+
+**Decision**: `splits.user_id` and `settlements.payer_user_id` / `settlements.payee_user_id` are plain `UUID` columns with no database-level foreign key.
+
+**Why**:
+- Party-agnostic design: these UUIDs reference external identity providers (JWT `sub` claims, downstream user service).
+- No `party_id` scope means no meaningful FK to `party_members`.
+- Application-level validation ensures the UUIDs are valid player identifiers.
+
+**Trade-off**: No database referential integrity. Relies on application validation and the downstream user service for identity resolution.
 
 ## History
 
@@ -188,12 +220,14 @@ Bill Split enables party members to split transactions across multiple users and
 | 2026-09-01 | Review pass: 14 findings. AD-4 updated to reflect human decision (party agnostic). Contradictions documented. Missing resources identified (SplitType enum, exception classes, party schema migrations, SettlementEntity.updatedAt, settlement creates transaction). |
 | 2026-09-01 | Validation pass: 3 blocking issues, 9 inconsistencies, 6 missing information, 5 unresolved decisions, 7 warnings. Party schema not in migrations confirmed. Settlement creates transaction impact documented. |
 | 2026-09-01 | Q14 resolved: Only `amount` field can be patched. CF-4 (Patch Split) added to data-flow.md. Validation constraints documented. |
+| 2026-09-01 | Analysis pass: Q2 resolved (remove party_id columns). Q11 resolved (defer to v2). Q12 resolved (keep current design). Q13 consolidated into Q4. AD-4 updated to remove all party references. Data model, data flows, use cases, and boundaries updated to reflect party-agnostic design. |
+| 2026-09-01 | Artifact consistency pass: Removed all party_id columns from data-model.md. Removed party membership validation from data flows. Fixed API paths to party-agnostic. Added AD-6 (BigDecimal), AD-7 (settlement creates transaction), AD-8 (user_id plain UUID). Fixed entity amount type from double to BigDecimal. Clarified user_id semantics. |
 
 ## Implementation Readiness: NOT READY
 
 Blocking issues:
-1. Party schema migrations (V1.0.5) not created — party_id columns reference non-existent tables.
-2. Q4 decision: settlements create transactions — SettlementEntity needs `transaction_id` column, SettlementService needs transaction creation logic.
-3. Q2 contradiction: AD-4 states party-scoped but human decision is party agnostic — data model and data flows still reference parties extensively.
+1. `transactions` table needs `is_split` column (BOOLEAN, NOT NULL, DEFAULT FALSE) — not yet in V1.0.4 schema.
+2. New tables (`splits`, `settlements`) require Liquibase migration (V1.0.5).
+3. Party schema migrations (`parties`, `party_members`, `shared_items`, `invitations` tables) must exist before splits/settlements can reference party members for validation.
 
 See open-questions.md for full status.

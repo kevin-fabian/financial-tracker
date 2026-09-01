@@ -187,7 +187,7 @@ Contains the detailed persistence model and relationships for the primary and ma
 
 ### `data-flow.md`
 
-Contains detailed command/query and end-to-end data flows.
+Contains detailed command/query, record preview and end-to-end data flows.
 
 ### `open-questions.md`
 

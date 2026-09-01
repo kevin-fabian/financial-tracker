@@ -17,11 +17,12 @@ User ──creates transaction──→ TransactionController
                                 ↓
 User ──splits transaction──→ SplitController
                                 ↓
-                          (Request DTO → CreateSplitCommand)
+                          (Request DTO → CreateEqualSplitCommand)
                                 ↓
-                          SplitService.createSplit()
-                                ├─► Validate: transaction exists & belongs to user's party
-                                ├─► Validate: all selected players are party members
+                          SplitService.createEqualSplit()
+                                ├─► Validate: transaction exists? → TransactionNotFoundException
+                                ├─► Validate: participants list non-empty? → InvalidSplitException
+                                ├─► Validate: sum of shares ≤ transaction amount? → InvalidSplitException
                                 ├─► Calculate equal share: amount / participantCount
                                 ├─► For each participant:
                                 │     └─► Create SplitEntity (splitType = EQUAL)
@@ -34,21 +35,28 @@ User ──splits transaction──→ SplitController
 **Field lineage**:
 - `transaction.amount` (from AddTransactionCommand) ÷ `participantCount` → `Split.amount`
 - `transaction.id` → `Split.transactionId`
-- `party.id` → `Split.partyId`
-- `partyMember.playerId` → `Split.playerId`
+- `jwt.subject` (or downstream user service) → `Split.playerId`
 - `SplitType.EQUAL` → `Split.splitType`
+
+**API**: `POST /api/splits/equal`
+
+**Validation**:
+- Transaction exists → `TransactionNotFoundException`
+- At least one participant → `InvalidSplitException`
+- Sum of shares ≤ transaction amount → `InvalidSplitException`
+- No party membership validation (party-agnostic, AD-4)
 
 ### CF-2: Create Custom Split
 
 ```
 User ──splits transaction──→ SplitController
                                 ↓
-                          (Request DTO → CreateSplitCommand)
+                          (Request DTO → CreateCustomSplitCommand)
                                 ↓
-                          SplitService.createSplit()
-                                ├─► Validate: transaction exists & belongs to user's party
-                                ├─► Validate: all selected players are party members
-                                ├─► Validate: sum(custom amounts) ≤ transaction.amount
+                          SplitService.createCustomSplit()
+                                ├─► Validate: transaction exists? → TransactionNotFoundException
+                                ├─► Validate: participants list non-empty? → InvalidSplitException
+                                ├─► Validate: sum(custom amounts) ≤ transaction.amount? → InvalidSplitException
                                 ├─► For each participant with explicit amount:
                                 │     └─► Create SplitEntity (splitType = CUSTOM)
                                 ├─► For remaining participant (owner):
@@ -64,6 +72,13 @@ User ──splits transaction──→ SplitController
 - `SplitType.CUSTOM` → `Split.splitType` (explicit amounts)
 - `SplitType.EQUAL` → `Split.splitType` (auto-calculated remainder)
 
+**API**: `POST /api/splits/custom`
+
+**Validation**:
+- Transaction exists → `TransactionNotFoundException`
+- At least one participant → `InvalidSplitException`
+- Sum of custom amounts ≤ transaction amount → `InvalidSplitException`
+
 ### CF-3: Create Settlement
 
 ```
@@ -74,11 +89,11 @@ User (payer) ──settles──→ SettlementController
                       SettlementService.createSettlement()
                             ├─► Validate: payer player ID is valid
                             ├─► Validate: payee player ID is valid
-                            ├─► Validate: amount > 0
+                            ├─► Validate: amount > 0 → InvalidSettlementException
                             ├─► (Optional) Validate: amount ≤ outstanding balance
                             ├─► Create SettlementEntity
                             ├─► SettlementRepository.save()
-                            ├─► Create SettlementTransaction (Q4: settlement creates transaction)
+                            ├─► Create SettlementTransaction (AD-7: settlement creates transaction)
                             │     ├─► Use payer's account (the account that paid)
                             │     ├─► Description: "Settlement: {settlement.description}"
                             │     └─► TransactionService.addTransaction()
@@ -90,29 +105,29 @@ User (payer) ──settles──→ SettlementController
 **Field lineage**:
 - `jwt.subject` → `Settlement.payerPlayerId` (extracted from authentication)
 - `request.payeePlayerId` → `Settlement.payeePlayerId`
-- `request.amount` → `Settlement.amount`
+- `request.amount` → `Settlement.amount` (BigDecimal)
 - `request.description` → `Settlement.description`
-- `request.splitIds` → `Settlement.relatedSplitIds`
-- `party.id` (from payer's party membership, nullable) → `Settlement.partyId`
-- `payer.accountId` → `SettlementTransaction.accountId` (Q4: settlement creates transaction)
+- `request.relatedSplitIds` → `Settlement.relatedSplitIds` (JSON array)
+- `payer.accountId` → `SettlementTransaction.accountId` (AD-7: settlement creates transaction)
 
-### CF-4: Patch Split (Q5)
+**API**: `POST /api/settlements`
+
+### CF-4: Patch Split (Q5, Q14)
 
 ```
-User ──PATCH /api/parties/{partyId}/splits/{splitId}──→ SplitController
-                                                          ↓
-                                                      (Request DTO → PatchSplitCommand)
-                                                          ↓
-                                                      SplitService.patchSplit(splitId, command)
-                                                          ├─► Validate: split exists
-                                                          ├─► Validate: split belongs to user's party (if partyId provided)
-                                                          ├─► Validate: new amount ≥ 0
-                                                          ├─► Validate: sum of all splits for transaction still equals transaction amount
-                                                          ├─► Update SplitEntity.amount = command.newAmount
-                                                          ├─► Update SplitEntity.updatedAt = NOW()
-                                                          └─► SplitRepository.save(splitEntity)
-                                                          ↓
-                                                      [split updated]
+User ──PATCH /api/splits/{splitId}──→ SplitController
+                                        ↓
+                                    (Request DTO → PatchSplitCommand)
+                                        ↓
+                                    SplitService.patchSplit(splitId, command)
+                                        ├─► Validate: split exists → SplitNotFoundException
+                                        ├─► Validate: new amount ≥ 0 → InvalidSplitException
+                                        ├─► Validate: sum of all splits for transaction still equals transaction amount → InvalidSplitException
+                                        ├─► Update SplitEntity.amount = command.newAmount
+                                        ├─► Update SplitEntity.updatedAt = NOW()
+                                        └─► SplitRepository.save(splitEntity)
+                                        ↓
+                                    [split updated]
 ```
 
 **Field lineage**:
@@ -129,52 +144,57 @@ User ──PATCH /api/parties/{partyId}/splits/{splitId}──→ SplitControlle
 ### QF-1: Get Splits for a Transaction
 
 ```
-User ──GET /api/parties/{partyId}/transactions/{transactionId}/splits──→ SplitController
-                                                                          ↓
-                                                                      SplitService.getSplitsByTransaction(transactionId, userId)
-                                                                          ↓
-                                                                      SplitRepository.findByTransactionId(transactionId)
-                                                                          ↓
-                                                                      [List<SplitSummary>]
+User ──GET /api/transactions/{transactionId}/splits──→ SplitController
+                                                            ↓
+                                                        SplitService.getSplitsByTransaction(transactionId, userId)
+                                                            ↓
+                                                        SplitRepository.findByTransactionId(transactionId)
+                                                            ↓
+                                                        [List<SplitSummary>]
 ```
 
-**Projection** (SplitSummary):
-- `splitId` ← `Split.id`
-- `playerId` ← `Split.playerId`
+**Projection** (`SplitSummary` — JPQL DTO projection):
+- `splitId` ← `SplitEntity.id`
+- `playerId` ← `SplitEntity.playerId`
 - `playerName` ← enriched via `UserClient` (service layer)
-- `amount` ← `Split.amount`
-- `splitType` ← `Split.splitType`
+- `amount` ← `SplitEntity.amount`
+- `splitType` ← `SplitEntity.splitType`
 
-### QF-2: Get Party Balances
+### QF-2: Get User Balances
 
 ```
-User ──GET /api/parties/{partyId}/balances──→ SplitController
-                                                ↓
-                                            SplitService.getPartyBalances(partyId, userId)
-                                                ↓
-                                            SplitRepository.findByPartyId(partyId)
-                                                ↓
-                                            [List<Split>]
-                                                ↓
-                                            SettlementRepository.findByPartyId(partyId)
-                                                ↓
-                                            [List<Settlement>]
-                                                ↓
-                                            [Compute balances in service layer]
-                                                ↓
-                                            [List<BalanceSummary>]
+User ──GET /api/splits/balances──→ SplitController
+                                      ↓
+                                  SplitService.getBalances(userId)
+                                      ↓
+                                  SplitRepository.findByPlayerId(userId)
+                                      ↓
+                                  [List<Split>]
+                                      ↓
+                                  SettlementRepository.findByPayerOrPayee(userId)
+                                      ↓
+                                  [List<Settlement>]
+                                      ↓
+                                  [Compute balances in service layer]
+                                      ↓
+                                  [List<BalanceSummary>]
 ```
 
 **Balance computation** (service layer):
 ```
-For each party member pair (A, B):
-  splitOwedToA = Σ(splits where playerId = A)
-  splitOwedToB = Σ(splits where playerId = B)
-  settledAtoB = Σ(settlements where payer = A AND payee = B)
-  settledBtoA = Σ(settlements where payer = B AND payee = A)
+For each player pair (A, B) where A has splits or settlements with B:
+  splitOwedByA = Σ(splits where playerId = A)
+  splitOwedByB = Σ(splits where playerId = B)
+  settledAtoB = Σ(settlements where payerPlayerId = A AND payeePlayerId = B)
+  settledBtoA = Σ(settlements where payerPlayerId = B AND payeePlayerId = A)
 
-  balance(A, B) = splitOwedToA - splitOwedToB - settledAtoB + settledBtoA
+  balance(A, B) = splitOwedByA - splitOwedByB - settledAtoB + settledBtoA
 ```
+
+**Projection** (`BalanceSummary`):
+- `fromPlayerId` ← computed participant ID
+- `toPlayerId` ← computed participant ID
+- `netAmount` ← computed balance (BigDecimal)
 
 ### QF-3: Get User's Outstanding Obligations
 
@@ -188,25 +208,36 @@ User ──GET /api/splits/obligations──→ SplitController
                                     [List<ObligationSummary>]
 ```
 
-**ObligationSummary**:
-- `transactionId` ← `Split.transactionId`
-- `transactionDescription` ← from TransactionEntity
-- `transactionDate` ← from TransactionEntity
-- `amount` ← `Split.amount`
-- `payeePlayerId` ← transaction owner (from TransactionEntity.addedBy)
-- `payeeName` ← enriched via `UserClient`
+**ObligationSummary** (JPQL DTO projection):
+- `transactionId` ← `SplitEntity.transactionId`
+- `transactionDescription` ← `TransactionEntity.description`
+- `transactionDate` ← `TransactionEntity.date`
+- `amount` ← `SplitEntity.amount`
+- `payeePlayerId` ← `TransactionEntity.addedBy` (transaction owner)
+- `payeeName` ← enriched via `UserClient` (service layer)
+
+**Note**: Per Q12, payee is inferred from the transaction's `addedBy` field, not stored on the split. This requires a join `splits → transactions` in the query.
 
 ### QF-4: Get Settlement History
 
 ```
-User ──GET /api/parties/{partyId}/settlements──→ SettlementController
-                                                    ↓
-                                                SettlementService.getSettlements(partyId, userId)
-                                                    ↓
-                                                SettlementRepository.findByPartyId(partyId)
-                                                    ↓
-                                                [List<SettlementSummary>]
+User ──GET /api/settlements──→ SettlementController
+                                  ↓
+                              SettlementService.getSettlements(userId)
+                                  ↓
+                              SettlementRepository.findByPayerOrPayee(userId)
+                                  ↓
+                              [List<SettlementSummary>]
 ```
+
+**Projection** (`SettlementSummary` — JPQL DTO projection):
+- `settlementId` ← `SettlementEntity.id`
+- `payerPlayerId` ← `SettlementEntity.payerPlayerId`
+- `payeePlayerId` ← `SettlementEntity.payeePlayerId`
+- `amount` ← `SettlementEntity.amount`
+- `description` ← `SettlementEntity.description`
+- `relatedSplitIds` ← `SettlementEntity.relatedSplitIds`
+- `createdAt` ← `SettlementEntity.createdAt`
 
 ## End-to-End Flow: Split + Settle
 
@@ -233,6 +264,7 @@ User ──GET /api/parties/{partyId}/settlements──→ SettlementController
 └──────────┘                         └──────────────┘
                                         │
                                         │ settlement: Bob→Alice $30
+                                        │ settlement transaction created (AD-7)
                                         │ Bob's balance with Alice: $0
                                         ↓
 ┌──────────┐     view balances       ┌──────────────┐
@@ -250,14 +282,13 @@ User ──GET /api/parties/{partyId}/settlements──→ SettlementController
 ## Data Validation Points
 
 | Step | Validator | Rule | Error |
-|------|-----------|------|-------|
+|------|-----------|------|------|
 | Split creation | SplitService | Transaction exists | `TransactionNotFoundException` |
-| Split creation | SplitService | User is party member | `InsufficientAccessException` |
-| Split creation | SplitService | Participants are party members | `InvalidSplitException` |
+| Split creation | SplitService | Participants list non-empty | `InvalidSplitException` |
 | Split creation | SplitService | Sum of custom amounts ≤ transaction amount | `InvalidSplitException` |
 | Split creation | SplitService | At least one participant | `InvalidSplitException` |
-| Settlement creation | SettlementService | Payer is party member | `InsufficientAccessException` |
-| Settlement creation | SettlementService | Payee is party member (same party) | `InvalidSettlementException` |
+| Settlement creation | SettlementService | Payer player ID is valid | `InvalidSettlementException` |
+| Settlement creation | SettlementService | Payee player ID is valid | `InvalidSettlementException` |
 | Settlement creation | SettlementService | Amount > 0 | `InvalidSettlementException` |
 | Split patch (Q5) | SplitService | Split exists | `SplitNotFoundException` |
 | Split patch (Q5) | SplitService | New amount ≥ 0 | `InvalidSplitException` |
@@ -269,3 +300,4 @@ User ──GET /api/parties/{partyId}/settlements──→ SettlementController
 |------|--------|
 | 2026-09-01 | Initial data flow draft |
 | 2026-09-01 | CF-3 updated: settlement creates transaction flow (Q4 decision). Added CF-4 (Patch Split) for Q5 decision. Added constraints section to CF-4 (Q14: only amount field can be patched). |
+| 2026-09-01 | Artifact consistency pass: Removed all party_id references from API paths. Changed paths from `/api/parties/{partyId}/...` to `/api/splits/...` and `/api/settlements/...`. Removed party membership validation from CF-1, CF-2, CF-4. Removed `party.id` from field lineage. Updated QF-2 from "Get Party Balances" to "Get User Balances" (party-agnostic). Updated QF-4 from party-scoped to user-scoped. Updated validation points table to remove party checks. |
