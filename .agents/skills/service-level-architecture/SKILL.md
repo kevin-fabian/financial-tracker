@@ -68,7 +68,7 @@ UNKNOWN
 
 ---
 
-# Core Principles
+# Principles
 
 1. Start with the business capability or primary resource.
 2. Discover supporting resources from actual dependencies.
@@ -80,6 +80,18 @@ UNKNOWN
 8. Separate business decisions from implementation choices.
 9. Surface ambiguity instead of silently deciding it.
 10. Do not consider the architecture ready while blocking decisions remain unresolved.
+
+---
+
+# Anti-Patterns to Avoid
+
+* Persist derived values as source of truth
+* Leak infrastructure models across service boundaries
+* Create storage for transient or aggregated data
+* Treat a derived or cached value as authoritative without an explicit decision
+* Infer relationships solely from similar field names
+* Create persistence merely because a value appears in an output
+* Conflate reference with ownership
 
 ---
 
@@ -143,22 +155,111 @@ Recurring Txns ┘
    Reporting
 ```
 
+### Field Inventory
+
+For every supporting resource that will be persisted, document all fields:
+
+| Field | Type | Nullable | Constraints | Notes |
+|-------|------|----------|-------------|-------|
+| id | Identifier | NO | Primary key | |
+| name | String (128) | YES | | |
+| owner_id | Identifier | YES | Reference to owner | |
+
+Required fields per resource:
+
+- Identifier strategy
+- All fields with type, nullability, length, and constraints
+- References to other resources and their targets
+- Enum/choice fields and their allowed values
+- Audit fields: creation time, modification time, creator, last modifier
+- Soft-delete or active flags
+- System vs. user-owned flags
+- Collection relationships: one-to-many, many-to-one, many-to-many
+- Complex types: JSON, arrays, key-value pairs
+
+### Enum Inventory
+
+Document every enum or choice list used in the domain:
+
+| Enum | Values | Used By |
+|------|--------|--------|
+| TransactionType | INPUT, EXPENSE | Category, Transaction |
+
+Prefer stable, named values over positional/ordinal values so that additions or reorderings do not break existing data.
+
+### Read Model Inventory
+
+Document read-optimized models used for query responses:
+
+| Read Model | Fields | Used By Query |
+|------------|--------|--------------|
+| AccountSummary | id, name, balance | Account listing |
+
+Read models should use simple types (primitives, strings, identifiers) and provide sensible defaults for numeric fields. Never expose internal persistence models in query responses.
+
+### Schema Evolution Trace
+
+For every persisted resource, identify the migration or schema change that created or last modified it:
+
+| Resource | Table | Migration |
+|----------|-------|-----------|
+| Category | categories | V1.x.x_... |
+
+---
+
 ## 4. Source of Truth
 
 For important data, identify the authoritative owner.
 
-| Data               | Source of Truth | Notes                 |
-| ------------------ | --------------- | --------------------- |
-| Transaction amount | Transaction     | Financial fact        |
-| Category name      | Category        | Dimension             |
-| Budget allocation  | Budget          | Planned value         |
-| Report total       | Derived         | Not a source of truth |
+| Data | Source of Truth | Notes |
+| ---- | --------------- | ----- |
+| Transaction amount | Transaction | Financial fact |
+| Category name | Category | Dimension |
+| Budget allocation | Budget | Planned value |
+| Report total | Derived | Not a source of truth |
 
 Never treat a derived or cached value as authoritative without an explicit decision.
 
 ---
 
-# 5. Use Cases
+## 5. Data Lineage
+
+Trace important data end-to-end.
+
+```text
+Transaction.amount
+      ↓
+Expense filter
+      ↓
+Date filter
+      ↓
+SUM
+      ↓
+Report.totalExpense
+      ↓
+API response
+```
+
+Lineage should connect:
+
+```text
+Input → Source → Persistence → Transformation → Aggregate → Output
+```
+
+Prioritize lineage for:
+
+* Financial values
+* IDs
+* Dates
+* Statuses
+* Aggregates
+* Calculated fields
+
+Not every trivial field requires a full lineage diagram.
+
+---
+
+## 6. Use Cases
 
 List relevant commands and queries.
 
@@ -184,7 +285,7 @@ Only include steps that actually apply.
 
 ---
 
-# 6. Incoming Data
+## 7. Incoming Data
 
 Document request/input fields.
 
@@ -210,7 +311,7 @@ Identify:
 
 ---
 
-# 7. Data Transformation
+## 8. Data Transformation
 
 Document meaningful transformations.
 
@@ -240,9 +341,28 @@ Report.totalExpense
 
 Do not document trivial mappings unless they affect architecture.
 
+### Aggregates and Derived Data
+
+List important calculated fields as a subsection of transformation:
+
+| Field | Sources | Filters | Grouping | Calculation | Stored? |
+| ----- | ------- | ------- | -------- | ----------- | ------: |
+| totalIncome | Transactions | type=INPUT | none | SUM(amount) | No |
+| totalExpense | Transactions | type=EXPENSE | none | SUM(amount) | No |
+| netCashFlow | totalIncome, totalExpense | none | none | income - expense | No |
+| budgetRemaining | Budget, Transactions | by category | category | allocated - SUM(spent) | No |
+
+Every important aggregate must identify:
+
+* Source data
+* Filters
+* Grouping
+* Calculation
+* Persistence strategy
+
 ---
 
-# 8. Persistence
+## 9. Persistence
 
 Explicitly answer:
 
@@ -263,26 +383,28 @@ Transaction
 
 For important fields:
 
-| Field        | Persist? | Source       | Reason          |
-| ------------ | -------: | ------------ | --------------- |
-| amount       |      Yes | Request      | Source of truth |
-| categoryName |       No | Category     | Owned elsewhere |
-| totalExpense |       No | Transactions | Derived         |
+| Field | Persist? | Source | Reason |
+| ----- | -------: | ------ | ------ |
+| amount | Yes | Request | Source of truth |
+| categoryName | No | Category | Owned elsewhere |
+| totalExpense | No | Transactions | Derived |
 
 Identify:
 
-* Primary keys
-* Foreign keys
+* Identifier strategy
+* References to other resources
 * Nullability
-* Unique constraints
+* Uniqueness constraints
 * Important indexes
 * Delete/update behavior
+* Cascade behavior on relationships
+* Data access strategy (direct query, read model, aggregation)
 
 Do not create persistence merely because a value appears in an output.
 
 ---
 
-# 9. Relationships
+## 10. Relationships
 
 Document important relationships and ownership.
 
@@ -303,28 +425,7 @@ Do not infer relationships solely from similar fields.
 
 ---
 
-# 10. Aggregates and Derived Data
-
-List important calculated fields.
-
-| Field           | Sources               | Calculation        | Stored? |
-| --------------- | --------------------- | ------------------ | ------: |
-| totalIncome     | Transactions          | SUM(income)        |      No |
-| totalExpense    | Transactions          | SUM(expense)       |      No |
-| netCashFlow     | Income + Expense      | income - expense   |      No |
-| budgetRemaining | Budget + Transactions | allocated - actual |      No |
-
-Every important aggregate must identify:
-
-* Source data
-* Filters
-* Grouping
-* Calculation
-* Persistence strategy
-
----
-
-# 11. Output
+## 11. Output
 
 Document the output model.
 
@@ -345,44 +446,7 @@ Do not return persistence models directly unless that is an explicit architectur
 
 ---
 
-# 12. Data Lineage
-
-Trace important data end-to-end.
-
-```text
-Transaction.amount
-      ↓
-Expense filter
-      ↓
-Date filter
-      ↓
-SUM
-      ↓
-Report.totalExpense
-      ↓
-API response
-```
-
-Lineage should connect:
-
-```text
-Input → Source → Persistence → Transformation → Aggregate → Output
-```
-
-Not every trivial field requires a full lineage diagram.
-
-Prioritize:
-
-* Financial values
-* IDs
-* Dates
-* Statuses
-* Aggregates
-* Calculated fields
-
----
-
-# 13. End-to-End Data Flow
+## 12. End-to-End Data Flow
 
 Provide one concise diagram showing the complete flow.
 
@@ -407,7 +471,7 @@ Reporting
       Aggregate
           │
           ▼
-       Project
+      Project
           │
           ▼
      ReportResponse
@@ -417,7 +481,7 @@ The diagram should emphasize **data movement**, not merely service names.
 
 ---
 
-# 14. Business Rules and Errors
+## 13. Business Rules and Errors
 
 Document important rules only.
 
@@ -443,7 +507,7 @@ Do not enumerate generic framework errors.
 
 ---
 
-# 15. Architecture Decisions
+## 14. Architecture Decisions
 
 Record decisions that materially affect the architecture.
 
@@ -468,7 +532,7 @@ Include:
 
 ---
 
-# 16. Open Questions
+## 15. Open Questions
 
 Explicitly list unresolved decisions.
 
@@ -487,7 +551,7 @@ Never silently resolve ambiguous business semantics.
 
 ---
 
-# 17. Architecture History
+## 16. Architecture History
 
 Maintain meaningful architectural changes.
 
@@ -506,7 +570,7 @@ When changing a previous decision, preserve the reason and impact.
 
 ---
 
-# 18. Review and Validation
+## 17. Validation and Readiness
 
 The generated architecture is initially:
 
@@ -573,11 +637,7 @@ Missing decisions:
 
 Do not silently modify the architecture to make validation pass.
 
----
-
-# 19. Implementation Readiness
-
-End with:
+### Implementation Readiness
 
 ```text
 ## Implementation Readiness
@@ -597,7 +657,7 @@ Important:
 `READY` requires:
 
 * Primary resource identified
-* Supporting resources identified
+* Supporting resources identified with field inventory
 * Source of truth established
 * Persistence understood
 * Relationships understood
@@ -609,25 +669,25 @@ Important:
 
 ---
 
-# Required Artifact
+# Required Artifacts
 
-Create:
+## Artifact Selection
 
-```text
-docs/architecture/<capability>/architecture.md
-```
+**Always required:**
 
-Keep the architecture in one file by default.
+* `architecture.md` — the analysis document produced by this skill
 
-Only create additional artifacts when necessary:
+**Required when primary resource has persisted sub-resources:**
 
-```text
-architecture.md
-data-model.md
-data-flow.md
-```
+* `data-model.md` — resource schema, relationships, indexes, constraints,
+  field-level persistence decisions for every sub-resource
 
-Do not create unnecessary documentation.
+**Required when data crosses system boundaries:**
+
+* `data-flow.md` — external APIs, message queues, event schemas
+
+Keep the architecture in one file by default. Only create additional artifacts
+when the selection criteria above are met. Do not create unnecessary documentation.
 
 ---
 
@@ -640,7 +700,7 @@ Requirements
      ↓
 AI Analysis
      ↓
-architecture.md
+architecture.md (+ data-model.md if sub-resources)
      ↓
 Human Review
      ↓
@@ -700,24 +760,26 @@ Keep architecture and specification separate.
 
 ---
 
-# Completion Test
+# Completion Checklist
 
-Before marking the architecture complete, confirm that a developer can answer:
+Before marking the architecture complete, confirm every item:
 
-1. What are we building?
-2. What is the primary resource?
-3. What resources are involved?
-4. Who owns each important piece of data?
-5. What is the source of truth?
-6. What enters the service?
-7. What gets persisted?
-8. What is derived?
-9. What is aggregated?
-10. How are aggregates calculated?
-11. What is returned?
-12. Where did the important output fields come from?
-13. What are the important business rules?
-14. What decisions were made?
-15. What remains unknown?
-16. Has the architecture been validated?
-17. Can implementation begin?
+- [ ] Section 1 (Capability) filled
+- [ ] Section 2 (Primary Resource) classified
+- [ ] Section 3 (Supporting Resources) with field inventory, enum inventory, read model inventory, schema evolution trace
+- [ ] Section 4 (Source of Truth) confirmed
+- [ ] Section 5 (Data Lineage) for financial values, IDs, dates, statuses, aggregates
+- [ ] Section 6 (Use Cases) for each command/query
+- [ ] Section 7 (Incoming Data) with required/optional/defaults
+- [ ] Section 8 (Data Transformation) with aggregates subsection
+- [ ] Section 9 (Persistence) — every field answered
+- [ ] Section 10 (Relationships) documented
+- [ ] Section 11 (Output) model defined
+- [ ] Section 12 (End-to-End Data Flow) diagram drawn
+- [ ] Section 13 (Business Rules) — non-trivial rules listed
+- [ ] Section 14 (Architecture Decisions) recorded
+- [ ] Section 15 (Open Questions) — no BLOCKING items remaining
+- [ ] Section 16 (Architecture History) maintained
+- [ ] Section 17 (Validation) performed
+- [ ] `data-model.md` created (if sub-resources persisted)
+- [ ] Section 17 (Readiness) = READY
