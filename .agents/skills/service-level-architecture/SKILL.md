@@ -196,6 +196,44 @@ IMPORTANT
 OPTIONAL
 ```
 
+Each question uses a structured format to make decisions auditable:
+
+```markdown
+### Q1. <Question title>
+
+**Context**
+What is known and why this question exists.
+
+**Options**
+- A. <Option A description>
+- B. <Option B description>
+
+**AI Recommendation**
+A, with brief rationale.
+
+**Decision**
+<!-- HUMAN: Add your decision here. -->
+
+**Status**
+PENDING | DECIDED
+```
+
+Rules:
+- Questions are numbered `Q1`, `Q2`, etc. in order of appearance.
+- BLOCKING questions appear first, then IMPORTANT, then OPTIONAL.
+- AI Recommendation is the skill's best judgment; the human decides.
+- Decision uses the HTML comment `<!-- HUMAN: -->` placeholder until resolved.
+- Status is `PENDING` until the human records a decision, then `DECIDED`.
+- Once decided, append the human's decision and rationale below the placeholder:
+  ```markdown
+  **Decision**
+  <!-- HUMAN: Add your decision here. -->
+  A. <Selected option>.
+
+  **Reason**
+  <Why this option was chosen.>
+  ```
+
 ---
 
 ## Artifact Ownership

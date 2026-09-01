@@ -1,7 +1,7 @@
 ---
 name: service-level-architecture-analyze
 description: Analyze a business capability or primary resource and create or update the service-level architecture artifacts.
------------------------------------------------------------------------------------------------------------------------------
+---
 
 # Analyze
 

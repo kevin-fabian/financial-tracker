@@ -1,5 +1,4 @@
 ---
-
 name: service-level-architecture-review
 description: Review an existing service-level architecture and identify gaps, contradictions, assumptions, and architectural decisions requiring human review.
 ---
@@ -114,25 +113,29 @@ Look for contradictions.
 
 Identify issues that require the user to decide.
 
-Example:
+Use the structured format documented in `SKILL.md`:
 
-```text
-BLOCKING
+```markdown
+### Q1. <Question title>
 
-1. Account balance source of truth is undefined.
+**Context**
+...
 
-Options:
-A. Calculate from transactions.
-B. Persist balance on Account.
+**Options**
+- A. ...
+- B. ...
 
-Impact:
-A favors consistency and simpler writes.
-B favors read performance but requires balance maintenance.
+**AI Recommendation**
+A, with rationale.
 
-Decision: HUMAN
+**Decision**
+<!-- HUMAN: Add your decision here. -->
+
+**Status**
+PENDING
 ```
 
-Do not automatically select an option for ambiguous business semantics.
+When adding questions to `open-questions.md` during review, classify them as BLOCKING, IMPORTANT, or OPTIONAL.
 
 ---
 
