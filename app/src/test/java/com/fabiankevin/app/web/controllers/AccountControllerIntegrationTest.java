@@ -5,7 +5,13 @@ import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
+import com.fabiankevin.app.models.enums.party.AccessLevel;
+import com.fabiankevin.app.models.enums.party.PartyMemberStatus;
+import com.fabiankevin.app.models.enums.party.SharingMode;
+import com.fabiankevin.app.models.party.Party;
+import com.fabiankevin.app.models.party.PartyMember;
 import com.fabiankevin.app.persistence.AccountRepository;
+import com.fabiankevin.app.persistence.PartyRepository;
 import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.services.TransactionService;
@@ -32,6 +38,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Currency;
 import java.util.List;
@@ -67,6 +74,9 @@ class AccountControllerIntegrationTest {
 
     @Autowired
     private AccountRepository accountRepository;
+
+    @Autowired
+    private PartyRepository partyRepository;
 
     @Autowired
     private AccountService accountService;
@@ -641,7 +651,7 @@ class AccountControllerIntegrationTest {
     class GetAccounts {
 
         @Test
-            void givenExistingUserAccounts_thenReturnsPagedSummaryResponse() throws Exception {
+        void givenExistingUserAccounts_thenReturnsPagedSummaryResponse() throws Exception {
             accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")
@@ -712,6 +722,76 @@ class AccountControllerIntegrationTest {
                     .andExpect(jsonPath("$.size").value(10))
                     .andExpect(jsonPath("$.totalElements").value(0))
                     .andExpect(jsonPath("$.totalPages").value(0));
+        }
+
+        @Test
+        void givenUserWithPartyMembers_thenReturnsConsolidatedAccounts() throws Exception {
+            UUID otherUserId = UUID.randomUUID();
+
+            // Create a party with userId as leader and otherUserId as member
+            Party party = Party.builder()
+                    .name("Test Party")
+                    .partyLeaderId(userId)
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .partyMembers(List.of(
+                            PartyMember.builder()
+                                    .playerId(userId)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
+                                    .status(PartyMemberStatus.ACTIVE)
+                                    .build(),
+                            PartyMember.builder()
+                                    .playerId(otherUserId)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
+                                    .status(PartyMemberStatus.ACTIVE)
+                                    .build()
+                    ))
+                    .build();
+
+            partyRepository.save(party);
+
+            // Create cash accounts for both users
+            accountService.createAccount(
+                    CreateAccountCommand.builder()
+                            .name("CASH")
+                            .userId(userId)
+                            .currency(Currency.getInstance("PHP"))
+                            .type(AccountType.CASH)
+                            .build()
+            );
+            accountService.createAccount(
+                    CreateAccountCommand.builder()
+                            .name("CASH")
+                            .userId(otherUserId)
+                            .currency(Currency.getInstance("PHP"))
+                            .type(AccountType.CASH)
+                            .build()
+            );
+
+            // Mock user client for both users
+            when(userClient.getUsersByIds(List.of(userId, otherUserId)))
+                    .thenReturn(
+                            List.of(
+                                    User.builder().id(userId).firstName("Alice").lastName("Smith").build(),
+                                    User.builder().id(otherUserId).firstName("Bob").lastName("Jones").build()
+                            )
+                    );
+
+            mockMvc.perform(get("/api/accounts?page=0&size=10&sort=name&direction=ASC")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content").isArray())
+                    .andExpect(jsonPath("$.content.length()").value(2))
+                    .andExpect(jsonPath("$.content[0].name").value("CASH"))
+                    .andExpect(jsonPath("$.content[1].name").value("CASH"));
         }
 
         @Test

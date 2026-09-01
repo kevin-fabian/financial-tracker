@@ -118,7 +118,8 @@ public class DefaultPartyService implements PartyService {
 
     @Override
     public List<UUID> getPartyMembersUserId(UUID userId) {
-        return partyRepository.findPartyMembersPlayerIdsByPlayerId(userId);
+        List<UUID> memberIds = partyRepository.findPartyMembersPlayerIdsByPlayerId(userId);
+        return memberIds.isEmpty() ? List.of(userId) : memberIds;
     }
 
     @Transactional
