@@ -4,7 +4,7 @@
 
 ### `splits`
 
-Allocates a transaction's cost across participants. Party-agnostic — no `party_id` column.
+Allocates a transaction's cost across participants. No party involvement.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
@@ -19,17 +19,17 @@ Allocates a transaction's cost across participants. Party-agnostic — no `party
 **Indexes**:
 - `idx_splits_transaction_id` on `transaction_id` — fast lookup of splits for a transaction.
 - `idx_splits_user_id` on `user_id` — participant's obligation queries.
-- `idx_splits_transaction_player` on `(transaction_id, user_id)` — unique constraint guard.
+- `idx_splits_transaction_user` on `(transaction_id, user_id)` — unique constraint guard.
 
 **Unique constraint**:
-- `uk_splits_transaction_player` on `(transaction_id, user_id)` — a participant has at most one split per transaction.
+- `uk_splits_transaction_user` on `(transaction_id, user_id)` — a participant has at most one split per transaction.
 
 **Foreign keys**:
 - `fk_splits_transaction_id` → `transactions(id)` — cascade restricted (split survives if transaction is patched, deleted via service layer).
 
 ### `settlements`
 
-Records when one participant pays another. Party-agnostic — `party_id` is nullable and unused in v1.
+Records when one participant pays another. No party involvement.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
@@ -73,7 +73,7 @@ Add one column:
 SplitEntity
 ├── id: UUID
 ├── transaction: TransactionEntity (ManyToOne, LAZY)
-├── playerId: UUID
+├── userId: UUID
 ├── amount: BigDecimal
 ├── splitType: SplitType (enum)
 ├── createdAt: Instant
@@ -83,7 +83,7 @@ SplitEntity
 **Notes**:
 - `transaction` uses LAZY fetch to avoid N+1 queries in repository lookups.
 - `amount` is `BigDecimal` (mapped to `NUMERIC(12,2)` column) — never `double`.
-- `playerId` is a plain `UUID` column (no `@ManyToOne` to `PartyMemberEntity` — AD-8).
+- `userId` is a plain `UUID` column (no `@ManyToOne` — AD-8).
 
 ### `SettlementEntity` (new)
 
@@ -91,8 +91,8 @@ SplitEntity
 SettlementEntity
 ├── id: UUID
 ├── transaction: TransactionEntity (ManyToOne, LAZY)  // AD-7: settlement creates transaction
-├── payerPlayerId: UUID
-├── payeePlayerId: UUID
+├── payerUserId: UUID
+├── payeeUserId: UUID
 ├── amount: BigDecimal
 ├── description: String
 ├── relatedSplitIds: List<UUID> (JSON)
@@ -103,7 +103,7 @@ SettlementEntity
 **Notes**:
 - `relatedSplitIds` stored as JSON array via `@JdbcTypeCode(SqlTypes.JSON)` (Hibernate 6 convention).
 - `transaction` is LAZY; created via `TransactionService` on settlement creation (AD-7).
-- No `party` relationship — party-agnostic design (AD-4).
+- No `party` relationship — no party feature (AD-4).
 
 ### Domain Model Records (new)
 
@@ -113,7 +113,7 @@ SettlementEntity
 record Split(
     UUID id,
     UUID transactionId,
-    UUID playerId,       // participant who owes this share
+    UUID userId,       // participant who owes this share
     BigDecimal amount,
     SplitType splitType, // EQUAL or CUSTOM
     Instant createdAt,
@@ -122,7 +122,7 @@ record Split(
 ```
 
 **Notes**:
-- No `partyId` — party-agnostic design (AD-4).
+- No `partyId` — no party feature (AD-4).
 - `amount` is `BigDecimal` — financial precision (AD-6).
 
 #### `Settlement`
@@ -131,8 +131,8 @@ record Split(
 record Settlement(
     UUID id,
     UUID transactionId,  // AD-7: settlement creates transaction
-    UUID payerPlayerId,
-    UUID payeePlayerId,
+    UUID payerUserId,
+    UUID payeeUserId,
     BigDecimal amount,
     String description,
     List<UUID> relatedSplitIds,
@@ -142,7 +142,7 @@ record Settlement(
 ```
 
 **Notes**:
-- No `partyId` — party-agnostic design (AD-4).
+- No `partyId` — no party feature (AD-4).
 - `amount` is `BigDecimal` — financial precision (AD-6).
 - `transactionId` is nullable because the settlement record exists before the transaction is created (service-layer ordering).
 
@@ -150,9 +150,9 @@ record Settlement(
 
 ```java
 record BalanceSummary(
-    UUID fromPlayerId,    // who owes
-    UUID toPlayerId,      // who is owed
-    double netAmount      // positive = from owes to; negative = from is owed by to
+    UUID fromUserId,    // who owes
+    UUID toUserId,      // who is owed
+    double netAmount    // positive = from owes to; negative = from is owed by to
 )
 ```
 
@@ -160,8 +160,8 @@ record BalanceSummary(
 
 ```java
 record PartyBalance(
-    UUID playerId,
-    Map<UUID, Double> balances  // playerId → netAmount with each other member
+    UUID userId,
+    Map<UUID, Double> balances  // userId → netAmount with each other member
 )
 ```
 
@@ -191,7 +191,7 @@ settlements (new)
 Balances are **computed**, not persisted. The formula:
 
 ```
-balance(payer, payee) = Σ(splits where playerId = payer) − Σ(settlements where payer = payer AND payee = payee)
+balance(payer, payee) = Σ(splits where userId = payer) − Σ(settlements where payer = payer AND payee = payee)
 ```
 
 Simplified: the transaction owner (identified via `TransactionEntity.addedBy`) is always the payee for split obligations. Non-owner participants owe the owner their share. Settlements flow from non-owning participants back to the owner.

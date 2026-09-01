@@ -4,7 +4,7 @@
 
 Bill Split enables users to split transactions across multiple participants and settle outstanding obligations. A single transaction (e.g., a dinner paid by one person) is allocated across participants via **splits**, and each participant's net obligation is tracked through **settlements**.
 
-This feature is **party agnostic** — it works without requiring the party schema. Participants are identified by player IDs; no party membership validation is performed.
+This feature does **not involve the party system**. Participants are identified by `user_id` (plain UUIDs from JWT `sub` claims or downstream user service); no party membership validation is performed.
 
 ## Primary Resource
 
@@ -14,7 +14,7 @@ This feature is **party agnostic** — it works without requiring the party sche
 |-----------|--------|
 | Purpose | Record how much each participant owes for a shared transaction |
 | Source of truth | `splits` database table |
-| Inputs | Transaction reference, participant (playerId), share amount, split type |
+| Inputs | Transaction reference, participant (userId), share amount, split type |
 | Outputs | Per-member obligation, aggregate balance, settlement targets |
 | Business rules | Sum of shares ≤ transaction amount; at least one participant required |
 | Relationships | References one `Transaction`; each participant has zero or more splits |
@@ -27,10 +27,10 @@ This feature is **party agnostic** — it works without requiring the party sche
 |-----------|--------|
 | Purpose | Record when one participant pays another to reduce their obligation |
 | Source of truth | `settlements` database table |
-| Inputs | Payer (playerId), payee (playerId), amount, optional description, optional related split IDs |
+| Inputs | Payer (userId), payee (userId), amount, optional description, optional related split IDs |
 | Outputs | Updated net balance between payer and payee |
 | Business rules | amount > 0; settlement reduces the payer's net obligation to the payee |
-| Relationships | References two `PlayerId`s (payer, payee); optionally references splits; optionally references a transaction (Q4) |
+| Relationships | References two `UserId`s (payer, payee); optionally references splits; optionally references a transaction (Q4) |
 
 ### SplitTransaction (extension of Transaction)
 
@@ -91,20 +91,21 @@ This feature is **party agnostic** — it works without requiring the party sche
 
 **Trade-off**: Equal splits are a convenience layer on top of custom splits — the system still creates individual `splits` rows.
 
-### AD-4: Party-agnostic design
+### AD-4: No party feature involvement
 
-**Decision**: Splits and settlements are party-agnostic. No `party_id` columns. No party membership validation.
+**Decision**: Splits and settlements do not involve the party system. No `party_id` columns. No party membership validation.
 
 **Why**:
-- Human decision: bill-split works without requiring the party schema.
-- Participants are identified by player IDs directly.
+- Human decision: bill-split works independently of the party system.
+- Participants are identified by `user_id` (plain UUIDs) directly.
 - Splits reference transactions (which have an `addedBy` user) for payee identification.
-- Settlements reference player IDs directly.
+- Settlements reference `user_id`s directly.
 
 **How it works**:
 - No `party_id` columns in `splits` or `settlements` tables.
 - No party membership validation for split participants or settlement parties.
 - Payee identification comes from the transaction's `addedBy` field (Q1 resolved).
+- Participants are identified by `user_id` — plain UUIDs from JWT `sub` claims or downstream user service.
 
 ### AD-5: Transaction ownership vs. split ownership
 
@@ -206,9 +207,9 @@ This feature is **party agnostic** — it works without requiring the party sche
 **Decision**: `splits.user_id` and `settlements.payer_user_id` / `settlements.payee_user_id` are plain `UUID` columns with no database-level foreign key.
 
 **Why**:
-- Party-agnostic design: these UUIDs reference external identity providers (JWT `sub` claims, downstream user service).
+- No party feature: these UUIDs reference external identity providers (JWT `sub` claims, downstream user service).
 - No `party_id` scope means no meaningful FK to `party_members`.
-- Application-level validation ensures the UUIDs are valid player identifiers.
+- Application-level validation ensures the UUIDs are valid user identifiers.
 
 **Trade-off**: No database referential integrity. Relies on application validation and the downstream user service for identity resolution.
 
@@ -217,17 +218,17 @@ This feature is **party agnostic** — it works without requiring the party sche
 | Date | Change |
 |------|--------|
 | 2026-09-01 | Initial architecture draft |
-| 2026-09-01 | Review pass: 14 findings. AD-4 updated to reflect human decision (party agnostic). Contradictions documented. Missing resources identified (SplitType enum, exception classes, party schema migrations, SettlementEntity.updatedAt, settlement creates transaction). |
+| 2026-09-01 | Review pass: 14 findings. AD-4 updated to reflect human decision (no party feature). Contradictions documented. Missing resources identified (SplitType enum, exception classes, SettlementEntity.updatedAt, settlement creates transaction). |
 | 2026-09-01 | Validation pass: 3 blocking issues, 9 inconsistencies, 6 missing information, 5 unresolved decisions, 7 warnings. Party schema not in migrations confirmed. Settlement creates transaction impact documented. |
 | 2026-09-01 | Q14 resolved: Only `amount` field can be patched. CF-4 (Patch Split) added to data-flow.md. Validation constraints documented. |
-| 2026-09-01 | Analysis pass: Q2 resolved (remove party_id columns). Q11 resolved (defer to v2). Q12 resolved (keep current design). Q13 consolidated into Q4. AD-4 updated to remove all party references. Data model, data flows, use cases, and boundaries updated to reflect party-agnostic design. |
-| 2026-09-01 | Artifact consistency pass: Removed all party_id columns from data-model.md. Removed party membership validation from data flows. Fixed API paths to party-agnostic. Added AD-6 (BigDecimal), AD-7 (settlement creates transaction), AD-8 (user_id plain UUID). Fixed entity amount type from double to BigDecimal. Clarified user_id semantics. |
+| 2026-09-01 | Analysis pass: Q2 resolved (remove party_id columns). Q11 resolved (defer to v2). Q12 resolved (keep current design). Q13 consolidated into Q4. AD-4 updated to remove all party references. Data model, data flows, use cases, and boundaries updated to reflect no-party design. |
+| 2026-09-01 | Artifact consistency pass: Removed all party_id columns from data-model.md. Removed party membership validation from data flows. Fixed API paths to no-party. Added AD-6 (BigDecimal), AD-7 (settlement creates transaction), AD-8 (user_id plain UUID). Fixed entity amount type from double to BigDecimal. Clarified user_id semantics. |
+| 2026-09-01 | Naming pass: Replaced all `playerId`/`payerPlayerId`/`payeePlayerId` with `userId`/`payerUserId`/`payeeUserId`. Replaced "party-agnostic" with "no party feature". Updated AD-4 title and description. |
 
 ## Implementation Readiness: NOT READY
 
 Blocking issues:
 1. `transactions` table needs `is_split` column (BOOLEAN, NOT NULL, DEFAULT FALSE) — not yet in V1.0.4 schema.
 2. New tables (`splits`, `settlements`) require Liquibase migration (V1.0.5).
-3. Party schema migrations (`parties`, `party_members`, `shared_items`, `invitations` tables) must exist before splits/settlements can reference party members for validation.
 
 See open-questions.md for full status.

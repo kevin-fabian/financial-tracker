@@ -35,7 +35,7 @@ User ──splits transaction──→ SplitController
 **Field lineage**:
 - `transaction.amount` (from AddTransactionCommand) ÷ `participantCount` → `Split.amount`
 - `transaction.id` → `Split.transactionId`
-- `jwt.subject` (or downstream user service) → `Split.playerId`
+- `jwt.subject` (or downstream user service) → `Split.userId`
 - `SplitType.EQUAL` → `Split.splitType`
 
 **API**: `POST /api/splits/equal`
@@ -44,7 +44,7 @@ User ──splits transaction──→ SplitController
 - Transaction exists → `TransactionNotFoundException`
 - At least one participant → `InvalidSplitException`
 - Sum of shares ≤ transaction amount → `InvalidSplitException`
-- No party membership validation (party-agnostic, AD-4)
+- No party membership validation (no party feature, AD-4)
 
 ### CF-2: Create Custom Split
 
@@ -69,6 +69,7 @@ User ──splits transaction──→ SplitController
 **Field lineage**:
 - `request.participants[].amount` → `Split.amount`
 - `transaction.amount` - Σ(request.participants[].amount) → `Split.amount` (owner's remainder)
+- `jwt.subject` (or downstream user service) → `Split.userId`
 - `SplitType.CUSTOM` → `Split.splitType` (explicit amounts)
 - `SplitType.EQUAL` → `Split.splitType` (auto-calculated remainder)
 
@@ -87,8 +88,8 @@ User (payer) ──settles──→ SettlementController
                       (Request DTO → CreateSettlementCommand)
                             ↓
                       SettlementService.createSettlement()
-                            ├─► Validate: payer player ID is valid
-                            ├─► Validate: payee player ID is valid
+                            ├─► Validate: payer user ID is valid
+                            ├─► Validate: payee user ID is valid
                             ├─► Validate: amount > 0 → InvalidSettlementException
                             ├─► (Optional) Validate: amount ≤ outstanding balance
                             ├─► Create SettlementEntity
@@ -103,8 +104,8 @@ User (payer) ──settles──→ SettlementController
 ```
 
 **Field lineage**:
-- `jwt.subject` → `Settlement.payerPlayerId` (extracted from authentication)
-- `request.payeePlayerId` → `Settlement.payeePlayerId`
+- `jwt.subject` → `Settlement.payerUserId` (extracted from authentication)
+- `request.payeeUserId` → `Settlement.payeeUserId`
 - `request.amount` → `Settlement.amount` (BigDecimal)
 - `request.description` → `Settlement.description`
 - `request.relatedSplitIds` → `Settlement.relatedSplitIds` (JSON array)
@@ -136,7 +137,7 @@ User ──PATCH /api/splits/{splitId}──→ SplitController
 - `NOW()` → `SplitEntity.updatedAt`
 
 **Constraints** (Q14):
-- Only `amount` field can be patched. Changes to `playerId`, `splitType`, or `transactionId` are rejected.
+- Only `amount` field can be patched. Changes to `userId`, `splitType`, or `transactionId` are rejected.
 - If the patch would cause the total split amount to exceed the transaction amount, return `InvalidSplitException`.
 
 ## Query Flows
@@ -155,8 +156,8 @@ User ──GET /api/transactions/{transactionId}/splits──→ SplitController
 
 **Projection** (`SplitSummary` — JPQL DTO projection):
 - `splitId` ← `SplitEntity.id`
-- `playerId` ← `SplitEntity.playerId`
-- `playerName` ← enriched via `UserClient` (service layer)
+- `userId` ← `SplitEntity.userId`
+- `userName` ← enriched via `UserClient` (service layer)
 - `amount` ← `SplitEntity.amount`
 - `splitType` ← `SplitEntity.splitType`
 
@@ -167,7 +168,7 @@ User ──GET /api/splits/balances──→ SplitController
                                       ↓
                                   SplitService.getBalances(userId)
                                       ↓
-                                  SplitRepository.findByPlayerId(userId)
+                                  SplitRepository.findByUserId(userId)
                                       ↓
                                   [List<Split>]
                                       ↓
@@ -182,18 +183,18 @@ User ──GET /api/splits/balances──→ SplitController
 
 **Balance computation** (service layer):
 ```
-For each player pair (A, B) where A has splits or settlements with B:
-  splitOwedByA = Σ(splits where playerId = A)
-  splitOwedByB = Σ(splits where playerId = B)
-  settledAtoB = Σ(settlements where payerPlayerId = A AND payeePlayerId = B)
-  settledBtoA = Σ(settlements where payerPlayerId = B AND payeePlayerId = A)
+For each user pair (A, B) where A has splits or settlements with B:
+  splitOwedByA = Σ(splits where userId = A)
+  splitOwedByB = Σ(splits where userId = B)
+  settledAtoB = Σ(settlements where payerUserId = A AND payeeUserId = B)
+  settledBtoA = Σ(settlements where payerUserId = B AND payeeUserId = A)
 
   balance(A, B) = splitOwedByA - splitOwedByB - settledAtoB + settledBtoA
 ```
 
 **Projection** (`BalanceSummary`):
-- `fromPlayerId` ← computed participant ID
-- `toPlayerId` ← computed participant ID
+- `fromUserId` ← computed participant ID
+- `toUserId` ← computed participant ID
 - `netAmount` ← computed balance (BigDecimal)
 
 ### QF-3: Get User's Outstanding Obligations
@@ -203,7 +204,7 @@ User ──GET /api/splits/obligations──→ SplitController
                                         ↓
                                     SplitService.getObligations(userId)
                                         ↓
-                                    SplitRepository.findByPlayerIdAndNotSettled(userId)
+                                    SplitRepository.findByUserIdAndNotSettled(userId)
                                         ↓
                                     [List<ObligationSummary>]
 ```
@@ -213,7 +214,7 @@ User ──GET /api/splits/obligations──→ SplitController
 - `transactionDescription` ← `TransactionEntity.description`
 - `transactionDate` ← `TransactionEntity.date`
 - `amount` ← `SplitEntity.amount`
-- `payeePlayerId` ← `TransactionEntity.addedBy` (transaction owner)
+- `payeeUserId` ← `TransactionEntity.addedBy` (transaction owner)
 - `payeeName` ← enriched via `UserClient` (service layer)
 
 **Note**: Per Q12, payee is inferred from the transaction's `addedBy` field, not stored on the split. This requires a join `splits → transactions` in the query.
@@ -232,8 +233,8 @@ User ──GET /api/settlements──→ SettlementController
 
 **Projection** (`SettlementSummary` — JPQL DTO projection):
 - `settlementId` ← `SettlementEntity.id`
-- `payerPlayerId` ← `SettlementEntity.payerPlayerId`
-- `payeePlayerId` ← `SettlementEntity.payeePlayerId`
+- `payerUserId` ← `SettlementEntity.payerUserId`
+- `payeeUserId` ← `SettlementEntity.payeeUserId`
 - `amount` ← `SettlementEntity.amount`
 - `description` ← `SettlementEntity.description`
 - `relatedSplitIds` ← `SettlementEntity.relatedSplitIds`
@@ -287,12 +288,97 @@ User ──GET /api/settlements──→ SettlementController
 | Split creation | SplitService | Participants list non-empty | `InvalidSplitException` |
 | Split creation | SplitService | Sum of custom amounts ≤ transaction amount | `InvalidSplitException` |
 | Split creation | SplitService | At least one participant | `InvalidSplitException` |
-| Settlement creation | SettlementService | Payer player ID is valid | `InvalidSettlementException` |
-| Settlement creation | SettlementService | Payee player ID is valid | `InvalidSettlementException` |
+| Settlement creation | SettlementService | Payer user ID is valid | `InvalidSettlementException` |
+| Settlement creation | SettlementService | Payee user ID is valid | `InvalidSettlementException` |
 | Settlement creation | SettlementService | Amount > 0 | `InvalidSettlementException` |
 | Split patch (Q5) | SplitService | Split exists | `SplitNotFoundException` |
 | Split patch (Q5) | SplitService | New amount ≥ 0 | `InvalidSplitException` |
 | Split patch (Q5) | SplitService | Sum of all splits for transaction still equals transaction amount | `InvalidSplitException` |
+
+## Record Preview
+
+### Domain Model Records
+
+#### `Split`
+
+```java
+record Split(
+    UUID id,
+    UUID transactionId,
+    UUID userId,
+    BigDecimal amount,
+    SplitType splitType,
+    Instant createdAt,
+    Instant updatedAt
+)
+```
+
+#### `Settlement`
+
+```java
+record Settlement(
+    UUID id,
+    UUID transactionId,
+    UUID payerUserId,
+    UUID payeeUserId,
+    BigDecimal amount,
+    String description,
+    List<UUID> relatedSplitIds,
+    Instant createdAt,
+    Instant updatedAt
+)
+```
+
+### Query Projection Records
+
+#### `SplitSummary`
+
+```java
+record SplitSummary(
+    UUID splitId,
+    UUID userId,
+    String userName,
+    BigDecimal amount,
+    SplitType splitType
+)
+```
+
+#### `BalanceSummary`
+
+```java
+record BalanceSummary(
+    UUID fromUserId,
+    UUID toUserId,
+    double netAmount
+)
+```
+
+#### `ObligationSummary`
+
+```java
+record ObligationSummary(
+    UUID transactionId,
+    String transactionDescription,
+    Instant transactionDate,
+    BigDecimal amount,
+    UUID payeeUserId,
+    String payeeName
+)
+```
+
+#### `SettlementSummary`
+
+```java
+record SettlementSummary(
+    UUID settlementId,
+    UUID payerUserId,
+    UUID payeeUserId,
+    BigDecimal amount,
+    String description,
+    List<UUID> relatedSplitIds,
+    Instant createdAt
+)
+```
 
 ## History
 
@@ -300,4 +386,5 @@ User ──GET /api/settlements──→ SettlementController
 |------|--------|
 | 2026-09-01 | Initial data flow draft |
 | 2026-09-01 | CF-3 updated: settlement creates transaction flow (Q4 decision). Added CF-4 (Patch Split) for Q5 decision. Added constraints section to CF-4 (Q14: only amount field can be patched). |
-| 2026-09-01 | Artifact consistency pass: Removed all party_id references from API paths. Changed paths from `/api/parties/{partyId}/...` to `/api/splits/...` and `/api/settlements/...`. Removed party membership validation from CF-1, CF-2, CF-4. Removed `party.id` from field lineage. Updated QF-2 from "Get Party Balances" to "Get User Balances" (party-agnostic). Updated QF-4 from party-scoped to user-scoped. Updated validation points table to remove party checks. |
+| 2026-09-01 | Artifact consistency pass: Removed all party_id references from API paths. Changed paths from `/api/parties/{partyId}/...` to `/api/splits/...` and `/api/settlements/...`. Removed party membership validation from CF-1, CF-2, CF-4. Removed `party.id` from field lineage. Updated QF-2 from "Get Party Balances" to "Get User Balances" (no party feature). Updated QF-4 from party-scoped to user-scoped. Updated validation points table to remove party checks. |
+| 2026-09-01 | Naming pass: Replaced all `playerId`/`payerPlayerId`/`payeePlayerId` with `userId`/`payerUserId`/`payeeUserId`. Replaced "party-agnostic" with "no party feature". Updated repository method names (`findByPlayerId` → `findByUserId`). Updated projection field names. Updated validation point descriptions. |
