@@ -11,6 +11,7 @@ import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.BudgetRepository;
+import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.services.commands.budgets.CreateBudgetCommand;
 import com.fabiankevin.app.services.commands.budgets.PatchBudgetCommand;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,7 +43,7 @@ class DefaultBudgetServiceTest {
     private BudgetRepository budgetRepository;
 
     @Mock
-    private CategoryService categoryService;
+    private CategoryRepository categoryRepository;
 
     @Mock
     private UserClient userClient;
@@ -92,7 +93,7 @@ class DefaultBudgetServiceTest {
                     .build();
 
             when(budgetRepository.existsByCategoryIdAndUserId(categoryId, userId)).thenReturn(false);
-            when(categoryService.getCategoryById(categoryId, userId)).thenReturn(category);
+            when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
             when(budgetRepository.save(any())).thenAnswer(invocation -> {
                 Budget original = invocation.getArgument(0);
                 UUID generatedId = UUID.randomUUID();
@@ -131,7 +132,7 @@ class DefaultBudgetServiceTest {
             assertEquals(200.0, created.spent(), "spent should reflect summed transactions for the category");
             assertEquals(40.0, created.spentPercentage(), "spentPercentage should be spent/allocated*100");
 
-            verify(categoryService, times(1)).getCategoryById(categoryId, userId);
+            verify(categoryRepository, times(1)).findById(categoryId);
             verify(budgetRepository, times(1)).save(any());
             verify(budgetRepository, times(1)).findBudgetSummaryById(any());
             verify(userClient, times(1)).getUsersByIds(List.of(userId));
@@ -149,13 +150,122 @@ class DefaultBudgetServiceTest {
                     .allocated(500.0)
                     .build();
 
-            when(categoryService.getCategoryById(categoryId, userId)).thenThrow(new CategoryNotFoundException());
+            when(categoryRepository.findById(categoryId)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> budgetService.createBudget(command))
                     .isInstanceOf(CategoryNotFoundException.class);
 
-            verify(categoryService, times(1)).getCategoryById(categoryId, userId);
+            verify(categoryRepository, times(1)).findById(categoryId);
             verify(budgetRepository, never()).save(any());
+        }
+
+        @Test
+        void givenCategoryBelongsToDifferentUser_thenThrowsCategoryNotFoundException() {
+            UUID userId = UUID.randomUUID();
+            UUID otherUserId = UUID.randomUUID();
+            UUID categoryId = UUID.randomUUID();
+
+            Category otherUserCategory = Category.builder()
+                    .id(categoryId)
+                    .name("GROCERIES")
+                    .type(TransactionType.EXPENSE)
+                    .userId(otherUserId)
+                    .system(false)
+                    .icon("local_grocery_store")
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            CreateBudgetCommand command = CreateBudgetCommand.builder()
+                    .userId(userId)
+                    .period(BudgetPeriod.MONTHLY)
+                    .categoryId(categoryId)
+                    .allocated(500.0)
+                    .build();
+
+            when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(otherUserCategory));
+
+            assertThatThrownBy(() -> budgetService.createBudget(command))
+                    .isInstanceOf(CategoryNotFoundException.class);
+
+            verify(categoryRepository, times(1)).findById(categoryId);
+            verify(budgetRepository, never()).save(any());
+        }
+
+        @Test
+        void givenSystemCategoryBelongsToDifferentUser_thenCreatesBudgetSuccessfully() {
+            UUID userId = UUID.randomUUID();
+            UUID systemUserId = UUID.randomUUID();
+            UUID categoryId = UUID.randomUUID();
+
+            Category systemCategory = Category.builder()
+                    .id(categoryId)
+                    .name("SYSTEM_CATEGORY")
+                    .type(TransactionType.EXPENSE)
+                    .userId(systemUserId)
+                    .system(true)
+                    .icon("system")
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            CreateBudgetCommand command = CreateBudgetCommand.builder()
+                    .userId(userId)
+                    .period(BudgetPeriod.MONTHLY)
+                    .categoryId(categoryId)
+                    .allocated(500.0)
+                    .build();
+
+            Budget budget = Budget.builder()
+                    .id(UUID.randomUUID())
+                    .user(User.of(userId))
+                    .updatedBy(User.of(userId))
+                    .period(BudgetPeriod.MONTHLY)
+                    .category(systemCategory)
+                    .allocated(500.0)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(budgetRepository.existsByCategoryIdAndUserId(categoryId, userId)).thenReturn(false);
+            when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(systemCategory));
+            when(budgetRepository.save(any())).thenAnswer(invocation -> {
+                Budget original = invocation.getArgument(0);
+                UUID generatedId = UUID.randomUUID();
+                Budget saved = Budget.builder()
+                        .id(generatedId)
+                        .user(original.user())
+                        .updatedBy(original.updatedBy())
+                        .period(original.period())
+                        .category(original.category())
+                        .allocated(original.allocated())
+                        .createdAt(original.createdAt())
+                        .updatedAt(original.updatedAt())
+                        .build();
+                when(budgetRepository.findBudgetSummaryById(generatedId)).thenReturn(Optional.of(
+                        BudgetSummary.builder()
+                                .budget(saved)
+                                .spent(0.0)
+                                .spentPercentage(0.0)
+                                .build()
+                ));
+                return saved;
+            });
+            when(userClient.getUsersByIds(List.of(userId))).thenReturn(
+                    List.of(User.builder().id(userId).firstName("John").lastName("Doe").build())
+            );
+
+            BudgetSummary created = budgetService.createBudget(command);
+
+            assertNotNull(created.budget().id(), "id should be generated");
+            assertEquals(userId, created.budget().user().id(), "user should match command");
+            assertEquals(categoryId, created.budget().category().id(), "categoryId should match command");
+            assertEquals("SYSTEM_CATEGORY", created.budget().category().name(), "system category name should be resolved");
+
+            verify(categoryRepository, times(1)).findById(categoryId);
+            verify(budgetRepository, times(1)).save(any());
+            verify(budgetRepository, times(1)).findBudgetSummaryById(any());
+            verify(userClient, times(1)).getUsersByIds(List.of(userId));
         }
 
         @Test
@@ -177,7 +287,7 @@ class DefaultBudgetServiceTest {
                     .isInstanceOf(BudgetAlreadyExistException.class);
 
             verify(budgetRepository, times(1)).existsByCategoryIdAndUserId(categoryId, userId);
-            verify(categoryService, never()).getCategoryById(any(), any());
+            verify(categoryRepository, never()).findById(any());
             verify(budgetRepository, never()).save(any());
         }
     }
@@ -291,7 +401,7 @@ class DefaultBudgetServiceTest {
 
             when(budgetRepository.findAllByUserIdAndCreatedAtBetween(eq(userId), any(Instant.class), any(Instant.class)))
                     .thenReturn(List.of(lastMonthBudget));
-            when(categoryService.getCategoryById(categoryId, userId)).thenReturn(category);
+            when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(category));
             when(budgetRepository.save(any())).thenAnswer(invocation -> {
                 Budget original = invocation.getArgument(0);
                 UUID generatedId = UUID.randomUUID();
@@ -344,7 +454,7 @@ class DefaultBudgetServiceTest {
             assertThat(results).isEmpty();
             verify(budgetRepository, times(1)).findAllByUserIdAndCreatedAtBetween(eq(userId), any(Instant.class), any(Instant.class));
             verify(budgetRepository, never()).save(any());
-            verify(categoryService, never()).getCategoryById(any(), any());
+            verify(categoryRepository, never()).findById(any());
         }
     }
 
@@ -393,7 +503,7 @@ class DefaultBudgetServiceTest {
                     .build();
 
             when(budgetRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(existing));
-            when(categoryService.getCategoryById(newCategoryId, userId)).thenReturn(newCategory);
+            when(categoryRepository.findById(newCategoryId)).thenReturn(Optional.of(newCategory));
             when(budgetRepository.save(any())).thenAnswer(invocation -> {
                 Budget original = invocation.getArgument(0);
                 Budget saved = Budget.builder()
@@ -442,7 +552,7 @@ class DefaultBudgetServiceTest {
             assertEquals(20.0, updated.spentPercentage(), "spentPercentage should be 200/1000*100");
 
             verify(budgetRepository, times(1)).findByIdAndUserId(id, userId);
-            verify(categoryService, times(1)).getCategoryById(newCategoryId, userId);
+            verify(categoryRepository, times(1)).findById(newCategoryId);
             verify(budgetRepository, times(1)).save(any());
             verify(budgetRepository, times(1)).findBudgetSummaryById(any());
             verify(userClient, times(1)).getUsersByIds(List.of(userId));

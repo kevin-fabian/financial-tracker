@@ -301,83 +301,87 @@ User ──GET /api/settlements──→ SettlementController
 
 #### `Split`
 
-```java
-record Split(
-    UUID id,
-    UUID transactionId,
-    UUID userId,
-    BigDecimal amount,
-    SplitType splitType,
-    Instant createdAt,
-    Instant updatedAt
-)
+```json
+{
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "transactionId": "11111111-2222-3333-4444-555555555555",
+  "userId": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff",
+  "amount": 30.00,
+  "splitType": "EQUAL",
+  "createdAt": "2026-09-01T10:30:00Z",
+  "updatedAt": null
+}
 ```
 
 #### `Settlement`
 
-```java
-record Settlement(
-    UUID id,
-    UUID transactionId,
-    UUID payerUserId,
-    UUID payeeUserId,
-    BigDecimal amount,
-    String description,
-    List<UUID> relatedSplitIds,
-    Instant createdAt,
-    Instant updatedAt
-)
+```json
+{
+  "id": "d4e5f6a7-b8c9-0123-defa-123456789abc",
+  "transactionId": "11111111-2222-3333-4444-555555555555",
+  "payerUserId": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff",
+  "payeeUserId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  "amount": 30.00,
+  "description": "Dinner split — Bob's share",
+  "relatedSplitIds": [
+    "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  ],
+  "createdAt": "2026-09-01T18:00:00Z",
+  "updatedAt": null
+}
 ```
 
 ### Query Projection Records
 
 #### `SplitSummary`
 
-```java
-record SplitSummary(
-    UUID splitId,
-    UUID userId,
-    String userName,
-    BigDecimal amount,
-    SplitType splitType
-)
+```json
+{
+  "splitId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "userId": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff",
+  "userName": "Bob",
+  "amount": 30.00,
+  "splitType": "EQUAL"
+}
 ```
 
 #### `BalanceSummary`
 
-```java
-record BalanceSummary(
-    UUID fromUserId,
-    UUID toUserId,
-    double netAmount
-)
+```json
+{
+  "fromUserId": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff",
+  "toUserId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  "netAmount": 0.00
+}
 ```
 
 #### `ObligationSummary`
 
-```java
-record ObligationSummary(
-    UUID transactionId,
-    String transactionDescription,
-    Instant transactionDate,
-    BigDecimal amount,
-    UUID payeeUserId,
-    String payeeName
-)
+```json
+{
+  "transactionId": "11111111-2222-3333-4444-555555555555",
+  "transactionDescription": "Dinner at Mario's",
+  "transactionDate": "2026-09-01T12:00:00Z",
+  "amount": 30.00,
+  "payeeUserId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  "payeeName": "Alice"
+}
 ```
 
 #### `SettlementSummary`
 
-```java
-record SettlementSummary(
-    UUID settlementId,
-    UUID payerUserId,
-    UUID payeeUserId,
-    BigDecimal amount,
-    String description,
-    List<UUID> relatedSplitIds,
-    Instant createdAt
-)
+```json
+{
+  "settlementId": "d4e5f6a7-b8c9-0123-defa-123456789abc",
+  "payerUserId": "bbbbbbbb-cccc-dddd-eeee-ffffffffffff",
+  "payeeUserId": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  "amount": 30.00,
+  "description": "Dinner split — Bob's share",
+  "relatedSplitIds": [
+    "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  ],
+  "createdAt": "2026-09-01T18:00:00Z"
+}
 ```
 
 ## History
