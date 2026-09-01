@@ -9,8 +9,14 @@ import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
+import com.fabiankevin.app.models.enums.party.AccessLevel;
+import com.fabiankevin.app.models.enums.party.PartyMemberStatus;
+import com.fabiankevin.app.models.enums.party.SharingMode;
+import com.fabiankevin.app.models.party.Party;
+import com.fabiankevin.app.models.party.PartyMember;
 import com.fabiankevin.app.persistence.BudgetRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
+import com.fabiankevin.app.persistence.PartyRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.BudgetService;
@@ -46,7 +52,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -81,6 +87,8 @@ class BudgetControllerIntegrationTest {
     @Autowired
     private CategoryRepository categoryRepository;
     @Autowired
+    private PartyRepository partyRepository;
+    @Autowired
     private JsonMapper jsonMapper;
 
     @Nested
@@ -95,7 +103,7 @@ class BudgetControllerIntegrationTest {
             createTransaction(account, category, 50.0);
             createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
 
-            when(userClient.getUsersByIds(anyList()))
+            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
                     .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
 
             mockMvc.perform(get("/api/budgets")
@@ -152,7 +160,7 @@ class BudgetControllerIntegrationTest {
             createTransaction(account, category, 50.0, lastMonth);
             createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
 
-            when(userClient.getUsersByIds(anyList()))
+            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
                     .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
 
             mockMvc.perform(get("/api/budgets")
@@ -182,6 +190,94 @@ class BudgetControllerIntegrationTest {
                     .andExpect(jsonPath("$[0].allocated").value(500.0))
                     .andExpect(jsonPath("$[0].spent").value(0.0))
                     .andExpect(jsonPath("$[0].spentPercentage").value(0.0));
+        }
+
+        @Test
+        void givenUserWithPartyMembers_thenReturnsConsolidatedBudgets() throws Exception {
+            UUID userId = UUID.randomUUID();
+            UUID otherUserId = UUID.randomUUID();
+
+            // Create a party with userId as leader and otherUserId as member
+            Party party = Party.builder()
+                    .name("Test Party")
+                    .partyLeaderId(userId)
+                    .sharingMode(SharingMode.EVEN_SHARE)
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .partyMembers(List.of(
+                            PartyMember.builder()
+                                    .playerId(userId)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
+                                    .status(PartyMemberStatus.ACTIVE)
+                                    .build(),
+                            PartyMember.builder()
+                                    .playerId(otherUserId)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
+                                    .status(PartyMemberStatus.ACTIVE)
+                                    .build()
+                    ))
+                    .build();
+
+            partyRepository.save(party);
+
+            // Create categories and budgets for both users
+            Category userCategory = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Category otherCategory = createCategory(otherUserId, "DINING", TransactionType.EXPENSE, "restaurant");
+            createBudget(userId, userCategory, BudgetPeriod.MONTHLY, 500.0);
+            createBudget(otherUserId, otherCategory, BudgetPeriod.MONTHLY, 300.0);
+
+            // Mock user client for both users
+            when(userClient.getUsersByIds(argThat(ids -> ids.contains(userId) && ids.contains(otherUserId))))
+                    .thenReturn(
+                            List.of(
+                                    User.builder().id(userId).firstName("Alice").lastName("Smith").build(),
+                                    User.builder().id(otherUserId).firstName("Bob").lastName("Jones").build()
+                            )
+                    );
+
+            mockMvc.perform(get("/api/budgets")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(2))
+                    // First budget (DINING) — belongs to otherUserId (Bob Jones)
+                    .andExpect(jsonPath("$[0].user.id").value(otherUserId.toString()))
+                    .andExpect(jsonPath("$[0].user.firstName").value("Bob"))
+                    .andExpect(jsonPath("$[0].user.lastName").value("Jones"))
+                    .andExpect(jsonPath("$[0].user.initial").value("BJ"))
+                    .andExpect(jsonPath("$[0].updatedBy.id").value(otherUserId.toString()))
+                    .andExpect(jsonPath("$[0].updatedBy.firstName").value("Bob"))
+                    .andExpect(jsonPath("$[0].updatedBy.lastName").value("Jones"))
+                    .andExpect(jsonPath("$[0].updatedBy.initial").value("BJ"))
+                    .andExpect(jsonPath("$[0].createdAt").exists())
+                    .andExpect(jsonPath("$[0].updatedAt").exists())
+                    .andExpect(jsonPath("$[0].period").value("MONTHLY"))
+                    .andExpect(jsonPath("$[0].categoryName").value("DINING"))
+                    .andExpect(jsonPath("$[0].categoryIcon").value("restaurant"))
+                    .andExpect(jsonPath("$[0].allocated").value(300.0))
+                    .andExpect(jsonPath("$[0].spent").value(0.0))
+                    .andExpect(jsonPath("$[0].spentPercentage").value(0.0))
+                    // Second budget (GROCERIES) — belongs to userId (Alice Smith)
+                    .andExpect(jsonPath("$[1].user.id").value(userId.toString()))
+                    .andExpect(jsonPath("$[1].user.firstName").value("Alice"))
+                    .andExpect(jsonPath("$[1].user.lastName").value("Smith"))
+                    .andExpect(jsonPath("$[1].user.initial").value("AS"))
+                    .andExpect(jsonPath("$[1].updatedBy.id").value(userId.toString()))
+                    .andExpect(jsonPath("$[1].updatedBy.firstName").value("Alice"))
+                    .andExpect(jsonPath("$[1].updatedBy.lastName").value("Smith"))
+                    .andExpect(jsonPath("$[1].updatedBy.initial").value("AS"))
+                    .andExpect(jsonPath("$[1].period").value("MONTHLY"))
+                    .andExpect(jsonPath("$[1].categoryName").value("GROCERIES"))
+                    .andExpect(jsonPath("$[1].categoryIcon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$[1].allocated").value(500.0))
+                    .andExpect(jsonPath("$[1].spent").value(0.0))
+                    .andExpect(jsonPath("$[1].spentPercentage").value(0.0));
         }
 
         @Test

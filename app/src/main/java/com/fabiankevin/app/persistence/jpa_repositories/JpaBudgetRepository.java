@@ -41,6 +41,7 @@ public interface JpaBudgetRepository extends JpaRepository<BudgetEntity, UUID> {
                         AND t.transactionDate BETWEEN :monthStart AND :monthEnd
                 WHERE b.userId IN :userIds
                 GROUP BY b.id, c.id
+                ORDER BY c.name ASC
             """)
     Streamable<BudgetSummaryProjection> findAllBudgetSummaryByUserIds(@Param("userIds") List<UUID> userIds,
                                                                        @Param("monthStart") LocalDate monthStart,
