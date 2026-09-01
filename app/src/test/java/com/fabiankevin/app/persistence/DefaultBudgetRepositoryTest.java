@@ -384,7 +384,7 @@ class DefaultBudgetRepositoryTest {
             jpaTransactionRepository.saveAndFlush(TransactionEntity.builder()
                     .category(category)
                     .amount(50.0)
-                    .transactionDate(today.minusDays(1))
+                    .transactionDate(today)
                     .createdAt(now)
                     .updatedAt(now)
                     .build());

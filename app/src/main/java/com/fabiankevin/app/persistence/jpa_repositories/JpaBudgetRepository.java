@@ -38,8 +38,7 @@ public interface JpaBudgetRepository extends JpaRepository<BudgetEntity, UUID> {
                 FROM BudgetEntity b
                 JOIN b.category c
                 LEFT JOIN TransactionEntity t ON t.category.id = c.id
-                        AND t.transactionDate >= :monthStart
-                        AND t.transactionDate <= :monthEnd
+                        AND t.transactionDate BETWEEN :monthStart AND :monthEnd
                 WHERE b.userId IN :userIds
                 GROUP BY b.id, c.id
             """)
