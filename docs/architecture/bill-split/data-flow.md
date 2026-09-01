@@ -72,14 +72,19 @@ User (payer) ──settles──→ SettlementController
                       (Request DTO → CreateSettlementCommand)
                             ↓
                       SettlementService.createSettlement()
-                            ├─► Validate: payer is party member
-                            ├─► Validate: payee is party member (same party)
+                            ├─► Validate: payer player ID is valid
+                            ├─► Validate: payee player ID is valid
                             ├─► Validate: amount > 0
                             ├─► (Optional) Validate: amount ≤ outstanding balance
                             ├─► Create SettlementEntity
-                            └─► SettlementRepository.save()
+                            ├─► SettlementRepository.save()
+                            ├─► Create SettlementTransaction (Q4: settlement creates transaction)
+                            │     ├─► Use payer's account (the account that paid)
+                            │     ├─► Description: "Settlement: {settlement.description}"
+                            │     └─► TransactionService.addTransaction()
+                            └─► Link settlement to transaction
                             ↓
-                      [settlement persisted]
+                      [settlement persisted, settlement transaction created]
 ```
 
 **Field lineage**:
@@ -88,7 +93,36 @@ User (payer) ──settles──→ SettlementController
 - `request.amount` → `Settlement.amount`
 - `request.description` → `Settlement.description`
 - `request.splitIds` → `Settlement.relatedSplitIds`
-- `party.id` (from payer's party membership) → `Settlement.partyId`
+- `party.id` (from payer's party membership, nullable) → `Settlement.partyId`
+- `payer.accountId` → `SettlementTransaction.accountId` (Q4: settlement creates transaction)
+
+### CF-4: Patch Split (Q5)
+
+```
+User ──PATCH /api/parties/{partyId}/splits/{splitId}──→ SplitController
+                                                          ↓
+                                                      (Request DTO → PatchSplitCommand)
+                                                          ↓
+                                                      SplitService.patchSplit(splitId, command)
+                                                          ├─► Validate: split exists
+                                                          ├─► Validate: split belongs to user's party (if partyId provided)
+                                                          ├─► Validate: new amount ≥ 0
+                                                          ├─► Validate: sum of all splits for transaction still equals transaction amount
+                                                          ├─► Update SplitEntity.amount = command.newAmount
+                                                          ├─► Update SplitEntity.updatedAt = NOW()
+                                                          └─► SplitRepository.save(splitEntity)
+                                                          ↓
+                                                      [split updated]
+```
+
+**Field lineage**:
+- `splitId` → `SplitEntity.id` (lookup)
+- `command.newAmount` → `SplitEntity.amount`
+- `NOW()` → `SplitEntity.updatedAt`
+
+**Constraints** (Q14):
+- Only `amount` field can be patched. Changes to `playerId`, `splitType`, or `transactionId` are rejected.
+- If the patch would cause the total split amount to exceed the transaction amount, return `InvalidSplitException`.
 
 ## Query Flows
 
@@ -225,9 +259,13 @@ User ──GET /api/parties/{partyId}/settlements──→ SettlementController
 | Settlement creation | SettlementService | Payer is party member | `InsufficientAccessException` |
 | Settlement creation | SettlementService | Payee is party member (same party) | `InvalidSettlementException` |
 | Settlement creation | SettlementService | Amount > 0 | `InvalidSettlementException` |
+| Split patch (Q5) | SplitService | Split exists | `SplitNotFoundException` |
+| Split patch (Q5) | SplitService | New amount ≥ 0 | `InvalidSplitException` |
+| Split patch (Q5) | SplitService | Sum of all splits for transaction still equals transaction amount | `InvalidSplitException` |
 
 ## History
 
 | Date | Change |
 |------|--------|
 | 2026-09-01 | Initial data flow draft |
+| 2026-09-01 | CF-3 updated: settlement creates transaction flow (Q4 decision). Added CF-4 (Patch Split) for Q5 decision. Added constraints section to CF-4 (Q14: only amount field can be patched). |

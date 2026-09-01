@@ -91,17 +91,21 @@ Bill Split enables party members to split transactions across multiple users and
 
 ### AD-4: Party boundary
 
-**Decision**: Splits and settlements are scoped to a `Party`.
+**Decision**: Splits and settlements are party-agnostic (not scoped to a `Party`).
 
 **Why**:
-- The user's request explicitly mentions "split with multiple users" — implying a group context.
-- The existing Party/PartyMember infrastructure provides membership, access control, and invitation flows.
-- A split only makes sense between people who share financial context.
+- Human decision: bill-split is party agnostic. The feature works without requiring the party schema.
+- The `party_id` columns exist in the data model for future party-scoped queries, but are not required for core functionality.
+- Splits reference transactions (which have an `addedBy` user), not party memberships.
+- Settlements reference player IDs directly.
+
+**Contradiction note**: AD-4 as originally written stated splits/settlements are scoped to a Party. This contradicts the human decision that bill-split is party agnostic. The data model (party_id columns), data flows (party-scoped queries), and use cases (UC-3 party membership validation) all reference parties, but the human decision is to make bill-split work without requiring the party schema.
 
 **How it works**:
-- When creating a split, the `partyId` is required.
-- All split participants must be `PartyMember`s of that party.
-- Settlements are also party-scoped: payer and payee must share a party.
+- `party_id` columns exist in `splits` and `settlements` tables for referential integrity but are nullable.
+- Split participants are validated against party membership only if a party_id is provided.
+- Settlements can be created between any two player IDs (party membership validation is optional).
+- When party schema migrations (V1.0.5) are created, party-scoped queries can be enabled.
 
 ### AD-5: Transaction ownership vs. split ownership
 
@@ -181,7 +185,15 @@ Bill Split enables party members to split transactions across multiple users and
 | Date | Change |
 |------|--------|
 | 2026-09-01 | Initial architecture draft |
+| 2026-09-01 | Review pass: 14 findings. AD-4 updated to reflect human decision (party agnostic). Contradictions documented. Missing resources identified (SplitType enum, exception classes, party schema migrations, SettlementEntity.updatedAt, settlement creates transaction). |
+| 2026-09-01 | Validation pass: 3 blocking issues, 9 inconsistencies, 6 missing information, 5 unresolved decisions, 7 warnings. Party schema not in migrations confirmed. Settlement creates transaction impact documented. |
+| 2026-09-01 | Q14 resolved: Only `amount` field can be patched. CF-4 (Patch Split) added to data-flow.md. Validation constraints documented. |
 
 ## Implementation Readiness: NOT READY
 
-Blocking questions remain (see open-questions.md).
+Blocking issues:
+1. Party schema migrations (V1.0.5) not created — party_id columns reference non-existent tables.
+2. Q4 decision: settlements create transactions — SettlementEntity needs `transaction_id` column, SettlementService needs transaction creation logic.
+3. Q2 contradiction: AD-4 states party-scoped but human decision is party agnostic — data model and data flows still reference parties extensively.
+
+See open-questions.md for full status.

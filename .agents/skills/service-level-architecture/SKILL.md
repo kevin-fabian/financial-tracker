@@ -114,6 +114,14 @@ FAIL
 
 with blocking issues and inconsistencies.
 
+| Operation   | `architecture.md` | `data-model.md` | `data-flow.md`  | `open-questions.md` |
+| ----------- | ----------------- | --------------- | --------------- | ------------------- |
+| `/analyze`  | ✅ Create/update   | ✅ Create/update | ✅ Create/update | ✅ Create/update     |
+| `/review`   | ❌                 | ❌               | ❌               | **✅ Add questions** |
+| Human       | ✅ Optional        | ✅ Optional      | ✅ Optional      | **✅ Decisions**     |
+| `/validate` | ❌                 | ❌               | ❌               | ❌                   |
+
+
 ---
 
 ## Artifacts

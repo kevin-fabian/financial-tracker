@@ -37,22 +37,26 @@ Records when one party member pays another.
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `id` | UUID | PRIMARY KEY, `gen_random_uuid()`, NOT NULL | Settlement record identifier |
-| `party_id` | UUID | NOT NULL, FK → `parties(id)` | Party scope |
+| `party_id` | UUID | NULL, FK → `parties(id)` | Party scope (nullable — party agnostic per human decision) |
 | `payer_player_id` | UUID | NOT NULL | The member who paid |
 | `payee_player_id` | UUID | NOT NULL | The member who was paid |
 | `amount` | NUMERIC(12, 2) | NOT NULL, CHECK > 0 | Settlement amount |
 | `description` | TEXT | NULL | Optional memo |
 | `related_split_ids` | JSON | NULL, default `[]` | References to specific splits being settled |
+| `transaction_id` | UUID | NULL, FK → `transactions(id)` | Settlement transaction (created per Q4 decision) |
 | `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | When the settlement was recorded |
+| `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | Last modification timestamp |
 
 **Indexes**:
-- `idx_settlements_party_id` on `party_id` — party-scoped queries.
+- `idx_settlements_party_id` on `party_id` — party-scoped queries (nullable column).
 - `idx_settlements_payer_id` on `payer_player_id` — payer's outgoing settlements.
 - `idx_settlements_payee_id` on `payee_player_id` — payee's incoming settlements.
 - `idx_settlements_payer_payee` on `(payer_player_id, payee_player_id)` — balance computation.
+- `idx_settlements_transaction_id` on `transaction_id` — settlement-to-transaction lookup.
 
 **Foreign keys**:
 - `fk_settlements_party_id` → `parties(id)` — cascade restricted.
+- `fk_settlements_transaction_id` → `transactions(id)` — cascade restricted (created per Q4 decision).
 
 ## Modified Tables
 
@@ -89,12 +93,14 @@ SplitEntity
 SettlementEntity
 ├── id: UUID
 ├── party: PartyEntity (ManyToOne, LAZY)
+├── transaction: TransactionEntity (ManyToOne, LAZY)  // Q4: settlement creates transaction
 ├── payerPlayerId: UUID
 ├── payeePlayerId: UUID
 ├── amount: double
 ├── description: String
-├── relatedSplitIds: List<String> (JSON)
-└── createdAt: Instant
+├── relatedSplitIds: List<UUID> (JSON)  // Type correction: List<UUID> not List<String> per codebase convention
+├── createdAt: Instant
+└── updatedAt: Instant
 ```
 
 ### Domain Model Records (new)
@@ -120,12 +126,14 @@ record Split(
 record Settlement(
     UUID id,
     UUID partyId,
+    UUID transactionId,  // Q4: settlement creates transaction
     UUID payerPlayerId,
     UUID payeePlayerId,
     double amount,
     String description,
-    List<String> relatedSplitIds,
-    Instant createdAt
+    List<UUID> relatedSplitIds,  // Type correction: List<UUID> not List<String> per codebase convention
+    Instant createdAt,
+    Instant updatedAt
 )
 ```
 
@@ -210,3 +218,5 @@ Where:
 | Date | Change |
 |------|--------|
 | 2026-09-01 | Initial data model draft |
+| 2026-09-01 | Review pass: Added `transaction_id` to settlements table (Q4: settlement creates transaction). Added `updated_at` to settlements table. Changed `party_id` to nullable (party agnostic). Fixed `relatedSplitIds` type from `List<String>` to `List<UUID>` per codebase convention. Added `transaction` relationship to SettlementEntity. |
+| 2026-09-01 | Validation pass: Confirmed entity fetch strategy corrections (SplitEntity.transaction/party = EAGER, SettlementEntity.party = LAZY). Documented type mismatch for relatedSplitIds. |
