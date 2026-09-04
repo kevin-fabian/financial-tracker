@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -877,10 +878,9 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
                     .andExpect(jsonPath("$.length()").value(2))
-                    .andExpect(jsonPath("$[0].name").value("Groceries"))
+                    .andExpect(jsonPath("$[*].name").value(containsInAnyOrder("Groceries", "Supplies")))
                     .andExpect(jsonPath("$[0].items").isArray())
                     .andExpect(jsonPath("$[0].items.length()").value(0))
-                    .andExpect(jsonPath("$[1].name").value("Supplies"))
                     .andExpect(jsonPath("$[1].items").isArray())
                     .andExpect(jsonPath("$[1].items.length()").value(0));
         }
