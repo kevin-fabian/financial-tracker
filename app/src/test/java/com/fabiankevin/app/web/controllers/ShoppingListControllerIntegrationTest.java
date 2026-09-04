@@ -36,6 +36,7 @@ import tools.jackson.databind.json.JsonMapper;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -167,6 +168,75 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
+        void givenZeroBudget_thenReturnsCreatedWithZeroBudget() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
+
+            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
+                    .name("Groceries")
+                    .description("Weekly groceries")
+                    .categoryId(category.id())
+                    .budget(0.0)
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(post("/api/shopping-lists")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.budget").value(0.0));
+        }
+
+        @Test
+        void givenMinimalRequest_thenReturnsCreatedWithDefaults() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
+
+            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
+                    .name("Groceries")
+                    .categoryId(category.id())
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(post("/api/shopping-lists")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").isNotEmpty())
+                    .andExpect(jsonPath("$.name").value("Groceries"))
+                    .andExpect(jsonPath("$.description").doesNotExist())
+                    .andExpect(jsonPath("$.status").value("ACTIVE"))
+                    .andExpect(jsonPath("$.budget").value(0.0))
+                    .andExpect(jsonPath("$.items").isArray())
+                    .andExpect(jsonPath("$.items").isEmpty())
+                    .andExpect(jsonPath("$.category").exists())
+                    .andExpect(jsonPath("$.category.id").value(category.id().toString()))
+                    .andExpect(jsonPath("$.user").exists())
+                    .andExpect(jsonPath("$.createdAt").exists())
+                    .andExpect(jsonPath("$.updatedAt").exists());
+        }
+
+        @Test
         void givenNoJwt_thenReturnsForbidden() throws Exception {
             CreateShoppingListRequest request = CreateShoppingListRequest.builder()
                     .name("Groceries")
@@ -180,35 +250,26 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(status().isUnauthorized());
         }
 
-        @ParameterizedTest
-        @NullAndEmptySource
-        void givenBlankName_thenReturnsBadRequest(String name) throws Exception {
-            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
-                    .name(name)
-                    .description("Weekly groceries")
-                    .budget(200.0)
-                    .build();
+        // Pre-built validation error requests keyed by label for parameterized test
+        private static final Map<String, CreateShoppingListRequest> VALIDATION_ERROR_REQUESTS = Map.of(
+                "blankName", CreateShoppingListRequest.builder().name(null).description("Weekly groceries").budget(200.0).build(),
+                "emptyName", CreateShoppingListRequest.builder().name("").description("Weekly groceries").budget(200.0).build(),
+                "nameExceeds64Chars", CreateShoppingListRequest.builder().name("a".repeat(65)).description("Weekly groceries").budget(200.0).build(),
+                "nullCategoryId", CreateShoppingListRequest.builder().name("Groceries").description("Weekly groceries").budget(200.0).build(),
+                "negativeBudget", CreateShoppingListRequest.builder().name("Groceries").description("Weekly groceries").categoryId(UUID.randomUUID()).budget(-50.0).build(),
+                "descriptionExceeds128Chars", CreateShoppingListRequest.builder().name("Groceries").description("a".repeat(129)).budget(200.0).build()
+        );
 
-            mockMvc.perform(post("/api/shopping-lists")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", UUID.randomUUID())
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
+        static Stream<Arguments> validationErrorCases() {
+            return VALIDATION_ERROR_REQUESTS.entrySet().stream()
+                    .map(e -> Arguments.of(e.getKey(), e.getValue()));
         }
 
-        @Test
-        void givenNullCategoryId_thenReturnsBadRequest() throws Exception {
-            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
-                    .name("Groceries")
-                    .description("Weekly groceries")
-                    .budget(200.0)
-                    .build();
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("validationErrorCases")
+        void givenValidationErrorCase_thenReturnsBadRequest(
+                String label,
+                CreateShoppingListRequest request) throws Exception {
 
             mockMvc.perform(post("/api/shopping-lists")
                             .with(jwt()
@@ -251,36 +312,6 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenZeroBudget_thenReturnsCreatedWithZeroBudget() throws Exception {
-            UUID userId = UUID.randomUUID();
-
-            Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
-
-            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
-                    .name("Groceries")
-                    .description("Weekly groceries")
-                    .categoryId(category.id())
-                    .budget(0.0)
-                    .build();
-
-            when(userClient.getUsersByIds(List.of(userId)))
-                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
-
-            mockMvc.perform(post("/api/shopping-lists")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.budget").value(0.0));
-        }
-
-        @Test
         void givenNegativeBudget_thenReturnsBadRequest() throws Exception {
             UUID userId = UUID.randomUUID();
 
@@ -304,45 +335,6 @@ class ShoppingListControllerIntegrationTest {
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest());
-        }
-
-        @Test
-        void givenMinimalRequest_thenReturnsCreatedWithDefaults() throws Exception {
-            UUID userId = UUID.randomUUID();
-
-            Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
-
-            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
-                    .name("Groceries")
-                    .categoryId(category.id())
-                    .build();
-
-            when(userClient.getUsersByIds(List.of(userId)))
-                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
-
-            mockMvc.perform(post("/api/shopping-lists")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.id").isNotEmpty())
-                    .andExpect(jsonPath("$.name").value("Groceries"))
-                    .andExpect(jsonPath("$.description").doesNotExist())
-                    .andExpect(jsonPath("$.status").value("ACTIVE"))
-                    .andExpect(jsonPath("$.budget").value(0.0))
-                    .andExpect(jsonPath("$.items").isArray())
-                    .andExpect(jsonPath("$.items").isEmpty())
-                    .andExpect(jsonPath("$.category").exists())
-                    .andExpect(jsonPath("$.category.id").value(category.id().toString()))
-                    .andExpect(jsonPath("$.user").exists())
-                    .andExpect(jsonPath("$.createdAt").exists())
-                    .andExpect(jsonPath("$.updatedAt").exists());
         }
 
         @Test
@@ -442,9 +434,14 @@ class ShoppingListControllerIntegrationTest {
                     .containsExactlyInAnyOrder(sharedUser1);
         }
 
-        @ParameterizedTest(name = "[{index}] {0}")
-        @MethodSource("oversizedFieldRequests")
-        void givenFieldExceedsMaxLength_thenReturnsBadRequest(String label, CreateShoppingListRequest request) throws Exception {
+        @Test
+        void givenNameExceeds64Chars_thenReturnsBadRequest() throws Exception {
+            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
+                    .name("a".repeat(65))
+                    .description("Weekly groceries")
+                    .budget(200.0)
+                    .build();
+
             mockMvc.perform(post("/api/shopping-lists")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -458,21 +455,25 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(status().isBadRequest());
         }
 
-        static Stream<Arguments> oversizedFieldRequests() {
-            return Stream.of(
-                    Arguments.of("name exceeds 64 chars",
-                            CreateShoppingListRequest.builder()
-                                    .name("a".repeat(65))
-                                    .description("Weekly groceries")
-                                    .budget(200.0)
-                                    .build()),
-                    Arguments.of("description exceeds 128 chars",
-                            CreateShoppingListRequest.builder()
-                                    .name("Groceries")
-                                    .description("a".repeat(129))
-                                    .budget(200.0)
-                                    .build())
-            );
+        @Test
+        void givenDescriptionExceeds128Chars_thenReturnsBadRequest() throws Exception {
+            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
+                    .name("Groceries")
+                    .description("a".repeat(129))
+                    .budget(200.0)
+                    .build();
+
+            mockMvc.perform(post("/api/shopping-lists")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", UUID.randomUUID())
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
         }
     }
 
