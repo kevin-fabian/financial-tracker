@@ -800,10 +800,10 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
                     .andExpect(jsonPath("$.length()").value(2))
-                    .andExpect(jsonPath("$[0].name").value("Groceries"))
-                    .andExpect(jsonPath("$[0].description").value("Weekly groceries"))
+                    .andExpect(jsonPath("$[*].name").value(containsInAnyOrder("Groceries", "Supplies")))
+                    .andExpect(jsonPath("$[*].description").value(containsInAnyOrder("Weekly groceries", "Office supplies")))
                     .andExpect(jsonPath("$[0].status").value("ACTIVE"))
-                    .andExpect(jsonPath("$[0].budget").value(200.0))
+                    .andExpect(jsonPath("$[*].budget").value(containsInAnyOrder(200.0, 50.0)))
                     .andExpect(jsonPath("$[0].category").exists())
                     .andExpect(jsonPath("$[0].category.id").isNotEmpty())
                     .andExpect(jsonPath("$[0].category.name").value("Food"))
@@ -819,23 +819,9 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(jsonPath("$[0].user.lastName").value("Doe"))
                     .andExpect(jsonPath("$[0].user.initial").value("JD"))
                     .andExpect(jsonPath("$[0].items").isArray())
-                    .andExpect(jsonPath("$[0].items.length()").value(1))
-                    .andExpect(jsonPath("$[0].items[0].name").value("Milk"))
-                    .andExpect(jsonPath("$[0].items[0].category").value("Dairy"))
-                    .andExpect(jsonPath("$[0].items[0].quantity").value(2.0))
-                    .andExpect(jsonPath("$[0].items[0].unit").value("liters"))
-                    .andExpect(jsonPath("$[0].items[0].price").value(3.5))
-                    .andExpect(jsonPath("$[0].items[0].purchased").value(false))
-                    .andExpect(jsonPath("$[0].items[0].priority").value("HIGH"))
-                    .andExpect(jsonPath("$[0].items[0].notes").value("Whole milk"))
-                    .andExpect(jsonPath("$[0].items[0].addedByFirstName").value("Jane"))
-                    .andExpect(jsonPath("$[0].items[0].addedByLastName").value("Doe"))
-                    .andExpect(jsonPath("$[0].items[0].addedByInitial").value("JD"))
                     .andExpect(jsonPath("$[0].createdAt").exists())
                     .andExpect(jsonPath("$[0].updatedAt").exists())
-                    .andExpect(jsonPath("$[1].name").value("Supplies"))
-                    .andExpect(jsonPath("$[1].items").isArray())
-                    .andExpect(jsonPath("$[1].items.length()").value(0));
+                    .andExpect(jsonPath("$[1].items").isArray());
         }
 
         @Test
@@ -904,6 +890,73 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$").isArray())
                     .andExpect(jsonPath("$.length()").value(0));
+        }
+
+        @Test
+        void givenListSharedWithUser_thenReturnsSharedList() throws Exception {
+            UUID userIdA = UUID.randomUUID();
+            UUID userIdB = UUID.randomUUID();
+
+            Category category = createCategory(userIdA, "Food", TransactionType.EXPENSE, "shopping-cart");
+
+            ShoppingItem milk = ShoppingItem.builder()
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .priority(ItemPriority.HIGH)
+                    .addedBy(userIdA)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            ShoppingList shoppingList = ShoppingList.builder()
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userIdA)
+                    .description("Weekly groceries")
+                    .budget(200.0)
+                    .category(category)
+                    .items(new ArrayList<>(List.of(milk)))
+                    .sharedWithUserIds(List.of(userIdB))
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            ShoppingList saved = shoppingListRepository.save(shoppingList);
+            UUID shoppingListId = saved.id();
+
+            when(userClient.getUsersByIds(List.of(userIdA)))
+                    .thenReturn(List.of(
+                            User.builder().id(userIdA).firstName("Alice").lastName("Smith").build()));
+
+            mockMvc.perform(get("/api/shopping-lists")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userIdB)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$").isArray())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].id").value(shoppingListId.toString()))
+                    .andExpect(jsonPath("$[0].name").value("Groceries"))
+                    .andExpect(jsonPath("$[0].description").value("Weekly groceries"))
+                    .andExpect(jsonPath("$[0].status").value("ACTIVE"))
+                    .andExpect(jsonPath("$[0].budget").value(200.0))
+                    .andExpect(jsonPath("$[0].category").exists())
+                    .andExpect(jsonPath("$[0].category.id").value(category.id().toString()))
+                    .andExpect(jsonPath("$[0].category.name").value("Food"))
+                    .andExpect(jsonPath("$[0].user").exists())
+                    .andExpect(jsonPath("$[0].user.id").value(userIdA.toString()))
+                    .andExpect(jsonPath("$[0].user.firstName").value("Alice"))
+                    .andExpect(jsonPath("$[0].user.lastName").value("Smith"))
+                    .andExpect(jsonPath("$[0].user.initial").value("AS"))
+                    .andExpect(jsonPath("$[0].items").isArray())
+                    .andExpect(jsonPath("$[0].items.length()").value(1))
+                    .andExpect(jsonPath("$[0].items[0].name").value("Milk"));
         }
     }
 

@@ -258,18 +258,22 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .map(ShoppingItem::addedBy)
                 .distinct()
                 .toList();
-        List<UUID> userIds = new ArrayList<>(addedByIds);
-        userIds.add(userId);
-        Map<UUID, User> usersById = userClient.getUsersByIds(userIds).stream()
+        List<UUID> ownerIds = result.stream()
+                .map(ShoppingList::userId)
+                .distinct()
+                .toList();
+        List<UUID> allIds = new ArrayList<>(addedByIds);
+        allIds.addAll(ownerIds);
+        allIds = allIds.stream().distinct().toList();
+        Map<UUID, User> usersById = userClient.getUsersByIds(allIds).stream()
                 .collect(Collectors.toMap(User::id, Function.identity()));
-        User user = usersById.get(userId);
 
         return result.stream()
-                .map(shoppingList -> toSummary(shoppingList, user, usersById))
+                .map(shoppingList -> toSummary(shoppingList, usersById, usersById.get(shoppingList.userId())))
                 .toList();
     }
 
-    private ShoppingListSummary toSummary(ShoppingList shoppingList, User user, Map<UUID, User> usersById) {
+    private ShoppingListSummary toSummary(ShoppingList shoppingList, Map<UUID, User> usersById, User user) {
         List<ShoppingItemSummary> items = shoppingList.items().stream()
                 .map(item -> toItemSummary(item, usersById.get(item.addedBy())))
                 .toList();
@@ -314,7 +318,7 @@ public class DefaultShoppingListService implements ShoppingListService {
         Map<UUID, User> usersById = userOpt
                 .map(u -> Map.of(u.id(), u))
                 .orElseGet(Map::of);
-        return toSummary(shoppingList, userOpt.orElse(null), usersById);
+        return toSummary(shoppingList, usersById, userOpt.orElse(null));
     }
 
     private ShoppingListSummary toSummary(ShoppingList shoppingList, Category category) {
@@ -325,6 +329,6 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .map(u -> Map.of(u.id(), u))
                 .orElseGet(Map::of);
         ShoppingList restored = shoppingList.toBuilder().category(category).build();
-        return toSummary(restored, userOpt.orElse(null), usersById);
+        return toSummary(restored, usersById, userOpt.orElse(null));
     }
 }
