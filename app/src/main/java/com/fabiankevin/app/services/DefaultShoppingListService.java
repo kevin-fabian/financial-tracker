@@ -31,6 +31,10 @@ public class DefaultShoppingListService implements ShoppingListService {
     @Transactional
     @Override
     public ShoppingListSummary createShoppingList(CreateShoppingListCommand command) {
+        if(command.name() == null || command.name().isBlank()) {
+            throw new IllegalArgumentException("Household name is required");
+        }
+
         Instant now = Instant.now();
         Category category = categoryRepository.findByIdAndUserId(command.categoryId(), command.userId())
                 .orElseThrow(CategoryNotFoundException::new);
