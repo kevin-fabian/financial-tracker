@@ -16,6 +16,8 @@ public interface RecurringTransactionRepository {
 
     List<RecurringTransactionSummary> findSummariesByUserId(UUID userId, LocalDate now);
 
+    List<RecurringTransactionSummary> findSummariesByUserIds(List<UUID> userIds, LocalDate now);
+
     Stream<RecurringTransaction> streamDueRecurringTransactions(LocalDate now);
 
     int deleteByIdAndUserId(UUID id, UUID userId);

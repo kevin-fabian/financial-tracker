@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -41,6 +42,7 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
     private final AccountRepository accountRepository;
     private final CategoryRepository categoryRepository;
     private final UserClient userClient;
+    private final PartyService partyService;
 
     @Override
     public RecurringTransactionSummary create(CreateRecurringTransactionCommand command) {
@@ -105,12 +107,31 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
     @Override
     public List<RecurringTransactionSummary> getRecurringTransactionsByUserId(UUID userId) {
         LocalDate today = LocalDate.now();
-        List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserId(userId, today);
-        User user = userClient.getUsersByIds(List.of(userId)).stream().findFirst().orElse(null);
+        List<UUID> userIds = partyService.getPartyMembersUserId(userId);
+        List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserIds(userIds, today);
+        return enrichWithUserData(summaries, today);
+    }
+
+    private List<RecurringTransactionSummary> enrichWithUserData(List<RecurringTransactionSummary> summaries, LocalDate today) {
+        List<UUID> userIds = summaries.stream()
+                .map(summary -> summary.account().user().id())
+                .distinct()
+                .toList();
+
+        if (userIds.isEmpty()) {
+            return summaries;
+        }
+
+        var usersById = userClient.getUsersByIds(userIds).stream()
+                .collect(Collectors.toMap(User::id, u -> u));
+
         return summaries.stream()
-                .map(s -> {
-                    int remainingDays = getRemainingDays(s.nextOccurrenceDate(), today);
-                    return s.toBuilder()
+                .map(summary -> {
+                    UUID accountUserId = summary.account().user().id();
+                    User user = usersById.get(accountUserId);
+                    int remainingDays = getRemainingDays(summary.nextOccurrenceDate(), today);
+
+                    return summary.toBuilder()
                             .remainingDays(remainingDays)
                             .updatedBy(user)
                             .build();

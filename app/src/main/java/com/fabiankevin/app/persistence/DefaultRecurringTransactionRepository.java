@@ -44,6 +44,14 @@ public class DefaultRecurringTransactionRepository implements RecurringTransacti
     }
 
     @Override
+    public List<RecurringTransactionSummary> findSummariesByUserIds(List<UUID> userIds, LocalDate now) {
+        return userIds.stream()
+                .flatMap(userId -> jpaRecurringTransactionRepository.findAllSummariesByUserId(userId, now).stream())
+                .map(this::toSummary)
+                .toList();
+    }
+
+    @Override
     public Stream<RecurringTransaction> streamDueRecurringTransactions(LocalDate now) {
         return jpaRecurringTransactionRepository.streamDueRecurringTransactions(now)
                 .map(RecurringTransactionEntity::toModel);

@@ -20,6 +20,8 @@ import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateRecurringTransactionRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchRecurringTransactionRequest;
+import com.fabiankevin.app.web.controllers.dtos.party.PartyResponse;
+import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -47,7 +49,9 @@ import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -89,6 +93,9 @@ class RecurringTransactionControllerIntegrationTest {
 
     @Autowired
     private JsonMapper jsonMapper;
+
+    @Autowired
+    private HouseholdServiceTestHelper householdHelper;
 
     @Nested
     class CreateRecurringTransaction {
@@ -600,6 +607,112 @@ class RecurringTransactionControllerIntegrationTest {
                                             .claim("scope", List.of())
                                     )))
                     .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void givenUserWithPartyMembers_thenReturnsConsolidatedRecurringTransactions() throws Exception {
+            UUID partyLeaderId = UUID.randomUUID();
+            UUID inviteeId = UUID.randomUUID();
+
+            // Set up user mocks before party operations
+            when(userClient.getUserByEmail("invitee@example.com"))
+                    .thenReturn(User.builder().id(inviteeId).firstName("Bob").lastName("Jones").build());
+            when(userClient.getUsersByIds(argThat(ids -> ids.contains(partyLeaderId) && ids.contains(inviteeId))))
+                    .thenReturn(
+                            List.of(
+                                    User.builder().id(partyLeaderId).firstName("Alice").lastName("Smith").build(),
+                                    User.builder().id(inviteeId).firstName("Bob").lastName("Jones").build()
+                            )
+                    );
+
+            // Create party and invite + accept via helper
+            PartyResponse partyResponse = householdHelper.createHouseHold(partyLeaderId);
+            householdHelper.inviteAndAccept(partyResponse.id(), partyLeaderId, inviteeId, "invitee@example.com");
+
+            // Create recurring transactions for both users
+            Category leaderCategory = createCategory(partyLeaderId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Account leaderAccount = createAccount(partyLeaderId, "Cash Wallet");
+
+            CreateRecurringTransactionRequest leaderRequest = CreateRecurringTransactionRequest.builder()
+                    .description("Monthly subscription - Alice")
+                    .amount(15.99)
+                    .variableAmount(false)
+                    .categoryId(leaderCategory.id())
+                    .accountId(leaderAccount.id())
+                    .noEndDate(false)
+                    .dayOfMonth(15)
+                    .durationMonths(6)
+                    .build();
+
+            mockMvc.perform(post("/api/recurring-transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", partyLeaderId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(leaderRequest)))
+                    .andExpect(status().isCreated());
+
+            Category inviteeCategory = createCategory(inviteeId, "TRANSPORT", TransactionType.EXPENSE, "bus");
+            Account inviteeAccount = createAccount(inviteeId, "Bank Account");
+
+            CreateRecurringTransactionRequest inviteeRequest = CreateRecurringTransactionRequest.builder()
+                    .description("Monthly subscription - Bob")
+                    .amount(25.00)
+                    .variableAmount(false)
+                    .categoryId(inviteeCategory.id())
+                    .accountId(inviteeAccount.id())
+                    .noEndDate(false)
+                    .dayOfMonth(20)
+                    .durationMonths(12)
+                    .build();
+
+            mockMvc.perform(post("/api/recurring-transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", inviteeId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(inviteeRequest)))
+                    .andExpect(status().isCreated());
+
+            mockMvc.perform(get("/api/recurring-transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", partyLeaderId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(2))
+                    // Both recurring transactions present — order may vary
+                    .andExpect(jsonPath("$[*].description").value(
+                            containsInAnyOrder("Monthly subscription - Alice", "Monthly subscription - Bob")
+                    ))
+                    .andExpect(jsonPath("$[*].category.id").isArray())
+                    .andExpect(jsonPath("$[*].account.id").isArray())
+                    .andExpect(jsonPath("$[*].account.user.id").value(
+                            containsInAnyOrder(
+                                    partyLeaderId.toString(),
+                                    inviteeId.toString()
+                            )
+                    ))
+                    .andExpect(jsonPath("$[*].account.user.firstName").value(
+                            containsInAnyOrder("Alice", "Bob")
+                    ))
+                    .andExpect(jsonPath("$[*].account.user.lastName").value(
+                            containsInAnyOrder("Smith", "Jones")
+                    ))
+                    .andExpect(jsonPath("$[*].account.user.initial").value(
+                            containsInAnyOrder("AS", "BJ")
+                    ));
         }
     }
 

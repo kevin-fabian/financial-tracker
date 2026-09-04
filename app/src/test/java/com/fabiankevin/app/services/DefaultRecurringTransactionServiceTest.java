@@ -61,6 +61,9 @@ class DefaultRecurringTransactionServiceTest {
     @Mock
     private UserClient userClient;
 
+    @Mock
+    private PartyService partyService;
+
     @InjectMocks
     private DefaultRecurringTransactionService service;
 
@@ -420,9 +423,14 @@ class DefaultRecurringTransactionServiceTest {
 
             User user = User.builder().id(userId).firstName("John").lastName("Doe").build();
 
-            when(recurringTransactionRepository.findSummariesByUserId(eq(userId), any()))
+            when(recurringTransactionRepository.findSummariesByUserIds(any(), any()))
                     .thenReturn(List.of(summary));
-            when(userClient.getUsersByIds(List.of(userId))).thenReturn(List.of(user));
+            when(userClient.getUsersByIds(any())).thenAnswer(invocation -> {
+                List<UUID> ids = invocation.getArgument(0);
+                return ids.stream()
+                        .map(id -> User.builder().id(id).firstName("John").lastName("Doe").build())
+                        .toList();
+            });
 
             List<RecurringTransactionSummary> result = service.getRecurringTransactionsByUserId(userId);
 
@@ -444,8 +452,8 @@ class DefaultRecurringTransactionServiceTest {
             assertEquals("John", resultSummary.updatedBy().firstName(), "user firstName should match");
             assertEquals("Doe", resultSummary.updatedBy().lastName(), "user lastName should match");
 
-            verify(recurringTransactionRepository).findSummariesByUserId(eq(userId), any());
-            verify(userClient).getUsersByIds(List.of(userId));
+            verify(recurringTransactionRepository).findSummariesByUserIds(any(), any());
+            verify(userClient).getUsersByIds(any());
         }
 
         @Test
@@ -472,9 +480,14 @@ class DefaultRecurringTransactionServiceTest {
 
             User user = User.builder().id(userId).firstName("John").lastName("Doe").build();
 
-            when(recurringTransactionRepository.findSummariesByUserId(eq(userId), any()))
+            when(recurringTransactionRepository.findSummariesByUserIds(any(), any()))
                     .thenReturn(List.of(summary));
-            when(userClient.getUsersByIds(List.of(userId))).thenReturn(List.of(user));
+            when(userClient.getUsersByIds(any())).thenAnswer(invocation -> {
+                List<UUID> ids = invocation.getArgument(0);
+                return ids.stream()
+                        .map(id -> User.builder().id(id).firstName("John").lastName("Doe").build())
+                        .toList();
+            });
 
             List<RecurringTransactionSummary> result = service.getRecurringTransactionsByUserId(userId);
 
@@ -484,25 +497,23 @@ class DefaultRecurringTransactionServiceTest {
             RecurringTransactionSummary resultSummary = result.getFirst();
             assertEquals(1, resultSummary.remainingDays(), "remainingDays should be 1 when nextOccurrenceDate is tomorrow");
 
-            verify(recurringTransactionRepository).findSummariesByUserId(eq(userId), any());
-            verify(userClient).getUsersByIds(List.of(userId));
+            verify(recurringTransactionRepository).findSummariesByUserIds(any(), any());
+            verify(userClient).getUsersByIds(any());
         }
 
         @Test
         void givenNoRecurringTransactions_thenReturnsEmptyList() {
             UUID userId = UUID.randomUUID();
 
-            when(recurringTransactionRepository.findSummariesByUserId(eq(userId), any()))
+            when(recurringTransactionRepository.findSummariesByUserIds(any(), any()))
                     .thenReturn(List.of());
-            when(userClient.getUsersByIds(List.of(userId))).thenReturn(List.of());
 
             List<RecurringTransactionSummary> result = service.getRecurringTransactionsByUserId(userId);
 
             assertNotNull(result, "result should not be null");
             assertTrue(result.isEmpty(), "should return empty list");
 
-            verify(recurringTransactionRepository).findSummariesByUserId(eq(userId), any());
-            verify(userClient).getUsersByIds(List.of(userId));
+            verify(recurringTransactionRepository).findSummariesByUserIds(any(), any());
         }
     }
 }
