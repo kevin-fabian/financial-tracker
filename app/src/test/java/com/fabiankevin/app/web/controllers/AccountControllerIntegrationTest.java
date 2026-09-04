@@ -42,6 +42,7 @@ import java.util.stream.Stream;
 
 import static com.fabiankevin.app.models.enums.AccountType.CREDIT_CARD;
 import static com.fabiankevin.app.models.enums.AccountType.E_WALLET;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -769,18 +770,24 @@ class AccountControllerIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isArray())
                     .andExpect(jsonPath("$.content.length()").value(2))
-                    // First account (CASH) — belongs to inviteeId (Bob Jones)
+                    // Both accounts present — order may vary when names are identical
                     .andExpect(jsonPath("$.content[0].name").value("CASH"))
-                    .andExpect(jsonPath("$.content[0].user.id").value(inviteeId.toString()))
-                    .andExpect(jsonPath("$.content[0].user.firstName").value("Bob"))
-                    .andExpect(jsonPath("$.content[0].user.lastName").value("Jones"))
-                    .andExpect(jsonPath("$.content[0].user.initial").value("BJ"))
-                    // Second account (CASH) — belongs to partyLeaderId (Alice Smith)
                     .andExpect(jsonPath("$.content[1].name").value("CASH"))
-                    .andExpect(jsonPath("$.content[1].user.id").value(partyLeaderId.toString()))
-                    .andExpect(jsonPath("$.content[1].user.firstName").value("Alice"))
-                    .andExpect(jsonPath("$.content[1].user.lastName").value("Smith"))
-                    .andExpect(jsonPath("$.content[1].user.initial").value("AS"));
+                    .andExpect(jsonPath("$.content[*].user.id").value(
+                            containsInAnyOrder(
+                                    inviteeId.toString(),
+                                    partyLeaderId.toString()
+                            )
+                    ))
+                    .andExpect(jsonPath("$.content[*].user.firstName").value(
+                            containsInAnyOrder("Bob", "Alice")
+                    ))
+                    .andExpect(jsonPath("$.content[*].user.lastName").value(
+                            containsInAnyOrder("Jones", "Smith")
+                    ))
+                    .andExpect(jsonPath("$.content[*].user.initial").value(
+                            containsInAnyOrder("BJ", "AS")
+                    ));
         }
 
         @Test
