@@ -17,7 +17,7 @@ Primary goal: write test cases that are readable, behavior-focused, and consiste
 6. **Happy-path rule (all layers):** the first test case for every method MUST be the happy path and MUST assert **every field** of the returned result — no exceptions. Subsequent scenarios assert only what the scenario verifies.
 7. Add interaction verification when behavior depends on collaborators.
 8. Use `ArgumentCaptor` to verify parameters passed to collaborators for methods with no return value.
-9. For each method, place the happy-path test first, followed by positive and negative/error scenarios.
+9. Order tests within each `@Nested` class as: happy path first, then positive cases, then negative/error scenarios.
 10. Convert repetitive scenario matrices into parameterized tests.
 11. Order `@Nested` classes by method under test.
 
@@ -35,7 +35,7 @@ Primary goal: write test cases that are readable, behavior-focused, and consiste
 - Use assertions to verify expected outcomes for every test.
 - Use JUnit 5 assertions for simple checks (`assertEquals`, `assertNotNull`, `assertTrue`, etc.).
 - Use AssertJ for complex assertions or when asserting collections (size/content/order, recursive comparison, chained extraction).
-- Use `@ParameterizedTest` with `@ValueSource`, `@CsvSource`, or `@EnumSource` when inputs vary systematically.
+- Use `@ParameterizedTest` with `@ValueSource`, `@CsvSource`, `@MethodSource` or `@EnumSource` when inputs vary systematically.
 - Use `@NullAndEmptySource` when validating null/empty string behavior.
 - Order tests consistently by method under test; use `@Nested` to group multiple scenarios of the same method.
 - Keep clear blank-line separation between setup, execution, and assertion blocks.
@@ -258,7 +258,13 @@ class Create {
         // ... all remaining fields ...
     }
 
-    // SUBSEQUENT: scenario-based — assert only what the scenario verifies
+    // POSITIVE CASES: additional valid scenarios
+    @Test
+    void givenValidCommandWithOptionalFields_thenReturnsSummaryWithAllFields() {
+        // ... arrange ...
+    }
+
+    // NEGATIVE/ERROR CASES: invalid inputs and error conditions
     @Test
     void givenInvalidInput_thenThrowsException() {
         // ... arrange ...
@@ -295,14 +301,14 @@ class Delete {
 - `@Nested` class name is PascalCase derived from the method under test
 - test names follow `given<state>_then<expected_behavior>` (no method name repetition)
 - **happy-path test is first and asserts every field of the result (all layers: controller, service, repository)**
+- subsequent tests ordered as: positive cases, then negative/error scenarios
 - subsequent (non-happy-path) tests assert only what the scenario verifies (scenario-based)
-- assertions include concise messages
 - JUnit assertions used for simple checks
 - AssertJ used for complex checks and collection assertions
 - parameterized tests used where applicable
 - null/empty input covered with `@NullAndEmptySource` when relevant
 - `ArgumentCaptor` used for verifying parameters on void methods
-- happy-path test placed first within each `@Nested` class, followed by negative/error scenarios
+- happy-path test placed first within each `@Nested` class, followed by positive cases, then negative/error scenarios
 - `@Nested` classes are ordered by method under test
 - test scope matches the layer purpose (unit vs `@WebMvcTest` vs `@SpringBootTest` vs `@DataJpaTest`)
 - no comments in test methods

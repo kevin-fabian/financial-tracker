@@ -4,6 +4,7 @@ import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingListCom
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.Builder;
 
@@ -26,6 +27,7 @@ public record CreateShoppingListRequest(
         @Schema(description = "Category ID", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
         UUID categoryId,
 
+        @PositiveOrZero(message = "budget must be positive or zero")
         @Schema(description = "Budget", example = "200.0")
         double budget,
 

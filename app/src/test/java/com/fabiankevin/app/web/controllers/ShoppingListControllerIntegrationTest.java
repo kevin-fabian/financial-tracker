@@ -223,6 +223,225 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(status().isBadRequest());
         }
 
+        @Test
+        void givenCategoryBelongsToDifferentUser_thenReturnsNotFound() throws Exception {
+            UUID currentUserId = UUID.randomUUID();
+            UUID otherUserId = UUID.randomUUID();
+
+            Category category = createCategory(otherUserId, "Food", TransactionType.EXPENSE, "shopping-cart");
+
+            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
+                    .name("Groceries")
+                    .description("Weekly groceries")
+                    .categoryId(category.id())
+                    .budget(200.0)
+                    .build();
+
+            mockMvc.perform(post("/api/shopping-lists")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", currentUserId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void givenZeroBudget_thenReturnsCreatedWithZeroBudget() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
+
+            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
+                    .name("Groceries")
+                    .description("Weekly groceries")
+                    .categoryId(category.id())
+                    .budget(0.0)
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(post("/api/shopping-lists")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.budget").value(0.0));
+        }
+
+        @Test
+        void givenNegativeBudget_thenReturnsBadRequest() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
+
+            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
+                    .name("Groceries")
+                    .description("Weekly groceries")
+                    .categoryId(category.id())
+                    .budget(-50.0)
+                    .build();
+
+            mockMvc.perform(post("/api/shopping-lists")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void givenMinimalRequest_thenReturnsCreatedWithDefaults() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
+
+            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
+                    .name("Groceries")
+                    .categoryId(category.id())
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(post("/api/shopping-lists")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").isNotEmpty())
+                    .andExpect(jsonPath("$.name").value("Groceries"))
+                    .andExpect(jsonPath("$.description").doesNotExist())
+                    .andExpect(jsonPath("$.status").value("ACTIVE"))
+                    .andExpect(jsonPath("$.budget").value(0.0))
+                    .andExpect(jsonPath("$.items").isArray())
+                    .andExpect(jsonPath("$.items").isEmpty())
+                    .andExpect(jsonPath("$.category").exists())
+                    .andExpect(jsonPath("$.category.id").value(category.id().toString()))
+                    .andExpect(jsonPath("$.user").exists())
+                    .andExpect(jsonPath("$.createdAt").exists())
+                    .andExpect(jsonPath("$.updatedAt").exists());
+        }
+
+        @Test
+        void givenNonExistentCategoryId_thenReturnsNotFound() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
+                    .name("Groceries")
+                    .description("Weekly groceries")
+                    .categoryId(UUID.randomUUID())
+                    .budget(200.0)
+                    .build();
+
+            mockMvc.perform(post("/api/shopping-lists")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void givenEmptySharedWithUserIdsList_thenSavesEmptyList() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
+
+            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
+                    .name("Groceries")
+                    .description("Weekly groceries")
+                    .categoryId(category.id())
+                    .budget(100.0)
+                    .sharedWithUserIds(List.of())
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(post("/api/shopping-lists")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").isNotEmpty())
+                    .andExpect(jsonPath("$.name").value("Groceries"))
+                    .andExpect(jsonPath("$.sharedWithUserIds").doesNotExist());
+
+            ShoppingList saved = shoppingListRepository.findAllByUserId(userId).getFirst();
+            Assertions.assertThat(saved.sharedWithUserIds()).isEmpty();
+        }
+
+        @Test
+        void givenSharedWithUserIdsButUserClientReturnsEmpty_thenReturnsCreatedWithNullUser() throws Exception {
+            UUID userId = UUID.randomUUID();
+            UUID sharedUser1 = UUID.randomUUID();
+
+            Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
+
+            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
+                    .name("Groceries")
+                    .description("Weekly groceries")
+                    .categoryId(category.id())
+                    .budget(100.0)
+                    .sharedWithUserIds(List.of(sharedUser1))
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of());
+
+            mockMvc.perform(post("/api/shopping-lists")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").isNotEmpty())
+                    .andExpect(jsonPath("$.name").value("Groceries"));
+
+            ShoppingList saved = shoppingListRepository.findAllByUserId(userId).getFirst();
+            Assertions.assertThat(saved.sharedWithUserIds())
+                    .containsExactlyInAnyOrder(sharedUser1);
+        }
+
         @ParameterizedTest(name = "[{index}] {0}")
         @MethodSource("oversizedFieldRequests")
         void givenFieldExceedsMaxLength_thenReturnsBadRequest(String label, CreateShoppingListRequest request) throws Exception {
