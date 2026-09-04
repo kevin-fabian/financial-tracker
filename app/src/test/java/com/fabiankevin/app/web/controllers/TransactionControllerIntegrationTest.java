@@ -749,14 +749,14 @@ class TransactionControllerIntegrationTest {
             // Set up user mocks before party operations
             User leaderUser = User.builder()
                     .id(partyLeaderId)
-                    .firstName("Party")
-                    .lastName("Leader")
+                    .firstName("Alice")
+                    .lastName("Johnson")
                     .build();
 
             User inviteeUser = User.builder()
                     .id(inviteeId)
-                    .firstName("Invitee")
-                    .lastName("User")
+                    .firstName("Bob")
+                    .lastName("Williams")
                     .build();
 
             when(userClient.getUserByEmail("invitee@example.com")).thenReturn(inviteeUser);
@@ -842,8 +842,34 @@ class TransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.content").isArray())
                     .andExpect(jsonPath("$.content.length()").value(2))
                     .andExpect(jsonPath("$.totalElements").value(2))
+
+                    // Leader transaction (index 0) — user details
                     .andExpect(jsonPath("$.content[0].description").value("Leader transaction"))
-                    .andExpect(jsonPath("$.content[1].description").value("Invitee transaction"));
+                    .andExpect(jsonPath("$.content[0].account.id").value(leaderAccount.id().toString()))
+                    .andExpect(jsonPath("$.content[0].account.name").value("LEADER WALLET"))
+                    .andExpect(jsonPath("$.content[0].account.user.id").value(partyLeaderId.toString()))
+                    .andExpect(jsonPath("$.content[0].account.user.firstName").value("Alice"))
+                    .andExpect(jsonPath("$.content[0].account.user.lastName").value("Johnson"))
+                    .andExpect(jsonPath("$.content[0].addedBy.id").value(partyLeaderId.toString()))
+                    .andExpect(jsonPath("$.content[0].addedBy.firstName").value("Alice"))
+                    .andExpect(jsonPath("$.content[0].addedBy.lastName").value("Johnson"))
+                    .andExpect(jsonPath("$.content[0].updatedBy.id").value(partyLeaderId.toString()))
+                    .andExpect(jsonPath("$.content[0].updatedBy.firstName").value("Alice"))
+                    .andExpect(jsonPath("$.content[0].updatedBy.lastName").value("Johnson"))
+
+                    // Invitee transaction (index 1) — user details
+                    .andExpect(jsonPath("$.content[1].description").value("Invitee transaction"))
+                    .andExpect(jsonPath("$.content[1].account.id").value(inviteeAccount.id().toString()))
+                    .andExpect(jsonPath("$.content[1].account.name").value("INVITEE WALLET"))
+                    .andExpect(jsonPath("$.content[1].account.user.id").value(inviteeId.toString()))
+                    .andExpect(jsonPath("$.content[1].account.user.firstName").value("Bob"))
+                    .andExpect(jsonPath("$.content[1].account.user.lastName").value("Williams"))
+                    .andExpect(jsonPath("$.content[1].addedBy.id").value(inviteeId.toString()))
+                    .andExpect(jsonPath("$.content[1].addedBy.firstName").value("Bob"))
+                    .andExpect(jsonPath("$.content[1].addedBy.lastName").value("Williams"))
+                    .andExpect(jsonPath("$.content[1].updatedBy.id").value(inviteeId.toString()))
+                    .andExpect(jsonPath("$.content[1].updatedBy.firstName").value("Bob"))
+                    .andExpect(jsonPath("$.content[1].updatedBy.lastName").value("Williams"));
         }
     }
 
