@@ -3,7 +3,6 @@ package com.fabiankevin.app.web.controllers.dtos;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
-import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionSummary;
 import com.fabiankevin.app.models.recurring_transactions.TransactionStatus;
@@ -29,23 +28,11 @@ public record RecurringSummaryResponse(
         @Schema(description = "Whether the amount varies each cycle", example = "false")
         boolean variableAmount,
 
-        @Schema(description = "Category ID", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
-        UUID categoryId,
+        @Schema(description = "Category details")
+        CategoryResponse category,
 
-        @Schema(description = "Category name", example = "GROCERIES")
-        String categoryName,
-
-        @Schema(description = "Category icon", example = "local_grocery_store")
-        String categoryIcon,
-
-        @Schema(description = "Transaction type", example = "EXPENSE")
-        TransactionType transactionType,
-
-        @Schema(description = "Account ID", example = "d290f1ee-6c54-4b01-90e6-d701748f0852")
-        UUID accountId,
-
-        @Schema(description = "Account name", example = "Checking")
-        String accountName,
+        @Schema(description = "Account details")
+        AccountResponse account,
 
         @Schema(description = "Day of month", example = "15")
         int dayOfMonth,
@@ -89,12 +76,8 @@ public record RecurringSummaryResponse(
                 .description(summary.description())
                 .amount(summary.amount())
                 .variableAmount(summary.variableAmount())
-                .categoryId(category != null ? category.id() : null)
-                .categoryName(category != null ? category.name() : null)
-                .categoryIcon(category != null ? category.icon() : null)
-                .transactionType(category != null ? category.type() : null)
-                .accountId(account != null ? account.id() : null)
-                .accountName(account != null ? account.name() : null)
+                .category(category != null ? CategoryResponse.from(category) : null)
+                .account(account != null ? AccountResponse.from(account, updatedBy) : null)
                 .dayOfMonth(summary.dayOfMonth())
                 .nextOccurrenceDate(summary.nextOccurrenceDate())
                 .endDate(summary.endDate())

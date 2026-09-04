@@ -134,10 +134,13 @@ class RecurringTransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.description").value("Monthly subscription"))
                     .andExpect(jsonPath("$.amount").value(15.99))
                     .andExpect(jsonPath("$.variableAmount").value(false))
-                    .andExpect(jsonPath("$.categoryId").value(category.id().toString()))
-                    .andExpect(jsonPath("$.categoryName").value("GROCERIES"))
-                    .andExpect(jsonPath("$.accountId").value(account.id().toString()))
-                    .andExpect(jsonPath("$.accountName").value("Cash Wallet"))
+                    .andExpect(jsonPath("$.category.id").value(category.id().toString()))
+                    .andExpect(jsonPath("$.category.name").value("GROCERIES"))
+                    .andExpect(jsonPath("$.category.type").value("EXPENSE"))
+                    .andExpect(jsonPath("$.category.icon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$.account.id").value(account.id().toString()))
+                    .andExpect(jsonPath("$.account.name").value("Cash Wallet"))
+                    .andExpect(jsonPath("$.account.currency").value("USD"))
                     .andExpect(jsonPath("$.dayOfMonth").value(15))
                     .andExpect(jsonPath("$.remainingDays").value(expectedRemainingDays))
                     .andExpect(jsonPath("$.transactionStatus").value("UPCOMING"))
@@ -365,7 +368,86 @@ class RecurringTransactionControllerIntegrationTest {
         private JpaTransactionRepository jpaTransactionRepository;
 
         @Test
-        void givenRecurringTransactionAlreadyOccurred_thenStatusIsPaid_andAfterMonthChange_thenStatusIsUpcoming() throws Exception {
+        void givenRecurringTransactionsExist_thenReturnsListOfSummaries() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Account account = createAccount(userId, "Cash Wallet");
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            CreateRecurringTransactionRequest request = CreateRecurringTransactionRequest.builder()
+                    .description("Monthly subscription")
+                    .amount(15.99)
+                    .variableAmount(false)
+                    .categoryId(category.id())
+                    .accountId(account.id())
+                    .noEndDate(false)
+                    .dayOfMonth(15)
+                    .durationMonths(6)
+                    .build();
+
+            mockMvc.perform(post("/api/recurring-transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated());
+
+            mockMvc.perform(get("/api/recurring-transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].id").isNotEmpty())
+                    .andExpect(jsonPath("$[0].description").value("Monthly subscription"))
+                    .andExpect(jsonPath("$[0].amount").value(15.99))
+                    .andExpect(jsonPath("$[0].variableAmount").value(false))
+                    .andExpect(jsonPath("$[0].category.id").value(category.id().toString()))
+                    .andExpect(jsonPath("$[0].category.name").value("GROCERIES"))
+                    .andExpect(jsonPath("$[0].category.type").value("EXPENSE"))
+                    .andExpect(jsonPath("$[0].category.icon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$[0].category.active").value(true))
+                    .andExpect(jsonPath("$[0].category.system").value(false))
+                    .andExpect(jsonPath("$[0].category.createdAt").exists())
+                    .andExpect(jsonPath("$[0].category.updatedAt").exists())
+                    .andExpect(jsonPath("$[0].account.id").value(account.id().toString()))
+                    .andExpect(jsonPath("$[0].account.name").value("Cash Wallet"))
+                    .andExpect(jsonPath("$[0].account.currency").value("USD"))
+                    .andExpect(jsonPath("$[0].account.type").exists())
+                    .andExpect(jsonPath("$[0].account.active").value(true))
+                    .andExpect(jsonPath("$[0].account.createdAt").exists())
+                    .andExpect(jsonPath("$[0].account.updatedAt").exists())
+                    .andExpect(jsonPath("$[0].account.user.id").value(userId.toString()))
+                    .andExpect(jsonPath("$[0].account.user.firstName").value("John"))
+                    .andExpect(jsonPath("$[0].account.user.lastName").value("Doe"))
+                    .andExpect(jsonPath("$[0].account.user.initial").value("JD"))
+                    .andExpect(jsonPath("$[0].dayOfMonth").value(15))
+                    .andExpect(jsonPath("$[0].nextOccurrenceDate").exists())
+                    .andExpect(jsonPath("$[0].endDate").exists())
+                    .andExpect(jsonPath("$[0].remainingDays").isNumber())
+                    .andExpect(jsonPath("$[0].remainingDays").value(Matchers.greaterThan(0)))
+                    .andExpect(jsonPath("$[0].transactionStatus").value("UPCOMING"))
+                    .andExpect(jsonPath("$[0].status").value("ACTIVE"))
+                    .andExpect(jsonPath("$[0].firstName").value("John"))
+                    .andExpect(jsonPath("$[0].lastName").value("Doe"))
+                    .andExpect(jsonPath("$[0].initial").value("JD"))
+                    .andExpect(jsonPath("$[0].createdAt").exists())
+                    .andExpect(jsonPath("$[0].updatedAt").exists());
+        }
+
+        @Test
+        void givenRecurringTransactionAlreadyOccurred_thenStatusShouldBePaidThenIncoming() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
             Account account = createAccount(userId, "Cash Wallet");
@@ -435,72 +517,6 @@ class RecurringTransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.length()").value(1))
                     .andExpect(jsonPath("$[0].nextOccurrenceDate").value(today.plusMonths(1).toString()))
                     .andExpect(jsonPath("$[0].transactionStatus").value("UPCOMING"));
-        }
-
-        @Test
-        void givenRecurringTransactionsExist_thenReturnsListOfSummaries() throws Exception {
-            UUID userId = UUID.randomUUID();
-            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-            Account account = createAccount(userId, "Cash Wallet");
-
-            when(userClient.getUsersByIds(List.of(userId)))
-                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
-
-            CreateRecurringTransactionRequest request = CreateRecurringTransactionRequest.builder()
-                    .description("Monthly subscription")
-                    .amount(15.99)
-                    .variableAmount(false)
-                    .categoryId(category.id())
-                    .accountId(account.id())
-                    .noEndDate(false)
-                    .dayOfMonth(15)
-                    .durationMonths(6)
-                    .build();
-
-            mockMvc.perform(post("/api/recurring-transactions")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isCreated());
-
-            mockMvc.perform(get("/api/recurring-transactions")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    )))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.length()").value(1))
-                    .andExpect(jsonPath("$[0].id").isNotEmpty())
-                    .andExpect(jsonPath("$[0].description").value("Monthly subscription"))
-                    .andExpect(jsonPath("$[0].amount").value(15.99))
-                    .andExpect(jsonPath("$[0].variableAmount").value(false))
-                    .andExpect(jsonPath("$[0].categoryId").value(category.id().toString()))
-                    .andExpect(jsonPath("$[0].categoryName").value("GROCERIES"))
-                    .andExpect(jsonPath("$[0].categoryIcon").value("local_grocery_store"))
-                    .andExpect(jsonPath("$[0].transactionType").value("EXPENSE"))
-                    .andExpect(jsonPath("$[0].accountId").value(account.id().toString()))
-                    .andExpect(jsonPath("$[0].accountName").value("Cash Wallet"))
-                    .andExpect(jsonPath("$[0].dayOfMonth").value(15))
-                    .andExpect(jsonPath("$[0].nextOccurrenceDate").exists())
-                    .andExpect(jsonPath("$[0].endDate").exists())
-                    .andExpect(jsonPath("$[0].remainingDays").isNumber())
-                    .andExpect(jsonPath("$[0].remainingDays").value(Matchers.greaterThan(0)))
-                    .andExpect(jsonPath("$[0].transactionStatus").value("UPCOMING"))
-                    .andExpect(jsonPath("$[0].status").value("ACTIVE"))
-                    .andExpect(jsonPath("$[0].firstName").value("John"))
-                    .andExpect(jsonPath("$[0].lastName").value("Doe"))
-                    .andExpect(jsonPath("$[0].initial").value("JD"))
-                    .andExpect(jsonPath("$[0].createdAt").exists())
-                    .andExpect(jsonPath("$[0].updatedAt").exists());
         }
 
         @Test
@@ -644,10 +660,13 @@ class RecurringTransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.id").value(id))
                     .andExpect(jsonPath("$.description").value("Updated subscription"))
                     .andExpect(jsonPath("$.amount").value(25.99))
-                    .andExpect(jsonPath("$.categoryId").value(newCategory.id().toString()))
-                    .andExpect(jsonPath("$.categoryName").value("ENTERTAINMENT"))
-                    .andExpect(jsonPath("$.accountId").value(account.id().toString()))
-                    .andExpect(jsonPath("$.accountName").value("Cash Wallet"))
+                    .andExpect(jsonPath("$.category.id").value(newCategory.id().toString()))
+                    .andExpect(jsonPath("$.category.name").value("ENTERTAINMENT"))
+                    .andExpect(jsonPath("$.category.type").exists())
+                    .andExpect(jsonPath("$.category.icon").exists())
+                    .andExpect(jsonPath("$.account.id").value(account.id().toString()))
+                    .andExpect(jsonPath("$.account.name").value("Cash Wallet"))
+                    .andExpect(jsonPath("$.account.currency").value("USD"))
                     .andExpect(jsonPath("$.dayOfMonth").value(15))
                     .andExpect(jsonPath("$.variableAmount").value(false))
                     .andExpect(jsonPath("$.status").value("ACTIVE"))
@@ -732,8 +751,8 @@ class RecurringTransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.endDate").isEmpty())
                     .andExpect(jsonPath("$.description").value("Monthly subscription"))
                     .andExpect(jsonPath("$.amount").value(15.99))
-                    .andExpect(jsonPath("$.categoryId").value(category.id().toString()))
-                    .andExpect(jsonPath("$.accountId").value(account.id().toString()))
+                    .andExpect(jsonPath("$.category.id").value(category.id().toString()))
+                    .andExpect(jsonPath("$.account.id").value(account.id().toString()))
                     .andExpect(jsonPath("$.dayOfMonth").value(15))
                     .andExpect(jsonPath("$.variableAmount").value(false))
                     .andExpect(jsonPath("$.status").value("ACTIVE"))
@@ -904,8 +923,8 @@ class RecurringTransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.endDate").isNotEmpty())
                     .andExpect(jsonPath("$.description").value("Monthly subscription"))
                     .andExpect(jsonPath("$.amount").value(15.99))
-                    .andExpect(jsonPath("$.categoryId").value(category.id().toString()))
-                    .andExpect(jsonPath("$.accountId").value(account.id().toString()))
+                    .andExpect(jsonPath("$.category.id").value(category.id().toString()))
+                    .andExpect(jsonPath("$.account.id").value(account.id().toString()))
                     .andExpect(jsonPath("$.variableAmount").value(false))
                     .andExpect(jsonPath("$.status").value("ACTIVE"))
                     .andExpect(jsonPath("$.firstName").value("John"))
@@ -969,8 +988,8 @@ class RecurringTransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.dayOfMonth").value(25))
                     .andExpect(jsonPath("$.description").value("Monthly subscription"))
                     .andExpect(jsonPath("$.amount").value(15.99))
-                    .andExpect(jsonPath("$.categoryId").value(category.id().toString()))
-                    .andExpect(jsonPath("$.accountId").value(account.id().toString()))
+                    .andExpect(jsonPath("$.category.id").value(category.id().toString()))
+                    .andExpect(jsonPath("$.account.id").value(account.id().toString()))
                     .andExpect(jsonPath("$.variableAmount").value(false))
                     .andExpect(jsonPath("$.status").value("ACTIVE"))
                     .andExpect(jsonPath("$.firstName").value("John"))
@@ -1138,10 +1157,12 @@ class RecurringTransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.id").value(id))
                     .andExpect(jsonPath("$.description").value("Monthly subscription"))
                     .andExpect(jsonPath("$.amount").value(15.99))
-                    .andExpect(jsonPath("$.categoryId").value(category.id().toString()))
-                    .andExpect(jsonPath("$.categoryName").value("GROCERIES"))
-                    .andExpect(jsonPath("$.accountId").value(account.id().toString()))
-                    .andExpect(jsonPath("$.accountName").value("Cash Wallet"))
+                    .andExpect(jsonPath("$.category.id").value(category.id().toString()))
+                    .andExpect(jsonPath("$.category.name").value("GROCERIES"))
+                    .andExpect(jsonPath("$.category.type").value("EXPENSE"))
+                    .andExpect(jsonPath("$.account.id").value(account.id().toString()))
+                    .andExpect(jsonPath("$.account.name").value("Cash Wallet"))
+                    .andExpect(jsonPath("$.account.currency").value("USD"))
                     .andExpect(jsonPath("$.dayOfMonth").value(15))
                     .andExpect(jsonPath("$.variableAmount").value(false))
                     .andExpect(jsonPath("$.status").value("ACTIVE"))
