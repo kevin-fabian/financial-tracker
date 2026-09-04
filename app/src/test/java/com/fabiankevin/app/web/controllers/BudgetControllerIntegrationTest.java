@@ -9,14 +9,8 @@ import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
-import com.fabiankevin.app.models.enums.party.AccessLevel;
-import com.fabiankevin.app.models.enums.party.PartyMemberStatus;
-import com.fabiankevin.app.models.enums.party.SharingMode;
-import com.fabiankevin.app.models.party.Party;
-import com.fabiankevin.app.models.party.PartyMember;
 import com.fabiankevin.app.persistence.BudgetRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
-import com.fabiankevin.app.persistence.PartyRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.BudgetService;
@@ -28,6 +22,8 @@ import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.budgets.CreateBudgetCommand;
 import com.fabiankevin.app.web.controllers.dtos.budgets.CreateBudgetRequest;
 import com.fabiankevin.app.web.controllers.dtos.budgets.PatchBudgetRequest;
+import com.fabiankevin.app.web.controllers.dtos.party.PartyResponse;
+import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -45,7 +41,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Currency;
 import java.util.List;
@@ -87,9 +82,9 @@ class BudgetControllerIntegrationTest {
     @Autowired
     private CategoryRepository categoryRepository;
     @Autowired
-    private PartyRepository partyRepository;
-    @Autowired
     private JsonMapper jsonMapper;
+    @Autowired
+    private HouseholdServiceTestHelper householdHelper;
 
     @Nested
     class GetBudgets {
@@ -242,37 +237,9 @@ class BudgetControllerIntegrationTest {
             UUID userId = UUID.randomUUID();
             UUID otherUserId = UUID.randomUUID();
 
-            // Create a party with userId as leader and otherUserId as member
-            Party party = Party.builder()
-                    .name("Test Party")
-                    .partyLeaderId(userId)
-                    .sharingMode(SharingMode.EVEN_SHARE)
-                    .active(true)
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
-                    .partyMembers(List.of(
-                            PartyMember.builder()
-                                    .playerId(userId)
-                                    .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
-                                    .build(),
-                            PartyMember.builder()
-                                    .playerId(otherUserId)
-                                    .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
-                                    .build()
-                    ))
-                    .build();
-
-            partyRepository.save(party);
-
-            // Create categories and budgets for both users
-            Category userCategory = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-            Category otherCategory = createCategory(otherUserId, "DINING", TransactionType.EXPENSE, "restaurant");
-            createBudget(userId, userCategory, BudgetPeriod.MONTHLY, 500.0);
-            createBudget(otherUserId, otherCategory, BudgetPeriod.MONTHLY, 300.0);
-
-            // Mock user client for both users
+            // Set up user mocks before party operations
+            when(userClient.getUserByEmail("invitee@example.com"))
+                    .thenReturn(User.builder().id(otherUserId).firstName("Bob").lastName("Jones").build());
             when(userClient.getUsersByIds(argThat(ids -> ids.contains(userId) && ids.contains(otherUserId))))
                     .thenReturn(
                             List.of(
@@ -280,6 +247,16 @@ class BudgetControllerIntegrationTest {
                                     User.builder().id(otherUserId).firstName("Bob").lastName("Jones").build()
                             )
                     );
+
+            // Create party and invite + accept via helper
+            PartyResponse partyResponse = householdHelper.createHouseHold(userId);
+            householdHelper.inviteAndAccept(partyResponse.id(), userId, otherUserId, "invitee@example.com");
+
+            // Create categories and budgets for both users
+            Category userCategory = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Category otherCategory = createCategory(otherUserId, "DINING", TransactionType.EXPENSE, "restaurant");
+            createBudget(userId, userCategory, BudgetPeriod.MONTHLY, 500.0);
+            createBudget(otherUserId, otherCategory, BudgetPeriod.MONTHLY, 300.0);
 
             mockMvc.perform(get("/api/budgets")
                             .with(jwt()
@@ -303,6 +280,7 @@ class BudgetControllerIntegrationTest {
                     .andExpect(jsonPath("$[0].createdAt").exists())
                     .andExpect(jsonPath("$[0].updatedAt").exists())
                     .andExpect(jsonPath("$[0].period").value("MONTHLY"))
+                    .andExpect(jsonPath("$[0].categoryId").exists())
                     .andExpect(jsonPath("$[0].categoryName").value("DINING"))
                     .andExpect(jsonPath("$[0].categoryIcon").value("restaurant"))
                     .andExpect(jsonPath("$[0].allocated").value(300.0))
@@ -317,7 +295,10 @@ class BudgetControllerIntegrationTest {
                     .andExpect(jsonPath("$[1].updatedBy.firstName").value("Alice"))
                     .andExpect(jsonPath("$[1].updatedBy.lastName").value("Smith"))
                     .andExpect(jsonPath("$[1].updatedBy.initial").value("AS"))
+                    .andExpect(jsonPath("$[1].createdAt").exists())
+                    .andExpect(jsonPath("$[1].updatedAt").exists())
                     .andExpect(jsonPath("$[1].period").value("MONTHLY"))
+                    .andExpect(jsonPath("$[1].categoryId").exists())
                     .andExpect(jsonPath("$[1].categoryName").value("GROCERIES"))
                     .andExpect(jsonPath("$[1].categoryIcon").value("local_grocery_store"))
                     .andExpect(jsonPath("$[1].allocated").value(500.0))
@@ -1027,8 +1008,8 @@ class BudgetControllerIntegrationTest {
                 .userId(null)
                 .active(true)
                 .system(true)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
+                .createdAt(java.time.Instant.now())
+                .updatedAt(java.time.Instant.now())
                 .build();
         var saved = jpaCategoryRepository.save(entity);
         return saved.toModel();

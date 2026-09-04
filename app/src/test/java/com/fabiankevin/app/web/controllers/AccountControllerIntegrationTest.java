@@ -5,13 +5,7 @@ import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
-import com.fabiankevin.app.models.enums.party.AccessLevel;
-import com.fabiankevin.app.models.enums.party.PartyMemberStatus;
-import com.fabiankevin.app.models.enums.party.SharingMode;
-import com.fabiankevin.app.models.party.Party;
-import com.fabiankevin.app.models.party.PartyMember;
 import com.fabiankevin.app.persistence.AccountRepository;
-import com.fabiankevin.app.persistence.PartyRepository;
 import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.services.TransactionService;
@@ -20,6 +14,8 @@ import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateAccountRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchAccountRequest;
+import com.fabiankevin.app.web.controllers.dtos.party.PartyResponse;
+import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -38,7 +34,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Currency;
 import java.util.List;
@@ -47,6 +42,7 @@ import java.util.stream.Stream;
 
 import static com.fabiankevin.app.models.enums.AccountType.CREDIT_CARD;
 import static com.fabiankevin.app.models.enums.AccountType.E_WALLET;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -76,9 +72,6 @@ class AccountControllerIntegrationTest {
     private AccountRepository accountRepository;
 
     @Autowired
-    private PartyRepository partyRepository;
-
-    @Autowired
     private AccountService accountService;
 
     @Autowired
@@ -89,6 +82,9 @@ class AccountControllerIntegrationTest {
 
     @Autowired
     private JsonMapper jsonMapper;
+
+    @Autowired
+    private HouseholdServiceTestHelper householdHelper;
 
     private UUID userId;
 
@@ -726,37 +722,29 @@ class AccountControllerIntegrationTest {
 
         @Test
         void givenUserWithPartyMembers_thenReturnsConsolidatedAccounts() throws Exception {
-            UUID otherUserId = UUID.randomUUID();
+            UUID partyLeaderId = UUID.randomUUID();
+            UUID inviteeId = UUID.randomUUID();
 
-            // Create a party with userId as leader and otherUserId as member
-            Party party = Party.builder()
-                    .name("Test Party")
-                    .partyLeaderId(userId)
-                    .sharingMode(SharingMode.EVEN_SHARE)
-                    .active(true)
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
-                    .partyMembers(List.of(
-                            PartyMember.builder()
-                                    .playerId(userId)
-                                    .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
-                                    .build(),
-                            PartyMember.builder()
-                                    .playerId(otherUserId)
-                                    .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
-                                    .build()
-                    ))
-                    .build();
+            // Set up user mocks before party operations
+            when(userClient.getUserByEmail("invitee@example.com"))
+                    .thenReturn(User.builder().id(inviteeId).firstName("Bob").lastName("Jones").build());
+            when(userClient.getUsersByIds(argThat(ids -> ids.contains(partyLeaderId) && ids.contains(inviteeId))))
+                    .thenReturn(
+                            List.of(
+                                    User.builder().id(partyLeaderId).firstName("Alice").lastName("Smith").build(),
+                                    User.builder().id(inviteeId).firstName("Bob").lastName("Jones").build()
+                            )
+                    );
 
-            partyRepository.save(party);
+            // Create party and invite + accept via helper
+            PartyResponse partyResponse = householdHelper.createHouseHold(partyLeaderId);
+            householdHelper.inviteAndAccept(partyResponse.id(), partyLeaderId, inviteeId, "invitee@example.com");
 
             // Create cash accounts for both users
             accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("CASH")
-                            .userId(userId)
+                            .userId(partyLeaderId)
                             .currency(Currency.getInstance("PHP"))
                             .type(AccountType.CASH)
                             .build()
@@ -764,34 +752,35 @@ class AccountControllerIntegrationTest {
             accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("CASH")
-                            .userId(otherUserId)
+                            .userId(inviteeId)
                             .currency(Currency.getInstance("PHP"))
                             .type(AccountType.CASH)
                             .build()
             );
-
-            // Mock user client for both users
-            when(userClient.getUsersByIds(List.of(userId, otherUserId)))
-                    .thenReturn(
-                            List.of(
-                                    User.builder().id(userId).firstName("Alice").lastName("Smith").build(),
-                                    User.builder().id(otherUserId).firstName("Bob").lastName("Jones").build()
-                            )
-                    );
 
             mockMvc.perform(get("/api/accounts?page=0&size=10&sort=name&direction=ASC")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
                                             .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
+                                            .claim("sub", partyLeaderId)
                                             .claim("scope", List.of())
                                     )))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isArray())
                     .andExpect(jsonPath("$.content.length()").value(2))
+                    // First account (CASH) — belongs to inviteeId (Bob Jones)
                     .andExpect(jsonPath("$.content[0].name").value("CASH"))
-                    .andExpect(jsonPath("$.content[1].name").value("CASH"));
+                    .andExpect(jsonPath("$.content[0].user.id").value(inviteeId.toString()))
+                    .andExpect(jsonPath("$.content[0].user.firstName").value("Bob"))
+                    .andExpect(jsonPath("$.content[0].user.lastName").value("Jones"))
+                    .andExpect(jsonPath("$.content[0].user.initial").value("BJ"))
+                    // Second account (CASH) — belongs to partyLeaderId (Alice Smith)
+                    .andExpect(jsonPath("$.content[1].name").value("CASH"))
+                    .andExpect(jsonPath("$.content[1].user.id").value(partyLeaderId.toString()))
+                    .andExpect(jsonPath("$.content[1].user.firstName").value("Alice"))
+                    .andExpect(jsonPath("$.content[1].user.lastName").value("Smith"))
+                    .andExpect(jsonPath("$.content[1].user.initial").value("AS"));
         }
 
         @Test

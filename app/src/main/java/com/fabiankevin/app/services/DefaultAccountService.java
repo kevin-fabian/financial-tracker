@@ -194,6 +194,7 @@ public class DefaultAccountService implements AccountService {
                     return Optional.ofNullable(user)
                             .map(u -> summary.toBuilder()
                                     .user(User.builder()
+                                            .id(userId)
                                             .firstName(u.firstName())
                                             .lastName(u.lastName())
                                             .build())
