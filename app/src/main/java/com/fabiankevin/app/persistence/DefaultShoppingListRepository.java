@@ -1,6 +1,8 @@
 package com.fabiankevin.app.persistence;
 
+import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
+import com.fabiankevin.app.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.persistence.entities.ShoppingListEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaShoppingListRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,8 +31,11 @@ public class DefaultShoppingListRepository implements ShoppingListRepository {
     }
 
     @Override
-    public Optional<UUID> findCategoryIdById(UUID id) {
-        return jpaShoppingListRepository.findById(id).map(ShoppingListEntity::getCategoryId);
+    @Transactional(readOnly = true)
+    public Optional<Category> findCategoryById(UUID id) {
+        return jpaShoppingListRepository.findById(id)
+                .map(ShoppingListEntity::getCategory)
+                .map(CategoryEntity::toModel);
     }
 
     @Transactional(readOnly = true)

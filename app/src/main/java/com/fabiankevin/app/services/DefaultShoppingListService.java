@@ -1,10 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.exceptions.EmptyShoppingListException;
-import com.fabiankevin.app.exceptions.ShoppingItemNotFoundException;
-import com.fabiankevin.app.exceptions.ShoppingListNotFoundException;
-import com.fabiankevin.app.exceptions.UnpurchasedItemsException;
+import com.fabiankevin.app.exceptions.*;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
@@ -12,6 +9,7 @@ import com.fabiankevin.app.models.shopping_list.ShoppingItem;
 import com.fabiankevin.app.models.shopping_list.ShoppingItemSummary;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
+import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
 import com.fabiankevin.app.services.shopping_list.commands.*;
 import jakarta.transaction.Transactional;
@@ -27,16 +25,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DefaultShoppingListService implements ShoppingListService {
     private final ShoppingListRepository shoppingListRepository;
+    private final CategoryRepository categoryRepository;
     private final UserClient userClient;
-    private final CategoryService categoryService;
 
     @Transactional
     @Override
     public ShoppingListSummary createShoppingList(CreateShoppingListCommand command) {
         Instant now = Instant.now();
-        Category category = Optional.ofNullable(command.categoryId())
-                .map(id -> categoryService.getCategoryById(id, command.userId()))
-                .orElse(null);
+        Category category = categoryRepository.findByIdAndUserId(command.categoryId(), command.userId())
+                .orElseThrow(CategoryNotFoundException::new);
 
         ShoppingList shoppingList = ShoppingList.builder()
                 .name(command.name())
@@ -96,9 +93,9 @@ public class DefaultShoppingListService implements ShoppingListService {
 
         UUID resolvedCategoryId = command.categoryId() != null
                 ? command.categoryId()
-                : shoppingListRepository.findCategoryIdById(command.shoppingListId()).orElse(null);
+                : shoppingListRepository.findCategoryById(command.shoppingListId()).map(Category::id).orElse(null);
         Category category = resolvedCategoryId != null
-                ? categoryService.getCategoryById(resolvedCategoryId, command.userId())
+                ? categoryRepository.findByIdAndUserId(resolvedCategoryId, command.userId()).orElse(null)
                 : null;
 
         ShoppingList patched = existing.toBuilder()

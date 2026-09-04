@@ -9,10 +9,9 @@ import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
+import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
-import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.services.ShoppingListService;
-import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingListCommand;
 import com.fabiankevin.app.web.controllers.dtos.shopping_list.*;
 import org.assertj.core.api.Assertions;
@@ -67,7 +66,7 @@ class ShoppingListControllerIntegrationTest {
     private UserClient userClient;
 
     @Autowired
-    private CategoryService categoryService;
+    private CategoryRepository categoryRepository;
 
     @Autowired
     private ShoppingListService shoppingListService;
@@ -113,12 +112,17 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(jsonPath("$.description").value("Weekly groceries"))
                     .andExpect(jsonPath("$.status").value("ACTIVE"))
                     .andExpect(jsonPath("$.budget").value(200.0))
-                    .andExpect(jsonPath("$.categoryId").value(category.id().toString()))
-                    .andExpect(jsonPath("$.categoryName").value("Food"))
-                    .andExpect(jsonPath("$.categoryIcon").value("shopping-cart"))
-                    .andExpect(jsonPath("$.firstName").value("John"))
-                    .andExpect(jsonPath("$.lastName").value("Doe"))
-                    .andExpect(jsonPath("$.initial").value("JD"))
+                    .andExpect(jsonPath("$.category").exists())
+                    .andExpect(jsonPath("$.category.id").value(category.id().toString()))
+                    .andExpect(jsonPath("$.category.name").value("Food"))
+                    .andExpect(jsonPath("$.category.icon").value("shopping-cart"))
+                    .andExpect(jsonPath("$.category.active").value(true))
+                    .andExpect(jsonPath("$.category.system").value(false))
+                    .andExpect(jsonPath("$.user").exists())
+                    .andExpect(jsonPath("$.user.id").isNotEmpty())
+                    .andExpect(jsonPath("$.user.firstName").value("John"))
+                    .andExpect(jsonPath("$.user.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.user.initial").value("JD"))
                     .andExpect(jsonPath("$.createdAt").exists())
                     .andExpect(jsonPath("$.updatedAt").exists());
         }
@@ -452,9 +456,10 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(jsonPath("$.description").value("Weekly groceries"))
                     .andExpect(jsonPath("$.status").value("ACTIVE"))
                     .andExpect(jsonPath("$.budget").value(250.0))
-                    .andExpect(jsonPath("$.firstName").value("John"))
-                    .andExpect(jsonPath("$.lastName").value("Doe"))
-                    .andExpect(jsonPath("$.initial").value("JD"))
+                    .andExpect(jsonPath("$.user").exists())
+                    .andExpect(jsonPath("$.user.firstName").value("John"))
+                    .andExpect(jsonPath("$.user.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.user.initial").value("JD"))
                     .andExpect(jsonPath("$.createdAt").exists())
                     .andExpect(jsonPath("$.updatedAt").exists());
         }
@@ -538,13 +543,16 @@ class ShoppingListControllerIntegrationTest {
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(shoppingListId.toString()))
-                    .andExpect(jsonPath("$.categoryId").value(category.id().toString()))
-                    .andExpect(jsonPath("$.categoryName").value("Food"))
-                    .andExpect(jsonPath("$.categoryIcon").value("shopping-cart"));
+                    .andExpect(jsonPath("$.category").exists())
+                    .andExpect(jsonPath("$.category.id").value(category.id().toString()))
+                    .andExpect(jsonPath("$.category.name").value("Food"))
+                    .andExpect(jsonPath("$.category.icon").value("shopping-cart"))
+                    .andExpect(jsonPath("$.category.active").value(true))
+                    .andExpect(jsonPath("$.category.system").value(false));
 
-            Assertions.assertThat(shoppingListRepository.findCategoryIdById(shoppingListId))
+            Assertions.assertThat(shoppingListRepository.findCategoryById(shoppingListId))
                     .isPresent()
-                    .contains(category.id());
+                    .hasValueSatisfying(cat -> Assertions.assertThat(cat.id()).isEqualTo(category.id()));
         }
 
         @Test
@@ -638,6 +646,8 @@ class ShoppingListControllerIntegrationTest {
             UUID userId = UUID.randomUUID();
             UUID addedBy = UUID.randomUUID();
 
+            Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
+
             ShoppingItem milk = ShoppingItem.builder()
                     .name("Milk")
                     .category("Dairy")
@@ -656,6 +666,7 @@ class ShoppingListControllerIntegrationTest {
                     .userId(userId)
                     .description("Weekly groceries")
                     .budget(200.0)
+                    .category(category)
                     .items(new ArrayList<>(List.of(milk)))
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -666,6 +677,7 @@ class ShoppingListControllerIntegrationTest {
                     .userId(userId)
                     .description("Office supplies")
                     .budget(50.0)
+                    .category(category)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -693,9 +705,20 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(jsonPath("$[0].description").value("Weekly groceries"))
                     .andExpect(jsonPath("$[0].status").value("ACTIVE"))
                     .andExpect(jsonPath("$[0].budget").value(200.0))
-                    .andExpect(jsonPath("$[0].firstName").value("John"))
-                    .andExpect(jsonPath("$[0].lastName").value("Doe"))
-                    .andExpect(jsonPath("$[0].initial").value("JD"))
+                    .andExpect(jsonPath("$[0].category").exists())
+                    .andExpect(jsonPath("$[0].category.id").isNotEmpty())
+                    .andExpect(jsonPath("$[0].category.name").value("Food"))
+                    .andExpect(jsonPath("$[0].category.type").isNotEmpty())
+                    .andExpect(jsonPath("$[0].category.icon").value("shopping-cart"))
+                    .andExpect(jsonPath("$[0].category.active").value(true))
+                    .andExpect(jsonPath("$[0].category.system").value(false))
+                    .andExpect(jsonPath("$[0].category.createdAt").exists())
+                    .andExpect(jsonPath("$[0].category.updatedAt").exists())
+                    .andExpect(jsonPath("$[0].user").exists())
+                    .andExpect(jsonPath("$[0].user.id").isNotEmpty())
+                    .andExpect(jsonPath("$[0].user.firstName").value("John"))
+                    .andExpect(jsonPath("$[0].user.lastName").value("Doe"))
+                    .andExpect(jsonPath("$[0].user.initial").value("JD"))
                     .andExpect(jsonPath("$[0].items").isArray())
                     .andExpect(jsonPath("$[0].items.length()").value(1))
                     .andExpect(jsonPath("$[0].items[0].name").value("Milk"))
@@ -1412,11 +1435,17 @@ class ShoppingListControllerIntegrationTest {
     }
 
     private Category createCategory(UUID userId, String name, TransactionType type, String icon) {
-        return categoryService.createCategory(CreateCategoryCommand.builder()
+        Category category = Category.builder()
+                .id(null)
                 .name(name)
                 .type(type)
                 .icon(icon)
                 .userId(userId)
-                .build());
+                .active(true)
+                .system(false)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+        return categoryRepository.save(category);
     }
 }

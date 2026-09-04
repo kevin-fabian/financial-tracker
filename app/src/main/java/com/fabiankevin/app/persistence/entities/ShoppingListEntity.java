@@ -36,8 +36,9 @@ public class ShoppingListEntity {
     @Column(name = "user_id")
     private UUID userId;
 
-    @Column(name = "category_id")
-    private UUID categoryId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", referencedColumnName = "id")
+    private CategoryEntity category;
 
     @ElementCollection
     @CollectionTable(
@@ -77,7 +78,7 @@ public class ShoppingListEntity {
                 .id(shoppingList.id())
                 .name(shoppingList.name())
                 .description(shoppingList.description())
-                .categoryId(shoppingList.category() != null ? shoppingList.category().id() : null)
+                .category(shoppingList.category() != null ? CategoryEntity.from(shoppingList.category()) : null)
                 .status(shoppingList.status())
                 .userId(shoppingList.userId())
                 .sharedWithUserIds(shoppingList.sharedWithUserIds())
@@ -88,11 +89,9 @@ public class ShoppingListEntity {
                 .updatedAt(shoppingList.updatedAt())
                 .items(new HashSet<>())
                 .build();
-
-        for (ShoppingItem shoppingItem : shoppingList.items()) {
-            entity.addItem(ShoppingItemEntity.from(shoppingItem));
+        for (ShoppingItem item : shoppingList.items()) {
+            entity.addItem(ShoppingItemEntity.from(item));
         }
-
         return entity;
     }
 
@@ -101,7 +100,7 @@ public class ShoppingListEntity {
                 .id(this.id)
                 .name(this.name)
                 .description(this.description)
-                .category(null)
+                .category(this.category != null ? this.category.toModel() : null)
                 .status(this.status)
                 .userId(this.userId)
                 .sharedWithUserIds(this.sharedWithUserIds != null ? new ArrayList<>(this.sharedWithUserIds) : new ArrayList<>())

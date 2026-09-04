@@ -1,5 +1,6 @@
 package com.fabiankevin.app.persistence;
 
+import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
 
 import java.util.List;
@@ -11,7 +12,7 @@ public interface ShoppingListRepository {
 
     Optional<ShoppingList> findById(UUID id);
 
-    Optional<UUID> findCategoryIdById(UUID id);
+    Optional<Category> findCategoryById(UUID id);
 
     List<ShoppingList> findAllByUserId(UUID userId);
 

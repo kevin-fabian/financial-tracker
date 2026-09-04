@@ -4,6 +4,8 @@ import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
+import com.fabiankevin.app.web.controllers.dtos.CategoryResponse;
+import com.fabiankevin.app.web.controllers.dtos.UserResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
@@ -38,23 +40,11 @@ public record ShoppingListSummaryResponse(
         @Schema(description = "Items in the shopping list")
         List<ShoppingItemResponse> items,
 
-        @Schema(description = "Category ID", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
-        UUID categoryId,
+        @Schema(description = "Category details")
+        CategoryResponse category,
 
-        @Schema(description = "Category name", example = "Food")
-        String categoryName,
-
-        @Schema(description = "Category icon", example = "shopping-cart")
-        String categoryIcon,
-
-        @Schema(description = "User first name", example = "Kevin")
-        String firstName,
-
-        @Schema(description = "User last name", example = "Fabian")
-        String lastName,
-
-        @Schema(description = "User initial", example = "KF")
-        String initial,
+        @Schema(description = "User details")
+        UserResponse user,
 
         @Schema(description = "Creation timestamp")
         Instant createdAt,
@@ -77,12 +67,8 @@ public record ShoppingListSummaryResponse(
                 .finalAmount(summary.finalAmount())
                 .completedAt(summary.completedAt())
                 .items(items)
-                .categoryId(category != null ? category.id() : null)
-                .categoryName(category != null ? category.name() : null)
-                .categoryIcon(category != null ? category.icon() : null)
-                .firstName(user != null ? user.firstName() : null)
-                .lastName(user != null ? user.lastName() : null)
-                .initial(user != null ? user.initial() : null)
+                .category(CategoryResponse.from(category))
+                .user(UserResponse.from(user))
                 .createdAt(summary.createdAt())
                 .updatedAt(summary.updatedAt())
                 .build();

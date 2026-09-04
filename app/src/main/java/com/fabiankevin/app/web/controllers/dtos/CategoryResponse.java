@@ -29,6 +29,9 @@ public record CategoryResponse(
         Instant updatedAt
 ) {
     public static CategoryResponse from(final Category category) {
+        if (category == null) {
+            return null;
+        }
         String icon = category.icon() != null ? category.icon() : null;
         return CategoryResponse.builder()
                 .id(category.id())
