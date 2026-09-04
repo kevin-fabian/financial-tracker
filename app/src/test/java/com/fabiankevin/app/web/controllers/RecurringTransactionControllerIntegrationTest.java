@@ -456,6 +456,112 @@ class RecurringTransactionControllerIntegrationTest {
         }
 
         @Test
+        void givenUserWithPartyMembers_thenReturnsConsolidatedRecurringTransactions() throws Exception {
+            UUID partyLeaderId = UUID.randomUUID();
+            UUID inviteeId = UUID.randomUUID();
+
+            // Set up user mocks before party operations
+            when(userClient.getUserByEmail("invitee@example.com"))
+                    .thenReturn(User.builder().id(inviteeId).firstName("Bob").lastName("Jones").build());
+            when(userClient.getUsersByIds(argThat(ids -> ids.contains(partyLeaderId) && ids.contains(inviteeId))))
+                    .thenReturn(
+                            List.of(
+                                    User.builder().id(partyLeaderId).firstName("Alice").lastName("Smith").build(),
+                                    User.builder().id(inviteeId).firstName("Bob").lastName("Jones").build()
+                            )
+                    );
+
+            // Create party and invite + accept via helper
+            PartyResponse partyResponse = householdHelper.createHouseHold(partyLeaderId);
+            householdHelper.inviteAndAccept(partyResponse.id(), partyLeaderId, inviteeId, "invitee@example.com");
+
+            // Create recurring transactions for both users
+            Category leaderCategory = createCategory(partyLeaderId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Account leaderAccount = createAccount(partyLeaderId, "Cash Wallet");
+
+            CreateRecurringTransactionRequest leaderRequest = CreateRecurringTransactionRequest.builder()
+                    .description("Monthly subscription - Alice")
+                    .amount(15.99)
+                    .variableAmount(false)
+                    .categoryId(leaderCategory.id())
+                    .accountId(leaderAccount.id())
+                    .noEndDate(false)
+                    .dayOfMonth(15)
+                    .durationMonths(6)
+                    .build();
+
+            mockMvc.perform(post("/api/recurring-transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", partyLeaderId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(leaderRequest)))
+                    .andExpect(status().isCreated());
+
+            Category inviteeCategory = createCategory(inviteeId, "TRANSPORT", TransactionType.EXPENSE, "bus");
+            Account inviteeAccount = createAccount(inviteeId, "Bank Account");
+
+            CreateRecurringTransactionRequest inviteeRequest = CreateRecurringTransactionRequest.builder()
+                    .description("Monthly subscription - Bob")
+                    .amount(25.00)
+                    .variableAmount(false)
+                    .categoryId(inviteeCategory.id())
+                    .accountId(inviteeAccount.id())
+                    .noEndDate(false)
+                    .dayOfMonth(20)
+                    .durationMonths(12)
+                    .build();
+
+            mockMvc.perform(post("/api/recurring-transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", inviteeId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(inviteeRequest)))
+                    .andExpect(status().isCreated());
+
+            mockMvc.perform(get("/api/recurring-transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", partyLeaderId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(2))
+                    // Both recurring transactions present — order may vary
+                    .andExpect(jsonPath("$[*].description").value(
+                            containsInAnyOrder("Monthly subscription - Alice", "Monthly subscription - Bob")
+                    ))
+                    .andExpect(jsonPath("$[*].category.id").isArray())
+                    .andExpect(jsonPath("$[*].account.id").isArray())
+                    .andExpect(jsonPath("$[*].account.user.id").value(
+                            containsInAnyOrder(
+                                    partyLeaderId.toString(),
+                                    inviteeId.toString()
+                            )
+                    ))
+                    .andExpect(jsonPath("$[*].account.user.firstName").value(
+                            containsInAnyOrder("Alice", "Bob")
+                    ))
+                    .andExpect(jsonPath("$[*].account.user.lastName").value(
+                            containsInAnyOrder("Smith", "Jones")
+                    ))
+                    .andExpect(jsonPath("$[*].account.user.initial").value(
+                            containsInAnyOrder("AS", "BJ")
+                    ));
+        }
+
+        @Test
         void givenRecurringTransactionAlreadyOccurred_thenStatusShouldBePaidThenIncoming() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
@@ -607,112 +713,6 @@ class RecurringTransactionControllerIntegrationTest {
                                             .claim("scope", List.of())
                                     )))
                     .andExpect(status().isNotFound());
-        }
-
-        @Test
-        void givenUserWithPartyMembers_thenReturnsConsolidatedRecurringTransactions() throws Exception {
-            UUID partyLeaderId = UUID.randomUUID();
-            UUID inviteeId = UUID.randomUUID();
-
-            // Set up user mocks before party operations
-            when(userClient.getUserByEmail("invitee@example.com"))
-                    .thenReturn(User.builder().id(inviteeId).firstName("Bob").lastName("Jones").build());
-            when(userClient.getUsersByIds(argThat(ids -> ids.contains(partyLeaderId) && ids.contains(inviteeId))))
-                    .thenReturn(
-                            List.of(
-                                    User.builder().id(partyLeaderId).firstName("Alice").lastName("Smith").build(),
-                                    User.builder().id(inviteeId).firstName("Bob").lastName("Jones").build()
-                            )
-                    );
-
-            // Create party and invite + accept via helper
-            PartyResponse partyResponse = householdHelper.createHouseHold(partyLeaderId);
-            householdHelper.inviteAndAccept(partyResponse.id(), partyLeaderId, inviteeId, "invitee@example.com");
-
-            // Create recurring transactions for both users
-            Category leaderCategory = createCategory(partyLeaderId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-            Account leaderAccount = createAccount(partyLeaderId, "Cash Wallet");
-
-            CreateRecurringTransactionRequest leaderRequest = CreateRecurringTransactionRequest.builder()
-                    .description("Monthly subscription - Alice")
-                    .amount(15.99)
-                    .variableAmount(false)
-                    .categoryId(leaderCategory.id())
-                    .accountId(leaderAccount.id())
-                    .noEndDate(false)
-                    .dayOfMonth(15)
-                    .durationMonths(6)
-                    .build();
-
-            mockMvc.perform(post("/api/recurring-transactions")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", partyLeaderId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(leaderRequest)))
-                    .andExpect(status().isCreated());
-
-            Category inviteeCategory = createCategory(inviteeId, "TRANSPORT", TransactionType.EXPENSE, "bus");
-            Account inviteeAccount = createAccount(inviteeId, "Bank Account");
-
-            CreateRecurringTransactionRequest inviteeRequest = CreateRecurringTransactionRequest.builder()
-                    .description("Monthly subscription - Bob")
-                    .amount(25.00)
-                    .variableAmount(false)
-                    .categoryId(inviteeCategory.id())
-                    .accountId(inviteeAccount.id())
-                    .noEndDate(false)
-                    .dayOfMonth(20)
-                    .durationMonths(12)
-                    .build();
-
-            mockMvc.perform(post("/api/recurring-transactions")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", inviteeId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(inviteeRequest)))
-                    .andExpect(status().isCreated());
-
-            mockMvc.perform(get("/api/recurring-transactions")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", partyLeaderId)
-                                            .claim("scope", List.of())
-                                    )))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.length()").value(2))
-                    // Both recurring transactions present — order may vary
-                    .andExpect(jsonPath("$[*].description").value(
-                            containsInAnyOrder("Monthly subscription - Alice", "Monthly subscription - Bob")
-                    ))
-                    .andExpect(jsonPath("$[*].category.id").isArray())
-                    .andExpect(jsonPath("$[*].account.id").isArray())
-                    .andExpect(jsonPath("$[*].account.user.id").value(
-                            containsInAnyOrder(
-                                    partyLeaderId.toString(),
-                                    inviteeId.toString()
-                            )
-                    ))
-                    .andExpect(jsonPath("$[*].account.user.firstName").value(
-                            containsInAnyOrder("Alice", "Bob")
-                    ))
-                    .andExpect(jsonPath("$[*].account.user.lastName").value(
-                            containsInAnyOrder("Smith", "Jones")
-                    ))
-                    .andExpect(jsonPath("$[*].account.user.initial").value(
-                            containsInAnyOrder("AS", "BJ")
-                    ));
         }
     }
 
