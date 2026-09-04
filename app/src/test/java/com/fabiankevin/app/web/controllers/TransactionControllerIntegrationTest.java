@@ -18,6 +18,8 @@ import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateTransactionRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchTransactionRequest;
+import com.fabiankevin.app.web.controllers.dtos.party.PartyResponse;
+import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -92,6 +94,9 @@ class TransactionControllerIntegrationTest {
 
     @Autowired
     private JsonMapper jsonMapper;
+
+    @Autowired
+    private HouseholdServiceTestHelper householdHelper;
 
     private UUID userId;
     private Account account;
@@ -734,6 +739,111 @@ class TransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.content.length()").value(1))
                     .andExpect(jsonPath("$.content[0].description").value("expense"))
                     .andExpect(jsonPath("$.totalElements").value(1));
+        }
+
+        @Test
+        void givenUserWithPartyMembers_thenReturnsConsolidatedTransactions() throws Exception {
+            UUID partyLeaderId = UUID.randomUUID();
+            UUID inviteeId = UUID.randomUUID();
+
+            // Set up user mocks before party operations
+            User leaderUser = User.builder()
+                    .id(partyLeaderId)
+                    .firstName("Party")
+                    .lastName("Leader")
+                    .build();
+
+            User inviteeUser = User.builder()
+                    .id(inviteeId)
+                    .firstName("Invitee")
+                    .lastName("User")
+                    .build();
+
+            when(userClient.getUserByEmail("invitee@example.com")).thenReturn(inviteeUser);
+            when(userClient.getUsersByIds(any())).thenReturn(List.of(leaderUser, inviteeUser));
+
+            // Create party and invite + accept
+            PartyResponse party = householdHelper.createHouseHold(partyLeaderId);
+            householdHelper.inviteAndAccept(party.id(), partyLeaderId, inviteeId, "invitee@example.com");
+
+            // Create accounts for both users
+            Account leaderAccount = accountService.createAccount(
+                    CreateAccountCommand.builder()
+                            .name("LEADER WALLET")
+                            .userId(partyLeaderId)
+                            .currency(Currency.getInstance("PHP"))
+                            .type(E_WALLET)
+                            .build()
+            );
+
+            Account inviteeAccount = accountService.createAccount(
+                    CreateAccountCommand.builder()
+                            .name("INVITEE WALLET")
+                            .userId(inviteeId)
+                            .currency(Currency.getInstance("PHP"))
+                            .type(E_WALLET)
+                            .build()
+            );
+
+            // Create categories for both users
+            Category leaderCategory = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
+                            .name("LEADER FOOD")
+                            .type(TransactionType.EXPENSE)
+                            .userId(partyLeaderId)
+                            .build()
+            );
+
+            Category inviteeCategory = categoryService.createCategory(
+                    CreateCategoryCommand.builder()
+                            .name("INVITEE FOOD")
+                            .type(TransactionType.EXPENSE)
+                            .userId(inviteeId)
+                            .build()
+            );
+
+            // Create transactions for both users
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(100)
+                            .description("Leader transaction")
+                            .transactionDate(LocalDate.of(2026, 1, 1))
+                            .categoryId(leaderCategory.id())
+                            .accountId(leaderAccount.id())
+                            .userId(partyLeaderId)
+                            .build()
+            );
+
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(200)
+                            .description("Invitee transaction")
+                            .transactionDate(LocalDate.of(2026, 1, 2))
+                            .categoryId(inviteeCategory.id())
+                            .accountId(inviteeAccount.id())
+                            .userId(inviteeId)
+                            .build()
+            );
+
+            // Query as party leader — should see both transactions
+            mockMvc.perform(get("/api/transactions")
+                            .param("page", "0")
+                            .param("size", "10")
+                            .param("sort", "transactionDate")
+                            .param("direction", "ASC")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", partyLeaderId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content").isArray())
+                    .andExpect(jsonPath("$.content.length()").value(2))
+                    .andExpect(jsonPath("$.totalElements").value(2))
+                    .andExpect(jsonPath("$.content[0].description").value("Leader transaction"))
+                    .andExpect(jsonPath("$.content[1].description").value("Invitee transaction"));
         }
     }
 

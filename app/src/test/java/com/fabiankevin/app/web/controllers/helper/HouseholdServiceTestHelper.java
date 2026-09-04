@@ -1,6 +1,8 @@
 package com.fabiankevin.app.web.controllers.helper;
 
 import com.fabiankevin.app.models.enums.party.SharingMode;
+import com.fabiankevin.app.models.party.InvitationSummary;
+import com.fabiankevin.app.web.controllers.dtos.SendInvitationRequest;
 import com.fabiankevin.app.web.controllers.dtos.party.OrganizePartyRequest;
 import com.fabiankevin.app.web.controllers.dtos.party.PartyResponse;
 import lombok.RequiredArgsConstructor;
@@ -44,5 +46,43 @@ public class HouseholdServiceTestHelper {
 
         mvcResult.getResponse().getContentAsString();
         return jsonMapper.readValue(mvcResult.getResponse().getContentAsString(), PartyResponse.class);
+    }
+
+    public InvitationSummary inviteAndAccept(UUID partyId, UUID partyLeaderId, UUID inviteeId, String inviteeEmail) throws Exception {
+        // Step 1: Party leader sends invitation
+        SendInvitationRequest sendRequest = SendInvitationRequest.builder()
+                .email(inviteeEmail)
+                .build();
+
+        MvcResult sendResult = mockMvc.perform(post("/api/parties/{partyId}/invitations", partyId)
+                        .with(jwt()
+                                .authorities(new SimpleGrantedAuthority("USER"))
+                                .jwt(jwt -> jwt
+                                        .audience(List.of("financial-tracker-test"))
+                                        .claim("sub", partyLeaderId)
+                                        .claim("scope", List.of())))
+                        .contentType("application/json")
+                        .content(jsonMapper.writeValueAsString(sendRequest)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        InvitationSummary invitation = jsonMapper.readValue(
+                sendResult.getResponse().getContentAsString(), InvitationSummary.class);
+
+        // Step 2: Invitee accepts the invitation
+        MvcResult acceptResult = mockMvc.perform(post("/api/parties/{partyId}/invitations/{invitationId}/accept",
+                        partyId, invitation.id())
+                        .with(jwt()
+                                .authorities(new SimpleGrantedAuthority("USER"))
+                                .jwt(jwt -> jwt
+                                        .audience(List.of("financial-tracker-test"))
+                                        .claim("sub", inviteeId)
+                                        .claim("scope", List.of())))
+                        .contentType("application/json"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        return jsonMapper.readValue(
+                acceptResult.getResponse().getContentAsString(), InvitationSummary.class);
     }
 }
