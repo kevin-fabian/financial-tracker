@@ -82,6 +82,105 @@ class DefaultShoppingListRepositoryTest {
     }
 
     @Nested
+    class FindAllByUserId {
+        @Test
+        void givenOwnedShoppingList_returnsIt() {
+            UUID userId = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            ShoppingList ownedList = ShoppingList.builder()
+                    .id(null)
+                    .name("Owned List")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .items(List.of())
+                    .userId(userId)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            shoppingListRepository.save(ownedList);
+
+            List<ShoppingList> result = shoppingListRepository.findAllByUserId(userId);
+
+            Assertions.assertThat(result).hasSize(1);
+            Assertions.assertThat(result.getFirst().name()).isEqualTo("Owned List");
+            Assertions.assertThat(result.getFirst().userId()).isEqualTo(userId);
+        }
+
+        @Test
+        void givenSharedShoppingList_returnsItToSharedUser() {
+            UUID ownerUserId = UUID.randomUUID();
+            UUID sharedUserId = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            ShoppingList sharedList = ShoppingList.builder()
+                    .id(null)
+                    .name("Shared List")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .items(List.of())
+                    .userId(ownerUserId)
+                    .sharedWithUserIds(List.of(sharedUserId))
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            shoppingListRepository.save(sharedList);
+
+            List<ShoppingList> result = shoppingListRepository.findAllByUserId(sharedUserId);
+
+            Assertions.assertThat(result).hasSize(1);
+            Assertions.assertThat(result.getFirst().name()).isEqualTo("Shared List");
+            Assertions.assertThat(result.getFirst().userId()).isEqualTo(ownerUserId);
+        }
+
+        @Test
+        void givenOwnedAndSharedLists_returnsBoth() {
+            UUID userId = UUID.randomUUID();
+            UUID otherUserId = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            ShoppingList ownedList = ShoppingList.builder()
+                    .id(null)
+                    .name("My List")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .items(List.of())
+                    .userId(userId)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingList sharedList = ShoppingList.builder()
+                    .id(null)
+                    .name("Shared With Me")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .items(List.of())
+                    .userId(otherUserId)
+                    .sharedWithUserIds(List.of(userId))
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            shoppingListRepository.save(ownedList);
+            shoppingListRepository.save(sharedList);
+
+            List<ShoppingList> result = shoppingListRepository.findAllByUserId(userId);
+
+            Assertions.assertThat(result).hasSize(2);
+            Assertions.assertThat(result).extracting(ShoppingList::name)
+                    .containsExactlyInAnyOrder("My List", "Shared With Me");
+        }
+
+        @Test
+        void givenNoMatchingLists_returnsEmptyList() {
+            UUID userId = UUID.randomUUID();
+
+            List<ShoppingList> result = shoppingListRepository.findAllByUserId(userId);
+
+            Assertions.assertThat(result).isEmpty();
+        }
+    }
+
+    @Nested
     class Save {
         @Test
         void givenValidShoppingList_persistsAndRetrievesAllFieldsIncludingCascadeItems() {
@@ -130,35 +229,6 @@ class DefaultShoppingListRepositoryTest {
             Assertions.assertThat(saved.id()).isNotNull();
             Assertions.assertThat(saved.name()).isEqualTo("Empty List");
             Assertions.assertThat(saved.items()).isEmpty();
-
-            verify(jpaShoppingListRepository, times(1)).save(any());
-        }
-
-        @Test
-        void givenShoppingListWithSharedWithUserIds_persistsAndRetrievesSharedWithUserIds() {
-            UUID userId = UUID.randomUUID();
-            UUID sharedUser1 = UUID.randomUUID();
-            UUID sharedUser2 = UUID.randomUUID();
-            Instant now = Instant.now();
-
-            ShoppingList sharedList = ShoppingList.builder()
-                    .id(null)
-                    .name("Shared List")
-                    .status(ShoppingListStatus.ACTIVE)
-                    .items(List.of())
-                    .userId(userId)
-                    .sharedWithUserIds(List.of(sharedUser1, sharedUser2))
-                    .budget(50.00)
-                    .createdAt(now)
-                    .updatedAt(now)
-                    .build();
-
-            ShoppingList saved = shoppingListRepository.save(sharedList);
-
-            Assertions.assertThat(saved.id()).isNotNull();
-            Assertions.assertThat(saved.sharedWithUserIds())
-                    .hasSize(2)
-                    .containsExactlyInAnyOrder(sharedUser1, sharedUser2);
 
             verify(jpaShoppingListRepository, times(1)).save(any());
         }

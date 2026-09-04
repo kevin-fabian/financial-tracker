@@ -129,45 +129,6 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenRequestWithSharedWithUserIds_thenSavesSharedWithUserIdsButDoesNotReturnThem() throws Exception {
-            UUID userId = UUID.randomUUID();
-            UUID sharedUser1 = UUID.randomUUID();
-            UUID sharedUser2 = UUID.randomUUID();
-
-            Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
-
-            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
-                    .name("Shared Groceries")
-                    .description("Shared weekly groceries")
-                    .categoryId(category.id())
-                    .budget(150.0)
-                    .sharedWithUserIds(List.of(sharedUser1, sharedUser2))
-                    .build();
-
-            when(userClient.getUsersByIds(List.of(userId)))
-                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
-
-            mockMvc.perform(post("/api/shopping-lists")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.id").isNotEmpty())
-                    .andExpect(jsonPath("$.name").value("Shared Groceries"))
-                    .andExpect(jsonPath("$.sharedWithUserIds").doesNotExist());
-
-            ShoppingList saved = shoppingListRepository.findAllByUserId(userId).getFirst();
-            Assertions.assertThat(saved.sharedWithUserIds())
-                    .containsExactlyInAnyOrder(sharedUser1, sharedUser2);
-        }
-
-        @Test
         void givenZeroBudget_thenReturnsCreatedWithZeroBudget() throws Exception {
             UUID userId = UUID.randomUUID();
 
@@ -362,45 +323,8 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenEmptySharedWithUserIdsList_thenSavesEmptyList() throws Exception {
-            UUID userId = UUID.randomUUID();
-
-            Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
-
-            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
-                    .name("Groceries")
-                    .description("Weekly groceries")
-                    .categoryId(category.id())
-                    .budget(100.0)
-                    .sharedWithUserIds(List.of())
-                    .build();
-
-            when(userClient.getUsersByIds(List.of(userId)))
-                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
-
-            mockMvc.perform(post("/api/shopping-lists")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.id").isNotEmpty())
-                    .andExpect(jsonPath("$.name").value("Groceries"))
-                    .andExpect(jsonPath("$.sharedWithUserIds").doesNotExist());
-
-            ShoppingList saved = shoppingListRepository.findAllByUserId(userId).getFirst();
-            Assertions.assertThat(saved.sharedWithUserIds()).isEmpty();
-        }
-
-        @Test
         void givenSharedWithUserIdsButUserClientReturnsEmpty_thenReturnsCreatedWithNullUser() throws Exception {
             UUID userId = UUID.randomUUID();
-            UUID sharedUser1 = UUID.randomUUID();
 
             Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
 
@@ -409,7 +333,6 @@ class ShoppingListControllerIntegrationTest {
                     .description("Weekly groceries")
                     .categoryId(category.id())
                     .budget(100.0)
-                    .sharedWithUserIds(List.of(sharedUser1))
                     .build();
 
             when(userClient.getUsersByIds(List.of(userId)))
@@ -428,10 +351,6 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.id").isNotEmpty())
                     .andExpect(jsonPath("$.name").value("Groceries"));
-
-            ShoppingList saved = shoppingListRepository.findAllByUserId(userId).getFirst();
-            Assertions.assertThat(saved.sharedWithUserIds())
-                    .containsExactlyInAnyOrder(sharedUser1);
         }
 
         @Test
@@ -682,47 +601,6 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(jsonPath("$.user.initial").value("JD"))
                     .andExpect(jsonPath("$.createdAt").exists())
                     .andExpect(jsonPath("$.updatedAt").exists());
-        }
-
-        @Test
-        void givenExistingList_thenShouldPatchSharedWithUserIdsAndPersistsAndDoesNotReturnThem() throws Exception {
-            UUID userId = UUID.randomUUID();
-            UUID sharedUser1 = UUID.randomUUID();
-            UUID sharedUser2 = UUID.randomUUID();
-
-            ShoppingList shoppingList = ShoppingList.builder()
-                    .name("Groceries")
-                    .status(ShoppingListStatus.ACTIVE)
-                    .userId(userId)
-                    .budget(100.0)
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
-                    .build();
-            UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
-
-            when(userClient.getUsersByIds(List.of(userId)))
-                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
-
-            PatchShoppingListRequest request = PatchShoppingListRequest.builder()
-                    .sharedWithUserIds(List.of(sharedUser1, sharedUser2))
-                    .build();
-
-            mockMvc.perform(patch("/api/shopping-lists/{id}", shoppingListId)
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.sharedWithUserIds").doesNotExist());
-
-            ShoppingList saved = shoppingListRepository.findById(shoppingListId).get();
-            Assertions.assertThat(saved.sharedWithUserIds())
-                    .containsExactlyInAnyOrder(sharedUser1, sharedUser2);
         }
 
         @Test

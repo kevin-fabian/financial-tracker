@@ -106,7 +106,6 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .name(command.name() != null ? command.name() : existing.name())
                 .description(command.description() != null ? command.description() : existing.description())
                 .budget(command.budget() != null ? command.budget() : existing.budget())
-                .sharedWithUserIds(command.sharedWithUserIds() != null ? command.sharedWithUserIds() : existing.sharedWithUserIds())
                 .category(category)
                 .updatedAt(Instant.now())
                 .build();
@@ -171,9 +170,7 @@ public class DefaultShoppingListService implements ShoppingListService {
         ShoppingList existing = shoppingListRepository.findById(command.shoppingListId())
                 .orElseThrow(ShoppingListNotFoundException::new);
 
-        boolean isOwner = existing.userId().equals(command.userId());
-        boolean isSharedWith = existing.sharedWithUserIds().contains(command.userId());
-        if (!isOwner && !isSharedWith) {
+        if (!existing.userId().equals(command.userId())) {
             throw new ShoppingListNotFoundException();
         }
 
@@ -223,9 +220,7 @@ public class DefaultShoppingListService implements ShoppingListService {
         ShoppingList existing = shoppingListRepository.findById(command.shoppingListId())
                 .orElseThrow(ShoppingListNotFoundException::new);
 
-        boolean isOwner = existing.userId().equals(command.userId());
-        boolean isSharedWith = existing.sharedWithUserIds().contains(command.userId());
-        if (!isOwner && !isSharedWith) {
+        if (!existing.userId().equals(command.userId())) {
             throw new ShoppingListNotFoundException();
         }
 
@@ -256,9 +251,9 @@ public class DefaultShoppingListService implements ShoppingListService {
     @Transactional
     @Override
     public List<ShoppingListSummary> getShoppingListsByUserId(UUID userId) {
-        List<ShoppingList> shoppingLists = shoppingListRepository.findAllByUserId(userId);
+        List<ShoppingList> result = shoppingListRepository.findAllByUserId(userId);
 
-        List<UUID> addedByIds = shoppingLists.stream()
+        List<UUID> addedByIds = result.stream()
                 .flatMap(list -> list.items().stream())
                 .map(ShoppingItem::addedBy)
                 .distinct()
@@ -269,7 +264,7 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .collect(Collectors.toMap(User::id, Function.identity()));
         User user = usersById.get(userId);
 
-        return shoppingLists.stream()
+        return result.stream()
                 .map(shoppingList -> toSummary(shoppingList, user, usersById))
                 .toList();
     }
