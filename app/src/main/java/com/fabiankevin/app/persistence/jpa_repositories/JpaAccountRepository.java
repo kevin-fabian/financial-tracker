@@ -26,7 +26,7 @@ public interface JpaAccountRepository extends JpaRepository<AccountEntity, UUID>
 
     @Query("""
             SELECT acc,
-                COALESCE(SUM(CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amount ELSE -t.amount END), 0.0) AS totalBalance,
+                COALESCE(SUM(CASE WHEN t.category.transactionType = TransactionType.INCOME THEN t.amount ELSE -t.amount END), 0.0) AS totalBalance,
                 CAST(COALESCE(COUNT(t.id), 0) AS int)
             FROM AccountEntity acc
             LEFT JOIN TransactionEntity t ON t.account.id = acc.id
@@ -45,7 +45,7 @@ public interface JpaAccountRepository extends JpaRepository<AccountEntity, UUID>
 
     @Query("""
             SELECT acc,
-                COALESCE(SUM(CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amount ELSE -t.amount END), 0.0),
+                COALESCE(SUM(CASE WHEN t.category.transactionType = TransactionType.INCOME THEN t.amount ELSE -t.amount END), 0.0),
                 CAST(COALESCE(COUNT(t.id), 0) AS int)
             FROM AccountEntity acc
             LEFT JOIN TransactionEntity t ON t.account.id = acc.id

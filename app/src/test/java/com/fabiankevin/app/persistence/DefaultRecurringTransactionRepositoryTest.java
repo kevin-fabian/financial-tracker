@@ -29,7 +29,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -232,6 +234,90 @@ class DefaultRecurringTransactionRepositoryTest {
             Assertions.assertThat(summaries).isEmpty();
 
             verify(jpaRecurringTransactionRepository, times(1)).findAllSummariesByUserId(eq(userId), any());
+        }
+    }
+
+    @Nested
+    class StreamDueRecurringTransactions {
+        @Test
+        void givenActiveRecurringTransactionsDueBeforeReferenceDate_thenReturnsStream() {
+            RecurringTransaction saved = recurringTransactionRepository.save(recurringTransaction);
+
+            LocalDate referenceNow = LocalDate.of(2026, 9, 1);
+
+            Stream<RecurringTransaction> stream = recurringTransactionRepository.streamDueRecurringTransactions(referenceNow);
+
+            Assertions.assertThat(stream).isNotNull();
+            List<RecurringTransaction> due = stream.toList();
+            Assertions.assertThat(due).hasSize(1);
+            assertEquals(saved.id(), due.getFirst().id(), "stream should contain the due recurring transaction");
+        }
+
+        @Test
+        void givenNoRecurringTransactionsDueBeforeReferenceDate_thenReturnsEmptyStream() {
+            recurringTransactionRepository.save(recurringTransaction);
+
+            LocalDate referenceNow = LocalDate.of(2026, 8, 1);
+
+            Stream<RecurringTransaction> stream = recurringTransactionRepository.streamDueRecurringTransactions(referenceNow);
+
+            Assertions.assertThat(stream).isNotNull();
+            List<RecurringTransaction> due = stream.toList();
+            Assertions.assertThat(due).isEmpty();
+        }
+    }
+
+    @Nested
+    class DeleteByIdAndUserId {
+        @Test
+        void givenValidIdAndUserId_thenDeletesAndReturnsCount() {
+            RecurringTransaction saved = recurringTransactionRepository.save(recurringTransaction);
+            UUID id = saved.id();
+            UUID userId = saved.updatedById();
+
+            int deleted = recurringTransactionRepository.deleteByIdAndUserId(id, userId);
+
+            assertEquals(1, deleted, "should have deleted 1 recurring transaction");
+            Assertions.assertThat(recurringTransactionRepository.findByIdAndUserId(id, userId)).isEmpty();
+        }
+
+        @Test
+        void givenNonExistentId_thenDeletesNothingAndReturnsZero() {
+            recurringTransactionRepository.save(recurringTransaction);
+            UUID nonExistentId = UUID.randomUUID();
+            UUID userId = recurringTransaction.updatedById();
+
+            int deleted = recurringTransactionRepository.deleteByIdAndUserId(nonExistentId, userId);
+
+            assertEquals(0, deleted, "should have deleted 0 recurring transactions");
+        }
+    }
+
+    @Nested
+    class FindByIdAndUserId {
+        @Test
+        void givenExistingIdAndUserId_thenReturnsOptionalWithTransaction() {
+            RecurringTransaction saved = recurringTransactionRepository.save(recurringTransaction);
+            UUID id = saved.id();
+            UUID userId = saved.updatedById();
+
+            Optional<RecurringTransaction> found = recurringTransactionRepository.findByIdAndUserId(id, userId);
+
+            Assertions.assertThat(found).isPresent();
+            assertEquals(saved.id(), found.get().id(), "found recurring transaction id should match");
+            assertEquals(saved.description(), found.get().description(), "description should match");
+            assertEquals(saved.amount(), found.get().amount(), "amount should match");
+        }
+
+        @Test
+        void givenNonExistentId_thenReturnsEmptyOptional() {
+            recurringTransactionRepository.save(recurringTransaction);
+            UUID nonExistentId = UUID.randomUUID();
+            UUID userId = recurringTransaction.updatedById();
+
+            Optional<RecurringTransaction> found = recurringTransactionRepository.findByIdAndUserId(nonExistentId, userId);
+
+            Assertions.assertThat(found).isEmpty();
         }
     }
 }

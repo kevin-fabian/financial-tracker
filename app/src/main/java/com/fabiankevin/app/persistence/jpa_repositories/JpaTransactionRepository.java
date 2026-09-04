@@ -64,7 +64,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
                        COALESCE(SUM(
                            CASE
                                WHEN :type IS NULL THEN
-                                   CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amount ELSE -t.amount END
+                                   CASE WHEN t.category.transactionType = TransactionType.INCOME THEN t.amount ELSE -t.amount END
                                ELSE t.amount
                            END
                        ), 0.0) AS sum
@@ -125,7 +125,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("categoryId") UUID categoryId);
 
     @Query("""
-            SELECT COALESCE(SUM(CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amount ELSE -t.amount END), 0.0)
+            SELECT COALESCE(SUM(CASE WHEN t.category.transactionType = TransactionType.INCOME THEN t.amount ELSE -t.amount END), 0.0)
             FROM TransactionEntity t
             WHERE t.account.userId IN :userIds
               AND t.transactionDate BETWEEN :from AND :to
@@ -136,7 +136,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("to") LocalDate to);
 
     @Query("""
-            SELECT COALESCE(SUM(CASE WHEN t.category.transactionType = com.fabiankevin.app.models.enums.TransactionType.INCOME THEN t.amount ELSE -t.amount END), 0.0)
+            SELECT COALESCE(SUM(CASE WHEN t.category.transactionType = TransactionType.INCOME THEN t.amount ELSE -t.amount END), 0.0)
             FROM TransactionEntity t
             WHERE t.account.userId IN :userIds
             """)
