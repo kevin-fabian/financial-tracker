@@ -2,6 +2,7 @@ package com.fabiankevin.app.web.controllers.dtos.budgets;
 
 import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
+import com.fabiankevin.app.web.controllers.dtos.CategoryResponse;
 import com.fabiankevin.app.web.controllers.dtos.UserResponse;
 import lombok.Builder;
 
@@ -16,9 +17,7 @@ public record BudgetSummaryResponse(
         Instant updatedAt,
         Instant createdAt,
         String period,
-        UUID categoryId,
-        String categoryName,
-        String categoryIcon,
+        CategoryResponse category,
         double allocated,
         double spent,
         double spentPercentage) {
@@ -32,9 +31,7 @@ public record BudgetSummaryResponse(
                 .updatedAt(budget.updatedAt())
                 .createdAt(budget.createdAt())
                 .period(budget.period() != null ? budget.period().name() : null)
-                .categoryId(budget.category().id())
-                .categoryName(budget.category().name())
-                .categoryIcon(budget.category().icon())
+                .category(CategoryResponse.from(budget.category()))
                 .allocated(budget.allocated())
                 .spent(summary.spent())
                 .spentPercentage(summary.spentPercentage())

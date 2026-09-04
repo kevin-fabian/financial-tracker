@@ -122,9 +122,9 @@ class BudgetControllerIntegrationTest {
                     .andExpect(jsonPath("$[0].createdAt").exists())
                     .andExpect(jsonPath("$[0].updatedAt").exists())
                     .andExpect(jsonPath("$[0].period").value("MONTHLY"))
-                    .andExpect(jsonPath("$[0].categoryId").value(category.id().toString()))
-                    .andExpect(jsonPath("$[0].categoryName").value("GROCERIES"))
-                    .andExpect(jsonPath("$[0].categoryIcon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$[0].category.id").value(category.id().toString()))
+                    .andExpect(jsonPath("$[0].category.name").value("GROCERIES"))
+                    .andExpect(jsonPath("$[0].category.icon").value("local_grocery_store"))
                     .andExpect(jsonPath("$[0].allocated").value(500.0))
                     .andExpect(jsonPath("$[0].spent").value(200.0))
                     .andExpect(jsonPath("$[0].spentPercentage").value(40.0));
@@ -179,9 +179,9 @@ class BudgetControllerIntegrationTest {
                     .andExpect(jsonPath("$[0].createdAt").exists())
                     .andExpect(jsonPath("$[0].updatedAt").exists())
                     .andExpect(jsonPath("$[0].period").value("MONTHLY"))
-                    .andExpect(jsonPath("$[0].categoryId").value(category.id().toString()))
-                    .andExpect(jsonPath("$[0].categoryName").value("GROCERIES"))
-                    .andExpect(jsonPath("$[0].categoryIcon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$[0].category.id").value(category.id().toString()))
+                    .andExpect(jsonPath("$[0].category.name").value("GROCERIES"))
+                    .andExpect(jsonPath("$[0].category.icon").value("local_grocery_store"))
                     .andExpect(jsonPath("$[0].allocated").value(500.0))
                     .andExpect(jsonPath("$[0].spent").value(0.0))
                     .andExpect(jsonPath("$[0].spentPercentage").value(0.0));
@@ -225,8 +225,8 @@ class BudgetControllerIntegrationTest {
                     .andExpect(jsonPath("$[0].updatedBy.lastName").value("Smith"))
                     .andExpect(jsonPath("$[0].updatedBy.initial").value("AS"))
                     .andExpect(jsonPath("$[0].period").value("MONTHLY"))
-                    .andExpect(jsonPath("$[0].categoryName").value("GROCERIES"))
-                    .andExpect(jsonPath("$[0].categoryIcon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$[0].category.name").value("GROCERIES"))
+                    .andExpect(jsonPath("$[0].category.icon").value("local_grocery_store"))
                     .andExpect(jsonPath("$[0].allocated").value(500.0))
                     .andExpect(jsonPath("$[0].spent").value(0.0))
                     .andExpect(jsonPath("$[0].spentPercentage").value(0.0));
@@ -280,9 +280,9 @@ class BudgetControllerIntegrationTest {
                     .andExpect(jsonPath("$[0].createdAt").exists())
                     .andExpect(jsonPath("$[0].updatedAt").exists())
                     .andExpect(jsonPath("$[0].period").value("MONTHLY"))
-                    .andExpect(jsonPath("$[0].categoryId").exists())
-                    .andExpect(jsonPath("$[0].categoryName").value("DINING"))
-                    .andExpect(jsonPath("$[0].categoryIcon").value("restaurant"))
+                    .andExpect(jsonPath("$[0].category").exists())
+                    .andExpect(jsonPath("$[0].category.name").value("DINING"))
+                    .andExpect(jsonPath("$[0].category.icon").value("restaurant"))
                     .andExpect(jsonPath("$[0].allocated").value(300.0))
                     .andExpect(jsonPath("$[0].spent").value(0.0))
                     .andExpect(jsonPath("$[0].spentPercentage").value(0.0))
@@ -298,9 +298,9 @@ class BudgetControllerIntegrationTest {
                     .andExpect(jsonPath("$[1].createdAt").exists())
                     .andExpect(jsonPath("$[1].updatedAt").exists())
                     .andExpect(jsonPath("$[1].period").value("MONTHLY"))
-                    .andExpect(jsonPath("$[1].categoryId").exists())
-                    .andExpect(jsonPath("$[1].categoryName").value("GROCERIES"))
-                    .andExpect(jsonPath("$[1].categoryIcon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$[1].category").exists())
+                    .andExpect(jsonPath("$[1].category.name").value("GROCERIES"))
+                    .andExpect(jsonPath("$[1].category.icon").value("local_grocery_store"))
                     .andExpect(jsonPath("$[1].allocated").value(500.0))
                     .andExpect(jsonPath("$[1].spent").value(0.0))
                     .andExpect(jsonPath("$[1].spentPercentage").value(0.0));
@@ -361,9 +361,9 @@ class BudgetControllerIntegrationTest {
                     .andExpect(jsonPath("$.updatedAt").exists())
                     .andExpect(jsonPath("$.createdAt").exists())
                     .andExpect(jsonPath("$.period").value("MONTHLY"))
-                    .andExpect(jsonPath("$.categoryId").value(category.id().toString()))
-                    .andExpect(jsonPath("$.categoryName").value("GROCERIES"))
-                    .andExpect(jsonPath("$.categoryIcon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$.category.id").value(category.id().toString()))
+                    .andExpect(jsonPath("$.category.name").value("GROCERIES"))
+                    .andExpect(jsonPath("$.category.icon").value("local_grocery_store"))
                     .andExpect(jsonPath("$.allocated").value(500.0))
                     .andExpect(jsonPath("$.spent").value(0.0))
                     .andExpect(jsonPath("$.spentPercentage").value(0.0));
@@ -402,9 +402,9 @@ class BudgetControllerIntegrationTest {
                     .andExpect(jsonPath("$.updatedAt").exists())
                     .andExpect(jsonPath("$.createdAt").exists())
                     .andExpect(jsonPath("$.period").value("MONTHLY"))
-                    .andExpect(jsonPath("$.categoryId").value(category.id().toString()))
-                    .andExpect(jsonPath("$.categoryName").value("GROCERIES"))
-                    .andExpect(jsonPath("$.categoryIcon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$.category.id").value(category.id().toString()))
+                    .andExpect(jsonPath("$.category.name").value("GROCERIES"))
+                    .andExpect(jsonPath("$.category.icon").value("local_grocery_store"))
                     .andExpect(jsonPath("$.allocated").value(500.0))
                     .andExpect(jsonPath("$.spent").value(200.0))
                     .andExpect(jsonPath("$.spentPercentage").value(40.0));
@@ -619,9 +619,9 @@ class BudgetControllerIntegrationTest {
                     .andExpect(jsonPath("$.id").isNotEmpty())
                     .andExpect(jsonPath("$.user.id").value(userId.toString()))
                     .andExpect(jsonPath("$.period").value("MONTHLY"))
-                    .andExpect(jsonPath("$.categoryId").value(systemCategory.id().toString()))
-                    .andExpect(jsonPath("$.categoryName").value("GROCERIES"))
-                    .andExpect(jsonPath("$.categoryIcon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$.category.id").value(systemCategory.id().toString()))
+                    .andExpect(jsonPath("$.category.name").value("GROCERIES"))
+                    .andExpect(jsonPath("$.category.icon").value("local_grocery_store"))
                     .andExpect(jsonPath("$.allocated").value(500.0))
                     .andExpect(jsonPath("$.spent").value(0.0))
                     .andExpect(jsonPath("$.spentPercentage").value(0.0));
@@ -668,9 +668,9 @@ class BudgetControllerIntegrationTest {
                     .andExpect(jsonPath("$.updatedAt").exists())
                     .andExpect(jsonPath("$.createdAt").exists())
                     .andExpect(jsonPath("$.period").value("YEARLY"))
-                    .andExpect(jsonPath("$.categoryId").value(category.id().toString()))
-                    .andExpect(jsonPath("$.categoryName").value("GROCERIES"))
-                    .andExpect(jsonPath("$.categoryIcon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$.category.id").value(category.id().toString()))
+                    .andExpect(jsonPath("$.category.name").value("GROCERIES"))
+                    .andExpect(jsonPath("$.category.icon").value("local_grocery_store"))
                     .andExpect(jsonPath("$.allocated").value(1000.0))
                     .andExpect(jsonPath("$.spent").value(0.0))
                     .andExpect(jsonPath("$.spentPercentage").value(0.0));
@@ -704,9 +704,9 @@ class BudgetControllerIntegrationTest {
                     .andExpect(jsonPath("$.updatedAt").exists())
                     .andExpect(jsonPath("$.createdAt").exists())
                     .andExpect(jsonPath("$.period").value("MONTHLY"))
-                    .andExpect(jsonPath("$.categoryId").value(category.id().toString()))
-                    .andExpect(jsonPath("$.categoryName").value("GROCERIES"))
-                    .andExpect(jsonPath("$.categoryIcon").value("local_grocery_store"))
+                    .andExpect(jsonPath("$.category.id").value(category.id().toString()))
+                    .andExpect(jsonPath("$.category.name").value("GROCERIES"))
+                    .andExpect(jsonPath("$.category.icon").value("local_grocery_store"))
                     .andExpect(jsonPath("$.allocated").value(1000.0))
                     .andExpect(jsonPath("$.spent").value(200.0))
                     .andExpect(jsonPath("$.spentPercentage").value(20.0));
@@ -856,7 +856,7 @@ class BudgetControllerIntegrationTest {
                     .andExpect(jsonPath("$.id").value(budget.id().toString()))
                     .andExpect(jsonPath("$.period").value("MONTHLY"))
                     .andExpect(jsonPath("$.allocated").value(500.0))
-                    .andExpect(jsonPath("$.categoryId").value(category.id().toString()));
+                    .andExpect(jsonPath("$.category.id").value(category.id().toString()));
         }
 
         @Test
@@ -890,7 +890,7 @@ class BudgetControllerIntegrationTest {
                     .andExpect(jsonPath("$.id").value(budget.id().toString()))
                     .andExpect(jsonPath("$.period").value("YEARLY"))
                     .andExpect(jsonPath("$.allocated").value(2000.0))
-                    .andExpect(jsonPath("$.categoryId").value(newCategory.id().toString()));
+                    .andExpect(jsonPath("$.category.id").value(newCategory.id().toString()));
         }
 
         @Test

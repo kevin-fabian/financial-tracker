@@ -274,7 +274,7 @@ class DefaultPartyServiceTest {
         }
 
         @Test
-        void givenRepositoryReturnsEmptyList_thenReturnsEmptyList() {
+        void givenRepositoryReturnsEmptyList_thenReturnUserIdFromParam() {
             UUID userId = UUID.randomUUID();
 
             when(partyRepository.findPartyMembersPlayerIdsByPlayerId(userId)).thenReturn(List.of());
@@ -282,7 +282,7 @@ class DefaultPartyServiceTest {
             List<UUID> result = service.getPartyMembersUserId(userId);
 
             assertNotNull(result);
-            assertTrue(result.isEmpty(), "result should be an empty list");
+            assertFalse(result.isEmpty(), "result should not be empty.");
             verify(partyRepository).findPartyMembersPlayerIdsByPlayerId(userId);
         }
     }

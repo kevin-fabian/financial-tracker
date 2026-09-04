@@ -48,6 +48,9 @@ class DefaultBudgetServiceTest {
     @Mock
     private UserClient userClient;
 
+    @Mock
+    private PartyService partyService;
+
     @InjectMocks
     private DefaultBudgetService budgetService;
 
@@ -329,6 +332,7 @@ class DefaultBudgetServiceTest {
 
             when(budgetRepository.findAllBudgetSummaryByUserId(eq(List.of(userId)), any(LocalDate.class), any(LocalDate.class)))
                     .thenReturn(List.of(summary));
+            when(partyService.getPartyMembersUserId(userId)).thenReturn(List.of(userId));
 
             List<BudgetSummary> results = budgetService.getBudgetsByUserId(userId);
 
@@ -363,6 +367,7 @@ class DefaultBudgetServiceTest {
 
             when(budgetRepository.findAllBudgetSummaryByUserId(eq(List.of(userId)), any(LocalDate.class), any(LocalDate.class)))
                     .thenReturn(List.of());
+            when(partyService.getPartyMembersUserId(userId)).thenReturn(List.of(userId));
 
             List<BudgetSummary> results = budgetService.getBudgetsByUserId(userId);
 
