@@ -145,9 +145,10 @@ class RecurringTransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.remainingDays").value(expectedRemainingDays))
                     .andExpect(jsonPath("$.transactionStatus").value("UPCOMING"))
                     .andExpect(jsonPath("$.status").value("ACTIVE"))
-                    .andExpect(jsonPath("$.firstName").value("John"))
-                    .andExpect(jsonPath("$.lastName").value("Doe"))
-                    .andExpect(jsonPath("$.initial").value("JD"));
+                    .andExpect(jsonPath("$.updatedBy.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.updatedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$.updatedBy.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.updatedBy.initial").value("JD"));
         }
 
         @Test
@@ -439,9 +440,10 @@ class RecurringTransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$[0].remainingDays").value(Matchers.greaterThan(0)))
                     .andExpect(jsonPath("$[0].transactionStatus").value("UPCOMING"))
                     .andExpect(jsonPath("$[0].status").value("ACTIVE"))
-                    .andExpect(jsonPath("$[0].firstName").value("John"))
-                    .andExpect(jsonPath("$[0].lastName").value("Doe"))
-                    .andExpect(jsonPath("$[0].initial").value("JD"))
+                    .andExpect(jsonPath("$[0].updatedBy.id").value(userId.toString()))
+                    .andExpect(jsonPath("$[0].updatedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$[0].updatedBy.lastName").value("Doe"))
+                    .andExpect(jsonPath("$[0].updatedBy.initial").value("JD"))
                     .andExpect(jsonPath("$[0].createdAt").exists())
                     .andExpect(jsonPath("$[0].updatedAt").exists());
         }
@@ -670,9 +672,10 @@ class RecurringTransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.dayOfMonth").value(15))
                     .andExpect(jsonPath("$.variableAmount").value(false))
                     .andExpect(jsonPath("$.status").value("ACTIVE"))
-                    .andExpect(jsonPath("$.firstName").value("John"))
-                    .andExpect(jsonPath("$.lastName").value("Doe"))
-                    .andExpect(jsonPath("$.initial").value("JD"));
+                    .andExpect(jsonPath("$.updatedBy.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.updatedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$.updatedBy.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.updatedBy.initial").value("JD"));
         }
 
         @Test
@@ -756,9 +759,10 @@ class RecurringTransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.dayOfMonth").value(15))
                     .andExpect(jsonPath("$.variableAmount").value(false))
                     .andExpect(jsonPath("$.status").value("ACTIVE"))
-                    .andExpect(jsonPath("$.firstName").value("John"))
-                    .andExpect(jsonPath("$.lastName").value("Doe"))
-                    .andExpect(jsonPath("$.initial").value("JD"));
+                    .andExpect(jsonPath("$.updatedBy.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.updatedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$.updatedBy.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.updatedBy.initial").value("JD"));
         }
 
         @Test
@@ -927,9 +931,10 @@ class RecurringTransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.account.id").value(account.id().toString()))
                     .andExpect(jsonPath("$.variableAmount").value(false))
                     .andExpect(jsonPath("$.status").value("ACTIVE"))
-                    .andExpect(jsonPath("$.firstName").value("John"))
-                    .andExpect(jsonPath("$.lastName").value("Doe"))
-                    .andExpect(jsonPath("$.initial").value("JD"));
+                    .andExpect(jsonPath("$.updatedBy.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.updatedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$.updatedBy.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.updatedBy.initial").value("JD"));
         }
 
         @Test
@@ -992,9 +997,10 @@ class RecurringTransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.account.id").value(account.id().toString()))
                     .andExpect(jsonPath("$.variableAmount").value(false))
                     .andExpect(jsonPath("$.status").value("ACTIVE"))
-                    .andExpect(jsonPath("$.firstName").value("John"))
-                    .andExpect(jsonPath("$.lastName").value("Doe"))
-                    .andExpect(jsonPath("$.initial").value("JD"))
+                    .andExpect(jsonPath("$.updatedBy.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.updatedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$.updatedBy.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.updatedBy.initial").value("JD"))
                     .andReturn();
 
             String updatedNextOccurrenceDate = jsonMapper.readTree(patchResult.getResponse().getContentAsString())
@@ -1166,9 +1172,10 @@ class RecurringTransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.dayOfMonth").value(15))
                     .andExpect(jsonPath("$.variableAmount").value(false))
                     .andExpect(jsonPath("$.status").value("ACTIVE"))
-                    .andExpect(jsonPath("$.firstName").value("John"))
-                    .andExpect(jsonPath("$.lastName").value("Doe"))
-                    .andExpect(jsonPath("$.initial").value("JD"));
+                    .andExpect(jsonPath("$.updatedBy.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.updatedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$.updatedBy.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.updatedBy.initial").value("JD"));
         }
     }
 

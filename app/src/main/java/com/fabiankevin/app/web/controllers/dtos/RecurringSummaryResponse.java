@@ -52,14 +52,8 @@ public record RecurringSummaryResponse(
         @Schema(description = "Recurring transaction status", example = "ACTIVE")
         RecurringTransactionStatus status,
 
-        @Schema(description = "User first name", example = "Kevin")
-        String firstName,
-
-        @Schema(description = "User last name", example = "Fabian")
-        String lastName,
-
-        @Schema(description = "User initial", example = "KF")
-        String initial,
+        @Schema(description = "User who updated the recurring transaction")
+        UserResponse updatedBy,
 
         @Schema(description = "Creation timestamp")
         Instant createdAt,
@@ -84,9 +78,7 @@ public record RecurringSummaryResponse(
                 .remainingDays(summary.remainingDays())
                 .transactionStatus(summary.transactionStatus())
                 .status(summary.status())
-                .firstName(updatedBy != null ? updatedBy.firstName() : null)
-                .lastName(updatedBy != null ? updatedBy.lastName() : null)
-                .initial(updatedBy != null ? updatedBy.initial() : null)
+                .updatedBy(UserResponse.from(updatedBy))
                 .createdAt(summary.createdAt())
                 .updatedAt(summary.updatedAt())
                 .build();
