@@ -3,13 +3,16 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.InvalidNotesException;
 import com.fabiankevin.app.exceptions.ShoppingListNotFoundException;
+import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ItemPriority;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
+import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
 import com.fabiankevin.app.models.shopping_list.ShoppingItemSummary;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
+import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingItemCommand;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingListCommand;
@@ -40,7 +43,7 @@ class DefaultShoppingListServiceTest {
     private UserClient userClient;
 
     @Mock
-    private CategoryService categoryService;
+    private CategoryRepository categoryRepository;
 
     @InjectMocks
     private DefaultShoppingListService shoppingListService;
@@ -64,6 +67,12 @@ class DefaultShoppingListServiceTest {
             });
             when(userClient.getUsersByIds(List.of(userId)))
                     .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+            when(categoryRepository.findByIdAndUserId(any(), any()))
+                    .thenReturn(Optional.of(Category.builder()
+                                    .id(command.categoryId())
+                                    .name("Groceries")
+                                    .type(TransactionType.EXPENSE)
+                            .build()));
 
             ShoppingListSummary created = shoppingListService.createShoppingList(command);
 
