@@ -91,7 +91,7 @@ class RecurringTransactionControllerIntegrationTest {
     private JsonMapper jsonMapper;
 
     @Nested
-    class Create {
+    class CreateRecurringTransaction {
 
         @Test
         void givenValidRequest_thenReturnsCreatedWithSummary() throws Exception {
