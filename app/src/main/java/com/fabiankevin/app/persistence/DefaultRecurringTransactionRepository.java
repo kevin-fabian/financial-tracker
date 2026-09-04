@@ -1,10 +1,5 @@
 package com.fabiankevin.app.persistence;
 
-import com.fabiankevin.app.models.Account;
-import com.fabiankevin.app.models.Category;
-import com.fabiankevin.app.models.User;
-import com.fabiankevin.app.models.enums.AccountType;
-import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransaction;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionSummary;
@@ -16,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
-import java.util.Currency;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -57,12 +51,12 @@ public class DefaultRecurringTransactionRepository implements RecurringTransacti
 
     @Override
     public int deleteByIdAndUserId(UUID id, UUID userId) {
-        return jpaRecurringTransactionRepository.deleteByIdAndUserId(id, userId);
+        return jpaRecurringTransactionRepository.deleteByIdAndAccountUserId(id, userId);
     }
 
     @Override
     public Optional<RecurringTransaction> findByIdAndUserId(UUID id, UUID userId) {
-        return jpaRecurringTransactionRepository.findByIdAndUserId(id, userId)
+        return jpaRecurringTransactionRepository.findByIdAndAccountUserId(id, userId)
                 .map(RecurringTransactionEntity::toModel);
     }
 
@@ -71,26 +65,8 @@ public class DefaultRecurringTransactionRepository implements RecurringTransacti
                 .id(p.id())
                 .description(p.description())
                 .amount(p.amount())
-                .category(Category.builder()
-                        .id(p.categoryId())
-                        .name(p.categoryName())
-                        .type(TransactionType.valueOf(p.categoryType()))
-                        .userId(p.categoryUserId())
-                        .icon(p.categoryIcon())
-                        .active(p.categoryActive())
-                        .createdAt(p.categoryCreatedAt())
-                        .updatedAt(p.categoryUpdatedAt())
-                        .build())
-                .account(Account.builder()
-                        .id(p.accountId())
-                        .name(p.accountName())
-                        .user(User.of(p.accountUserId()))
-                        .currency(Currency.getInstance(p.accountCurrency()))
-                        .type(AccountType.valueOf(p.accountType()))
-                        .active(p.accountActive())
-                        .createdAt(p.accountCreatedAt())
-                        .updatedAt(p.accountUpdatedAt())
-                        .build())
+                .category(p.category().toModel())
+                .account(p.account().toModel())
                 .dayOfMonth(p.dayOfMonth())
                 .nextOccurrenceDate(p.nextOccurrenceDate())
                 .endDate(p.endDate())

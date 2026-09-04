@@ -375,7 +375,7 @@ class RecurringTransactionControllerIntegrationTest {
                     .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
 
             RecurringTransaction recurringTransaction = RecurringTransaction.builder()
-                    .userId(userId)
+                    .updatedById(userId)
                     .description("Monthly subscription")
                     .amount(15.99)
                     .variableAmount(false)
@@ -1190,7 +1190,7 @@ class RecurringTransactionControllerIntegrationTest {
             LocalDate pastDate = today.minusDays(1);
 
             RecurringTransaction recurringTransaction = RecurringTransaction.builder()
-                    .userId(userId)
+                    .updatedById(userId)
                     .description("Due transaction")
                     .amount(10.0)
                     .variableAmount(false)
@@ -1225,7 +1225,7 @@ class RecurringTransactionControllerIntegrationTest {
             LocalDate pastDate = today.minusDays(1);
 
             RecurringTransaction recurringTransaction = RecurringTransaction.builder()
-                    .userId(userId)
+                    .updatedById(userId)
                     .description("Due transaction")
                     .amount(10.0)
                     .variableAmount(false)
@@ -1255,7 +1255,7 @@ class RecurringTransactionControllerIntegrationTest {
 
             for (int i = 0; i < 10; i++) {
                 RecurringTransaction recurringTransaction = RecurringTransaction.builder()
-                        .userId(userId)
+                        .updatedById(userId)
                         .description("Due transaction " + i)
                         .amount(10.0 + i)
                         .variableAmount(false)

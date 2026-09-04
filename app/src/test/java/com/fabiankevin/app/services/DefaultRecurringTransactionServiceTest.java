@@ -144,17 +144,17 @@ class DefaultRecurringTransactionServiceTest {
             assertNotNull(summary.updatedAt(), "updatedAt should not be null");
             assertEquals(expectedEndDate, summary.endDate(), "endDate should be now plus durationMonths");
             assertEquals(expectedNextOccurrenceDate, summary.nextOccurrenceDate(), "nextOccurrenceDate should be derived from dayOfMonth");
-            assertNotNull(summary.user(), "user should not be null");
-            assertEquals("John", summary.user().firstName(), "user firstName should match");
-            assertEquals("Doe", summary.user().lastName(), "user lastName should match");
-            assertEquals("JD", summary.user().initial(), "user initial should match");
+            assertNotNull(summary.updatedBy(), "user should not be null");
+            assertEquals("John", summary.updatedBy().firstName(), "user firstName should match");
+            assertEquals("Doe", summary.updatedBy().lastName(), "user lastName should match");
+            assertEquals("JD", summary.updatedBy().initial(), "user initial should match");
             int expectedRemainingDays = (int) ChronoUnit.DAYS.between(today, summary.nextOccurrenceDate());
             assertEquals(expectedRemainingDays, summary.remainingDays(), "remainingDays should be computed from nextOccurrenceDate");
 
             ArgumentCaptor<RecurringTransaction> captor = ArgumentCaptor.forClass(RecurringTransaction.class);
             verify(recurringTransactionRepository).save(captor.capture());
             RecurringTransaction saved = captor.getValue();
-            assertEquals(command.userId(), saved.userId(), "saved user should match command");
+            assertEquals(command.userId(), saved.updatedById(), "saved user should match command");
             assertEquals(RecurringTransactionStatus.ACTIVE, saved.status(), "saved status should be ACTIVE");
         }
 
@@ -285,7 +285,7 @@ class DefaultRecurringTransactionServiceTest {
 
             RecurringTransaction recurring1 = RecurringTransaction.builder()
                     .id(recurringId1)
-                    .userId(userId)
+                    .updatedById(userId)
                     .description("Netflix")
                     .amount(15.99)
                     .variableAmount(false)
@@ -301,7 +301,7 @@ class DefaultRecurringTransactionServiceTest {
 
             RecurringTransaction recurring2 = RecurringTransaction.builder()
                     .id(recurringId2)
-                    .userId(userId)
+                    .updatedById(userId)
                     .description("Spotify")
                     .amount(9.99)
                     .variableAmount(false)
@@ -358,7 +358,7 @@ class DefaultRecurringTransactionServiceTest {
         void givenBatchExceedsLimit_thenFlushesInBatches() {
             RecurringTransaction recurring = RecurringTransaction.builder()
                     .id(UUID.randomUUID())
-                    .userId(account.user().id())
+                    .updatedById(account.user().id())
                     .description("Subscription")
                     .amount(10.0)
                     .variableAmount(false)
@@ -440,9 +440,9 @@ class DefaultRecurringTransactionServiceTest {
 
             int expectedRemainingDays = (int) ChronoUnit.DAYS.between(LocalDate.now(), nextOccurrenceDate);
             assertEquals(expectedRemainingDays, resultSummary.remainingDays(), "remainingDays should be computed from nextOccurrenceDate");
-            assertNotNull(resultSummary.user(), "user should not be null");
-            assertEquals("John", resultSummary.user().firstName(), "user firstName should match");
-            assertEquals("Doe", resultSummary.user().lastName(), "user lastName should match");
+            assertNotNull(resultSummary.updatedBy(), "user should not be null");
+            assertEquals("John", resultSummary.updatedBy().firstName(), "user firstName should match");
+            assertEquals("Doe", resultSummary.updatedBy().lastName(), "user lastName should match");
 
             verify(recurringTransactionRepository).findSummariesByUserId(eq(userId), any());
             verify(userClient).getUsersByIds(List.of(userId));

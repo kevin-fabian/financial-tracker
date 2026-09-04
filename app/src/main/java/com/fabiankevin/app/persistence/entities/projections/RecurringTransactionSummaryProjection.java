@@ -1,5 +1,7 @@
 package com.fabiankevin.app.persistence.entities.projections;
 
+import com.fabiankevin.app.persistence.entities.AccountEntity;
+import com.fabiankevin.app.persistence.entities.CategoryEntity;
 import lombok.Builder;
 
 import java.time.Instant;
@@ -9,7 +11,6 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 public record RecurringTransactionSummaryProjection(
         UUID id,
-        UUID userId,
         String description,
         double amount,
         int dayOfMonth,
@@ -17,23 +18,10 @@ public record RecurringTransactionSummaryProjection(
         LocalDate endDate,
         String transactionStatus,
         String status,
+        UUID updatedBy,
         Instant createdAt,
         Instant updatedAt,
-        UUID categoryId,
-        String categoryName,
-        String categoryType,
-        UUID categoryUserId,
-        String categoryIcon,
-        boolean categoryActive,
-        Instant categoryCreatedAt,
-        Instant categoryUpdatedAt,
-        UUID accountId,
-        String accountName,
-        UUID accountUserId,
-        String accountCurrency,
-        String accountType,
-        boolean accountActive,
-        Instant accountCreatedAt,
-        Instant accountUpdatedAt
+        CategoryEntity category,
+        AccountEntity account
 ) {
 }

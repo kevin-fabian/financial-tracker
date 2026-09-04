@@ -83,7 +83,7 @@ public record RecurringSummaryResponse(
     public static RecurringSummaryResponse from(RecurringTransactionSummary summary) {
         Category category = summary.category();
         Account account = summary.account();
-        User user = summary.user();
+        User updatedBy = summary.updatedBy();
         return RecurringSummaryResponse.builder()
                 .id(summary.id())
                 .description(summary.description())
@@ -101,9 +101,9 @@ public record RecurringSummaryResponse(
                 .remainingDays(summary.remainingDays())
                 .transactionStatus(summary.transactionStatus())
                 .status(summary.status())
-                .firstName(user != null ? user.firstName() : null)
-                .lastName(user != null ? user.lastName() : null)
-                .initial(user != null ? user.initial() : null)
+                .firstName(updatedBy != null ? updatedBy.firstName() : null)
+                .lastName(updatedBy != null ? updatedBy.lastName() : null)
+                .initial(updatedBy != null ? updatedBy.initial() : null)
                 .createdAt(summary.createdAt())
                 .updatedAt(summary.updatedAt())
                 .build();

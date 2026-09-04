@@ -26,8 +26,8 @@ public class RecurringTransactionEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "user_id", nullable = false)
-    private UUID userId;
+    @Column(name = "updated_by", nullable = false)
+    private UUID updatedBy;
 
     @Column(length = 255)
     private String description;
@@ -69,7 +69,7 @@ public class RecurringTransactionEntity {
         if (recurringTransaction == null) return null;
         return RecurringTransactionEntity.builder()
                 .id(recurringTransaction.id())
-                .userId(recurringTransaction.userId())
+                .updatedBy(recurringTransaction.updatedById())
                 .description(recurringTransaction.description())
                 .amount(recurringTransaction.amount())
                 .variableAmount(recurringTransaction.variableAmount())
@@ -87,7 +87,7 @@ public class RecurringTransactionEntity {
     public RecurringTransaction toModel() {
         return RecurringTransaction.builder()
                 .id(this.id)
-                .userId(this.userId)
+                .updatedById(this.updatedBy)
                 .description(this.description)
                 .amount(this.amount)
                 .variableAmount(this.variableAmount)

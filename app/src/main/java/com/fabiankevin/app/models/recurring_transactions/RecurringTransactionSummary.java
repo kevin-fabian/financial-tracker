@@ -23,7 +23,7 @@ public record RecurringTransactionSummary(
         int remainingDays,
         TransactionStatus transactionStatus,
         RecurringTransactionStatus status,
-        User user,
+        User updatedBy,
         Instant createdAt,
         Instant updatedAt
 ) {

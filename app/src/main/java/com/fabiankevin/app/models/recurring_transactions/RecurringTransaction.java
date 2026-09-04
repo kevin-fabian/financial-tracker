@@ -11,7 +11,7 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 public record RecurringTransaction(
         UUID id,
-        UUID userId,
+        UUID updatedById,
         String description,
         double amount,
         boolean variableAmount,

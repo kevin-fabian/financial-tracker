@@ -2,7 +2,6 @@ package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Category;
-import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransaction;
@@ -25,7 +24,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
@@ -37,7 +35,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 @DataJpaTest
 @Import(DefaultRecurringTransactionRepository.class)
@@ -45,9 +44,6 @@ class DefaultRecurringTransactionRepositoryTest {
 
     @MockitoSpyBean
     private JpaRecurringTransactionRepository jpaRecurringTransactionRepository;
-
-    @MockitoBean
-    private com.fabiankevin.app.clients.UserClient userClient;
 
     @Autowired
     private JpaAccountRepository jpaAccountRepository;
@@ -86,7 +82,7 @@ class DefaultRecurringTransactionRepositoryTest {
                 .build());
 
         recurringTransaction = RecurringTransaction.builder()
-                .userId(userId)
+                .updatedById(userId)
                 .description("Monthly subscription")
                 .amount(15.99)
                 .category(category.toModel())
@@ -139,15 +135,8 @@ class DefaultRecurringTransactionRepositoryTest {
         @Test
         void givenUserIdWithPaidRecurringTransaction_thenReturnsSummaryWithPaidStatus() {
             RecurringTransaction saved = recurringTransactionRepository.save(recurringTransaction);
-            UUID userId = saved.userId();
+            UUID userId = saved.updatedById();
             Instant now = Instant.now();
-
-            User user = User.builder()
-                    .id(userId)
-                    .firstName("Kevin")
-                    .lastName("Fabian")
-                    .build();
-            when(userClient.getUsersByIds(List.of(userId))).thenReturn(List.of(user));
 
             Account account = saved.account();
             Category category = saved.category();
@@ -193,7 +182,7 @@ class DefaultRecurringTransactionRepositoryTest {
         @Test
         void givenOverdueRecurringTransactionWithNoLinkedTransaction_thenReturnsSummaryWithOverdueStatus() {
             RecurringTransaction saved = recurringTransactionRepository.save(recurringTransaction);
-            UUID userId = saved.userId();
+            UUID userId = saved.updatedById();
 
             LocalDate referenceNow = LocalDate.of(2026, 9, 1);
 
@@ -209,7 +198,7 @@ class DefaultRecurringTransactionRepositoryTest {
         @Test
         void givenUpcomingRecurringTransaction_thenReturnsSummaryWithUpcomingStatus() {
             RecurringTransaction saved = recurringTransactionRepository.save(recurringTransaction);
-            UUID userId = saved.userId();
+            UUID userId = saved.updatedById();
 
             LocalDate referenceNow = LocalDate.of(2026, 8, 1);
 

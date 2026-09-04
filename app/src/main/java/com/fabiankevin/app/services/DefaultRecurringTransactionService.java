@@ -62,7 +62,7 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
         Instant instantNow = Instant.now();
 
         RecurringTransaction recurringTransaction = RecurringTransaction.builder()
-                .userId(command.userId())
+                .updatedById(command.userId())
                 .description(command.description())
                 .amount(command.amount())
                 .variableAmount(command.variableAmount())
@@ -96,7 +96,7 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
                 .remainingDays(remainingDays)
                 .transactionStatus(transactionStatus)
                 .status(saved.status())
-                .user(user)
+                .updatedBy(user)
                 .createdAt(saved.createdAt())
                 .updatedAt(saved.updatedAt())
                 .build();
@@ -112,7 +112,7 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
                     int remainingDays = getRemainingDays(s.nextOccurrenceDate(), today);
                     return s.toBuilder()
                             .remainingDays(remainingDays)
-                            .user(user)
+                            .updatedBy(user)
                             .build();
                 })
                 .toList();
@@ -200,7 +200,7 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
                 .remainingDays(remainingDays)
                 .transactionStatus(transactionStatus)
                 .status(saved.status())
-                .user(user)
+                .updatedBy(user)
                 .createdAt(saved.createdAt())
                 .updatedAt(saved.updatedAt())
                 .build();

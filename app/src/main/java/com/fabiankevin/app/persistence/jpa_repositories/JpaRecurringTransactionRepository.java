@@ -16,7 +16,7 @@ import java.util.stream.Stream;
 
 public interface JpaRecurringTransactionRepository extends JpaRepository<RecurringTransactionEntity, UUID> {
     @Query("""
-            SELECT rt.id AS id, rt.userId AS userId, rt.description AS description, rt.amount AS amount,
+            SELECT rt.id AS id,rt.description AS description, rt.amount AS amount,
                 rt.dayOfMonth AS dayOfMonth,
                 rt.nextOccurrenceDate AS nextOccurrenceDate, rt.endDate AS endDate,
                 CASE
@@ -24,17 +24,14 @@ public interface JpaRecurringTransactionRepository extends JpaRepository<Recurri
                     WHEN (SELECT COUNT(t.id) FROM com.fabiankevin.app.persistence.entities.TransactionEntity t WHERE t.recurringTransactionId = rt.id) > 0 THEN 'PAID'
                     ELSE 'OVERDUE'
                 END AS transactionStatus,
-                STR(rt.status) AS status, rt.createdAt AS createdAt, rt.updatedAt AS updatedAt,
-                rt.category.id AS categoryId, rt.category.name AS categoryName,
-                STR(rt.category.transactionType) AS categoryType, rt.category.userId AS categoryUserId,
-                rt.category.icon AS categoryIcon, rt.category.active AS categoryActive,
-                rt.category.createdAt AS categoryCreatedAt, rt.category.updatedAt AS categoryUpdatedAt,
-                rt.account.id AS accountId, rt.account.name AS accountName,
-                rt.account.userId AS accountUserId, rt.account.currency AS accountCurrency,
-                rt.account.type AS accountType, rt.account.active AS accountActive,
-                rt.account.createdAt AS accountCreatedAt, rt.account.updatedAt AS accountUpdatedAt
+                STR(rt.status) AS status,
+                rt.updatedBy AS updatedById,
+                rt.createdAt AS createdAt,
+                rt.updatedAt AS updatedAt,
+                rt.category,
+                rt.account
             FROM RecurringTransactionEntity rt
-            WHERE rt.userId = :userId
+            WHERE rt.account.userId = :userId
             """)
     List<RecurringTransactionSummaryProjection> findAllSummariesByUserId(@Param("userId") UUID userId, @Param("now") LocalDate now);
 
@@ -43,11 +40,11 @@ public interface JpaRecurringTransactionRepository extends JpaRepository<Recurri
             SELECT rt FROM RecurringTransactionEntity rt
             WHERE rt.nextOccurrenceDate < :now
               AND rt.variableAmount = false
-              AND rt.status = com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus.ACTIVE
+              AND rt.status = 'ACTIVE'
             """)
     Stream<RecurringTransactionEntity> streamDueRecurringTransactions(@Param("now") LocalDate now);
 
-    int deleteByIdAndUserId(UUID id, UUID userId);
+    int deleteByIdAndAccountUserId(UUID id, UUID userId);
 
-    Optional<RecurringTransactionEntity> findByIdAndUserId(UUID id, UUID userId);
+    Optional<RecurringTransactionEntity> findByIdAndAccountUserId(UUID id, UUID userId);
 }
