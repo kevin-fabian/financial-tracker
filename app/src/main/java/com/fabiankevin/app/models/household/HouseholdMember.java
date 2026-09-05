@@ -1,5 +1,6 @@
 package com.fabiankevin.app.models.household;
 
+import com.fabiankevin.app.models.enums.household.AccessLevel;
 import com.fabiankevin.app.models.enums.household.HouseholdMemberStatus;
 import lombok.Builder;
 
@@ -11,7 +12,7 @@ import java.util.UUID;
 public record HouseholdMember(
         UUID id,
         UUID userId,
-        com.fabiankevin.app.models.enums.household.AccessLevel accessLevel,
+        AccessLevel accessLevel,
         HouseholdMemberStatus status,
         Instant joinedAt) {
     public HouseholdMember {

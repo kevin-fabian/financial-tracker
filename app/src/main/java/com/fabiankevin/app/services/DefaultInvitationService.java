@@ -31,6 +31,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -133,12 +134,9 @@ public class DefaultInvitationService implements InvitationService {
     public InvitationSummary rejectInvitation(RejectInvitationCommand command) {
         Invitation invitation = findInvitationOrThrow(command.invitationId());
 
-        boolean isInvitee = invitation.inviteeUserId().equals(command.rejectingUserId());
-        boolean isInviter = invitation.inviterUserId().equals(command.rejectingUserId());
-
-        if (!isInvitee && !isInviter) {
-            throw new ForbiddenException("Only the invited user or the inviter can reject the invitation");
-        }
+        Optional.ofNullable(invitation)
+                .filter(inv -> inv.inviteeUserId().equals(command.rejectingUserId()) || inv.inviterUserId().equals(command.rejectingUserId()))
+                .orElseThrow(() -> new ForbiddenException("Only the invited user or the inviter can reject the invitation"));
 
         if (invitation.status() != InvitationStatus.PENDING) {
             throw new InvitationAlreadyHandledException();
@@ -192,8 +190,10 @@ public class DefaultInvitationService implements InvitationService {
     }
 
     private boolean isUserParticipant(Household household, UUID userId) {
-        return household.members().stream()
-                .anyMatch(householdParticipant -> householdParticipant.userId().equals(userId));
+        return Optional.ofNullable(household)
+                .map(Household::members)
+                .map(members -> members.stream().anyMatch(member -> member.userId().equals(userId)))
+                .orElse(false);
     }
 
     private void validateInvitationActive(Invitation invitation) {
@@ -213,18 +213,13 @@ public class DefaultInvitationService implements InvitationService {
 
         return InvitationSummary.builder()
                 .id(invitation.id())
-                .inviterName(inviter != null ? inviter.firstName() + " " + inviter.lastName() : null)
-                .inviterInitial(deriveInitial(inviter))
-                .inviteeName(invitee != null ? invitee.firstName() + " " + invitee.lastName() : null)
-                .inviteeInitial(deriveInitial(invitee))
-                .proposedRoleName(invitation.proposedRole() != null ? invitation.proposedRole().getName() : null)
-                .proposedRoleDescription(invitation.proposedRole() != null ? invitation.proposedRole().getDescription() : null)
+                .inviter(inviter)
+                .invitee(invitee)
                 .status(invitation.status())
+                .household(household)
                 .createdAt(invitation.createdAt())
                 .expiresAt(invitation.expiresAt())
-                .householdId(invitation.householdId())
-                .householdName(household != null ? household.name() : null)
-                .inviter(invitation.inviterUserId().equals(currentUserId))
+                .isInviter(invitation.inviterUserId().equals(currentUserId))
                 .build();
     }
 
@@ -237,12 +232,5 @@ public class DefaultInvitationService implements InvitationService {
                 ? Map.of(household.id(), household)
                 : Map.of();
         return toSummary(invitation, usersById, householdsById, currentUserId);
-    }
-
-    private String deriveInitial(User user) {
-        if (user == null || user.firstName() == null || user.lastName() == null) {
-            return null;
-        }
-        return "" + user.firstName().charAt(0) + user.lastName().charAt(0);
     }
 }

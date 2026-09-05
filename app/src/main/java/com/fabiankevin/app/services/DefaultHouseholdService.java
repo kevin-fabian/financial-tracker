@@ -190,22 +190,13 @@ public class DefaultHouseholdService implements HouseholdService {
         List<HouseholdMemberSummary> partyMemberSummaries = household.members().stream()
                 .map(partyMember -> {
                     User user = playerIds.get(partyMember.userId());
-                    String name = user != null ? user.fullName() : null;
-                    String initial = deriveInitial(user);
                     boolean leader = household.leaderId().equals(partyMember.userId());
                     return HouseholdMemberSummary.builder()
                             .id(partyMember.id())
-                            .playerId(partyMember.userId())
-                            .name(name)
-                            .initial(initial)
+                            .user(user)
                             .partyLeader(leader)
-                            .partyMember(!leader)
-                            .accessLevel(partyMember.accessLevel())
                             .status(partyMember.status())
                             .joinedAt(partyMember.joinedAt())
-                            .pastWeekDailyAverageTransactionCount(dailyAverageByUserId.getOrDefault(partyMember.userId(), 0.0))
-                            .activeShoppingListCount(0)
-                            .activeBudgetCount(0)
                             .build();
                 })
                 .toList();
@@ -219,12 +210,5 @@ public class DefaultHouseholdService implements HouseholdService {
                 .createdAt(household.createdAt())
                 .updatedAt(household.updatedAt())
                 .build();
-    }
-
-    private String deriveInitial(User user) {
-        if (user == null || user.firstName() == null || user.lastName() == null) {
-            return null;
-        }
-        return "" + user.firstName().charAt(0) + user.lastName().charAt(0);
     }
 }

@@ -53,8 +53,6 @@ public record HouseholdResponse(
                 .members(household.members().stream().map(p ->
                         HouseholdMemberResponse.builder()
                                 .id(p.userId())
-                                .accessLevelName(p.accessLevel() != null ? p.accessLevel().getName() : null)
-                                .accessLevelDescription(p.accessLevel() != null ? p.accessLevel().getDescription() : null)
                                 .status(p.status() != null ? p.status().name() : null)
                                 .joinedAt(p.joinedAt())
                                 .build()).toList())

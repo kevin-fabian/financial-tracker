@@ -42,6 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -118,8 +119,8 @@ class DefaultInvitationServiceTest {
 
             InvitationSummary result = service.sendInvitation(command);
 
-            assertEquals(partyId, result.householdId());
-            assertTrue(result.inviter());
+            assertEquals(partyId, result.household().id());
+            assertTrue(result.isInviter());
             assertEquals(InvitationStatus.PENDING, result.status());
             assertEquals("John Doe", result.inviterName());
             assertEquals("Jane Doe", result.inviteeName());
@@ -330,8 +331,8 @@ class DefaultInvitationServiceTest {
             assertEquals(inviteeUserId, invitationCaptor.getValue().inviteeUserId());
             assertNotNull(result);
             assertEquals(InvitationStatus.ACCEPTED, result.status());
-            assertEquals(partyId, result.householdId());
-            assertFalse(result.inviter());
+            assertEquals(partyId, result.household().id());
+            assertFalse(result.isInviter());
             ArgumentCaptor<Household> spaceCaptor = ArgumentCaptor.forClass(Household.class);
             verify(spaceRepository).save(spaceCaptor.capture());
             Household savedSpace = spaceCaptor.getValue();
@@ -514,11 +515,11 @@ class DefaultInvitationServiceTest {
 
             assertEquals(2, result.size());
             InvitationSummary sentSummary = result.getFirst();
-            assertEquals(partyId, sentSummary.householdId());
-            assertTrue(sentSummary.inviter());
+            assertEquals(partyId, sentSummary.household().id());
+            assertTrue(sentSummary.isInviter());
             InvitationSummary receivedSummary = result.get(1);
-            assertEquals(partyId, receivedSummary.householdId());
-            assertFalse(receivedSummary.inviter());
+            assertEquals(partyId, receivedSummary.household().id());
+            assertFalse(receivedSummary.isInviter());
             verify(invitationRepository).findByInviterUserIdOrInviteeUserId(userId);
             verify(userClient).getUsersByIds(List.of(userId, inviteeUserId, inviterId));
             verify(spaceRepository).findAllById(List.of(partyId));
@@ -564,7 +565,9 @@ class DefaultInvitationServiceTest {
                             User.builder().id(inviterUserId).firstName("John").lastName("Doe").build(),
                             User.builder().id(inviteeUserId).firstName("Jane").lastName("Smith").build()
                     ));
-            when(spaceRepository.findById(partyId)).thenReturn(Optional.empty());
+            when(spaceRepository.findById(partyId)).thenReturn(Optional.of(
+                    Household.builder().id(partyId).name("Test Household").leaderId(inviterUserId).active(true).members(List.of()).createdAt(Instant.now()).build()
+            ));
 
             RejectInvitationCommand command = new RejectInvitationCommand(invitationId, inviteeUserId);
 
@@ -574,8 +577,8 @@ class DefaultInvitationServiceTest {
             verify(invitationRepository).save(captor.capture());
             verify(invitationRepository, never()).delete(any());
             assertEquals(InvitationStatus.CANCELLED, captor.getValue().status());
-            assertEquals(partyId, result.householdId());
-            assertFalse(result.inviter());
+            assertEquals(partyId, result.household().id());
+            assertFalse(result.isInviter());
             assertEquals("John Doe", result.inviterName());
             assertEquals("Jane Smith", result.inviteeName());
             verify(spaceRepository, never()).save(any());
@@ -598,6 +601,7 @@ class DefaultInvitationServiceTest {
                     .build();
 
             when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
+            lenient().when(spaceRepository.findById(invitation.householdId())).thenReturn(Optional.empty());
 
             RejectInvitationCommand command = new RejectInvitationCommand(invitationId, otherUserId);
 
@@ -628,7 +632,9 @@ class DefaultInvitationServiceTest {
                             User.builder().id(inviterUserId).firstName("John").lastName("Doe").build(),
                             User.builder().id(inviteeUserId).firstName("Jane").lastName("Smith").build()
                     ));
-            when(spaceRepository.findById(partyId)).thenReturn(Optional.empty());
+            when(spaceRepository.findById(partyId)).thenReturn(Optional.of(
+                    Household.builder().id(partyId).name("Test Household").leaderId(inviterUserId).active(true).members(List.of()).createdAt(Instant.now()).build()
+            ));
 
             RejectInvitationCommand command = new RejectInvitationCommand(invitationId, inviterUserId);
 
@@ -638,8 +644,8 @@ class DefaultInvitationServiceTest {
             verify(invitationRepository).save(captor.capture());
             verify(invitationRepository, never()).delete(any());
             assertEquals(InvitationStatus.CANCELLED, captor.getValue().status());
-            assertEquals(partyId, result.householdId());
-            assertTrue(result.inviter());
+            assertEquals(partyId, result.household().id());
+            assertTrue(result.isInviter());
             verify(spaceRepository, never()).save(any());
         }
 

@@ -87,8 +87,6 @@ class DefaultHouseholdServiceTest {
 
             HouseholdMemberSummary leader = result.members().getFirst();
             assertTrue(leader.partyLeader(), "initial household member should be a leader");
-            assertFalse(leader.partyMember(), "initial household member should not be a member");
-            assertEquals(AccessLevel.VIEW_ONLY, leader.accessLevel());
             assertEquals(HouseholdMemberStatus.ACTIVE, leader.status());
 
             verify(householdRepository).save(any(Household.class));
@@ -341,19 +339,17 @@ class DefaultHouseholdServiceTest {
                     .filter(HouseholdMemberSummary::partyLeader)
                     .findFirst()
                     .orElseThrow();
-            assertEquals(partyLeaderId, leaderSummary.playerId());
-            assertEquals("Ada Lovelace", leaderSummary.name());
-            assertEquals("AL", leaderSummary.initial());
-            assertEquals(3.5, leaderSummary.pastWeekDailyAverageTransactionCount());
+            assertEquals(partyLeaderId, leaderSummary.user().id());
+            assertEquals("Ada Lovelace", leaderSummary.user().fullName());
+            assertEquals("AL", leaderSummary.user().initial());
 
             HouseholdMemberSummary memberSummary = summary.members().stream()
                     .filter(s -> !s.partyLeader())
                     .findFirst()
                     .orElseThrow();
-            assertEquals(memberId, memberSummary.playerId());
-            assertEquals("Alan Turing", memberSummary.name());
-            assertEquals("AT", memberSummary.initial());
-            assertEquals(1.0, memberSummary.pastWeekDailyAverageTransactionCount());
+            assertEquals(memberId, memberSummary.user().id());
+            assertEquals("Alan Turing", memberSummary.user().fullName());
+            assertEquals("AT", memberSummary.user().initial());
 
             verify(householdRepository).retrieveByUserId(userId);
             verify(userClient).getUsersByIds(List.of(partyLeaderId, memberId));

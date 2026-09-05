@@ -35,7 +35,7 @@ public class InvitationController {
 
     @Operation(
         summary = "List invitations for the authenticated user",
-        description = "Retrieves all invitations where the authenticated user is either the inviter or the invitee.",
+        description = "Retrieves all invitations where the authenticated user is either the isInviter or the invitee.",
         responses = {
             @ApiResponse(responseCode = "200", description = "OK - Invitations retrieved successfully",
                 content = @Content(array = @ArraySchema(schema = @Schema(implementation = InvitationResponse.class)))),
