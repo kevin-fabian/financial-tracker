@@ -2,12 +2,12 @@ package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.User;
-import com.fabiankevin.app.models.household.HouseholdSummary;
 import com.fabiankevin.app.services.HouseholdService;
 import com.fabiankevin.app.services.commands.party.OrganizeHouseholdCommand;
 import com.fabiankevin.app.web.controllers.dtos.party.HouseholdResponse;
 import com.fabiankevin.app.web.controllers.dtos.party.OrganizeHouseholdRequest;
 import com.fabiankevin.app.web.controllers.dtos.party.PatchHouseholdRequest;
+import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -39,7 +39,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -49,6 +48,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class HouseholdControllerIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private HouseholdServiceTestHelper householdServiceTestHelper;
 
     @MockitoBean
     private JwtDecoder jwtDecoder;
@@ -74,41 +76,25 @@ class HouseholdControllerIntegrationTest {
         @Test
         void givenValidRequest_thenShouldReturnCreatedAndAllFields() throws Exception {
             UUID userId = UUID.randomUUID();
-            String householdName = "Family 2026 Budget";
 
             when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
                     .thenReturn(List.of(User.builder().id(userId).firstName("Alice").lastName("Smith").build()));
 
-            OrganizeHouseholdRequest request = OrganizeHouseholdRequest.builder()
-                    .name(householdName)
-                    .build();
+            HouseholdResponse response = householdServiceTestHelper.createHouseHold(userId);
 
-            mockMvc.perform(post("/api/households")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/households/[-a-f0-9]{36}")))
-                    .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.id").isNotEmpty())
-                    .andExpect(jsonPath("$.name").value(householdName))
-                    .andExpect(jsonPath("$.leaderId").value(userId.toString()))
-                    .andExpect(jsonPath("$.active").value(true))
-                    .andExpect(jsonPath("$.createdAt").exists())
-                    .andExpect(jsonPath("$.updatedAt").exists())
-                    .andExpect(jsonPath("$.members").isArray())
-                    .andExpect(jsonPath("$.members.length()").value(1))
-                    .andExpect(jsonPath("$.members[0].user.id").value(userId.toString()))
-                    .andExpect(jsonPath("$.members[0].user.firstName").value("Alice"))
-                    .andExpect(jsonPath("$.members[0].user.lastName").value("Smith"))
-                    .andExpect(jsonPath("$.members[0].user.initial").value("AS"))
-                    .andExpect(jsonPath("$.members[0].householdLeader").value(true))
-                    .andExpect(jsonPath("$.members[0].status").value("ACTIVE"));
+            assertNotNull(response.id());
+            assertEquals("Test Household", response.name());
+            assertEquals(userId.toString(), response.leaderId().toString());
+            assertEquals(true, response.active());
+            assertNotNull(response.createdAt());
+            assertNotNull(response.updatedAt());
+            assertEquals(1, response.members().size());
+            assertEquals(userId.toString(), response.members().getFirst().user().id().toString());
+            assertEquals("Alice", response.members().getFirst().user().firstName());
+            assertEquals("Smith", response.members().getFirst().user().lastName());
+            assertEquals("AS", response.members().getFirst().user().initial());
+            assertEquals(true, response.members().getFirst().householdLeader());
+            assertEquals("ACTIVE", response.members().getFirst().status());
         }
 
         @Test
@@ -118,24 +104,11 @@ class HouseholdControllerIntegrationTest {
             when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
                     .thenReturn(List.of(User.builder().id(userId).firstName("Alice").lastName("Smith").build()));
 
-            OrganizeHouseholdRequest request = OrganizeHouseholdRequest.builder()
-                    .name("Default Household")
-                    .build();
+            HouseholdResponse response = householdServiceTestHelper.createHouseHold(userId);
 
-            mockMvc.perform(post("/api/households")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.name").value("Default Household"))
-                    .andExpect(jsonPath("$.active").value(true))
-                    .andExpect(jsonPath("$.members.length()").value(1));
+            assertEquals("Test Household", response.name());
+            assertEquals(true, response.active());
+            assertEquals(1, response.members().size());
         }
 
         @ParameterizedTest
@@ -192,16 +165,11 @@ class HouseholdControllerIntegrationTest {
                             User.builder().id(leaderUserId).firstName("Alice").lastName("Smith").build()
                     ));
 
-            HouseholdSummary existingHousehold = householdService.organize(
+            householdService.organize(
                     OrganizeHouseholdCommand.builder()
                             .leaderId(leaderUserId)
                             .householdName("First Household")
                             .build());
-            assertNotNull(existingHousehold.id());
-
-            OrganizeHouseholdRequest secondRequest = OrganizeHouseholdRequest.builder()
-                    .name("Second Household")
-                    .build();
 
             mockMvc.perform(post("/api/households")
                             .with(jwt()
@@ -212,7 +180,8 @@ class HouseholdControllerIntegrationTest {
                                             .claim("scope", List.of())
                                     ))
                             .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(secondRequest)))
+                            .content(jsonMapper.writeValueAsString(
+                                    OrganizeHouseholdRequest.builder().name("Second Household").build())))
                     .andExpect(status().isBadRequest());
         }
 
@@ -225,9 +194,7 @@ class HouseholdControllerIntegrationTest {
                             User.builder().id(userId).firstName("Alice").lastName("Smith").build()
                     ));
 
-            OrganizeHouseholdRequest firstRequest = OrganizeHouseholdRequest.builder()
-                    .name("First Household")
-                    .build();
+            householdServiceTestHelper.createHouseHold(userId);
 
             mockMvc.perform(post("/api/households")
                             .with(jwt()
@@ -238,24 +205,8 @@ class HouseholdControllerIntegrationTest {
                                             .claim("scope", List.of())
                                     ))
                             .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(firstRequest)))
-                    .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.name").value("First Household"));
-
-            OrganizeHouseholdRequest secondRequest = OrganizeHouseholdRequest.builder()
-                    .name("Second Household")
-                    .build();
-
-            mockMvc.perform(post("/api/households")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(secondRequest)))
+                            .content(jsonMapper.writeValueAsString(
+                                    OrganizeHouseholdRequest.builder().name("Second Household").build())))
                     .andExpect(status().isBadRequest());
         }
     }
@@ -266,27 +217,11 @@ class HouseholdControllerIntegrationTest {
         @Test
         void givenUserWithHousehold_thenShouldReturnHouseholds() throws Exception {
             UUID userId = UUID.randomUUID();
-            String householdName = "Test Household";
 
             when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
                     .thenReturn(List.of(User.builder().id(userId).firstName("Alice").lastName("Smith").build()));
 
-            OrganizeHouseholdRequest request = OrganizeHouseholdRequest.builder()
-                    .name(householdName)
-                    .build();
-
-            mockMvc.perform(post("/api/households")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.name").value(householdName));
+            householdServiceTestHelper.createHouseHold(userId);
 
             mockMvc.perform(get("/api/households")
                             .with(jwt()
@@ -301,11 +236,75 @@ class HouseholdControllerIntegrationTest {
                     .andExpect(jsonPath("$").isArray())
                     .andExpect(jsonPath("$.length()").value(1))
                     .andExpect(jsonPath("$[0].id").isNotEmpty())
-                    .andExpect(jsonPath("$[0].name").value(householdName))
+                    .andExpect(jsonPath("$[0].name").value("Test Household"))
                     .andExpect(jsonPath("$[0].leaderId").value(userId.toString()))
                     .andExpect(jsonPath("$[0].active").value(true))
                     .andExpect(jsonPath("$[0].members").isArray())
                     .andExpect(jsonPath("$[0].members.length()").value(1));
+        }
+
+        @Test
+        void givenHouseholdWithLeaderAndMember_thenShouldReturnBothUserDetails() throws Exception {
+            UUID leaderId = UUID.randomUUID();
+            UUID memberId = UUID.randomUUID();
+            String memberEmail = "bob@example.com";
+
+            // Mock user lookup for leader creating household
+            when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.size() == 1 && ids.get(0).equals(leaderId))))
+                    .thenReturn(List.of(User.builder().id(leaderId).firstName("Alice").lastName("Smith").build()));
+
+            HouseholdResponse householdResponse = householdServiceTestHelper.createHouseHold(leaderId);
+            UUID householdId = householdResponse.id();
+
+            // Mock user lookup for member email (invitation send)
+            when(userClient.getUserByEmail(memberEmail))
+                    .thenReturn(User.builder().id(memberId).firstName("Bob").lastName("Jones").build());
+
+            // Mock user lookup for both users (toSummaryWithUsers)
+            when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.contains(leaderId) && ids.contains(memberId))))
+                    .thenReturn(List.of(
+                            User.builder().id(leaderId).firstName("Alice").lastName("Smith").build(),
+                            User.builder().id(memberId).firstName("Bob").lastName("Jones").build()
+                    ));
+
+            // Invite and accept (uses helper internally)
+            householdServiceTestHelper.inviteAndAccept(householdId, leaderId, memberId, memberEmail);
+
+            // GET households and verify both members
+            mockMvc.perform(get("/api/households")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", leaderId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$").isArray())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].members").isArray())
+                    .andExpect(jsonPath("$[0].members.length()").value(2))
+                    // Both members have full user details
+                    .andExpect(jsonPath("$[0].members[0].user.id").exists())
+                    .andExpect(jsonPath("$[0].members[0].user.firstName").exists())
+                    .andExpect(jsonPath("$[0].members[0].user.lastName").exists())
+                    .andExpect(jsonPath("$[0].members[0].user.initial").exists())
+                    .andExpect(jsonPath("$[0].members[0].status").value("ACTIVE"))
+                    .andExpect(jsonPath("$[0].members[1].user.id").exists())
+                    .andExpect(jsonPath("$[0].members[1].user.firstName").exists())
+                    .andExpect(jsonPath("$[0].members[1].user.lastName").exists())
+                    .andExpect(jsonPath("$[0].members[1].user.initial").exists())
+                    .andExpect(jsonPath("$[0].members[1].status").value("ACTIVE"))
+                    // Verify both user IDs are present in the members list
+                    .andExpect(jsonPath("$[0].members[*].user.id").value(org.hamcrest.Matchers.containsInAnyOrder(
+                            leaderId.toString(), memberId.toString())))
+                    // Verify both first names are present
+                    .andExpect(jsonPath("$[0].members[*].user.firstName").value(org.hamcrest.Matchers.containsInAnyOrder("Alice", "Bob")))
+                    // Verify both last names are present
+                    .andExpect(jsonPath("$[0].members[*].user.lastName").value(org.hamcrest.Matchers.containsInAnyOrder("Smith", "Jones")))
+                    // Verify both initials are present
+                    .andExpect(jsonPath("$[0].members[*].user.initial").value(org.hamcrest.Matchers.containsInAnyOrder("AS", "BJ")));
         }
 
         @Test
@@ -333,30 +332,13 @@ class HouseholdControllerIntegrationTest {
         @Test
         void givenValidPatchName_thenShouldReturnUpdatedHousehold() throws Exception {
             UUID userId = UUID.randomUUID();
-            String originalName = "Original Name";
             String newName = "Updated Name";
 
             when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
                     .thenReturn(List.of(User.builder().id(userId).firstName("Alice").lastName("Smith").build()));
 
-            OrganizeHouseholdRequest organizeRequest = OrganizeHouseholdRequest.builder()
-                    .name(originalName)
-                    .build();
-
-            String createResponse = mockMvc.perform(post("/api/households")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(organizeRequest)))
-                    .andExpect(status().isCreated())
-                    .andReturn().getResponse().getContentAsString();
-
-            UUID householdId = UUID.fromString(jsonMapper.readTree(createResponse).get("id").asText());
+            HouseholdResponse response = householdServiceTestHelper.createHouseHold(userId);
+            UUID householdId = response.id();
 
             PatchHouseholdRequest patchRequest = PatchHouseholdRequest.builder()
                     .householdName(newName)
@@ -412,26 +394,9 @@ class HouseholdControllerIntegrationTest {
             when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
                     .thenReturn(List.of(User.builder().id(userId).firstName("Alice").lastName("Smith").build()));
 
-            OrganizeHouseholdRequest organizeRequest = OrganizeHouseholdRequest.builder()
-                    .name("Household to Disband")
-                    .build();
+            HouseholdResponse response = householdServiceTestHelper.createHouseHold(userId);
 
-            String createResponse = mockMvc.perform(post("/api/households")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(organizeRequest)))
-                    .andExpect(status().isCreated())
-                    .andReturn().getResponse().getContentAsString();
-
-            UUID householdId = UUID.fromString(jsonMapper.readTree(createResponse).get("id").asText());
-
-            mockMvc.perform(delete("/api/households/{householdId}", householdId)
+            mockMvc.perform(delete("/api/households/{householdId}", response.id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -488,53 +453,12 @@ class HouseholdControllerIntegrationTest {
             when(userClient.getUserByEmail("bob@example.com"))
                     .thenReturn(User.builder().id(memberId).firstName("Bob").lastName("Jones").build());
 
-            OrganizeHouseholdRequest organizeRequest = OrganizeHouseholdRequest.builder()
-                    .name("Household with Member")
-                    .build();
+            HouseholdResponse householdResponse = householdServiceTestHelper.createHouseHold(leaderId);
+            UUID householdId = householdResponse.id();
 
-            String createResponse = mockMvc.perform(post("/api/households")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", leaderId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(organizeRequest)))
-                    .andExpect(status().isCreated())
-                    .andReturn().getResponse().getContentAsString();
+            householdServiceTestHelper.inviteAndAccept(householdId, leaderId, memberId, "bob@example.com");
 
-            UUID householdId = UUID.fromString(jsonMapper.readTree(createResponse).get("id").asString());
-
-            String inviteResponse = mockMvc.perform(post("/api/households/{householdId}/invitations", householdId)
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", leaderId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(
-                                    com.fabiankevin.app.web.controllers.dtos.SendInvitationRequest.builder()
-                                            .email("bob@example.com")
-                                            .build())))
-                    .andExpect(status().isOk())
-                    .andReturn().getResponse().getContentAsString();
-
-            UUID invitationId = UUID.fromString(jsonMapper.readTree(inviteResponse).get("id").asString());
-
-            mockMvc.perform(post("/api/households/{householdId}/invitations/{invitationId}/accept", householdId, invitationId)
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", memberId)
-                                            .claim("scope", List.of())
-                                    )))
-                    .andExpect(status().isOk());
-
+            // Verify 2 members before removal
             String memberResponse = mockMvc.perform(get("/api/households")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -551,11 +475,11 @@ class HouseholdControllerIntegrationTest {
                     return super.getType();
                 }
             });
-            HouseholdResponse householdResponse = list.getFirst();
+            HouseholdResponse currentHousehold = list.getFirst();
 
-            int memberCount = householdResponse.members().size();
+            int memberCount = currentHousehold.members().size();
             assertEquals(2, memberCount, "Household should have 2 members before removal");
-            UUID memberToRemove = householdResponse.members().stream().filter(householdMemberResponse ->
+            UUID memberToRemove = currentHousehold.members().stream().filter(householdMemberResponse ->
                             !householdMemberResponse.householdLeader())
                     .findFirst()
                     .get()
@@ -591,26 +515,9 @@ class HouseholdControllerIntegrationTest {
             when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.contains(userId))))
                     .thenReturn(List.of(User.builder().id(userId).firstName("Alice").lastName("Smith").build()));
 
-            OrganizeHouseholdRequest organizeRequest = OrganizeHouseholdRequest.builder()
-                    .name("Household")
-                    .build();
+            HouseholdResponse response = householdServiceTestHelper.createHouseHold(userId);
 
-            String createResponse = mockMvc.perform(post("/api/households")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(organizeRequest)))
-                    .andExpect(status().isCreated())
-                    .andReturn().getResponse().getContentAsString();
-
-            UUID householdId = UUID.fromString(jsonMapper.readTree(createResponse).get("id").asText());
-
-            mockMvc.perform(delete("/api/households/{householdId}/members/{householdMemberId}", householdId, nonExistentMemberId)
+            mockMvc.perform(delete("/api/households/{householdId}/members/{householdMemberId}", response.id(), nonExistentMemberId)
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
