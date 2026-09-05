@@ -10,27 +10,27 @@ import java.util.List;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
-@Schema(description = "Response representing a party")
+@Schema(description = "Response representing a household")
 public record HouseholdResponse(
-        @Schema(description = "Party identifier", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
+        @Schema(description = "Household identifier", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
         UUID id,
 
-        @Schema(description = "Display name of the party", example = "Family 2026 Budget")
+        @Schema(description = "Display name of the household", example = "Family 2026 Budget")
         String name,
 
-        @Schema(description = "Party leader identifier", example = "a1b2c3d4-...")
+        @Schema(description = "Household leader identifier", example = "a1b2c3d4-...")
         UUID leaderId,
 
-        @Schema(description = "Members of the party")
+        @Schema(description = "Members of the household")
         List<HouseholdMemberResponse> members,
 
-        @Schema(description = "Whether the party is active")
+        @Schema(description = "Whether the household is active")
         boolean active,
 
-        @Schema(description = "Timestamp when the party was created")
+        @Schema(description = "Timestamp when the household was created")
         Instant createdAt,
 
-        @Schema(description = "Timestamp when the party was last updated")
+        @Schema(description = "Timestamp when the household was last updated")
         Instant updatedAt
 ) {
     public static HouseholdResponse from(HouseholdSummary household) {

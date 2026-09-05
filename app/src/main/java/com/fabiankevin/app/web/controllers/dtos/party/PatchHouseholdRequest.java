@@ -7,14 +7,14 @@ import lombok.Builder;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
-@Schema(description = "Request DTO for patching a shared space. All fields are optional.")
+@Schema(description = "Request DTO for patching a household. All fields are optional.")
 public record PatchHouseholdRequest(
-        @Schema(description = "Display name for the space", example = "Family 2026 Budget")
-        String partyName) {
+        @Schema(description = "Display name for the household", example = "Family 2026 Budget")
+        String householdName) {
     public PatchHouseholdCommand toCommand(UUID id, UUID userId) {
         return PatchHouseholdCommand.builder()
                 .id(id)
-                .partyName(this.partyName())
+                .householdName(this.householdName())
                 .playerId(userId)
                 .build();
     }

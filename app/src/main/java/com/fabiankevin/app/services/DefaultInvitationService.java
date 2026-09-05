@@ -8,7 +8,7 @@ import com.fabiankevin.app.exceptions.party.InvitationAlreadyHandledException;
 import com.fabiankevin.app.exceptions.party.InvitationExpiredException;
 import com.fabiankevin.app.exceptions.party.InvitationNotFoundException;
 import com.fabiankevin.app.exceptions.party.InviterCannotAcceptOwnInvitationException;
-import com.fabiankevin.app.exceptions.party.NotPartyLeaderException;
+import com.fabiankevin.app.exceptions.party.NotHouseholdLeaderException;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.household.AccessLevel;
 import com.fabiankevin.app.models.enums.household.HouseholdMemberStatus;
@@ -48,7 +48,7 @@ public class DefaultInvitationService implements InvitationService {
     public InvitationSummary sendInvitation(SendInvitationCommand command) {
         Household household = findHouseholdOrThrow(command.householdId());
         if (!household.leaderId().equals(command.inviterUserId())) {
-            throw new NotPartyLeaderException();
+            throw new NotHouseholdLeaderException();
         }
 
         User invitee = userClient.getUserByEmail(command.inviteeEmail());

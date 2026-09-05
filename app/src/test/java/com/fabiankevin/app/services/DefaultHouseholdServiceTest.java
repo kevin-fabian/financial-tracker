@@ -4,7 +4,7 @@ import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.party.CannotRemoveOwnerException;
 import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.exceptions.party.HouseholdNotFoundException;
-import com.fabiankevin.app.exceptions.party.NotPartyLeaderException;
+import com.fabiankevin.app.exceptions.party.NotHouseholdLeaderException;
 import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.household.AccessLevel;
@@ -86,7 +86,7 @@ class DefaultHouseholdServiceTest {
             assertEquals(1, result.members().size());
 
             HouseholdMemberSummary leader = result.members().getFirst();
-            assertTrue(leader.partyLeader(), "initial household member should be a leader");
+            assertTrue(leader.householdLeader(), "initial household member should be a leader");
             assertEquals(HouseholdMemberStatus.ACTIVE, leader.status());
 
             verify(householdRepository).save(any(Household.class));
@@ -106,7 +106,7 @@ class DefaultHouseholdServiceTest {
 
             service.organize(command);
 
-            assertEquals("New Party", captor.getValue().name());
+            assertEquals("New Household", captor.getValue().name());
             verify(householdRepository).save(any(Household.class));
         }
 
@@ -336,7 +336,7 @@ class DefaultHouseholdServiceTest {
             assertEquals(2, summary.members().size());
 
             HouseholdMemberSummary leaderSummary = summary.members().stream()
-                    .filter(HouseholdMemberSummary::partyLeader)
+                    .filter(HouseholdMemberSummary::householdLeader)
                     .findFirst()
                     .orElseThrow();
             assertEquals(partyLeaderId, leaderSummary.user().id());
@@ -344,7 +344,7 @@ class DefaultHouseholdServiceTest {
             assertEquals("AL", leaderSummary.user().initial());
 
             HouseholdMemberSummary memberSummary = summary.members().stream()
-                    .filter(s -> !s.partyLeader())
+                    .filter(s -> !s.householdLeader())
                     .findFirst()
                     .orElseThrow();
             assertEquals(memberId, memberSummary.user().id());
@@ -584,7 +584,7 @@ class DefaultHouseholdServiceTest {
 
             when(householdRepository.findById(householdId)).thenReturn(Optional.of(household));
 
-            assertThrows(NotPartyLeaderException.class, () -> service.disbandHousehold(householdId, otherPlayerId));
+            assertThrows(NotHouseholdLeaderException.class, () -> service.disbandHousehold(householdId, otherPlayerId));
             verify(householdRepository, never()).deleteById(any());
         }
     }
@@ -615,7 +615,7 @@ class DefaultHouseholdServiceTest {
 
             PatchHouseholdCommand command = PatchHouseholdCommand.builder()
                     .id(householdId)
-                    .partyName("Updated Budget")
+                    .householdName("Updated Budget")
                     .playerId(partyLeaderId)
                     .build();
 
@@ -635,7 +635,7 @@ class DefaultHouseholdServiceTest {
 
             PatchHouseholdCommand command = PatchHouseholdCommand.builder()
                     .id(householdId)
-                    .partyName("Updated Budget")
+                    .householdName("Updated Budget")
                     .playerId(requesterId)
                     .build();
 
@@ -669,13 +669,13 @@ class DefaultHouseholdServiceTest {
 
             PatchHouseholdCommand command = PatchHouseholdCommand.builder()
                     .id(householdId)
-                    .partyName("Updated Budget")
+                    .householdName("Updated Budget")
                     .playerId(otherPlayerId)
                     .build();
 
             when(householdRepository.findById(householdId)).thenReturn(Optional.of(household));
 
-            assertThrows(NotPartyLeaderException.class, () -> service.patchHousehold(command));
+            assertThrows(NotHouseholdLeaderException.class, () -> service.patchHousehold(command));
             verify(householdRepository, never()).save(any());
         }
     }

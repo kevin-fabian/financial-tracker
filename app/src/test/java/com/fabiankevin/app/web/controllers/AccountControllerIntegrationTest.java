@@ -5,7 +5,9 @@ import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
-import com.fabiankevin.app.persistence.AccountRepository;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaRecurringTransactionRepository;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.services.TransactionService;
@@ -74,9 +76,6 @@ class AccountControllerIntegrationTest {
     private UserClient userClient;
 
     @Autowired
-    private AccountRepository accountRepository;
-
-    @Autowired
     private AccountService accountService;
 
     @Autowired
@@ -84,6 +83,15 @@ class AccountControllerIntegrationTest {
 
     @Autowired
     private TransactionService transactionService;
+
+    @Autowired
+    private JpaTransactionRepository jpaTransactionRepository;
+
+    @Autowired
+    private JpaRecurringTransactionRepository jpaRecurringTransactionRepository;
+
+    @Autowired
+    private JpaAccountRepository jpaAccountRepository;
 
     @Autowired
     private JsonMapper jsonMapper;
@@ -96,6 +104,9 @@ class AccountControllerIntegrationTest {
     @BeforeEach
     void setup() {
         userId = UUID.randomUUID();
+        jpaRecurringTransactionRepository.deleteAll();
+        jpaTransactionRepository.deleteAll();
+        jpaAccountRepository.deleteAll();
     }
 
     @Nested
@@ -727,29 +738,29 @@ class AccountControllerIntegrationTest {
 
         @Test
         void givenUserWithPartyMembers_thenReturnsConsolidatedAccounts() throws Exception {
-            UUID partyLeaderId = UUID.randomUUID();
+            UUID leaderId = UUID.randomUUID();
             UUID inviteeId = UUID.randomUUID();
 
             // Set up user mocks before party operations
             when(userClient.getUserByEmail("invitee@example.com"))
                     .thenReturn(User.builder().id(inviteeId).firstName("Bob").lastName("Jones").build());
-            when(userClient.getUsersByIds(argThat(ids -> ids.contains(partyLeaderId) && ids.contains(inviteeId))))
+            when(userClient.getUsersByIds(argThat(ids -> ids.contains(leaderId) && ids.contains(inviteeId))))
                     .thenReturn(
                             List.of(
-                                    User.builder().id(partyLeaderId).firstName("Alice").lastName("Smith").build(),
+                                    User.builder().id(leaderId).firstName("Alice").lastName("Smith").build(),
                                     User.builder().id(inviteeId).firstName("Bob").lastName("Jones").build()
                             )
                     );
 
             // Create party and invite + accept via helper
-            HouseholdResponse householdResponse = householdHelper.createHouseHold(partyLeaderId);
-            householdHelper.inviteAndAccept(householdResponse.id(), partyLeaderId, inviteeId, "invitee@example.com");
+            HouseholdResponse householdResponse = householdHelper.createHouseHold(leaderId);
+            householdHelper.inviteAndAccept(householdResponse.id(), leaderId, inviteeId, "invitee@example.com");
 
             // Create cash accounts for both users
             accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("CASH")
-                            .userId(partyLeaderId)
+                            .userId(leaderId)
                             .currency(Currency.getInstance("PHP"))
                             .type(AccountType.CASH)
                             .build()
@@ -768,7 +779,7 @@ class AccountControllerIntegrationTest {
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
                                             .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", partyLeaderId)
+                                            .claim("sub", leaderId)
                                             .claim("scope", List.of())
                                     )))
                     .andExpect(status().isOk())
@@ -780,7 +791,7 @@ class AccountControllerIntegrationTest {
                     .andExpect(jsonPath("$.content[*].user.id").value(
                             containsInAnyOrder(
                                     inviteeId.toString(),
-                                    partyLeaderId.toString()
+                                    leaderId.toString()
                             )
                     ))
                     .andExpect(jsonPath("$.content[*].user.firstName").value(

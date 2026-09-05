@@ -12,7 +12,7 @@ import java.util.UUID;
 public record HouseholdMemberSummary(
         UUID id,
         User user,
-        boolean partyLeader,
+        boolean householdLeader,
         HouseholdMemberStatus status,
         Instant joinedAt) {
     public HouseholdMemberSummary {

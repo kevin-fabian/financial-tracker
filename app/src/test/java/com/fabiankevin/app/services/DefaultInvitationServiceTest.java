@@ -7,7 +7,7 @@ import com.fabiankevin.app.exceptions.party.InvitationAlreadyHandledException;
 import com.fabiankevin.app.exceptions.party.InvitationExpiredException;
 import com.fabiankevin.app.exceptions.party.InvitationNotFoundException;
 import com.fabiankevin.app.exceptions.party.InviterCannotAcceptOwnInvitationException;
-import com.fabiankevin.app.exceptions.party.NotPartyLeaderException;
+import com.fabiankevin.app.exceptions.party.NotHouseholdLeaderException;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.household.AccessLevel;
 import com.fabiankevin.app.models.enums.household.HouseholdMemberStatus;
@@ -209,7 +209,7 @@ class DefaultInvitationServiceTest {
 
             when(spaceRepository.findById(partyId)).thenReturn(Optional.of(existingSpace));
 
-            assertThrows(NotPartyLeaderException.class, () -> service.sendInvitation(command));
+            assertThrows(NotHouseholdLeaderException.class, () -> service.sendInvitation(command));
             verify(invitationRepository, never()).save(any());
         }
 

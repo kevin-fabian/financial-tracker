@@ -9,6 +9,7 @@ import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaRecurringTransactionRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.CategoryService;
@@ -44,8 +45,12 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -88,6 +93,9 @@ class CategoryControllerIntegrationTest {
     private JpaTransactionRepository jpaTransactionRepository;
 
     @Autowired
+    private JpaRecurringTransactionRepository jpaRecurringTransactionRepository;
+
+    @Autowired
     private JsonMapper jsonMapper;
 
     private UUID userId;
@@ -95,6 +103,7 @@ class CategoryControllerIntegrationTest {
     @BeforeEach
     void setup() {
         userId = UUID.randomUUID();
+        jpaRecurringTransactionRepository.deleteAll();
         jpaTransactionRepository.deleteAll();
         jpaCategoryRepository.deleteAll();
     }

@@ -7,7 +7,7 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 public record PatchHouseholdCommand(
         UUID id,
-        String partyName,
+        String householdName,
         UUID playerId
 ) {
 }

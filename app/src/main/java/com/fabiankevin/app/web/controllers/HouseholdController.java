@@ -34,22 +34,22 @@ import java.util.UUID;
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@RequestMapping(value = "/api/parties", version = "v1")
-public class PartyController {
+@RequestMapping(value = "/api/households", version = "v1")
+public class HouseholdController {
     private final HouseholdService householdService;
 
     @Operation(
-        summary = "Create a party",
-        description = "Creates a new party owned by the authenticated user and returns it.",
+        summary = "Create a household",
+        description = "Creates a new household owned by the authenticated user and returns it.",
         responses = {
-            @ApiResponse(responseCode = "201", description = "Created - Party created successfully",
+            @ApiResponse(responseCode = "201", description = "Created - Household created successfully",
                 content = @Content(schema = @Schema(implementation = HouseholdResponse.class))),
             @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
     @PostMapping
-    public ResponseEntity<HouseholdResponse> organizeParty(
+    public ResponseEntity<HouseholdResponse> organizeHousehold(
         @Valid @RequestBody OrganizeHouseholdRequest request,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
@@ -63,16 +63,16 @@ public class PartyController {
     }
 
     @Operation(
-        summary = "List parties for the authenticated user",
-        description = "Retrieves all parties the authenticated user participates in.",
+        summary = "List households for the authenticated user",
+        description = "Retrieves all households the authenticated user participates in.",
         responses = {
-            @ApiResponse(responseCode = "200", description = "OK - Parties retrieved successfully",
+            @ApiResponse(responseCode = "200", description = "OK - Households retrieved successfully",
                 content = @Content(array = @ArraySchema(schema = @Schema(implementation = HouseholdResponse.class)))),
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
     @GetMapping
-    public List<HouseholdResponse> getParties(JwtAuthenticationToken jwtAuthenticationToken) {
+    public List<HouseholdResponse> getHouseholds(JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         return householdService.retrieveByUserId(userId).stream()
             .map(HouseholdResponse::from)
@@ -80,62 +80,62 @@ public class PartyController {
     }
 
     @Operation(
-        summary = "Patch a party",
-        description = "Updates the name and/or sharing mode of the party owned by the authenticated user.",
+        summary = "Patch a household",
+        description = "Updates the name and/or sharing mode of the household owned by the authenticated user.",
         responses = {
-            @ApiResponse(responseCode = "200", description = "OK - Party updated successfully",
+            @ApiResponse(responseCode = "200", description = "OK - Household updated successfully",
                 content = @Content(schema = @Schema(implementation = HouseholdResponse.class))),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Only the owner can update the party"),
-            @ApiResponse(responseCode = "404", description = "Not Found - Party not found"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Only the owner can update the household"),
+            @ApiResponse(responseCode = "404", description = "Not Found - Household not found"),
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
     @PatchMapping("/{householdId}")
-    public HouseholdResponse patchParty(
-        @PathVariable @NotNull @Schema(description = "ID of the party to update") UUID partyId,
+    public HouseholdResponse patchHousehold(
+        @PathVariable @NotNull @Schema(description = "ID of the household to update") UUID householdId,
         @RequestBody PatchHouseholdRequest request,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        Household updated = householdService.patchHousehold(request.toCommand(partyId, userId));
+        Household updated = householdService.patchHousehold(request.toCommand(householdId, userId));
         return HouseholdResponse.from(updated);
     }
 
     @Operation(
-        summary = "Disband a party",
-        description = "Deletes the party owned by the authenticated user.",
+        summary = "Disband a household",
+        description = "Deletes the household owned by the authenticated user.",
         responses = {
-            @ApiResponse(responseCode = "204", description = "No Content - Party deleted successfully"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Only the owner can delete the party"),
-            @ApiResponse(responseCode = "404", description = "Not Found - Party not found"),
+            @ApiResponse(responseCode = "204", description = "No Content - Household deleted successfully"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Only the owner can delete the household"),
+            @ApiResponse(responseCode = "404", description = "Not Found - Household not found"),
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
     @DeleteMapping("/{householdId}")
-    public ResponseEntity<Void> disbandParty(
-        @PathVariable @NotNull @Schema(description = "ID of the party to delete") UUID partyId,
+    public ResponseEntity<Void> disbandHousehold(
+        @PathVariable @NotNull @Schema(description = "ID of the household to delete") UUID householdId,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        householdService.disbandHousehold(partyId, userId);
+        householdService.disbandHousehold(householdId, userId);
         return ResponseEntity.noContent().build();
     }
 
     @Operation(
-        summary = "Kick a party member",
-        description = "Kick a party member from the party. Only party leader can kick a member.",
+        summary = "Kick a household member",
+        description = "Kick a household member from the household. Only household leader can kick a member.",
         responses = {
-            @ApiResponse(responseCode = "204", description = "No Content - Party member has been kicked successfully"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Not allowed to remove this party member"),
-            @ApiResponse(responseCode = "409", description = "Conflict - Cannot remove the party owner"),
+            @ApiResponse(responseCode = "204", description = "No Content - Household member has been kicked successfully"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Not allowed to remove this household member"),
+            @ApiResponse(responseCode = "409", description = "Conflict - Cannot remove the household owner"),
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
-    @DeleteMapping("/{householdId}/party-members/{partyMemberId}")
-    public ResponseEntity<Void> kickPartyMember(
-        @PathVariable @NotNull @Schema(description = "ID of the party") UUID partyId,
-        @PathVariable @NotNull @Schema(description = "ID of the participant to remove") UUID partyMemberId,
+    @DeleteMapping("/{householdId}/members/{householdMemberId}")
+    public ResponseEntity<Void> kickHouseholdMember(
+        @PathVariable @NotNull @Schema(description = "ID of the household") UUID householdId,
+        @PathVariable @NotNull @Schema(description = "ID of the member to remove") UUID householdMemberId,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        householdService.removeMember(partyId, partyMemberId, userId);
+        householdService.removeMember(householdId, householdMemberId, userId);
         return ResponseEntity.noContent().build();
     }
 }

@@ -29,7 +29,7 @@ import java.util.UUID;
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@RequestMapping(value = "/api/parties", version = "v1")
+@RequestMapping(value = "/api/households", version = "v1")
 public class InvitationController {
     private final InvitationService invitationService;
 

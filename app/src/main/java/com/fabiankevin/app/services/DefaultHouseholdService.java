@@ -4,7 +4,7 @@ import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.party.CannotRemoveOwnerException;
 import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.exceptions.party.HouseholdNotFoundException;
-import com.fabiankevin.app.exceptions.party.NotPartyLeaderException;
+import com.fabiankevin.app.exceptions.party.NotHouseholdLeaderException;
 import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.household.AccessLevel;
@@ -42,7 +42,7 @@ public class DefaultHouseholdService implements HouseholdService {
     private final TransactionRepository transactionRepository;
     private final UserClient userClient;
 
-    private static final String DEFAULT_HOUSEHOLD_NAME = "New Party";
+    private static final String DEFAULT_HOUSEHOLD_NAME = "New Household";
 
     @Transactional
     @Override
@@ -77,13 +77,13 @@ public class DefaultHouseholdService implements HouseholdService {
 
     @Transactional
     @Override
-    public void removeMember(UUID partyId, UUID memberId, UUID leaderId) {
-        Household household = findPartyOrThrow(partyId);
+    public void removeMember(UUID householdId, UUID memberId, UUID leaderId) {
+        Household household = findHouseholdOrThrow(householdId);
 
-        boolean partyLeader = household.leaderId().equals(leaderId);
+        boolean householdLeader = household.leaderId().equals(leaderId);
         boolean isSelf = memberId.equals(leaderId);
 
-        if (!partyLeader && !isSelf) {
+        if (!householdLeader && !isSelf) {
             throw new ForbiddenException("Only the owner or the participant themselves can remove a participant");
         }
 
@@ -91,12 +91,12 @@ public class DefaultHouseholdService implements HouseholdService {
             throw new CannotRemoveOwnerException();
         }
 
-        List<HouseholdMember> updatedParticipants = household.members().stream()
-                .filter(p -> !p.userId().equals(memberId))
+        List<HouseholdMember> updatedMembers = household.members().stream()
+                .filter(m -> !m.userId().equals(memberId))
                 .toList();
 
         Household updatedHousehold = household.toBuilder()
-                .members(updatedParticipants)
+                .members(updatedMembers)
                 .updatedAt(Instant.now())
                 .build();
 
@@ -118,29 +118,29 @@ public class DefaultHouseholdService implements HouseholdService {
 
     @Transactional
     @Override
-    public void disbandHousehold(UUID householdParty, UUID leaderId) {
-        Household household = findPartyOrThrow(householdParty);
+    public void disbandHousehold(UUID householdId, UUID leaderId) {
+        Household household = findHouseholdOrThrow(householdId);
 
         if (!household.leaderId().equals(leaderId)) {
-            throw new NotPartyLeaderException();
+            throw new NotHouseholdLeaderException();
         }
 
-        householdRepository.deleteById(householdParty);
+        householdRepository.deleteById(householdId);
     }
 
     @Transactional
     @Override
     public Household patchHousehold(PatchHouseholdCommand command) {
-        Household existing = findPartyOrThrow(command.id());
+        Household existing = findHouseholdOrThrow(command.id());
 
         if (!existing.leaderId().equals(command.playerId())) {
-            throw new NotPartyLeaderException();
+            throw new NotHouseholdLeaderException();
         }
 
         Household.HouseholdBuilder builder = existing.toBuilder()
                 .updatedAt(Instant.now());
 
-        Optional.ofNullable(command.partyName())
+        Optional.ofNullable(command.householdName())
                 .filter(n -> !n.isBlank())
                 .ifPresent(builder::name);
 
@@ -162,41 +162,41 @@ public class DefaultHouseholdService implements HouseholdService {
                 .forEach(invitationRepository::save);
     }
 
-    private Household findPartyOrThrow(UUID partyId) {
-        return householdRepository.findById(partyId)
+    private Household findHouseholdOrThrow(UUID householdId) {
+        return householdRepository.findById(householdId)
                 .orElseThrow(HouseholdNotFoundException::new);
     }
 
     private HouseholdSummary toSummaryWithUsers(Household household) {
-        List<UUID> partyMemberIds = household.members().stream()
+        List<UUID> householdMemberIds = household.members().stream()
                 .map(HouseholdMember::userId)
                 .distinct()
                 .toList();
 
-        Map<UUID, User> usersById = partyMemberIds.isEmpty()
+        Map<UUID, User> usersById = householdMemberIds.isEmpty()
                 ? Map.of()
-                : userClient.getUsersByIds(partyMemberIds).stream()
+                : userClient.getUsersByIds(householdMemberIds).stream()
                 .collect(Collectors.toMap(User::id, Function.identity()));
 
-        Map<UUID, Double> dailyAverageByUserId = partyMemberIds.isEmpty()
+        Map<UUID, Double> dailyAverageByUserId = householdMemberIds.isEmpty()
                 ? Map.of()
-                : transactionRepository.getDailyAveragePastWeek(new HashSet<>(partyMemberIds)).stream()
+                : transactionRepository.getDailyAveragePastWeek(new HashSet<>(householdMemberIds)).stream()
                 .collect(Collectors.toMap(sp -> UUID.fromString(sp.label()), SummaryPoint::total));
 
         return toSummary(household, usersById, dailyAverageByUserId);
     }
 
-    private HouseholdSummary toSummary(Household household, Map<UUID, User> playerIds, Map<UUID, Double> dailyAverageByUserId) {
-        List<HouseholdMemberSummary> partyMemberSummaries = household.members().stream()
-                .map(partyMember -> {
-                    User user = playerIds.get(partyMember.userId());
-                    boolean leader = household.leaderId().equals(partyMember.userId());
+    private HouseholdSummary toSummary(Household household, Map<UUID, User> usersById, Map<UUID, Double> dailyAverageByUserId) {
+        List<HouseholdMemberSummary> householdMemberSummaries = household.members().stream()
+                .map(householdMember -> {
+                    User user = usersById.get(householdMember.userId());
+                    boolean leader = household.leaderId().equals(householdMember.userId());
                     return HouseholdMemberSummary.builder()
-                            .id(partyMember.id())
+                            .id(householdMember.id())
                             .user(user)
-                            .partyLeader(leader)
-                            .status(partyMember.status())
-                            .joinedAt(partyMember.joinedAt())
+                            .householdLeader(leader)
+                            .status(householdMember.status())
+                            .joinedAt(householdMember.joinedAt())
                             .build();
                 })
                 .toList();
@@ -205,7 +205,7 @@ public class DefaultHouseholdService implements HouseholdService {
                 .id(household.id())
                 .name(household.name())
                 .leaderId(household.leaderId())
-                .members(partyMemberSummaries)
+                .members(householdMemberSummaries)
                 .active(household.active())
                 .createdAt(household.createdAt())
                 .updatedAt(household.updatedAt())

@@ -42,7 +42,7 @@ Layered hexagonal: `controllers -> services -> repositories -> jpa_repositories 
 | `StatsController` | `/api/stats` |
 | `BudgetController` | `/api/budgets` |
 | `RecurringTransactionController` | `/api/recurring-transactions` |
-| `PartyController` | `/api/parties` |
+| `HouseholdController` | `/api/parties` |
 | `InvitationController` | `/api/parties/invitations` |
 | `UserCreatedEventController` | `/api/users` |
 
