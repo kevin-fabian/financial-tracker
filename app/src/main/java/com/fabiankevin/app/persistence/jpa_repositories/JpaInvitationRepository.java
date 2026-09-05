@@ -11,10 +11,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface JpaInvitationRepository extends JpaRepository<InvitationEntity, UUID> {
-    Optional<InvitationEntity> findByPartyIdAndInviterPlayerIdAndInviteePlayerIdAndStatus(UUID partyId, UUID inviterPlayerId, UUID inviteePlayerId, InvitationStatus status);
+    Optional<InvitationEntity> findByHouseholdIdAndInviterUserIdAndInviteeUserIdAndStatus(UUID householdId, UUID inviterUserId, UUID inviteeUserId, InvitationStatus status);
 
-    List<InvitationEntity> findByInviterPlayerIdOrInviteePlayerId(UUID inviterPlayerId, UUID inviteePlayerId, Sort sort);
+    List<InvitationEntity> findByInviterUserIdOrInviteeUserId(UUID inviterUserId, UUID inviteeUserId, Sort sort);
 
-    @Query("select i from InvitationEntity i where i.inviteePlayerId = :userId and i.status = :status order by i.createdAt desc")
+    @Query("select i from InvitationEntity i where i.inviteeUserId = :userId and i.status = :status order by i.createdAt desc")
     List<InvitationEntity> findByInviteeUserId(UUID userId, InvitationStatus status, Sort sort);
 }

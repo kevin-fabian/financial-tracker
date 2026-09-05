@@ -7,6 +7,6 @@ import java.util.UUID;
 @Builder
 public record AcceptInvitationCommand(
         UUID invitationId,
-        UUID acceptingPlayerId
+        UUID acceptingUserId
 ) {
 }

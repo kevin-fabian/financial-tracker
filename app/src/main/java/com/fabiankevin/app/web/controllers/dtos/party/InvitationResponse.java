@@ -47,11 +47,11 @@ public record InvitationResponse(
     @Schema(description = "Timestamp when the invitation expires")
     Instant expiresAt,
 
-    @Schema(description = "Party identifier", example = "a1b2c3d4-...")
-    UUID partyId,
+    @Schema(description = "Household identifier", example = "a1b2c3d4-...")
+    UUID householdId,
 
-    @Schema(description = "Display name of the party", example = "Family 2026 Budget")
-    String partyName,
+    @Schema(description = "Display name of the household", example = "Family 2026 Budget")
+    String householdName,
 
     @Schema(description = "Whether the authenticated user is the inviter", example = "true")
     boolean inviter
@@ -70,8 +70,8 @@ public record InvitationResponse(
             .status(invitation.status())
             .createdAt(invitation.createdAt())
             .expiresAt(invitation.expiresAt())
-            .partyId(invitation.partyId())
-            .partyName(invitation.partyName())
+            .householdId(invitation.householdId())
+            .householdName(invitation.householdName())
             .inviter(invitation.inviter())
             .build();
     }

@@ -16,7 +16,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
@@ -47,30 +52,30 @@ public class InvitationController {
 
     @Operation(
         summary = "Send an invitation",
-        description = "Sends an invitation to join the specified party. Only the party leader can invite.",
+        description = "Sends an invitation to join the specified household. Only the household leader can invite.",
         responses = {
             @ApiResponse(responseCode = "200", description = "OK - Invitation sent successfully",
                 content = @Content(schema = @Schema(implementation = InvitationResponse.class))),
             @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Only the space owner can invite"),
-            @ApiResponse(responseCode = "404", description = "Not Found - party does not exist"),
-            @ApiResponse(responseCode = "409", description = "Conflict - User is already a participant"),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Only the household leader can invite"),
+            @ApiResponse(responseCode = "404", description = "Not Found - household does not exist"),
+            @ApiResponse(responseCode = "409", description = "Conflict - User is already a member"),
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
-    @PostMapping("/{partyId}/invitations")
+    @PostMapping("/{householdId}/invitations")
     public ResponseEntity<InvitationResponse> sendInvitation(
-        @PathVariable @NotNull @Schema(description = "ID of the party where the invitation is sent") UUID partyId,
+        @PathVariable @NotNull @Schema(description = "ID of the household where the invitation is sent") UUID householdId,
         @Valid @RequestBody SendInvitationRequest request,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        InvitationResponse response = InvitationResponse.from(invitationService.sendInvitation(request.toCommand(userId, partyId)));
+        InvitationResponse response = InvitationResponse.from(invitationService.sendInvitation(request.toCommand(userId, householdId)));
         return ResponseEntity.ok(response);
     }
 
     @Operation(
         summary = "Accept an invitation",
-        description = "Accepts a pending invitation and adds the authenticated user to the party.",
+        description = "Accepts a pending invitation and adds the authenticated user to the household.",
         responses = {
             @ApiResponse(responseCode = "200", description = "OK - Invitation accepted successfully",
                 content = @Content(schema = @Schema(implementation = InvitationResponse.class))),
@@ -78,7 +83,7 @@ public class InvitationController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
-    @PostMapping("/{partyId}/invitations/{invitationId}/accept")
+    @PostMapping("/{householdId}/invitations/{invitationId}/accept")
     public ResponseEntity<InvitationResponse> acceptInvitation(
         @PathVariable @NotNull @Schema(description = "ID of the invitation to accept") UUID invitationId,
         JwtAuthenticationToken jwtAuthenticationToken) {
@@ -98,7 +103,7 @@ public class InvitationController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
-    @PostMapping("/{partyId}/invitations/{invitationId}/reject")
+    @PostMapping("/{householdId}/invitations/{invitationId}/reject")
     public ResponseEntity<InvitationResponse> rejectInvitation(
         @PathVariable @NotNull @Schema(description = "ID of the invitation to reject") UUID invitationId,
         JwtAuthenticationToken jwtAuthenticationToken) {

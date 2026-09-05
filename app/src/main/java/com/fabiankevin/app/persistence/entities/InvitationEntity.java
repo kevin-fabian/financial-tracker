@@ -56,26 +56,26 @@ public class InvitationEntity {
         if (invitation == null) return null;
         return InvitationEntity.builder()
                 .id(invitation.id())
-                .inviterUserId(invitation.inviterPlayerId())
-                .inviteeUserId(invitation.inviteePlayerId())
+                .inviterUserId(invitation.inviterUserId())
+                .inviteeUserId(invitation.inviteeUserId())
                 .proposedRole(invitation.proposedRole())
                 .status(invitation.status())
                 .createdAt(invitation.createdAt())
                 .expiresAt(invitation.expiresAt())
-                .householdId(invitation.partyId())
+                .householdId(invitation.householdId())
                 .build();
     }
 
     public Invitation toModel() {
         return Invitation.builder()
                 .id(this.id)
-                .inviterPlayerId(this.inviterUserId)
-                .inviteePlayerId(this.inviteeUserId)
+                .inviterUserId(this.inviterUserId)
+                .inviteeUserId(this.inviteeUserId)
                 .proposedRole(this.proposedRole)
                 .status(this.status)
                 .createdAt(this.createdAt)
                 .expiresAt(this.expiresAt)
-                .partyId(this.householdId)
+                .householdId(this.householdId)
                 .build();
     }
 

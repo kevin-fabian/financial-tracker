@@ -21,8 +21,8 @@ public record InvitationSummary(
         InvitationStatus status,
         Instant createdAt,
         Instant expiresAt,
-        UUID partyId,
-        String partyName,
+        UUID householdId,
+        String householdName,
         boolean inviter
 ) {
     public InvitationSummary {

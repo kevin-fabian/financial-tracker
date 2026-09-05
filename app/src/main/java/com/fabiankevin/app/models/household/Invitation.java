@@ -13,17 +13,17 @@ import static com.fabiankevin.app.models.enums.household.InvitationStatus.PENDIN
 @Builder(toBuilder = true)
 public record Invitation(
         UUID id,
-        UUID inviterPlayerId,
-        UUID inviteePlayerId,
+        UUID inviterUserId,
+        UUID inviteeUserId,
         AccessLevel proposedRole,
         InvitationStatus status,
         Instant createdAt,
         Instant expiresAt,
-        UUID partyId
+        UUID householdId
 ) {
     public Invitation {
-        Objects.requireNonNull(inviterPlayerId, "inviterPlayerId");
-        Objects.requireNonNull(inviteePlayerId, "inviteePlayerId");
+        Objects.requireNonNull(inviterUserId, "inviterUserId");
+        Objects.requireNonNull(inviteeUserId, "inviteeUserId");
         Objects.requireNonNull(status, "status");
     }
 

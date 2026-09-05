@@ -16,11 +16,11 @@ public record SendInvitationRequest(
     @Schema(description = "Email of the invited user", example = "jane@example.com")
     String email
 ) {
-    public SendInvitationCommand toCommand(UUID inviterUserId, UUID spaceId) {
+    public SendInvitationCommand toCommand(UUID inviterUserId, UUID householdId) {
         return SendInvitationCommand.builder()
-            .inviterPlayerId(inviterUserId)
+            .inviterUserId(inviterUserId)
             .inviteeEmail(email)
-            .partyId(spaceId)
+            .householdId(householdId)
             .build();
     }
 }

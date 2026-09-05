@@ -1,7 +1,7 @@
 package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.exceptions.party.CannotRemoveOwnerException;
-import com.fabiankevin.app.exceptions.party.PartyNotFoundException;
+import com.fabiankevin.app.exceptions.party.HouseholdNotFoundException;
 import com.fabiankevin.app.models.enums.household.HouseholdMemberStatus;
 import com.fabiankevin.app.models.household.Household;
 import com.fabiankevin.app.models.household.HouseholdMemberSummary;
@@ -390,7 +390,7 @@ class HouseholdControllerTest {
         void givenSpaceNotFound_thenReturnsNotFound() throws Exception {
             UUID partyId = UUID.randomUUID();
 
-            doThrow(new PartyNotFoundException())
+            doThrow(new HouseholdNotFoundException())
                     .when(householdService).disbandHousehold(partyId, userId);
 
             mockMvc.perform(delete("/api/parties/" + partyId)
@@ -455,7 +455,7 @@ class HouseholdControllerTest {
                     .partyName("Updated Budget")
                     .build();
 
-            doThrow(new PartyNotFoundException())
+            doThrow(new HouseholdNotFoundException())
                     .when(householdService).patchHousehold(any());
 
             mockMvc.perform(patch("/api/parties/" + partyId)

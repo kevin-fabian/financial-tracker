@@ -3,8 +3,8 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.party.CannotRemoveOwnerException;
 import com.fabiankevin.app.exceptions.party.ForbiddenException;
+import com.fabiankevin.app.exceptions.party.HouseholdNotFoundException;
 import com.fabiankevin.app.exceptions.party.NotPartyLeaderException;
-import com.fabiankevin.app.exceptions.party.PartyNotFoundException;
 import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.household.AccessLevel;
@@ -42,7 +42,7 @@ public class DefaultHouseholdService implements HouseholdService {
     private final TransactionRepository transactionRepository;
     private final UserClient userClient;
 
-    private static final String DEFAULT_PARTY_NAME = "New Party";
+    private static final String DEFAULT_HOUSEHOLD_NAME = "New Party";
 
     @Transactional
     @Override
@@ -63,7 +63,7 @@ public class DefaultHouseholdService implements HouseholdService {
         cancelActiveIncomingInvitations(command.leaderId());
 
         Household newHousehold = Household.builder()
-                .name(command.householdName() != null ? command.householdName() : DEFAULT_PARTY_NAME)
+                .name(command.householdName() != null ? command.householdName() : DEFAULT_HOUSEHOLD_NAME)
                 .leaderId(command.leaderId())
                 .members(initialHouseholdMembers)
                 .active(true)
@@ -151,20 +151,20 @@ public class DefaultHouseholdService implements HouseholdService {
         invitationRepository.findByInviteeUserId(userId).stream()
                 .map(invitation -> Invitation.builder()
                         .id(invitation.id())
-                        .inviterPlayerId(invitation.inviterPlayerId())
-                        .inviteePlayerId(invitation.inviteePlayerId())
+                        .inviterUserId(invitation.inviterUserId())
+                        .inviteeUserId(invitation.inviteeUserId())
                         .proposedRole(invitation.proposedRole())
                         .status(InvitationStatus.CANCELLED)
                         .createdAt(invitation.createdAt())
                         .expiresAt(invitation.expiresAt())
-                        .partyId(invitation.partyId())
+                        .householdId(invitation.householdId())
                         .build())
                 .forEach(invitationRepository::save);
     }
 
     private Household findPartyOrThrow(UUID partyId) {
         return householdRepository.findById(partyId)
-                .orElseThrow(PartyNotFoundException::new);
+                .orElseThrow(HouseholdNotFoundException::new);
     }
 
     private HouseholdSummary toSummaryWithUsers(Household household) {

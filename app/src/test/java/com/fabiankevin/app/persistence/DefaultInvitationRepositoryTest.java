@@ -47,13 +47,13 @@ class DefaultInvitationRepositoryTest {
     @BeforeEach
     void setUp() {
         invitation = Invitation.builder()
-                .inviterPlayerId(UUID.randomUUID())
-                .inviteePlayerId(UUID.randomUUID())
+                .inviterUserId(UUID.randomUUID())
+                .inviteeUserId(UUID.randomUUID())
                 .proposedRole(AccessLevel.VIEW_ONLY)
                 .status(InvitationStatus.PENDING)
                 .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(86400))
-                .partyId(null)
+                .householdId(null)
                 .build();
     }
 
@@ -66,13 +66,13 @@ class DefaultInvitationRepositoryTest {
         Assertions.assertThat(found).isPresent();
         Invitation restored = found.get();
         Assertions.assertThat(restored.id()).as("generated id should be present").isNotNull();
-        Assertions.assertThat(restored.inviterPlayerId()).isEqualTo(invitation.inviterPlayerId());
-        Assertions.assertThat(restored.inviteePlayerId()).isEqualTo(invitation.inviteePlayerId());
+        Assertions.assertThat(restored.inviterUserId()).isEqualTo(invitation.inviterUserId());
+        Assertions.assertThat(restored.inviteeUserId()).isEqualTo(invitation.inviteeUserId());
         Assertions.assertThat(restored.proposedRole()).isEqualTo(AccessLevel.VIEW_ONLY);
         Assertions.assertThat(restored.status()).isEqualTo(InvitationStatus.PENDING);
         Assertions.assertThat(restored.createdAt()).isEqualTo(invitation.createdAt());
         Assertions.assertThat(restored.expiresAt()).isEqualTo(invitation.expiresAt());
-        Assertions.assertThat(restored.partyId()).isNull();
+        Assertions.assertThat(restored.householdId()).isNull();
 
         verify(jpaInvitationRepository, times(1)).save(any());
         verify(jpaInvitationRepository, times(1)).findById(saved.id());
@@ -84,13 +84,13 @@ class DefaultInvitationRepositoryTest {
         UUID inviteeUserId = UUID.randomUUID();
 
         Invitation accepted = Invitation.builder()
-                .inviterPlayerId(UUID.randomUUID())
-                .inviteePlayerId(inviteeUserId)
+                .inviterUserId(UUID.randomUUID())
+                .inviteeUserId(inviteeUserId)
                 .proposedRole(AccessLevel.VIEW_ONLY)
                 .status(InvitationStatus.ACCEPTED)
                 .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(86400))
-                .partyId(resultingSpaceId)
+                .householdId(resultingSpaceId)
                 .build();
 
         Invitation saved = invitationRepository.save(accepted);
@@ -99,8 +99,8 @@ class DefaultInvitationRepositoryTest {
 
         Assertions.assertThat(found).isPresent();
         Assertions.assertThat(found.get().status()).isEqualTo(InvitationStatus.ACCEPTED);
-        Assertions.assertThat(found.get().inviteePlayerId()).isEqualTo(inviteeUserId);
-        Assertions.assertThat(found.get().partyId()).isEqualTo(resultingSpaceId);
+        Assertions.assertThat(found.get().inviteeUserId()).isEqualTo(inviteeUserId);
+        Assertions.assertThat(found.get().householdId()).isEqualTo(resultingSpaceId);
     }
 
     @Test
@@ -110,7 +110,7 @@ class DefaultInvitationRepositoryTest {
         Optional<Invitation> found = invitationRepository.findById(saved.id());
 
         Assertions.assertThat(found).isPresent();
-        Assertions.assertThat(found.get().inviteePlayerId()).isEqualTo(invitation.inviteePlayerId());
+        Assertions.assertThat(found.get().inviteeUserId()).isEqualTo(invitation.inviteeUserId());
         Assertions.assertThat(found.get().status()).isEqualTo(InvitationStatus.PENDING);
         Assertions.assertThat(found.get().proposedRole()).isEqualTo(AccessLevel.VIEW_ONLY);
 
@@ -131,22 +131,22 @@ class DefaultInvitationRepositoryTest {
         void givenPendingInvitationsWhereUserIsInvitee_shouldReturnIncomingInvites() {
             UUID userId = UUID.randomUUID();
             Invitation incoming = Invitation.builder()
-                    .inviterPlayerId(UUID.randomUUID())
-                    .inviteePlayerId(userId)
+                    .inviterUserId(UUID.randomUUID())
+                    .inviteeUserId(userId)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
-                    .partyId(null)
+                    .householdId(null)
                     .build();
             Invitation outgoing = Invitation.builder()
-                    .inviterPlayerId(userId)
-                    .inviteePlayerId(UUID.randomUUID())
+                    .inviterUserId(userId)
+                    .inviteeUserId(UUID.randomUUID())
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
-                    .partyId(null)
+                    .householdId(null)
                     .build();
             Invitation savedIncoming = invitationRepository.save(incoming);
             invitationRepository.save(outgoing);
@@ -164,13 +164,13 @@ class DefaultInvitationRepositoryTest {
         void givenNonPendingInvitations_shouldExcludeFromResults() {
             UUID userId = UUID.randomUUID();
             Invitation accepted = Invitation.builder()
-                    .inviterPlayerId(UUID.randomUUID())
-                    .inviteePlayerId(userId)
+                    .inviterUserId(UUID.randomUUID())
+                    .inviteeUserId(userId)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.ACCEPTED)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
-                    .partyId(UUID.randomUUID())
+                    .householdId(UUID.randomUUID())
                     .build();
             invitationRepository.save(accepted);
 
@@ -187,22 +187,22 @@ class DefaultInvitationRepositoryTest {
         void givenMatchingPendingInvitation_shouldReturnInvitation() {
             UUID spaceId = UUID.randomUUID();
             Invitation pending = Invitation.builder()
-                    .inviterPlayerId(invitation.inviterPlayerId())
-                    .inviteePlayerId(invitation.inviteePlayerId())
+                    .inviterUserId(invitation.inviterUserId())
+                    .inviteeUserId(invitation.inviteeUserId())
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
-                    .partyId(spaceId)
+                    .householdId(spaceId)
                     .build();
             Invitation saved = invitationRepository.save(pending);
 
-            Optional<Invitation> found = invitationRepository.findPendingByPartyIdAndInviterAndInvitee(
-                    spaceId, saved.inviterPlayerId(), saved.inviteePlayerId());
+            Optional<Invitation> found = invitationRepository.findPendingByHouseholdIdAndInviterAndInvitee(
+                    spaceId, saved.inviterUserId(), saved.inviteeUserId());
 
             Assertions.assertThat(found).isPresent();
             Assertions.assertThat(found.get().id()).isEqualTo(saved.id());
-            Assertions.assertThat(found.get().partyId()).isEqualTo(spaceId);
+            Assertions.assertThat(found.get().householdId()).isEqualTo(spaceId);
             Assertions.assertThat(found.get().status()).isEqualTo(InvitationStatus.PENDING);
         }
 
@@ -210,18 +210,18 @@ class DefaultInvitationRepositoryTest {
         void givenDifferentSpace_shouldReturnEmpty() {
             UUID spaceId = UUID.randomUUID();
             Invitation pending = Invitation.builder()
-                    .inviterPlayerId(invitation.inviterPlayerId())
-                    .inviteePlayerId(invitation.inviteePlayerId())
+                    .inviterUserId(invitation.inviterUserId())
+                    .inviteeUserId(invitation.inviteeUserId())
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
-                    .partyId(spaceId)
+                    .householdId(spaceId)
                     .build();
             Invitation saved = invitationRepository.save(pending);
 
-            Optional<Invitation> found = invitationRepository.findPendingByPartyIdAndInviterAndInvitee(
-                    UUID.randomUUID(), saved.inviterPlayerId(), saved.inviteePlayerId());
+            Optional<Invitation> found = invitationRepository.findPendingByHouseholdIdAndInviterAndInvitee(
+                    UUID.randomUUID(), saved.inviterUserId(), saved.inviteeUserId());
 
             Assertions.assertThat(found).isEmpty();
         }
@@ -230,18 +230,18 @@ class DefaultInvitationRepositoryTest {
         void givenNonPendingStatus_shouldReturnEmpty() {
             UUID spaceId = UUID.randomUUID();
             Invitation accepted = Invitation.builder()
-                    .inviterPlayerId(invitation.inviterPlayerId())
-                    .inviteePlayerId(invitation.inviteePlayerId())
+                    .inviterUserId(invitation.inviterUserId())
+                    .inviteeUserId(invitation.inviteeUserId())
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.ACCEPTED)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
-                    .partyId(spaceId)
+                    .householdId(spaceId)
                     .build();
             Invitation saved = invitationRepository.save(accepted);
 
-            Optional<Invitation> found = invitationRepository.findPendingByPartyIdAndInviterAndInvitee(
-                    spaceId, saved.inviterPlayerId(), saved.inviteePlayerId());
+            Optional<Invitation> found = invitationRepository.findPendingByHouseholdIdAndInviterAndInvitee(
+                    spaceId, saved.inviterUserId(), saved.inviteeUserId());
 
             Assertions.assertThat(found).isEmpty();
         }

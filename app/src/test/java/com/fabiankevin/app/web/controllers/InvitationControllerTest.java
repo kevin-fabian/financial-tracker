@@ -88,8 +88,8 @@ class InvitationControllerTest {
             .status(status)
             .createdAt(Instant.now())
             .expiresAt(Instant.now().plusSeconds(86_400))
-            .partyId(partyId)
-            .partyName("Family 2026 Budget")
+            .householdId(partyId)
+            .householdName("Family 2026 Budget")
             .inviter(inviter)
             .build();
     }
@@ -113,8 +113,8 @@ class InvitationControllerTest {
                 .status(PENDING)
                 .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(86_400))
-                .partyId(partyId)
-                .partyName("Family 2026 Budget")
+                .householdId(partyId)
+                .householdName("Family 2026 Budget")
                 .inviter(true)
                 .build();
             InvitationSummary received = InvitationSummary.builder()
@@ -128,8 +128,8 @@ class InvitationControllerTest {
                 .status(PENDING)
                 .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(86_400))
-                .partyId(partyId)
-                .partyName("Trip Expenses")
+                .householdId(partyId)
+                .householdName("Trip Expenses")
                 .inviter(false)
                 .build();
 
@@ -150,7 +150,7 @@ class InvitationControllerTest {
                 .andExpect(jsonPath("$[0].status").value("PENDING"))
                 .andExpect(jsonPath("$[0].createdAt").exists())
                 .andExpect(jsonPath("$[0].expiresAt").exists())
-                .andExpect(jsonPath("$[0].partyId").value(partyId.toString()))
+                .andExpect(jsonPath("$[0].householdId").value(partyId.toString()))
                 .andExpect(jsonPath("$[0].householdName").value("Family 2026 Budget"))
                 .andExpect(jsonPath("$[0].inviter").value(true))
                 .andExpect(jsonPath("$[1].id").value(receivedId.toString()))
@@ -164,7 +164,7 @@ class InvitationControllerTest {
                 .andExpect(jsonPath("$[1].status").value("PENDING"))
                 .andExpect(jsonPath("$[1].createdAt").exists())
                 .andExpect(jsonPath("$[1].expiresAt").exists())
-                .andExpect(jsonPath("$[1].partyId").value(partyId.toString()))
+                .andExpect(jsonPath("$[1].householdId").value(partyId.toString()))
                 .andExpect(jsonPath("$[1].householdName").value("Trip Expenses"))
                 .andExpect(jsonPath("$[1].inviter").value(false));
 
@@ -237,7 +237,7 @@ class InvitationControllerTest {
                 .andExpect(jsonPath("$.status").value("PENDING"))
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andExpect(jsonPath("$.expiresAt").exists())
-                .andExpect(jsonPath("$.partyId").value(partyId.toString()))
+                .andExpect(jsonPath("$.householdId").value(partyId.toString()))
                 .andExpect(jsonPath("$.householdName").value("Family 2026 Budget"))
                 .andExpect(jsonPath("$.inviter").value(true));
 
@@ -301,7 +301,7 @@ class InvitationControllerTest {
                 .andExpect(jsonPath("$.status").value("ACCEPTED"))
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andExpect(jsonPath("$.expiresAt").exists())
-                .andExpect(jsonPath("$.partyId").value(partyId.toString()))
+                .andExpect(jsonPath("$.householdId").value(partyId.toString()))
                 .andExpect(jsonPath("$.householdName").value("Family 2026 Budget"))
                 .andExpect(jsonPath("$.inviter").value(false));
 
@@ -358,7 +358,7 @@ class InvitationControllerTest {
                 .andExpect(jsonPath("$.status").value("REJECTED"))
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andExpect(jsonPath("$.expiresAt").exists())
-                .andExpect(jsonPath("$.partyId").value(partyId.toString()))
+                .andExpect(jsonPath("$.householdId").value(partyId.toString()))
                 .andExpect(jsonPath("$.householdName").value("Family 2026 Budget"))
                 .andExpect(jsonPath("$.inviter").value(false));
 

@@ -88,6 +88,7 @@ class DefaultInvitationServiceTest {
                     .members(new ArrayList<>(List.of(
                             HouseholdMember.builder()
                                     .userId(inviterUserId)
+                                    .accessLevel(VIEW_ONLY)
                                     .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
@@ -111,13 +112,13 @@ class DefaultInvitationServiceTest {
                             User.builder().id(inviterUserId).firstName("John").lastName("Doe").build(),
                             User.builder().id(inviteeUserId).firstName("Jane").lastName("Doe").build()
                     ));
-            when(invitationRepository.findPendingByPartyIdAndInviterAndInvitee(partyId, inviterUserId, inviteeUserId))
+            when(invitationRepository.findPendingByHouseholdIdAndInviterAndInvitee(partyId, inviterUserId, inviteeUserId))
                     .thenReturn(Optional.empty());
             when(invitationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
             InvitationSummary result = service.sendInvitation(command);
 
-            assertEquals(partyId, result.partyId());
+            assertEquals(partyId, result.householdId());
             assertTrue(result.inviter());
             assertEquals(InvitationStatus.PENDING, result.status());
             assertEquals("John Doe", result.inviterName());
@@ -151,13 +152,13 @@ class DefaultInvitationServiceTest {
 
             Invitation existingInvitation = Invitation.builder()
                     .id(UUID.randomUUID())
-                    .inviterPlayerId(inviterUserId)
-                    .inviteePlayerId(inviteeUserId)
+                    .inviterUserId(inviterUserId)
+                    .inviteeUserId(inviteeUserId)
                     .proposedRole(VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(604800))
-                    .partyId(partyId)
+                    .householdId(partyId)
                     .build();
 
             SendInvitationCommand command = new SendInvitationCommand(
@@ -174,7 +175,7 @@ class DefaultInvitationServiceTest {
                             User.builder().id(inviterUserId).firstName("John").lastName("Doe").build(),
                             User.builder().id(inviteeUserId).firstName("Jane").lastName("Doe").build()
                     ));
-            when(invitationRepository.findPendingByPartyIdAndInviterAndInvitee(partyId, inviterUserId, inviteeUserId))
+            when(invitationRepository.findPendingByHouseholdIdAndInviterAndInvitee(partyId, inviterUserId, inviteeUserId))
                     .thenReturn(Optional.of(existingInvitation));
 
             InvitationSummary result = service.sendInvitation(command);
@@ -284,13 +285,13 @@ class DefaultInvitationServiceTest {
             UUID invitationId = UUID.randomUUID();
             Invitation invitation = Invitation.builder()
                     .id(invitationId)
-                    .inviterPlayerId(inviterUserId)
-                    .inviteePlayerId(inviteeUserId)
+                    .inviterUserId(inviterUserId)
+                    .inviteeUserId(inviteeUserId)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(604800))
-                    .partyId(partyId)
+                    .householdId(partyId)
                     .build();
             Household space = Household.builder()
                     .id(partyId)
@@ -326,10 +327,10 @@ class DefaultInvitationServiceTest {
             ArgumentCaptor<Invitation> invitationCaptor = ArgumentCaptor.forClass(Invitation.class);
             verify(invitationRepository).save(invitationCaptor.capture());
             assertEquals(InvitationStatus.ACCEPTED, invitationCaptor.getValue().status());
-            assertEquals(inviteeUserId, invitationCaptor.getValue().inviteePlayerId());
+            assertEquals(inviteeUserId, invitationCaptor.getValue().inviteeUserId());
             assertNotNull(result);
             assertEquals(InvitationStatus.ACCEPTED, result.status());
-            assertEquals(partyId, result.partyId());
+            assertEquals(partyId, result.householdId());
             assertFalse(result.inviter());
             ArgumentCaptor<Household> spaceCaptor = ArgumentCaptor.forClass(Household.class);
             verify(spaceRepository).save(spaceCaptor.capture());
@@ -367,13 +368,13 @@ class DefaultInvitationServiceTest {
             UUID partyId = UUID.randomUUID();
             Invitation invitation = Invitation.builder()
                     .id(invitationId)
-                    .inviterPlayerId(inviterUserId)
-                    .inviteePlayerId(inviteeUserId)
+                    .inviterUserId(inviterUserId)
+                    .inviteeUserId(inviteeUserId)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.ACCEPTED)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(604800))
-                    .partyId(partyId)
+                    .householdId(partyId)
                     .build();
 
             when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
@@ -393,13 +394,13 @@ class DefaultInvitationServiceTest {
             UUID partyId = UUID.randomUUID();
             Invitation invitation = Invitation.builder()
                     .id(invitationId)
-                    .inviterPlayerId(inviterUserId)
-                    .inviteePlayerId(inviteeUserId)
+                    .inviterUserId(inviterUserId)
+                    .inviteeUserId(inviteeUserId)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now().minusSeconds(172800))
                     .expiresAt(Instant.now().minusSeconds(60))
-                    .partyId(partyId)
+                    .householdId(partyId)
                     .build();
 
             when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
@@ -418,13 +419,13 @@ class DefaultInvitationServiceTest {
             UUID partyId = UUID.randomUUID();
             Invitation invitation = Invitation.builder()
                     .id(invitationId)
-                    .inviterPlayerId(inviterUserId)
-                    .inviteePlayerId(UUID.randomUUID())
+                    .inviterUserId(inviterUserId)
+                    .inviteeUserId(UUID.randomUUID())
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(604800))
-                    .partyId(partyId)
+                    .householdId(partyId)
                     .build();
 
             when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
@@ -445,12 +446,12 @@ class DefaultInvitationServiceTest {
             UUID partyId = UUID.randomUUID();
             Invitation invitation = Invitation.builder()
                     .id(invitationId)
-                    .inviterPlayerId(inviterUserId)
-                    .inviteePlayerId(inviteeUserId)
+                    .inviterUserId(inviterUserId)
+                    .inviteeUserId(inviteeUserId)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(604800))
-                    .partyId(partyId)
+                    .householdId(partyId)
                     .build();
 
             when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
@@ -474,22 +475,22 @@ class DefaultInvitationServiceTest {
             UUID inviteeUserId = UUID.randomUUID();
             Invitation sent = Invitation.builder()
                 .id(UUID.randomUUID())
-                .inviterPlayerId(userId)
-                .inviteePlayerId(inviteeUserId)
+                .inviterUserId(userId)
+                .inviteeUserId(inviteeUserId)
                 .proposedRole(AccessLevel.VIEW_ONLY)
                 .status(InvitationStatus.PENDING)
                 .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(604800))
-                .partyId(partyId)
+                .householdId(partyId)
                 .build();
             Invitation received = Invitation.builder()
                 .id(UUID.randomUUID())
-                .inviterPlayerId(inviterId)
-                .inviteePlayerId(userId)
+                .inviterUserId(inviterId)
+                .inviteeUserId(userId)
                 .status(InvitationStatus.PENDING)
                 .createdAt(Instant.now())
                 .expiresAt(Instant.now().plusSeconds(604800))
-                .partyId(partyId)
+                .householdId(partyId)
                 .build();
 
             when(invitationRepository.findByInviterUserIdOrInviteeUserId(userId))
@@ -513,10 +514,10 @@ class DefaultInvitationServiceTest {
 
             assertEquals(2, result.size());
             InvitationSummary sentSummary = result.getFirst();
-            assertEquals(partyId, sentSummary.partyId());
+            assertEquals(partyId, sentSummary.householdId());
             assertTrue(sentSummary.inviter());
             InvitationSummary receivedSummary = result.get(1);
-            assertEquals(partyId, receivedSummary.partyId());
+            assertEquals(partyId, receivedSummary.householdId());
             assertFalse(receivedSummary.inviter());
             verify(invitationRepository).findByInviterUserIdOrInviteeUserId(userId);
             verify(userClient).getUsersByIds(List.of(userId, inviteeUserId, inviterId));
@@ -548,13 +549,13 @@ class DefaultInvitationServiceTest {
             UUID invitationId = UUID.randomUUID();
             Invitation invitation = Invitation.builder()
                     .id(invitationId)
-                    .inviterPlayerId(inviterUserId)
-                    .inviteePlayerId(inviteeUserId)
+                    .inviterUserId(inviterUserId)
+                    .inviteeUserId(inviteeUserId)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(604800))
-                    .partyId(partyId)
+                    .householdId(partyId)
                     .build();
 
             when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
@@ -573,7 +574,7 @@ class DefaultInvitationServiceTest {
             verify(invitationRepository).save(captor.capture());
             verify(invitationRepository, never()).delete(any());
             assertEquals(InvitationStatus.CANCELLED, captor.getValue().status());
-            assertEquals(partyId, result.partyId());
+            assertEquals(partyId, result.householdId());
             assertFalse(result.inviter());
             assertEquals("John Doe", result.inviterName());
             assertEquals("Jane Smith", result.inviteeName());
@@ -587,13 +588,13 @@ class DefaultInvitationServiceTest {
             UUID invitationId = UUID.randomUUID();
             Invitation invitation = Invitation.builder()
                     .id(invitationId)
-                    .inviterPlayerId(UUID.randomUUID())
-                    .inviteePlayerId(inviteeUserId)
+                    .inviterUserId(UUID.randomUUID())
+                    .inviteeUserId(inviteeUserId)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(604800))
-                    .partyId(UUID.randomUUID())
+                    .householdId(UUID.randomUUID())
                     .build();
 
             when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
@@ -612,13 +613,13 @@ class DefaultInvitationServiceTest {
             UUID partyId = UUID.randomUUID();
             Invitation invitation = Invitation.builder()
                     .id(invitationId)
-                    .inviterPlayerId(inviterUserId)
-                    .inviteePlayerId(inviteeUserId)
+                    .inviterUserId(inviterUserId)
+                    .inviteeUserId(inviteeUserId)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(604800))
-                    .partyId(partyId)
+                    .householdId(partyId)
                     .build();
 
             when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
@@ -637,7 +638,7 @@ class DefaultInvitationServiceTest {
             verify(invitationRepository).save(captor.capture());
             verify(invitationRepository, never()).delete(any());
             assertEquals(InvitationStatus.CANCELLED, captor.getValue().status());
-            assertEquals(partyId, result.partyId());
+            assertEquals(partyId, result.householdId());
             assertTrue(result.inviter());
             verify(spaceRepository, never()).save(any());
         }
@@ -648,13 +649,13 @@ class DefaultInvitationServiceTest {
             UUID invitationId = UUID.randomUUID();
             Invitation invitation = Invitation.builder()
                     .id(invitationId)
-                    .inviterPlayerId(UUID.randomUUID())
-                    .inviteePlayerId(inviteeUserId)
+                    .inviterUserId(UUID.randomUUID())
+                    .inviteeUserId(inviteeUserId)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.ACCEPTED)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(604800))
-                    .partyId(UUID.randomUUID())
+                    .householdId(UUID.randomUUID())
                     .build();
 
             when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));

@@ -34,14 +34,14 @@ public class DefaultInvitationRepository implements InvitationRepository {
     }
 
     @Override
-    public Optional<Invitation> findPendingByPartyIdAndInviterAndInvitee(UUID partyId, UUID inviterUserId, UUID inviteeUserId) {
-        return jpaInvitationRepository.findByPartyIdAndInviterPlayerIdAndInviteePlayerIdAndStatus(partyId, inviterUserId, inviteeUserId, InvitationStatus.PENDING)
+    public Optional<Invitation> findPendingByHouseholdIdAndInviterAndInvitee(UUID householdId, UUID inviterUserId, UUID inviteeUserId) {
+        return jpaInvitationRepository.findByHouseholdIdAndInviterUserIdAndInviteeUserIdAndStatus(householdId, inviterUserId, inviteeUserId, InvitationStatus.PENDING)
                 .map(InvitationEntity::toModel);
     }
 
     @Override
     public List<Invitation> findByInviterUserIdOrInviteeUserId(UUID userId) {
-        return jpaInvitationRepository.findByInviterPlayerIdOrInviteePlayerId(userId, userId, Sort.by(Sort.Direction.DESC, "createdAt"))
+        return jpaInvitationRepository.findByInviterUserIdOrInviteeUserId(userId, userId, Sort.by(Sort.Direction.DESC, "createdAt"))
                 .stream()
                 .map(InvitationEntity::toModel)
                 .toList();

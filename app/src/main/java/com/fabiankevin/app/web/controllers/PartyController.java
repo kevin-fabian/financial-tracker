@@ -90,7 +90,7 @@ public class PartyController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
-    @PatchMapping("/{partyId}")
+    @PatchMapping("/{householdId}")
     public HouseholdResponse patchParty(
         @PathVariable @NotNull @Schema(description = "ID of the party to update") UUID partyId,
         @RequestBody PatchHouseholdRequest request,
@@ -110,7 +110,7 @@ public class PartyController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
-    @DeleteMapping("/{partyId}")
+    @DeleteMapping("/{householdId}")
     public ResponseEntity<Void> disbandParty(
         @PathVariable @NotNull @Schema(description = "ID of the party to delete") UUID partyId,
         JwtAuthenticationToken jwtAuthenticationToken) {
@@ -129,7 +129,7 @@ public class PartyController {
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
-    @DeleteMapping("/{partyId}/party-members/{partyMemberId}")
+    @DeleteMapping("/{householdId}/party-members/{partyMemberId}")
     public ResponseEntity<Void> kickPartyMember(
         @PathVariable @NotNull @Schema(description = "ID of the party") UUID partyId,
         @PathVariable @NotNull @Schema(description = "ID of the participant to remove") UUID partyMemberId,

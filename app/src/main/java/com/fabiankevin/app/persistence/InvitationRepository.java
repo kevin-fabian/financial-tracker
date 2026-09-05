@@ -13,7 +13,7 @@ public interface InvitationRepository {
 
     Optional<Invitation> findById(UUID id);
 
-    Optional<Invitation> findPendingByPartyIdAndInviterAndInvitee(UUID partyId, UUID inviterUserId, UUID inviteeUserId);
+    Optional<Invitation> findPendingByHouseholdIdAndInviterAndInvitee(UUID householdId, UUID inviterUserId, UUID inviteeUserId);
 
     List<Invitation> findByInviterUserIdOrInviteeUserId(UUID userId);
 
