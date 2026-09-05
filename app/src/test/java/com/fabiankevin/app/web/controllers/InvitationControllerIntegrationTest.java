@@ -7,6 +7,7 @@ import com.fabiankevin.app.services.HouseholdService;
 import com.fabiankevin.app.services.InvitationService;
 import com.fabiankevin.app.services.commands.party.OrganizeHouseholdCommand;
 import com.fabiankevin.app.web.controllers.dtos.SendInvitationRequest;
+import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,49 +62,8 @@ class InvitationControllerIntegrationTest {
     @Autowired
     private JsonMapper jsonMapper;
 
-    private UUID sendInvitation(UUID leaderId, UUID inviteeId, String inviteeEmail, String householdName) throws Exception {
-        // Leader creates household
-        when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.size() == 1 && ids.getFirst().equals(leaderId))))
-                .thenReturn(List.of(User.builder().id(leaderId).firstName("Alice").lastName("Smith").build()));
-
-        HouseholdSummary householdSummary = householdService.organize(
-                OrganizeHouseholdCommand.builder()
-                        .leaderId(leaderId)
-                        .householdName(householdName)
-                        .build());
-        assertNotNull(householdSummary.id());
-
-        // Mock user lookup for invitee
-        when(userClient.getUserByEmail(inviteeEmail))
-                .thenReturn(User.builder().id(inviteeId).firstName("Jane").lastName("Doe").build());
-
-        // Mock user lookup for both users (sendInvitation → toSummary)
-        when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.size() == 2)))
-                .thenReturn(List.of(
-                        User.builder().id(leaderId).firstName("Alice").lastName("Smith").build(),
-                        User.builder().id(inviteeId).firstName("Jane").lastName("Doe").build()
-                ));
-
-        // Send invitation
-        SendInvitationRequest request = SendInvitationRequest.builder()
-                .email(inviteeEmail)
-                .build();
-
-        String response = mockMvc.perform(post("/api/households/{householdId}/invitations", householdSummary.id())
-                        .with(jwt()
-                                .authorities(new SimpleGrantedAuthority("USER"))
-                                .jwt(jwt -> jwt
-                                        .audience(List.of("financial-tracker-test"))
-                                        .claim("sub", leaderId)
-                                        .claim("scope", List.of())
-                                ))
-                        .contentType("application/json")
-                        .content(jsonMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-
-        return UUID.fromString(jsonMapper.readTree(response).get("id").asText());
-    }
+    @Autowired
+    private HouseholdServiceTestHelper helper;
 
     @Nested
     class SendInvitation {
@@ -568,13 +528,13 @@ class InvitationControllerIntegrationTest {
             UUID leaderId = UUID.randomUUID();
             UUID inviteeId = UUID.randomUUID();
             String inviteeEmail = "jane@example.com";
-            String householdName = "Family Budget";
 
-            UUID invitationId = sendInvitation(leaderId, inviteeId, inviteeEmail, householdName);
+            UUID householdId = helper.createHouseHold(leaderId).id();
+            UUID invitationId = helper.sendInvitation(householdId, leaderId, inviteeId, inviteeEmail);
 
             // Invitee accepts the invitation
             mockMvc.perform(post("/api/households/{householdId}/invitations/{invitationId}/accept",
-                            UUID.randomUUID(), invitationId)
+                            householdId, invitationId)
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -596,11 +556,12 @@ class InvitationControllerIntegrationTest {
             String inviteeEmail = "jane@example.com";
             String householdName = "Family Budget";
 
-            UUID invitationId = sendInvitation(leaderId, inviteeId, inviteeEmail, householdName);
+            UUID householdId = helper.createHouseHold(leaderId).id();
+            UUID invitationId = helper.sendInvitation(householdId, leaderId, inviteeId, inviteeEmail);
 
             // Leader (inviter) tries to accept — should fail
             mockMvc.perform(post("/api/households/{householdId}/invitations/{invitationId}/accept",
-                            UUID.randomUUID(), invitationId)
+                            householdId, invitationId)
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -637,13 +598,13 @@ class InvitationControllerIntegrationTest {
             UUID leaderId = UUID.randomUUID();
             UUID inviteeId = UUID.randomUUID();
             String inviteeEmail = "jane@example.com";
-            String householdName = "Family Budget";
 
-            UUID invitationId = sendInvitation(leaderId, inviteeId, inviteeEmail, householdName);
+            UUID householdId = helper.createHouseHold(leaderId).id();
+            UUID invitationId = helper.sendInvitation(householdId, leaderId, inviteeId, inviteeEmail);
 
             // Invitee rejects the invitation
             mockMvc.perform(post("/api/households/{householdId}/invitations/{invitationId}/reject",
-                            UUID.randomUUID(), invitationId)
+                            householdId, invitationId)
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -662,13 +623,13 @@ class InvitationControllerIntegrationTest {
             UUID leaderId = UUID.randomUUID();
             UUID inviteeId = UUID.randomUUID();
             String inviteeEmail = "jane@example.com";
-            String householdName = "Family Budget";
 
-            UUID invitationId = sendInvitation(leaderId, inviteeId, inviteeEmail, householdName);
+            UUID householdId = helper.createHouseHold(leaderId).id();
+            UUID invitationId = helper.sendInvitation(householdId, leaderId, inviteeId, inviteeEmail);
 
             // Leader (inviter) rejects the invitation
             mockMvc.perform(post("/api/households/{householdId}/invitations/{invitationId}/reject",
-                            UUID.randomUUID(), invitationId)
+                            householdId, invitationId)
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
