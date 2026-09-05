@@ -134,6 +134,42 @@ class StatsControllerIntegrationTest {
         }
 
         @Test
+        void givenUserWithTransactionsLastMonthAndCurrentMonth_thenGrowthPercentageShouldReflectBalanceChange() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("Frank").lastName("Miller").build()));
+
+            LocalDate today = LocalDate.now();
+            LocalDate lastMonth = today.minusMonths(1);
+
+            // Last month: income $2000 → not in current period, but contributes to all-time balance
+            transactionHelper.createIncomeTransaction(userId, 2000.0, lastMonth);
+
+            // Current month: income $3000, expenses $500 → in current period
+            transactionHelper.createIncomeTransaction(userId, 3000.0, today);
+            transactionHelper.createExpenseTransaction(userId, 500.0, today);
+
+            // totalIncome/totalExpenses = current period only (3000, 500)
+            // totalBalance = all-time (2000 + 3000 - 500 = 4500)
+            // totalBalanceLastMonthWithSameDate = 2000 (last month's balance)
+            // Growth = (4500 - 2000) / 2000 * 100 = 125%
+            mockMvc.perform(get("/api/stats")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.totalIncome").value(3000.0))
+                    .andExpect(jsonPath("$.totalExpenses").value(500.0))
+                    .andExpect(jsonPath("$.totalBalance").value(4500.0))
+                    .andExpect(jsonPath("$.growthPercentage").value(125.0));
+        }
+
+        @Test
         void givenUserWithDateFilter_thenShouldReturnFilteredStats() throws Exception {
             UUID userId = UUID.randomUUID();
 
