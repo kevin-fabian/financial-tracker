@@ -1,29 +1,22 @@
 package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
-import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
-import com.fabiankevin.app.persistence.BudgetRepository;
-import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
-import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.BudgetService;
 import com.fabiankevin.app.services.CategoryService;
-import com.fabiankevin.app.services.TransactionService;
-import com.fabiankevin.app.services.commands.AddTransactionCommand;
-import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.budgets.CreateBudgetCommand;
 import com.fabiankevin.app.web.controllers.dtos.budgets.CreateBudgetRequest;
 import com.fabiankevin.app.web.controllers.dtos.budgets.PatchBudgetRequest;
 import com.fabiankevin.app.web.controllers.dtos.party.HouseholdResponse;
 import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
+import com.fabiankevin.app.web.controllers.helper.TransactionServiceTestHelper;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -42,11 +35,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDate;
-import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import static com.fabiankevin.app.models.enums.TransactionType.EXPENSE;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -75,21 +68,15 @@ class BudgetControllerIntegrationTest {
     @Autowired
     private CategoryService categoryService;
     @Autowired
-    private AccountService accountService;
-    @Autowired
-    private TransactionService transactionService;
-    @Autowired
     private BudgetService budgetService;
     @Autowired
-    private BudgetRepository budgetRepository;
-    @Autowired
     private JpaCategoryRepository jpaCategoryRepository;
-    @Autowired
-    private CategoryRepository categoryRepository;
     @Autowired
     private JsonMapper jsonMapper;
     @Autowired
     private HouseholdServiceTestHelper householdHelper;
+    @Autowired
+    private TransactionServiceTestHelper transactionHelper;
 
     @Nested
     class GetBudgets {
@@ -98,10 +85,9 @@ class BudgetControllerIntegrationTest {
         void givenBudgetCategoryWithTransactions_thenShouldReturnSummaryWithSpent() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-            Account account = createAccount(userId, "Cash Wallet");
-            createTransaction(account, category, 150.0);
-            createTransaction(account, category, 50.0);
-            createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+            transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 150.0, "GROCERIES");
+            transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 50.0, "GROCERIES");
+            createBudget(userId, category, 500.0);
 
             when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
                     .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
@@ -154,11 +140,10 @@ class BudgetControllerIntegrationTest {
         void givenTransactionsFromLastMonth_thenShouldNotIncludeInSpent() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-            Account account = createAccount(userId, "Cash Wallet");
             LocalDate lastMonth = LocalDate.now().minusMonths(1);
-            createTransaction(account, category, 150.0, lastMonth);
-            createTransaction(account, category, 50.0, lastMonth);
-            createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+            transactionHelper.createTransaction(userId, EXPENSE, 150.0, "GROCERIES", lastMonth);
+            transactionHelper.createTransaction(userId, EXPENSE, 50.0, "GROCERIES", lastMonth);
+            createBudget(userId, category, 500.0);
 
             when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
                     .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
@@ -199,8 +184,8 @@ class BudgetControllerIntegrationTest {
 
             Category userCategory = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
             Category otherCategory = createCategory(otherUserId, "DINING", TransactionType.EXPENSE, "restaurant");
-            createBudget(userId, userCategory, BudgetPeriod.MONTHLY, 500.0);
-            createBudget(otherUserId, otherCategory, BudgetPeriod.MONTHLY, 300.0);
+            createBudget(userId, userCategory, 500.0);
+            createBudget(otherUserId, otherCategory, 300.0);
 
             // Mock user client for both users (enrichment still needs both)
             when(userClient.getUsersByIds(argThat(ids -> ids.contains(userId))))
@@ -260,8 +245,8 @@ class BudgetControllerIntegrationTest {
             // Create categories and budgets for both users
             Category userCategory = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
             Category otherCategory = createCategory(otherUserId, "DINING", TransactionType.EXPENSE, "restaurant");
-            createBudget(userId, userCategory, BudgetPeriod.MONTHLY, 500.0);
-            createBudget(otherUserId, otherCategory, BudgetPeriod.MONTHLY, 300.0);
+            createBudget(userId, userCategory, 500.0);
+            createBudget(otherUserId, otherCategory, 300.0);
 
             mockMvc.perform(get("/api/budgets")
                             .with(jwt()
@@ -378,9 +363,8 @@ class BudgetControllerIntegrationTest {
         void givenCategoryWithExistingTransactions_thenShouldReturnSummaryWithSpent() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-            Account account = createAccount(userId, "Cash Wallet");
-            createTransaction(account, category, 150.0);
-            createTransaction(account, category, 50.0);
+            transactionHelper.createTransaction(userId, EXPENSE, 150.0, "GROCERIES");
+            transactionHelper.createTransaction(userId, EXPENSE, 50.0, "GROCERIES");
 
             CreateBudgetRequest request = CreateBudgetRequest.builder()
                     .period(BudgetPeriod.MONTHLY)
@@ -521,7 +505,7 @@ class BudgetControllerIntegrationTest {
         void givenExistingBudgetForCategory_thenReturnsConflict() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-            createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+            createBudget(userId, category, 500.0);
 
             CreateBudgetRequest request = CreateBudgetRequest.builder()
                     .period(BudgetPeriod.MONTHLY)
@@ -598,7 +582,7 @@ class BudgetControllerIntegrationTest {
         @Test
         void givenSystemCategory_thenReturnsCreated() throws Exception {
             UUID userId = UUID.randomUUID();
-            Category systemCategory = createSystemCategory("GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Category systemCategory = createSystemCategory();
 
             CreateBudgetRequest request = CreateBudgetRequest.builder()
                     .period(BudgetPeriod.MONTHLY)
@@ -639,7 +623,7 @@ class BudgetControllerIntegrationTest {
         void givenValidRequest_thenShouldReturnUpdatedBudgetAndAllFields() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-            BudgetSummary budgetSummary = createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+            BudgetSummary budgetSummary = createBudget(userId, category, 500.0);
             Budget budget = budgetSummary.budget();
 
             PatchBudgetRequest request = PatchBudgetRequest.builder()
@@ -685,10 +669,9 @@ class BudgetControllerIntegrationTest {
         void givenBudgetWithTransactions_thenShouldReturnSummaryWithSpent() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-            Account account = createAccount(userId, "Cash Wallet");
-            createTransaction(account, category, 150.0);
-            createTransaction(account, category, 50.0);
-            BudgetSummary budgetSummary = createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+            transactionHelper.createTransaction(userId, EXPENSE, 150.0, "GROCERIES");
+            transactionHelper.createTransaction(userId, EXPENSE, 50.0, "GROCERIES");
+            BudgetSummary budgetSummary = createBudget(userId, category, 500.0);
             Budget budget = budgetSummary.budget();
             PatchBudgetRequest request = PatchBudgetRequest.builder()
                     .allocated(1000.0)
@@ -768,7 +751,7 @@ class BudgetControllerIntegrationTest {
                 Double expectedAllocated) throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-            BudgetSummary budgetSummary = createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+            BudgetSummary budgetSummary = createBudget(userId, category, 500.0);
             Budget budget = budgetSummary.budget();
 
             when(userClient.getUsersByIds(List.of(userId)))
@@ -814,8 +797,8 @@ class BudgetControllerIntegrationTest {
             UUID userId = UUID.randomUUID();
             Category category1 = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
             Category category2 = createCategory(userId, "TRANSPORT", TransactionType.EXPENSE, "transport");
-            createBudget(userId, category1, BudgetPeriod.MONTHLY, 500.0);
-            BudgetSummary budgetSummary = createBudget(userId, category2, BudgetPeriod.MONTHLY, 300.0);
+            createBudget(userId, category1, 500.0);
+            BudgetSummary budgetSummary = createBudget(userId, category2, 300.0);
             Budget budget = budgetSummary.budget();
 
             PatchBudgetRequest request = PatchBudgetRequest.builder()
@@ -839,7 +822,7 @@ class BudgetControllerIntegrationTest {
         void givenPatchWithEmptyRequestBody_thenReturnsBudgetUnchanged() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-            BudgetSummary budgetSummary = createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+            BudgetSummary budgetSummary = createBudget(userId, category, 500.0);
             Budget budget = budgetSummary.budget();
 
             PatchBudgetRequest request = PatchBudgetRequest.builder().build();
@@ -869,7 +852,7 @@ class BudgetControllerIntegrationTest {
             UUID userId = UUID.randomUUID();
             Category originalCategory = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
             Category newCategory = createCategory(userId, "TRANSPORT", TransactionType.EXPENSE, "transport");
-            BudgetSummary budgetSummary = createBudget(userId, originalCategory, BudgetPeriod.MONTHLY, 500.0);
+            BudgetSummary budgetSummary = createBudget(userId, originalCategory, 500.0);
             Budget budget = budgetSummary.budget();
 
             PatchBudgetRequest request = PatchBudgetRequest.builder()
@@ -902,7 +885,7 @@ class BudgetControllerIntegrationTest {
         void givenPatchAllocatedToZeroOrNegative_thenReturnsUpdated() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-            BudgetSummary budgetSummary = createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+            BudgetSummary budgetSummary = createBudget(userId, category, 500.0);
             Budget budget = budgetSummary.budget();
 
             PatchBudgetRequest request = PatchBudgetRequest.builder()
@@ -932,7 +915,7 @@ class BudgetControllerIntegrationTest {
             UUID otherUserId = UUID.randomUUID();
             Category category = createCategory(currentUserId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
             Category otherCategory = createCategory(otherUserId, "TRANSPORT", TransactionType.EXPENSE, "transport");
-            BudgetSummary budgetSummary = createBudget(currentUserId, category, BudgetPeriod.MONTHLY, 500.0);
+            BudgetSummary budgetSummary = createBudget(currentUserId, category, 500.0);
             Budget budget = budgetSummary.budget();
 
             PatchBudgetRequest request = PatchBudgetRequest.builder()
@@ -959,7 +942,7 @@ class BudgetControllerIntegrationTest {
         void givenExistingBudget_thenShouldReturnNoContent() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-            BudgetSummary summary = createBudget(userId, category, BudgetPeriod.MONTHLY, 500.0);
+            BudgetSummary summary = createBudget(userId, category, 500.0);
 
             mockMvc.perform(delete("/api/budgets/" + summary.budget().id())
                             .with(jwt()
@@ -1005,11 +988,11 @@ class BudgetControllerIntegrationTest {
                 .build());
     }
 
-    private Category createSystemCategory(String name, TransactionType type, String icon) {
+    private Category createSystemCategory() {
         var entity = com.fabiankevin.app.persistence.entities.CategoryEntity.builder()
-                .name(name)
-                .transactionType(type)
-                .icon(icon)
+                .name("GROCERIES")
+                .transactionType(TransactionType.EXPENSE)
+                .icon("local_grocery_store")
                 .userId(null)
                 .active(true)
                 .system(true)
@@ -1020,33 +1003,10 @@ class BudgetControllerIntegrationTest {
         return saved.toModel();
     }
 
-    private Account createAccount(UUID userId, String name) {
-        return accountService.createAccount(CreateAccountCommand.builder()
-                .name(name)
-                .currency(Currency.getInstance("USD"))
-                .type(AccountType.CASH)
-                .userId(userId)
-                .build());
-    }
-
-    private void createTransaction(Account account, Category category, double amount) {
-        createTransaction(account, category, amount, LocalDate.now());
-    }
-
-    private void createTransaction(Account account, Category category, double amount, LocalDate date) {
-        transactionService.addTransaction(AddTransactionCommand.builder()
-                .amount(amount)
-                .transactionDate(date)
-                .categoryId(category.id())
-                .accountId(account.id())
-                .userId(account.user().id())
-                .build());
-    }
-
-    private BudgetSummary createBudget(UUID userId, Category category, BudgetPeriod period, double allocated) {
+    private BudgetSummary createBudget(UUID userId, Category category, double allocated) {
         return budgetService.createBudget(CreateBudgetCommand.builder()
                 .userId(userId)
-                .period(period)
+                .period(BudgetPeriod.MONTHLY)
                 .categoryId(category.id())
                 .allocated(allocated)
                 .build());
