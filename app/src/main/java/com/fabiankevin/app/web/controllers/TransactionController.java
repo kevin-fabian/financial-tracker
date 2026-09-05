@@ -5,7 +5,12 @@ import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.queries.PageQuery;
-import com.fabiankevin.app.web.controllers.dtos.*;
+import com.fabiankevin.app.web.controllers.dtos.CreateTransactionRequest;
+import com.fabiankevin.app.web.controllers.dtos.PageResponse;
+import com.fabiankevin.app.web.controllers.dtos.PatchTransactionRequest;
+import com.fabiankevin.app.web.controllers.dtos.SummaryRequest;
+import com.fabiankevin.app.web.controllers.dtos.SummarySeriesResponse;
+import com.fabiankevin.app.web.controllers.dtos.TransactionResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -14,9 +19,20 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
@@ -36,8 +52,10 @@ public class TransactionController {
             responses = {
                     @ApiResponse(responseCode = "201", description = "Created - Resource created successfully",
                             content = @Content(schema = @Schema(implementation = TransactionResponse.class))),
-                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             }
     )
     @PostMapping
@@ -59,8 +77,10 @@ public class TransactionController {
             responses = {
                     @ApiResponse(responseCode = "200", description = "Ok - Resource retrieve successfully",
                             content = @Content(schema = @Schema(implementation = TransactionResponse.class))),
-                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             }
     )
     @GetMapping("/summary")
@@ -75,8 +95,10 @@ public class TransactionController {
             responses = {
                     @ApiResponse(responseCode = "200", description = "OK - Resources retrieved successfully",
                             content = @Content(schema = @Schema(implementation = PageResponse.class))),
-                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             }
     )
     @GetMapping
@@ -107,9 +129,12 @@ public class TransactionController {
             responses = {
                     @ApiResponse(responseCode = "200", description = "OK - Resource updated successfully",
                             content = @Content(schema = @Schema(implementation = TransactionResponse.class))),
-                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
-                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             }
     )
     @PatchMapping("/{transactionId}")
@@ -125,8 +150,10 @@ public class TransactionController {
             responses = {
                     @ApiResponse(responseCode = "200", description = "OK - Resource retrieved successfully",
                             content = @Content(schema = @Schema(implementation = TransactionResponse.class))),
-                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             }
     )
     @GetMapping("/{transactionId}")
@@ -141,8 +168,10 @@ public class TransactionController {
             description = "Deletes a transaction for the authenticated user",
             responses = {
                     @ApiResponse(responseCode = "204", description = "No Content - Resource deleted successfully"),
-                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             }
     )
     @DeleteMapping("/{transactionId}")

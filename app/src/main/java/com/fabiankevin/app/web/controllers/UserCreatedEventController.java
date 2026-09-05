@@ -11,7 +11,12 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ProblemDetail;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -27,8 +32,10 @@ public class UserCreatedEventController {
             responses = {
                     @ApiResponse(responseCode = "201", description = "Created - User provisioned successfully",
                             content = @Content(schema = @Schema(implementation = ProvisionUserResponse.class))),
-                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             }
     )
     @PostMapping("/provision")

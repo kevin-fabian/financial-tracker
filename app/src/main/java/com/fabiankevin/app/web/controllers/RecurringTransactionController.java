@@ -12,9 +12,18 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
@@ -31,8 +40,10 @@ public class RecurringTransactionController {
             responses = {
                     @ApiResponse(responseCode = "201", description = "Created - Recurring transaction created successfully",
                             content = @Content(schema = @Schema(implementation = RecurringSummaryResponse.class))),
-                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             }
     )
     @PostMapping
@@ -51,7 +62,8 @@ public class RecurringTransactionController {
             responses = {
                     @ApiResponse(responseCode = "200", description = "OK - Resources retrieved successfully",
                             content = @Content(array = @ArraySchema(schema = @Schema(implementation = RecurringSummaryResponse.class)))),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             }
     )
     @GetMapping
@@ -68,9 +80,12 @@ public class RecurringTransactionController {
             responses = {
                     @ApiResponse(responseCode = "200", description = "OK - Recurring transaction updated successfully",
                             content = @Content(schema = @Schema(implementation = RecurringSummaryResponse.class))),
-                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
-                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             }
     )
     @PatchMapping("/{id}")
@@ -88,8 +103,10 @@ public class RecurringTransactionController {
             description = "Deletes a recurring transaction by id. Returns 204 on success.",
             responses = {
                     @ApiResponse(responseCode = "204", description = "No Content - Recurring transaction deleted successfully"),
-                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found"),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+                    @ApiResponse(responseCode = "404", description = "Not Found - Resource not found",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             }
     )
     @DeleteMapping("/{id}")
@@ -106,7 +123,8 @@ public class RecurringTransactionController {
             description = "Starts an asynchronous job to process all due recurring transactions. Returns 202 immediately.",
             responses = {
                     @ApiResponse(responseCode = "202", description = "Accepted - Processing job started"),
-                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             }
     )
     @PostMapping("/process-due")
