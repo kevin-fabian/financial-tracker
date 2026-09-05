@@ -30,11 +30,11 @@ public class InvitationEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "inviter_player_id")
-    private UUID inviterPlayerId;
+    @Column(name = "inviter_user_id")
+    private UUID inviterUserId;
 
-    @Column(name = "invitee_player_id")
-    private UUID inviteePlayerId;
+    @Column(name = "invitee_user_id")
+    private UUID inviteeUserId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "proposed_role")
@@ -50,32 +50,32 @@ public class InvitationEntity {
     @Column(name = "expires_at")
     private Instant expiresAt;
 
-    private UUID partyId;
+    private UUID householdId;
 
     public static InvitationEntity from(Invitation invitation) {
         if (invitation == null) return null;
         return InvitationEntity.builder()
                 .id(invitation.id())
-                .inviterPlayerId(invitation.inviterPlayerId())
-                .inviteePlayerId(invitation.inviteePlayerId())
+                .inviterUserId(invitation.inviterPlayerId())
+                .inviteeUserId(invitation.inviteePlayerId())
                 .proposedRole(invitation.proposedRole())
                 .status(invitation.status())
                 .createdAt(invitation.createdAt())
                 .expiresAt(invitation.expiresAt())
-                .partyId(invitation.partyId())
+                .householdId(invitation.partyId())
                 .build();
     }
 
     public Invitation toModel() {
         return Invitation.builder()
                 .id(this.id)
-                .inviterPlayerId(this.inviterPlayerId)
-                .inviteePlayerId(this.inviteePlayerId)
+                .inviterPlayerId(this.inviterUserId)
+                .inviteePlayerId(this.inviteeUserId)
                 .proposedRole(this.proposedRole)
                 .status(this.status)
                 .createdAt(this.createdAt)
                 .expiresAt(this.expiresAt)
-                .partyId(this.partyId)
+                .partyId(this.householdId)
                 .build();
     }
 

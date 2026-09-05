@@ -47,10 +47,10 @@ class DefaultHouseholdRepositoryTest {
     @BeforeEach
     void setUp() {
         UUID ownerUserId = UUID.randomUUID();
-        UUID participantUserId = UUID.randomUUID();
+        UUID memberUserId = UUID.randomUUID();
 
-        HouseholdMember participant = HouseholdMember.builder()
-                .userId(participantUserId)
+        HouseholdMember member = HouseholdMember.builder()
+                .userId(memberUserId)
                 .accessLevel(VIEW_ONLY)
                 .status(HouseholdMemberStatus.ACTIVE)
                 .joinedAt(Instant.now())
@@ -59,7 +59,7 @@ class DefaultHouseholdRepositoryTest {
         household = Household.builder()
                 .name("Family 2026 Budget")
                 .leaderId(ownerUserId)
-                .members(List.of(participant))
+                .members(List.of(member))
                 .active(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -67,13 +67,13 @@ class DefaultHouseholdRepositoryTest {
     }
 
     @Test
-    void save_givenNewParty_shouldPersistAndRetrieveAllFields() {
+    void save_givenNewHousehold_shouldPersistAndRetrieveAllFields() {
         Household saved = householdRepository.save(household);
 
-        Optional<Household> optRetrievedParty = householdRepository.findById(saved.id());
+        Optional<Household> optRetrievedHousehold = householdRepository.findById(saved.id());
 
-        Assertions.assertThat(optRetrievedParty).isPresent();
-        Household retrievedHousehold = optRetrievedParty.get();
+        Assertions.assertThat(optRetrievedHousehold).isPresent();
+        Household retrievedHousehold = optRetrievedHousehold.get();
         Assertions.assertThat(retrievedHousehold.id()).as("generated id should be present").isNotNull();
         Assertions.assertThat(retrievedHousehold.name()).isEqualTo("Family 2026 Budget");
         Assertions.assertThat(retrievedHousehold.leaderId()).isEqualTo(household.leaderId());
@@ -84,13 +84,13 @@ class DefaultHouseholdRepositoryTest {
         Assertions.assertThat(retrievedHousehold.members())
                 .as("members should be persisted and retrieved")
                 .hasSize(1);
-        HouseholdMember retrieveHouseholdMember = retrievedHousehold.members().getFirst();
-        Assertions.assertThat(retrieveHouseholdMember.id()).as("participant id should be generated").isNotNull();
-        Assertions.assertThat(retrieveHouseholdMember.userId())
+        HouseholdMember retrievedMember = retrievedHousehold.members().getFirst();
+        Assertions.assertThat(retrievedMember.id()).as("member id should be generated").isNotNull();
+        Assertions.assertThat(retrievedMember.userId())
                 .isEqualTo(household.members().getFirst().userId());
-        Assertions.assertThat(retrieveHouseholdMember.accessLevel()).isEqualTo(VIEW_ONLY);
-        Assertions.assertThat(retrieveHouseholdMember.status()).isEqualTo(HouseholdMemberStatus.ACTIVE);
-        Assertions.assertThat(retrieveHouseholdMember.joinedAt())
+        Assertions.assertThat(retrievedMember.accessLevel()).isEqualTo(VIEW_ONLY);
+        Assertions.assertThat(retrievedMember.status()).isEqualTo(HouseholdMemberStatus.ACTIVE);
+        Assertions.assertThat(retrievedMember.joinedAt())
                 .isEqualTo(household.members().getFirst().joinedAt());
 
         verify(jpaHouseholdRepository, times(1)).save(any());
@@ -98,7 +98,7 @@ class DefaultHouseholdRepositoryTest {
     }
 
     @Test
-    void save_givenPartyWithPartyMember_shouldCascadePersist() {
+    void save_givenHouseholdWithHouseholdMember_shouldCascadePersist() {
         Household saved = householdRepository.save(household);
 
         Optional<Household> found = householdRepository.findById(saved.id());
@@ -114,7 +114,7 @@ class DefaultHouseholdRepositoryTest {
     }
 
     @Test
-    void save_givenPartyWithNullLists_shouldPersistWithEmptyLists() {
+    void save_givenHouseholdWithNullLists_shouldPersistWithEmptyLists() {
         Household minimal = Household.builder()
                 .name("Empty Space")
                 .leaderId(UUID.randomUUID())
@@ -132,7 +132,7 @@ class DefaultHouseholdRepositoryTest {
     }
 
     @Test
-    void findById_givenExistingParty_shouldReturnExistingParty() {
+    void findById_givenExistingHousehold_shouldReturnExistingHousehold() {
         Household saved = householdRepository.save(household);
 
         Optional<Household> found = householdRepository.findById(saved.id());
@@ -144,14 +144,14 @@ class DefaultHouseholdRepositoryTest {
     }
 
     @Test
-    void findById_givenNonExistingParty_shouldReturnEmptyOptional() {
+    void findById_givenNonExistingHousehold_shouldReturnEmptyOptional() {
         Optional<Household> found = householdRepository.findById(UUID.randomUUID());
 
         Assertions.assertThat(found).as("non existing id returns empty optional").isEmpty();
     }
 
     @Test
-    void findByUserId_givenPlayerIsOwner_shouldReturnParty() {
+    void findByUserId_givenUserIsLeader_shouldReturnHousehold() {
         Household saved = householdRepository.save(household);
 
         Optional<Household> found = householdRepository.findByUserId(saved.leaderId());
@@ -163,20 +163,20 @@ class DefaultHouseholdRepositoryTest {
     }
 
     @Test
-    void findByUserId_givenPlayerIsPartyMember_shouldReturnParty() {
+    void findByUserId_givenUserIsHouseholdMember_shouldReturnHousehold() {
         Household saved = householdRepository.save(household);
-        UUID participantUserId = saved.members().getFirst().userId();
+        UUID memberUserId = saved.members().getFirst().userId();
 
-        Optional<Household> found = householdRepository.findByUserId(participantUserId);
+        Optional<Household> found = householdRepository.findByUserId(memberUserId);
 
         Assertions.assertThat(found).isPresent();
         Assertions.assertThat(found.get().id()).isEqualTo(saved.id());
 
-        verify(jpaHouseholdRepository, times(1)).findByUserId(participantUserId);
+        verify(jpaHouseholdRepository, times(1)).findByUserId(memberUserId);
     }
 
     @Test
-    void findByUserId_givenPlayerIsNotOwnerOrPartyMember_shouldReturnEmpty() {
+    void findByUserId_givenUserIsNotLeaderOrHouseholdMember_shouldReturnEmpty() {
         Optional<Household> found = householdRepository.findByUserId(UUID.randomUUID());
 
         Assertions.assertThat(found).isEmpty();

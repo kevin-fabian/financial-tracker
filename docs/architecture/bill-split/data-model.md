@@ -122,7 +122,7 @@ record Split(
 ```
 
 **Notes**:
-- No `partyId` — no household feature (AD-4).
+- No `householdId` — no household feature (AD-4).
 - `amount` is `BigDecimal` — financial precision (AD-6).
 
 #### `Settlement`
@@ -142,7 +142,7 @@ record Settlement(
 ```
 
 **Notes**:
-- No `partyId` — no household feature (AD-4).
+- No `householdId` — no household feature (AD-4).
 - `amount` is `BigDecimal` — financial precision (AD-6).
 - `transactionId` is nullable because the settlement record exists before the transaction is created (service-layer ordering).
 

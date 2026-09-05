@@ -81,7 +81,7 @@ Key models: `Account`, `Transaction`, `Amount`, `Category`, `User`, `Page`, `Acc
 - `PartyEntity` (`parties` table) — owns `HouseholdMemberEntity` and `SharedItemEntity` via `OneToMany` with `orphanRemoval`.
 - `HouseholdMemberEntity` (`party_members` table) — `userId`, `accessLevel`, `status`, `joinedAt`.
 - `SharedItemEntity` (`shared_items` table) — `resourceType`, `itemIds` (JSON column), `sharedAt`.
-- `InvitationEntity` (`invitations` table) — `inviterPlayerId`, `inviteePlayerId`, `proposedSharingMode`, `proposedRole`, `status`, `expiresAt`.
+- `InvitationEntity` (`invitations` table) — `inviterUserId`, `inviteeUserId`, `proposedSharingMode`, `proposedRole`, `status`, `expiresAt`.
 
 ---
 
