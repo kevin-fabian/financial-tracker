@@ -5,6 +5,7 @@ import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.household.HouseholdSummary;
 import com.fabiankevin.app.services.HouseholdService;
 import com.fabiankevin.app.services.commands.party.OrganizeHouseholdCommand;
+import com.fabiankevin.app.web.controllers.dtos.party.HouseholdResponse;
 import com.fabiankevin.app.web.controllers.dtos.party.OrganizeHouseholdRequest;
 import com.fabiankevin.app.web.controllers.dtos.party.PatchHouseholdRequest;
 import org.junit.jupiter.api.Nested;
@@ -21,9 +22,10 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
-import tools.jackson.databind.JsonNode;
 
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.UUID;
 
@@ -503,7 +505,7 @@ class HouseholdControllerIntegrationTest {
                     .andExpect(status().isCreated())
                     .andReturn().getResponse().getContentAsString();
 
-            UUID householdId = UUID.fromString(jsonMapper.readTree(createResponse).get("id").asText());
+            UUID householdId = UUID.fromString(jsonMapper.readTree(createResponse).get("id").asString());
 
             String inviteResponse = mockMvc.perform(post("/api/households/{householdId}/invitations", householdId)
                             .with(jwt()
@@ -521,7 +523,7 @@ class HouseholdControllerIntegrationTest {
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString();
 
-            UUID invitationId = UUID.fromString(jsonMapper.readTree(inviteResponse).get("id").asText());
+            UUID invitationId = UUID.fromString(jsonMapper.readTree(inviteResponse).get("id").asString());
 
             mockMvc.perform(post("/api/households/{householdId}/invitations/{invitationId}/accept", householdId, invitationId)
                             .with(jwt()
@@ -543,15 +545,21 @@ class HouseholdControllerIntegrationTest {
                                     )))
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString();
+            List<HouseholdResponse> list = jsonMapper.readValue(memberResponse, new TypeReference<>() {
+                @Override
+                public Type getType() {
+                    return super.getType();
+                }
+            });
+            HouseholdResponse householdResponse = list.getFirst();
 
-            int memberCount = jsonMapper.readTree(memberResponse).get(0).get("members").size();
+            int memberCount = householdResponse.members().size();
             assertEquals(2, memberCount, "Household should have 2 members before removal");
-
-            JsonNode firstMember = jsonMapper.readTree(memberResponse).get(0).get("members").get(0);
-            JsonNode secondMember = jsonMapper.readTree(memberResponse).get(0).get("members").get(1);
-            UUID memberToRemove = firstMember.get("user").get("id").asText().equals(leaderId.toString())
-                    ? UUID.fromString(secondMember.get("user").get("id").asText())
-                    : UUID.fromString(firstMember.get("user").get("id").asText());
+            UUID memberToRemove = householdResponse.members().stream().filter(householdMemberResponse ->
+                            !householdMemberResponse.householdLeader())
+                    .findFirst()
+                    .get()
+                    .id();
 
             mockMvc.perform(delete("/api/households/{householdId}/members/{householdMemberId}", householdId, memberToRemove)
                             .with(jwt()

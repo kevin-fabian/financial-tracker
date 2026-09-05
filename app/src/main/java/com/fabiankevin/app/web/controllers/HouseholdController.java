@@ -129,8 +129,8 @@ public class HouseholdController {
     }
 
     @Operation(
-        summary = "Kick a household member",
-        description = "Kick a household member from the household. Only household leader can kick a member.",
+        summary = "Remove a household member",
+        description = "Remove a household member from the household. Only household leader can kick a member.",
         responses = {
             @ApiResponse(responseCode = "204", description = "No Content - Household member has been kicked successfully"),
             @ApiResponse(responseCode = "403", description = "Forbidden - Not allowed to remove this household member",

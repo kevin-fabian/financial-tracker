@@ -100,7 +100,7 @@ public class DefaultHouseholdService implements HouseholdService {
         }
 
         List<HouseholdMember> updatedMembers = household.members().stream()
-                .filter(m -> !m.userId().equals(memberId))
+                .filter(m -> !m.id().equals(memberId))
                 .toList();
 
         Household updatedHousehold = household.toBuilder()
