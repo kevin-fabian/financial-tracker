@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -59,6 +60,50 @@ class InvitationControllerIntegrationTest {
 
     @Autowired
     private JsonMapper jsonMapper;
+
+    private UUID sendInvitation(UUID leaderId, UUID inviteeId, String inviteeEmail, String householdName) throws Exception {
+        // Leader creates household
+        when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.size() == 1 && ids.getFirst().equals(leaderId))))
+                .thenReturn(List.of(User.builder().id(leaderId).firstName("Alice").lastName("Smith").build()));
+
+        HouseholdSummary householdSummary = householdService.organize(
+                OrganizeHouseholdCommand.builder()
+                        .leaderId(leaderId)
+                        .householdName(householdName)
+                        .build());
+        assertNotNull(householdSummary.id());
+
+        // Mock user lookup for invitee
+        when(userClient.getUserByEmail(inviteeEmail))
+                .thenReturn(User.builder().id(inviteeId).firstName("Jane").lastName("Doe").build());
+
+        // Mock user lookup for both users (sendInvitation → toSummary)
+        when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.size() == 2)))
+                .thenReturn(List.of(
+                        User.builder().id(leaderId).firstName("Alice").lastName("Smith").build(),
+                        User.builder().id(inviteeId).firstName("Jane").lastName("Doe").build()
+                ));
+
+        // Send invitation
+        SendInvitationRequest request = SendInvitationRequest.builder()
+                .email(inviteeEmail)
+                .build();
+
+        String response = mockMvc.perform(post("/api/households/{householdId}/invitations", householdSummary.id())
+                        .with(jwt()
+                                .authorities(new SimpleGrantedAuthority("USER"))
+                                .jwt(jwt -> jwt
+                                        .audience(List.of("financial-tracker-test"))
+                                        .claim("sub", leaderId)
+                                        .claim("scope", List.of())
+                                ))
+                        .contentType("application/json")
+                        .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        return UUID.fromString(jsonMapper.readTree(response).get("id").asText());
+    }
 
     @Nested
     class SendInvitation {
@@ -354,6 +399,304 @@ class InvitationControllerIntegrationTest {
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(firstInvitationId.toString()));
+        }
+    }
+
+    @Nested
+    class GetInvitations {
+
+        @Test
+        void givenUserWithPendingInvitationAsInvitee_thenShouldReturnInvitation() throws Exception {
+            UUID leaderId = UUID.randomUUID();
+            UUID inviteeId = UUID.randomUUID();
+            String inviteeEmail = "jane@example.com";
+            String householdName = "Family Budget";
+
+            // Leader creates household
+            when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.size() == 1 && ids.getFirst().equals(leaderId))))
+                    .thenReturn(List.of(User.builder().id(leaderId).firstName("Alice").lastName("Smith").build()));
+
+            HouseholdSummary householdSummary = householdService.organize(
+                    OrganizeHouseholdCommand.builder()
+                            .leaderId(leaderId)
+                            .householdName(householdName)
+                            .build());
+            assertNotNull(householdSummary.id());
+
+            // Mock user lookup for invitee
+            when(userClient.getUserByEmail(inviteeEmail))
+                    .thenReturn(User.builder().id(inviteeId).firstName("Jane").lastName("Doe").build());
+
+            // Mock user lookup for both users (sendInvitation → toSummary)
+            when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.size() == 2)))
+                    .thenReturn(List.of(
+                            User.builder().id(leaderId).firstName("Alice").lastName("Smith").build(),
+                            User.builder().id(inviteeId).firstName("Jane").lastName("Doe").build()
+                    ));
+
+            // Send invitation
+            SendInvitationRequest request = SendInvitationRequest.builder()
+                    .email(inviteeEmail)
+                    .build();
+
+            mockMvc.perform(post("/api/households/{householdId}/invitations", householdSummary.id())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", leaderId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk());
+
+            // Invitee GETs invitations — should see the invitation as invitee (isInviter=false)
+            mockMvc.perform(get("/api/households/invitations")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", inviteeId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$").isArray())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].id").isNotEmpty())
+                    .andExpect(jsonPath("$[0].status").value("PENDING"))
+                    .andExpect(jsonPath("$[0].isInviter").value(false))
+                    .andExpect(jsonPath("$[0].inviter.id").value(leaderId.toString()))
+                    .andExpect(jsonPath("$[0].inviter.firstName").value("Alice"))
+                    .andExpect(jsonPath("$[0].invitee.id").value(inviteeId.toString()))
+                    .andExpect(jsonPath("$[0].invitee.firstName").value("Jane"))
+                    .andExpect(jsonPath("$[0].household.id").value(householdSummary.id().toString()))
+                    .andExpect(jsonPath("$[0].household.name").value(householdName))
+                    .andExpect(jsonPath("$[0].createdAt").exists())
+                    .andExpect(jsonPath("$[0].expiresAt").exists());
+        }
+
+        @Test
+        void givenUserWithPendingInvitationAsInviter_thenShouldReturnInvitation() throws Exception {
+            UUID leaderId = UUID.randomUUID();
+            UUID inviteeId = UUID.randomUUID();
+            String inviteeEmail = "jane@example.com";
+            String householdName = "Family Budget";
+
+            // Leader creates household
+            when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.size() == 1 && ids.getFirst().equals(leaderId))))
+                    .thenReturn(List.of(User.builder().id(leaderId).firstName("Alice").lastName("Smith").build()));
+
+            HouseholdSummary householdSummary = householdService.organize(
+                    OrganizeHouseholdCommand.builder()
+                            .leaderId(leaderId)
+                            .householdName(householdName)
+                            .build());
+            assertNotNull(householdSummary.id());
+
+            // Mock user lookup for invitee
+            when(userClient.getUserByEmail(inviteeEmail))
+                    .thenReturn(User.builder().id(inviteeId).firstName("Jane").lastName("Doe").build());
+
+            // Mock user lookup for both users (sendInvitation → toSummary)
+            when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.size() == 2)))
+                    .thenReturn(List.of(
+                            User.builder().id(leaderId).firstName("Alice").lastName("Smith").build(),
+                            User.builder().id(inviteeId).firstName("Jane").lastName("Doe").build()
+                    ));
+
+            // Send invitation
+            SendInvitationRequest request = SendInvitationRequest.builder()
+                    .email(inviteeEmail)
+                    .build();
+
+            mockMvc.perform(post("/api/households/{householdId}/invitations", householdSummary.id())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", leaderId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk());
+
+            // Leader GETs invitations — should see the invitation as inviter (isInviter=true)
+            mockMvc.perform(get("/api/households/invitations")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", leaderId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$").isArray())
+                    .andExpect(jsonPath("$.length()").value(1))
+                    .andExpect(jsonPath("$[0].isInviter").value(true))
+                    .andExpect(jsonPath("$[0].inviter.id").value(leaderId.toString()))
+                    .andExpect(jsonPath("$[0].invitee.id").value(inviteeId.toString()));
+        }
+
+        @Test
+        void givenUserWithNoInvitations_thenShouldReturnEmptyList() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            mockMvc.perform(get("/api/households/invitations")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$").isArray())
+                    .andExpect(jsonPath("$.length()").value(0));
+        }
+    }
+
+    @Nested
+    class AcceptInvitation {
+
+        @Test
+        void givenPendingInvitation_thenInviteeCanAccept() throws Exception {
+            UUID leaderId = UUID.randomUUID();
+            UUID inviteeId = UUID.randomUUID();
+            String inviteeEmail = "jane@example.com";
+            String householdName = "Family Budget";
+
+            UUID invitationId = sendInvitation(leaderId, inviteeId, inviteeEmail, householdName);
+
+            // Invitee accepts the invitation
+            mockMvc.perform(post("/api/households/{householdId}/invitations/{invitationId}/accept",
+                            UUID.randomUUID(), invitationId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", inviteeId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(invitationId.toString()))
+                    .andExpect(jsonPath("$.status").value("ACCEPTED"))
+                    .andExpect(jsonPath("$.isInviter").value(false))
+                    .andExpect(jsonPath("$.invitee.id").value(inviteeId.toString()));
+        }
+
+        @Test
+        void givenPendingInvitation_thenInviterCannotAccept() throws Exception {
+            UUID leaderId = UUID.randomUUID();
+            UUID inviteeId = UUID.randomUUID();
+            String inviteeEmail = "jane@example.com";
+            String householdName = "Family Budget";
+
+            UUID invitationId = sendInvitation(leaderId, inviteeId, inviteeEmail, householdName);
+
+            // Leader (inviter) tries to accept — should fail
+            mockMvc.perform(post("/api/households/{householdId}/invitations/{invitationId}/accept",
+                            UUID.randomUUID(), invitationId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", leaderId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isConflict());
+        }
+
+        @Test
+        void givenNonExistentInvitation_thenShouldReturnNotFound() throws Exception {
+            UUID inviteeId = UUID.randomUUID();
+            UUID nonExistentInvitationId = UUID.randomUUID();
+
+            mockMvc.perform(post("/api/households/{householdId}/invitations/{invitationId}/accept",
+                            UUID.randomUUID(), nonExistentInvitationId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", inviteeId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    class RejectInvitation {
+
+        @Test
+        void givenPendingInvitation_thenInviteeCanReject() throws Exception {
+            UUID leaderId = UUID.randomUUID();
+            UUID inviteeId = UUID.randomUUID();
+            String inviteeEmail = "jane@example.com";
+            String householdName = "Family Budget";
+
+            UUID invitationId = sendInvitation(leaderId, inviteeId, inviteeEmail, householdName);
+
+            // Invitee rejects the invitation
+            mockMvc.perform(post("/api/households/{householdId}/invitations/{invitationId}/reject",
+                            UUID.randomUUID(), invitationId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", inviteeId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(invitationId.toString()))
+                    .andExpect(jsonPath("$.status").value("CANCELLED"))
+                    .andExpect(jsonPath("$.isInviter").value(false));
+        }
+
+        @Test
+        void givenPendingInvitation_thenInviterCanReject() throws Exception {
+            UUID leaderId = UUID.randomUUID();
+            UUID inviteeId = UUID.randomUUID();
+            String inviteeEmail = "jane@example.com";
+            String householdName = "Family Budget";
+
+            UUID invitationId = sendInvitation(leaderId, inviteeId, inviteeEmail, householdName);
+
+            // Leader (inviter) rejects the invitation
+            mockMvc.perform(post("/api/households/{householdId}/invitations/{invitationId}/reject",
+                            UUID.randomUUID(), invitationId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", leaderId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(invitationId.toString()))
+                    .andExpect(jsonPath("$.status").value("CANCELLED"))
+                    .andExpect(jsonPath("$.isInviter").value(true));
+        }
+
+        @Test
+        void givenNonExistentInvitation_thenShouldReturnNotFound() throws Exception {
+            UUID userId = UUID.randomUUID();
+            UUID nonExistentInvitationId = UUID.randomUUID();
+
+            mockMvc.perform(post("/api/households/{householdId}/invitations/{invitationId}/reject",
+                            UUID.randomUUID(), nonExistentInvitationId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isNotFound());
         }
     }
 }
