@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -44,8 +45,10 @@ public class HouseholdController {
         responses = {
             @ApiResponse(responseCode = "201", description = "Created - Household created successfully",
                 content = @Content(schema = @Schema(implementation = HouseholdResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
-            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
         }
     )
     @PostMapping
@@ -68,7 +71,8 @@ public class HouseholdController {
         responses = {
             @ApiResponse(responseCode = "200", description = "OK - Households retrieved successfully",
                 content = @Content(array = @ArraySchema(schema = @Schema(implementation = HouseholdResponse.class)))),
-            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
         }
     )
     @GetMapping
@@ -85,9 +89,12 @@ public class HouseholdController {
         responses = {
             @ApiResponse(responseCode = "200", description = "OK - Household updated successfully",
                 content = @Content(schema = @Schema(implementation = HouseholdResponse.class))),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Only the owner can update the household"),
-            @ApiResponse(responseCode = "404", description = "Not Found - Household not found"),
-            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            @ApiResponse(responseCode = "403", description = "Forbidden - Only the owner can update the household",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "404", description = "Not Found - Household not found",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
         }
     )
     @PatchMapping("/{householdId}")
@@ -105,9 +112,11 @@ public class HouseholdController {
         description = "Deletes the household owned by the authenticated user.",
         responses = {
             @ApiResponse(responseCode = "204", description = "No Content - Household deleted successfully"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Only the owner can delete the household"),
-            @ApiResponse(responseCode = "404", description = "Not Found - Household not found"),
-            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            @ApiResponse(responseCode = "403", description = "Forbidden - Only the owner can delete the household",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "404", description = "Not Found - Household not found", content =  @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
         }
     )
     @DeleteMapping("/{householdId}")
@@ -124,9 +133,12 @@ public class HouseholdController {
         description = "Kick a household member from the household. Only household leader can kick a member.",
         responses = {
             @ApiResponse(responseCode = "204", description = "No Content - Household member has been kicked successfully"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Not allowed to remove this household member"),
-            @ApiResponse(responseCode = "409", description = "Conflict - Cannot remove the household owner"),
-            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            @ApiResponse(responseCode = "403", description = "Forbidden - Not allowed to remove this household member",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "409", description = "Conflict - Cannot remove the household owner",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
         }
     )
     @DeleteMapping("/{householdId}/members/{householdMemberId}")

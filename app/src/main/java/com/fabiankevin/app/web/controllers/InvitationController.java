@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,7 +40,8 @@ public class InvitationController {
         responses = {
             @ApiResponse(responseCode = "200", description = "OK - Invitations retrieved successfully",
                 content = @Content(array = @ArraySchema(schema = @Schema(implementation = InvitationResponse.class)))),
-            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
         }
     )
     @GetMapping("/invitations")
@@ -56,11 +58,16 @@ public class InvitationController {
         responses = {
             @ApiResponse(responseCode = "200", description = "OK - Invitation sent successfully",
                 content = @Content(schema = @Schema(implementation = InvitationResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Only the household leader can invite"),
-            @ApiResponse(responseCode = "404", description = "Not Found - household does not exist"),
-            @ApiResponse(responseCode = "409", description = "Conflict - User is already a member"),
-            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Only the household leader can invite",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "404", description = "Not Found - household does not exist",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "409", description = "Conflict - User is already a member",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
         }
     )
     @PostMapping("/{householdId}/invitations")
@@ -79,8 +86,10 @@ public class InvitationController {
         responses = {
             @ApiResponse(responseCode = "200", description = "OK - Invitation accepted successfully",
                 content = @Content(schema = @Schema(implementation = InvitationResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Bad Request - Invalid invitation state"),
-            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            @ApiResponse(responseCode = "400", description = "Bad Request - Invalid invitation state",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
         }
     )
     @PostMapping("/{householdId}/invitations/{invitationId}/accept")
@@ -98,9 +107,12 @@ public class InvitationController {
         responses = {
             @ApiResponse(responseCode = "200", description = "OK - Invitation rejected successfully",
                 content = @Content(schema = @Schema(implementation = InvitationResponse.class))),
-            @ApiResponse(responseCode = "403", description = "Forbidden - Only the invited user can reject"),
-            @ApiResponse(responseCode = "400", description = "Bad Request - Invalid invitation state"),
-            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
+            @ApiResponse(responseCode = "403", description = "Forbidden - Only the invited user can reject",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "400", description = "Bad Request - Invalid invitation state",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
         }
     )
     @PostMapping("/{householdId}/invitations/{invitationId}/reject")

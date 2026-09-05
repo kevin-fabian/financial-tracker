@@ -24,13 +24,13 @@ public record HouseholdResponse(
         @Schema(description = "Members of the household")
         List<HouseholdMemberResponse> members,
 
-        @Schema(description = "Whether the household is active")
+        @Schema(description = "Whether the household is active", example = "true")
         boolean active,
 
-        @Schema(description = "Timestamp when the household was created")
+        @Schema(description = "Timestamp when the household was created", example = "2026-01-15T10:30:00Z")
         Instant createdAt,
 
-        @Schema(description = "Timestamp when the household was last updated")
+        @Schema(description = "Timestamp when the household was last updated", example = "2026-06-20T14:00:00Z")
         Instant updatedAt
 ) {
     public static HouseholdResponse from(HouseholdSummary household) {

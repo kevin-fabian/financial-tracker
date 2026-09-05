@@ -23,7 +23,7 @@ public record HouseholdMemberResponse(
         @Schema(description = "Status of the member", example = "ACTIVE")
         String status,
 
-        @Schema(description = "Timestamp when the member joined")
+        @Schema(description = "Timestamp when the member joined", example = "2026-01-15T10:30:00Z")
         Instant joinedAt
 ) {
     public static HouseholdMemberResponse from(HouseholdMemberSummary householdMember) {
