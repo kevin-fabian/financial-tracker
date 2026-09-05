@@ -72,6 +72,58 @@ class StatsControllerIntegrationTest {
     @Nested
     class GetStats {
         @Test
+        void givenUserWithIncomeAndExpenses_thenShouldReturnStatsSummary() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("Alice").lastName("Smith").build()));
+
+            Category incomeCategory = createCategory(userId, "SALARY", TransactionType.INCOME, "salary");
+            Category expenseCategory = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Account account = createAccount(userId, "Main Account");
+
+            // Add income transaction
+            transactionService.addTransaction(AddTransactionCommand.builder()
+                    .amount(5000.0)
+                    .transactionDate(LocalDate.now())
+                    .categoryId(incomeCategory.id())
+                    .accountId(account.id())
+                    .userId(userId)
+                    .build());
+
+            // Add expense transactions
+            transactionService.addTransaction(AddTransactionCommand.builder()
+                    .amount(150.0)
+                    .transactionDate(LocalDate.now())
+                    .categoryId(expenseCategory.id())
+                    .accountId(account.id())
+                    .userId(userId)
+                    .build());
+
+            transactionService.addTransaction(AddTransactionCommand.builder()
+                    .amount(50.0)
+                    .transactionDate(LocalDate.now())
+                    .categoryId(expenseCategory.id())
+                    .accountId(account.id())
+                    .userId(userId)
+                    .build());
+
+            mockMvc.perform(get("/api/stats")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.totalIncome").value(5000.0))
+                    .andExpect(jsonPath("$.totalExpenses").value(200.0))
+                    .andExpect(jsonPath("$.totalBalance").value(4800.0))
+                    .andExpect(jsonPath("$.growthPercentage").value(100.0));
+        }
+
+        @Test
         void givenUserWithIncomeAndExpenses_thenGrowthPercentageShouldReflectBalanceChange() throws Exception {
             UUID userId = UUID.randomUUID();
 
