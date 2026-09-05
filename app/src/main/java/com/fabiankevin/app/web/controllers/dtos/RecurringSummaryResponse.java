@@ -28,10 +28,12 @@ public record RecurringSummaryResponse(
         @Schema(description = "Whether the amount varies each cycle", example = "false")
         boolean variableAmount,
 
-        @Schema(description = "Category details")
+        @Schema(description = "Category details",
+                exampleClasses = CategoryResponse.class)
         CategoryResponse category,
 
-        @Schema(description = "Account details")
+        @Schema(description = "Account details",
+                exampleClasses = AccountResponse.class)
         AccountResponse account,
 
         @Schema(description = "Day of month", example = "15")
@@ -52,13 +54,14 @@ public record RecurringSummaryResponse(
         @Schema(description = "Recurring transaction status", example = "ACTIVE")
         RecurringTransactionStatus status,
 
-        @Schema(description = "User who updated the recurring transaction")
+        @Schema(description = "User who updated the recurring transaction",
+                exampleClasses = UserResponse.class)
         UserResponse updatedBy,
 
-        @Schema(description = "Creation timestamp")
+        @Schema(description = "Creation timestamp", example = "2025-01-01T00:00:00Z")
         Instant createdAt,
 
-        @Schema(description = "Last update timestamp")
+        @Schema(description = "Last update timestamp", example = "2025-06-15T10:30:00Z")
         Instant updatedAt
 ) {
     public static RecurringSummaryResponse from(RecurringTransactionSummary summary) {

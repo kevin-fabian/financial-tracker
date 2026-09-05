@@ -14,34 +14,39 @@ public record TransactionResponse(
         @Schema(description = "Unique identifier of the transaction", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
         UUID id,
 
-        @Schema(description = "Account id associated with the transaction")
+        @Schema(description = "Account id associated with the transaction",
+                exampleClasses = AccountResponse.class)
         AccountResponse account,
 
         @Schema(description = "Transaction type", example = "EXPENSE")
         String type,
 
-        @Schema(description = "Category id associated with the transaction")
+        @Schema(description = "Category id associated with the transaction",
+                exampleClasses = CategoryResponse.class)
         CategoryResponse category,
 
-        @Schema(description = "Amount total and currency")
+        @Schema(description = "Amount total and currency",
+                exampleClasses = AmountResponse.class)
         AmountResponse amount,
 
-        @Schema(description = "Transaction description")
+        @Schema(description = "Transaction description", example = "Dinner with friends")
         String description,
 
-        @Schema(description = "Date of transaction")
+        @Schema(description = "Date of transaction", example = "2025-02-01")
         LocalDate transactionDate,
 
-        @Schema(description = "Timestamp when the transaction was created")
+        @Schema(description = "Timestamp when the transaction was created", example = "2025-02-01T18:30:00Z")
         Instant createdAt,
 
-        @Schema(description = "Timestamp when the transaction was last updated")
+        @Schema(description = "Timestamp when the transaction was last updated", example = "2025-02-01T18:30:00Z")
         Instant updatedAt,
 
-        @Schema(description = "User who created the transaction")
+        @Schema(description = "User who created the transaction",
+                exampleClasses = UserResponse.class)
         UserResponse addedBy,
 
-        @Schema(description = "User who last updated the transaction")
+        @Schema(description = "User who last updated the transaction",
+                exampleClasses = UserResponse.class)
         UserResponse updatedBy) {
     public static TransactionResponse from(Transaction t) {
         return TransactionResponse.builder()

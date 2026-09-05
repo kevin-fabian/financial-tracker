@@ -17,15 +17,15 @@ public record CategoryResponse(
         String name,
         @Schema(description = "Transaction type of the category", example = "EXPENSE")
         TransactionType type,
-        @Schema(description = "Icon for the category")
+        @Schema(description = "Icon for the category", example = "restaurant")
         String icon,
         @Schema(description = "Whether the category is active", example = "true")
         boolean active,
         @Schema(description = "Whether the category is a system category", example = "false")
         boolean system,
-        @Schema(description = "Timestamp when the category was created")
+        @Schema(description = "Timestamp when the category was created", example = "2025-01-01T00:00:00Z")
         Instant createdAt,
-        @Schema(description = "Timestamp when the category was last updated")
+        @Schema(description = "Timestamp when the category was last updated", example = "2025-06-15T10:30:00Z")
         Instant updatedAt
 ) {
     public static CategoryResponse from(final Category category) {

@@ -48,10 +48,10 @@ public record ShoppingItemResponse(
         @Schema(description = "Initial of the item creator", example = "KF")
         String addedByInitial,
 
-        @Schema(description = "Creation timestamp")
+        @Schema(description = "Creation timestamp", example = "2025-01-01T00:00:00Z")
         Instant createdAt,
 
-        @Schema(description = "Last update timestamp")
+        @Schema(description = "Last update timestamp", example = "2025-06-15T10:30:00Z")
         Instant updatedAt
 ) {
     public static ShoppingItemResponse from(ShoppingItemSummary summary) {

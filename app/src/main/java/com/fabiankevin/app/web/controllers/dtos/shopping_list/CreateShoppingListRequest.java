@@ -31,7 +31,8 @@ public record CreateShoppingListRequest(
         @Schema(description = "Budget", example = "200.0")
         double budget,
 
-        @Schema(description = "User IDs to share the list with")
+        @Schema(description = "User IDs to share the list with",
+                example = "[\"d290f1ee-6c54-4b01-90e6-d701748f0852\"]")
         List<UUID> sharedWithUserIds
 ) {
     public CreateShoppingListCommand toCommand(UUID userId) {

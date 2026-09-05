@@ -22,11 +22,12 @@ public record AccountResponse(
         AccountType type,
         @Schema(description = "Whether the account is active", example = "true")
         boolean active,
-        @Schema(description = "Timestamp when the account was created")
+        @Schema(description = "Timestamp when the account was created", example = "2025-01-01T00:00:00Z")
         Instant createdAt,
-        @Schema(description = "Timestamp when the account was last updated")
+        @Schema(description = "Timestamp when the account was last updated", example = "2025-06-15T10:30:00Z")
         Instant updatedAt,
-        @Schema(description = "User who owns the account")
+        @Schema(description = "User who owns the account",
+                exampleClasses = UserResponse.class)
         UserResponse user) {
     public static AccountResponse from(final Account account) {
         return AccountResponse.builder()

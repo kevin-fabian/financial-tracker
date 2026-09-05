@@ -26,7 +26,8 @@ public record AccountSummaryResponse(
         double totalBalance,
         @Schema(description = "Total number of transactions for this account", example = "25")
         int totalTransactions,
-        @Schema(description = "User details associated with the account")
+        @Schema(description = "User details associated with the account",
+                exampleClasses = UserResponse.class)
         UserResponse user) {
     public static AccountSummaryResponse from(final AccountSummary accountSummary) {
         Account account = accountSummary.account();

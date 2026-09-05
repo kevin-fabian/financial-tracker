@@ -34,22 +34,25 @@ public record ShoppingListSummaryResponse(
         @Schema(description = "Final amount", example = "185.0")
         Double finalAmount,
 
-        @Schema(description = "Completion timestamp")
+        @Schema(description = "Completion timestamp", example = "2025-06-15T10:30:00Z")
         Instant completedAt,
 
-        @Schema(description = "Items in the shopping list")
+        @Schema(description = "Items in the shopping list",
+                exampleClasses = ShoppingItemResponse.class)
         List<ShoppingItemResponse> items,
 
-        @Schema(description = "Category details")
+        @Schema(description = "Category details",
+                exampleClasses = CategoryResponse.class)
         CategoryResponse category,
 
-        @Schema(description = "User details")
+        @Schema(description = "User details",
+                exampleClasses = UserResponse.class)
         UserResponse user,
 
-        @Schema(description = "Creation timestamp")
+        @Schema(description = "Creation timestamp", example = "2025-01-01T00:00:00Z")
         Instant createdAt,
 
-        @Schema(description = "Last update timestamp")
+        @Schema(description = "Last update timestamp", example = "2025-06-15T10:30:00Z")
         Instant updatedAt
 ) {
     public static ShoppingListSummaryResponse from(ShoppingListSummary summary) {

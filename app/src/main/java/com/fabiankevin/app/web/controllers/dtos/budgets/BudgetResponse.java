@@ -23,9 +23,9 @@ public record BudgetResponse(
         String categoryIcon,
         @Schema(description = "Allocated amount", example = "500.0")
         double allocated,
-        @Schema(description = "Timestamp when the budget was created")
+        @Schema(description = "Timestamp when the budget was created", example = "2025-01-01T00:00:00Z")
         Instant createdAt,
-        @Schema(description = "Timestamp when the budget was last updated")
+        @Schema(description = "Timestamp when the budget was last updated", example = "2025-06-15T10:30:00Z")
         Instant updatedAt
 ) {
     public static BudgetResponse from(Budget budget) {
