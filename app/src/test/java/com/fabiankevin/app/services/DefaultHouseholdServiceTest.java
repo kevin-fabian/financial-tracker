@@ -373,7 +373,7 @@ class DefaultHouseholdServiceTest {
     }
 
     @Nested
-    class KickHouseholdMember {
+    class RemoveHouseholdMember {
 
         @Test
         void givenHouseholdLeaderKicksHouseholdMember_thenHouseholdMemberIsKicked() {
@@ -386,12 +386,14 @@ class DefaultHouseholdServiceTest {
                     .leaderId(partyLeaderId)
                     .members(new ArrayList<>(List.of(
                             HouseholdMember.builder()
+                                    .id(partyLeaderId)
                                     .userId(partyLeaderId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
                             HouseholdMember.builder()
+                                    .id(participantId)
                                     .userId(participantId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(HouseholdMemberStatus.ACTIVE)
@@ -427,12 +429,14 @@ class DefaultHouseholdServiceTest {
                     .leaderId(partyLeaderId)
                     .members(new ArrayList<>(List.of(
                             HouseholdMember.builder()
+                                    .id(partyLeaderId)
                                     .userId(partyLeaderId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
                             HouseholdMember.builder()
+                                    .id(participantId)
                                     .userId(participantId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(HouseholdMemberStatus.ACTIVE)
