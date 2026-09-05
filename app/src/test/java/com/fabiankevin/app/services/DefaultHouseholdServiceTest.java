@@ -3,6 +3,7 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.party.CannotRemoveOwnerException;
 import com.fabiankevin.app.exceptions.party.ForbiddenException;
+import com.fabiankevin.app.exceptions.party.HouseholdAlreadyExistsException;
 import com.fabiankevin.app.exceptions.party.HouseholdNotFoundException;
 import com.fabiankevin.app.exceptions.party.NotHouseholdLeaderException;
 import com.fabiankevin.app.models.SummaryPoint;
@@ -120,7 +121,7 @@ class DefaultHouseholdServiceTest {
         }
 
         @Test
-        void givenHouseholdLeaderAlreadyBelongsToHousehold_thenReturnsExistingHousehold() {
+        void givenHouseholdLeaderAlreadyBelongsToHousehold_thenThrowsHouseholdAlreadyExistsException() {
             UUID partyLeaderId = UUID.randomUUID();
             UUID householdId = UUID.randomUUID();
             Household existingHousehold = Household.builder()
@@ -141,20 +142,13 @@ class DefaultHouseholdServiceTest {
                     .build();
 
             when(householdRepository.findByUserId(partyLeaderId)).thenReturn(Optional.of(existingHousehold));
-            when(userClient.getUsersByIds(any())).thenReturn(List.of(
-                    User.builder().id(partyLeaderId).firstName("Ada").lastName("Lovelace").build()
-            ));
 
             OrganizeHouseholdCommand command = new OrganizeHouseholdCommand(
                     partyLeaderId,
                     "Trip Budget"
             );
-            HouseholdSummary result = service.organize(command);
 
-            assertNotNull(result);
-            assertEquals(householdId, result.id());
-            assertEquals("Family Budget", result.name());
-            assertEquals(partyLeaderId, result.leaderId());
+            assertThrows(HouseholdAlreadyExistsException.class, () -> service.organize(command));
 
             verify(householdRepository, never()).save(any());
         }
@@ -205,7 +199,7 @@ class DefaultHouseholdServiceTest {
         }
 
         @Test
-        void givenHouseholdMemberAlreadyBelongsToHousehold_thenReturnsExistingHousehold() {
+        void givenHouseholdMemberAlreadyBelongsToHousehold_thenThrowsHouseholdAlreadyExistsException() {
             UUID partyLeaderId = UUID.randomUUID();
             UUID memberId = UUID.randomUUID();
             UUID householdId = UUID.randomUUID();
@@ -233,21 +227,13 @@ class DefaultHouseholdServiceTest {
                     .build();
 
             when(householdRepository.findByUserId(memberId)).thenReturn(Optional.of(existingHousehold));
-            when(userClient.getUsersByIds(any())).thenReturn(List.of(
-                    User.builder().id(partyLeaderId).firstName("Ada").lastName("Lovelace").build(),
-                    User.builder().id(memberId).firstName("Alan").lastName("Turing").build()
-            ));
 
             OrganizeHouseholdCommand command = new OrganizeHouseholdCommand(
                     memberId,
                     "Trip Budget"
             );
-            HouseholdSummary result = service.organize(command);
 
-            assertNotNull(result);
-            assertEquals(householdId, result.id());
-            assertEquals("Family Budget", result.name());
-            assertEquals(partyLeaderId, result.leaderId());
+            assertThrows(HouseholdAlreadyExistsException.class, () -> service.organize(command));
 
             verify(householdRepository, never()).save(any());
         }
