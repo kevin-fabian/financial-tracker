@@ -1,4 +1,4 @@
-package com.fabiankevin.app.services.commands.party.invitations;
+package com.fabiankevin.app.services.commands.household.invitations;
 
 import java.util.UUID;
 

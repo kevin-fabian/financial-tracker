@@ -20,7 +20,7 @@ import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateRecurringTransactionRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchRecurringTransactionRequest;
-import com.fabiankevin.app.web.controllers.dtos.party.HouseholdResponse;
+import com.fabiankevin.app.web.controllers.dtos.household.HouseholdResponse;
 import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;

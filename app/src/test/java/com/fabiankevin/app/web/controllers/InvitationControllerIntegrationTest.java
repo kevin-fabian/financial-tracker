@@ -5,7 +5,7 @@ import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.household.HouseholdSummary;
 import com.fabiankevin.app.services.HouseholdService;
 import com.fabiankevin.app.services.InvitationService;
-import com.fabiankevin.app.services.commands.party.OrganizeHouseholdCommand;
+import com.fabiankevin.app.services.commands.household.OrganizeHouseholdCommand;
 import com.fabiankevin.app.web.controllers.dtos.SendInvitationRequest;
 import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
 import org.junit.jupiter.api.Nested;

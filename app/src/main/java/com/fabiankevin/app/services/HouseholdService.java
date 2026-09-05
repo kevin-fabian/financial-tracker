@@ -2,8 +2,8 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.models.household.Household;
 import com.fabiankevin.app.models.household.HouseholdSummary;
-import com.fabiankevin.app.services.commands.party.OrganizeHouseholdCommand;
-import com.fabiankevin.app.services.commands.party.PatchHouseholdCommand;
+import com.fabiankevin.app.services.commands.household.OrganizeHouseholdCommand;
+import com.fabiankevin.app.services.commands.household.PatchHouseholdCommand;
 
 import java.util.List;
 import java.util.UUID;

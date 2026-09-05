@@ -1,6 +1,6 @@
-package com.fabiankevin.app.web.controllers.dtos.party;
+package com.fabiankevin.app.web.controllers.dtos.household;
 
-import com.fabiankevin.app.services.commands.party.OrganizeHouseholdCommand;
+import com.fabiankevin.app.services.commands.household.OrganizeHouseholdCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Size;
 import lombok.Builder;

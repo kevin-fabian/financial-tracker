@@ -1,4 +1,4 @@
-package com.fabiankevin.app.services.commands.party;
+package com.fabiankevin.app.services.commands.household;
 
 import lombok.Builder;
 

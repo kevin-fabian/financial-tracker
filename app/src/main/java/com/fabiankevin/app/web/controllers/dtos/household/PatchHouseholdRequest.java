@@ -1,6 +1,6 @@
-package com.fabiankevin.app.web.controllers.dtos.party;
+package com.fabiankevin.app.web.controllers.dtos.household;
 
-import com.fabiankevin.app.services.commands.party.PatchHouseholdCommand;
+import com.fabiankevin.app.services.commands.household.PatchHouseholdCommand;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 

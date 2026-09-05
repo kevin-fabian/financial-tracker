@@ -1,10 +1,10 @@
 package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.services.InvitationService;
-import com.fabiankevin.app.services.commands.party.invitations.AcceptInvitationCommand;
-import com.fabiankevin.app.services.commands.party.invitations.RejectInvitationCommand;
+import com.fabiankevin.app.services.commands.household.invitations.AcceptInvitationCommand;
+import com.fabiankevin.app.services.commands.household.invitations.RejectInvitationCommand;
 import com.fabiankevin.app.web.controllers.dtos.SendInvitationRequest;
-import com.fabiankevin.app.web.controllers.dtos.party.InvitationResponse;
+import com.fabiankevin.app.web.controllers.dtos.household.InvitationResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;

@@ -1,4 +1,4 @@
-package com.fabiankevin.app.web.controllers.dtos.party;
+package com.fabiankevin.app.web.controllers.dtos.household;
 
 import com.fabiankevin.app.models.household.Household;
 import com.fabiankevin.app.models.household.HouseholdSummary;
