@@ -142,7 +142,7 @@ public class HouseholdController {
         }
     )
     @DeleteMapping("/{householdId}/members/{householdMemberId}")
-    public ResponseEntity<Void> kickHouseholdMember(
+    public ResponseEntity<Void> removeHouseholdMember(
         @PathVariable @NotNull @Schema(description = "ID of the household") UUID householdId,
         @PathVariable @NotNull @Schema(description = "ID of the member to remove") UUID householdMemberId,
         JwtAuthenticationToken jwtAuthenticationToken) {

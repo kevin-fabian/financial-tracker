@@ -3,6 +3,7 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.party.CannotRemoveOwnerException;
 import com.fabiankevin.app.exceptions.party.ForbiddenException;
+import com.fabiankevin.app.exceptions.party.HouseholdAlreadyExistsException;
 import com.fabiankevin.app.exceptions.party.HouseholdNotFoundException;
 import com.fabiankevin.app.exceptions.party.NotHouseholdLeaderException;
 import com.fabiankevin.app.models.SummaryPoint;
@@ -49,7 +50,7 @@ public class DefaultHouseholdService implements HouseholdService {
     public HouseholdSummary organize(OrganizeHouseholdCommand command) {
         Optional<Household> existingHousehold = householdRepository.findByUserId(command.leaderId());
         if (existingHousehold.isPresent()) {
-            return toSummaryWithUsers(existingHousehold.get());
+            throw new HouseholdAlreadyExistsException();
         }
 
         List<HouseholdMember> initialHouseholdMembers = new ArrayList<>();
@@ -63,7 +64,9 @@ public class DefaultHouseholdService implements HouseholdService {
         cancelActiveIncomingInvitations(command.leaderId());
 
         Household newHousehold = Household.builder()
-                .name(command.householdName() != null ? command.householdName() : DEFAULT_HOUSEHOLD_NAME)
+                .name((command.householdName() == null || command.householdName().isBlank())
+                        ? DEFAULT_HOUSEHOLD_NAME
+                        : command.householdName())
                 .leaderId(command.leaderId())
                 .members(initialHouseholdMembers)
                 .active(true)
