@@ -6,11 +6,11 @@ import com.fabiankevin.app.events.StatsEventPublisher;
 import com.fabiankevin.app.events.TransactionEventPublisher;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
-import com.fabiankevin.app.persistence.PartyRepository;
+import com.fabiankevin.app.persistence.HouseholdRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.DefaultStatsService;
 import com.fabiankevin.app.services.DefaultTransactionService;
-import com.fabiankevin.app.services.PartyService;
+import com.fabiankevin.app.services.HouseholdService;
 import com.fabiankevin.app.services.StatsService;
 import com.fabiankevin.app.services.summaries.SummaryGenerator;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,8 +35,8 @@ public class AppConfig {
 
     @Bean
     public StatsService statsService(TransactionRepository transactionRepository,
-                                     PartyService partyService) {
-        return new DefaultStatsService(transactionRepository, partyService);
+                                     HouseholdService householdService) {
+        return new DefaultStatsService(transactionRepository, householdService);
     }
 
     @Bean
@@ -54,7 +54,7 @@ public class AppConfig {
             CategoryRepository categoryRepository,
             TransactionRepository transactionRepository,
             List<SummaryGenerator> generators,
-            PartyRepository partyRepository,
+            HouseholdRepository householdRepository,
             CompositeTransactionEventPublisher compositeTransactionEventPublisher,
             @Value("${transaction.daily-limit:100}") int dailyTransactionLimit,
             UserClient userClient) {
@@ -63,7 +63,7 @@ public class AppConfig {
                 categoryRepository,
                 transactionRepository,
                 generators,
-                partyRepository,
+                householdRepository,
                 compositeTransactionEventPublisher,
                 dailyTransactionLimit,
                 userClient);

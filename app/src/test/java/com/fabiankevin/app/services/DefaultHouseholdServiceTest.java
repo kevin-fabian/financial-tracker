@@ -7,12 +7,18 @@ import com.fabiankevin.app.exceptions.party.NotPartyLeaderException;
 import com.fabiankevin.app.exceptions.party.PartyNotFoundException;
 import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.User;
-import com.fabiankevin.app.models.enums.party.*;
-import com.fabiankevin.app.models.party.*;
+import com.fabiankevin.app.models.enums.household.AccessLevel;
+import com.fabiankevin.app.models.enums.household.HouseholdMemberStatus;
+import com.fabiankevin.app.models.enums.household.InvitationStatus;
+import com.fabiankevin.app.models.household.Household;
+import com.fabiankevin.app.models.household.HouseholdMember;
+import com.fabiankevin.app.models.household.HouseholdMemberSummary;
+import com.fabiankevin.app.models.household.HouseholdSummary;
+import com.fabiankevin.app.models.household.Invitation;
+import com.fabiankevin.app.persistence.HouseholdRepository;
 import com.fabiankevin.app.persistence.InvitationRepository;
-import com.fabiankevin.app.persistence.PartyRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
-import com.fabiankevin.app.services.commands.party.OrganizePartyCommand;
+import com.fabiankevin.app.services.commands.party.OrganizeHouseholdCommand;
 import com.fabiankevin.app.services.commands.party.PatchPartyCommand;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -23,16 +29,27 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class DefaultPartyServiceTest {
+class DefaultHouseholdServiceTest {
     @Mock
-    private PartyRepository partyRepository;
+    private HouseholdRepository householdRepository;
 
     @Mock
     private InvitationRepository invitationRepository;
@@ -44,131 +61,118 @@ class DefaultPartyServiceTest {
     private UserClient userClient;
 
     @InjectMocks
-    private DefaultPartyService service;
+    private DefaultHouseholdService service;
 
     @Nested
-    class OrganizeParty {
+    class OrganizeHousehold {
         @Test
         void givenValidCommand_thenCreatesPartyWithOwnerAsPartyMember() {
             UUID partyLeaderId = UUID.randomUUID();
-            OrganizePartyCommand command = new OrganizePartyCommand(
+            OrganizeHouseholdCommand command = new OrganizeHouseholdCommand(
                     partyLeaderId,
-                    "Trip Budget",
-                    SharingMode.EVEN_SHARE
+                    "Trip Budget"
             );
 
-            ArgumentCaptor<Party> captor = ArgumentCaptor.forClass(Party.class);
-            when(partyRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+            ArgumentCaptor<Household> captor = ArgumentCaptor.forClass(Household.class);
+            when(householdRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(any())).thenReturn(List.of());
 
-            PartySummary result = service.organize(command);
+            HouseholdSummary result = service.organize(command);
 
             assertNotNull(result);
             assertEquals("Trip Budget", result.name());
-            assertEquals(partyLeaderId, result.partyLeaderId());
-            assertEquals(SharingMode.EVEN_SHARE, result.sharingMode());
+            assertEquals(partyLeaderId, result.leaderId());
             assertTrue(result.active());
-            assertEquals(1, result.partyMembers().size());
+            assertEquals(1, result.members().size());
 
-            PartyMemberSummary leader = result.partyMembers().getFirst();
+            HouseholdMemberSummary leader = result.members().getFirst();
             assertTrue(leader.partyLeader(), "initial party member should be a leader");
             assertFalse(leader.partyMember(), "initial party member should not be a member");
             assertEquals(AccessLevel.VIEW_ONLY, leader.accessLevel());
-            assertEquals(PartyMemberStatus.ACTIVE, leader.status());
+            assertEquals(HouseholdMemberStatus.ACTIVE, leader.status());
 
-            assertEquals(2, result.sharedItems().size());
-            assertEquals(ResourceType.TRANSACTION, result.sharedItems().get(0).type());
-            assertEquals(ResourceType.CHECKLIST, result.sharedItems().get(1).type());
-
-            verify(partyRepository).save(any(Party.class));
+            verify(householdRepository).save(any(Household.class));
         }
 
         @Test
         void givenNullPartyName_thenUsesDefaultName() {
             UUID partyLeaderId = UUID.randomUUID();
-            OrganizePartyCommand command = new OrganizePartyCommand(
+            OrganizeHouseholdCommand command = new OrganizeHouseholdCommand(
                     partyLeaderId,
-                    null,
-                    SharingMode.EVEN_SHARE
+                    null
             );
 
-            ArgumentCaptor<Party> captor = ArgumentCaptor.forClass(Party.class);
-            when(partyRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+            ArgumentCaptor<Household> captor = ArgumentCaptor.forClass(Household.class);
+            when(householdRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(any())).thenReturn(List.of());
 
             service.organize(command);
 
             assertEquals("New Party", captor.getValue().name());
-            verify(partyRepository).save(any(Party.class));
+            verify(householdRepository).save(any(Household.class));
         }
 
         @Test
         void givenNullPartyLeaderId_thenThrows() {
-            assertThrows(NullPointerException.class, () -> new OrganizePartyCommand(
+            assertThrows(NullPointerException.class, () -> new OrganizeHouseholdCommand(
                     null,
-                    "My Party",
-                    SharingMode.EVEN_SHARE
+                    "My Party"
             ));
-            verify(partyRepository, never()).save(any());
+            verify(householdRepository, never()).save(any());
         }
 
         @Test
         void givenPartyLeaderAlreadyBelongsToParty_thenReturnsExistingParty() {
             UUID partyLeaderId = UUID.randomUUID();
             UUID partyId = UUID.randomUUID();
-            Party existingParty = Party.builder()
+            Household existingHousehold = Household.builder()
                     .id(partyId)
                     .name("Family Budget")
-                    .partyLeaderId(partyLeaderId)
-                    .partyMembers(new ArrayList<>(List.of(
-                            PartyMember.builder()
-                                    .playerId(partyLeaderId)
+                    .leaderId(partyLeaderId)
+                    .members(new ArrayList<>(List.of(
+                            HouseholdMember.builder()
+                                    .userId(partyLeaderId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
+                                    .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
 
-            when(partyRepository.findByPlayerId(partyLeaderId)).thenReturn(Optional.of(existingParty));
+            when(householdRepository.findByUserId(partyLeaderId)).thenReturn(Optional.of(existingHousehold));
             when(userClient.getUsersByIds(any())).thenReturn(List.of(
                     User.builder().id(partyLeaderId).firstName("Ada").lastName("Lovelace").build()
             ));
 
-            OrganizePartyCommand command = new OrganizePartyCommand(
+            OrganizeHouseholdCommand command = new OrganizeHouseholdCommand(
                     partyLeaderId,
-                    "Trip Budget",
-                    SharingMode.EVEN_SHARE
+                    "Trip Budget"
             );
-            PartySummary result = service.organize(command);
+            HouseholdSummary result = service.organize(command);
 
             assertNotNull(result);
             assertEquals(partyId, result.id());
             assertEquals("Family Budget", result.name());
-            assertEquals(partyLeaderId, result.partyLeaderId());
-            assertEquals(SharingMode.EVEN_SHARE, result.sharingMode());
-            verify(partyRepository, never()).save(any());
+            assertEquals(partyLeaderId, result.leaderId());
+
+            verify(householdRepository, never()).save(any());
         }
 
         @Test
         void givenIncomingPendingInvitations_thenCancelsAllBeforeCreatingParty() {
             UUID partyLeaderId = UUID.randomUUID();
-            OrganizePartyCommand command = new OrganizePartyCommand(
+            OrganizeHouseholdCommand command = new OrganizeHouseholdCommand(
                     partyLeaderId,
-                    "Trip Budget",
-                    SharingMode.EVEN_SHARE
+                    "Trip Budget"
             );
 
             Invitation incoming1 = Invitation.builder()
                     .id(UUID.randomUUID())
                     .inviterPlayerId(UUID.randomUUID())
                     .inviteePlayerId(partyLeaderId)
-                    .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
@@ -179,7 +183,6 @@ class DefaultPartyServiceTest {
                     .id(UUID.randomUUID())
                     .inviterPlayerId(UUID.randomUUID())
                     .inviteePlayerId(partyLeaderId)
-                    .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
@@ -188,8 +191,8 @@ class DefaultPartyServiceTest {
                     .build();
 
             when(invitationRepository.findByInviteeUserId(partyLeaderId)).thenReturn(List.of(incoming1, incoming2));
-            ArgumentCaptor<Party> captor = ArgumentCaptor.forClass(Party.class);
-            when(partyRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+            ArgumentCaptor<Household> captor = ArgumentCaptor.forClass(Household.class);
+            when(householdRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(any())).thenReturn(List.of());
 
             service.organize(command);
@@ -200,7 +203,7 @@ class DefaultPartyServiceTest {
             assertEquals(2, cancelled.size());
             assertTrue(cancelled.stream().allMatch(i -> i.status() == InvitationStatus.CANCELLED));
 
-            verify(partyRepository).save(any(Party.class));
+            verify(householdRepository).save(any(Household.class));
         }
 
         @Test
@@ -208,55 +211,52 @@ class DefaultPartyServiceTest {
             UUID partyLeaderId = UUID.randomUUID();
             UUID memberId = UUID.randomUUID();
             UUID partyId = UUID.randomUUID();
-            Party existingParty = Party.builder()
+            Household existingHousehold = Household.builder()
                     .id(partyId)
                     .name("Family Budget")
-                    .partyLeaderId(partyLeaderId)
-                    .partyMembers(new ArrayList<>(List.of(
-                            PartyMember.builder()
-                                    .playerId(partyLeaderId)
+                    .leaderId(partyLeaderId)
+                    .members(new ArrayList<>(List.of(
+                            HouseholdMember.builder()
+                                    .userId(partyLeaderId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
+                                    .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
-                            PartyMember.builder()
-                                    .playerId(memberId)
+                            HouseholdMember.builder()
+                                    .userId(memberId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
+                                    .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
 
-            when(partyRepository.findByPlayerId(memberId)).thenReturn(Optional.of(existingParty));
+            when(householdRepository.findByUserId(memberId)).thenReturn(Optional.of(existingHousehold));
             when(userClient.getUsersByIds(any())).thenReturn(List.of(
                     User.builder().id(partyLeaderId).firstName("Ada").lastName("Lovelace").build(),
                     User.builder().id(memberId).firstName("Alan").lastName("Turing").build()
             ));
 
-            OrganizePartyCommand command = new OrganizePartyCommand(
+            OrganizeHouseholdCommand command = new OrganizeHouseholdCommand(
                     memberId,
-                    "Trip Budget",
-                    SharingMode.EVEN_SHARE
+                    "Trip Budget"
             );
-            PartySummary result = service.organize(command);
+            HouseholdSummary result = service.organize(command);
 
             assertNotNull(result);
             assertEquals(partyId, result.id());
             assertEquals("Family Budget", result.name());
-            assertEquals(partyLeaderId, result.partyLeaderId());
-            assertEquals(SharingMode.EVEN_SHARE, result.sharingMode());
-            verify(partyRepository, never()).save(any());
+            assertEquals(partyLeaderId, result.leaderId());
+
+            verify(householdRepository, never()).save(any());
         }
     }
 
     @Nested
-    class GetPartyMembersUserId {
+    class GetHouseholdMembersUserId {
 
         @Test
         void givenUserId_thenDelegatesToRepositoryAndReturnsResult() {
@@ -265,25 +265,25 @@ class DefaultPartyServiceTest {
             UUID memberId2 = UUID.randomUUID();
             List<UUID> expected = List.of(memberId1, memberId2);
 
-            when(partyRepository.findPartyMembersPlayerIdsByPlayerId(userId)).thenReturn(expected);
+            when(householdRepository.findMembersUserIdsByUserId(userId)).thenReturn(expected);
 
-            List<UUID> result = service.getPartyMembersUserId(userId);
+            List<UUID> result = service.getHouseholdMembersUserIds(userId);
 
             assertEquals(expected, result, "result should be returned as-is from repository");
-            verify(partyRepository).findPartyMembersPlayerIdsByPlayerId(userId);
+            verify(householdRepository).findMembersUserIdsByUserId(userId);
         }
 
         @Test
         void givenRepositoryReturnsEmptyList_thenReturnUserIdFromParam() {
             UUID userId = UUID.randomUUID();
 
-            when(partyRepository.findPartyMembersPlayerIdsByPlayerId(userId)).thenReturn(List.of());
+            when(householdRepository.findMembersUserIdsByUserId(userId)).thenReturn(List.of());
 
-            List<UUID> result = service.getPartyMembersUserId(userId);
+            List<UUID> result = service.getHouseholdMembersUserIds(userId);
 
             assertNotNull(result);
             assertFalse(result.isEmpty(), "result should not be empty.");
-            verify(partyRepository).findPartyMembersPlayerIdsByPlayerId(userId);
+            verify(householdRepository).findMembersUserIdsByUserId(userId);
         }
     }
 
@@ -296,32 +296,30 @@ class DefaultPartyServiceTest {
             UUID partyLeaderId = UUID.randomUUID();
             UUID memberId = UUID.randomUUID();
             UUID partyId = UUID.randomUUID();
-            Party party = Party.builder()
+            Household household = Household.builder()
                     .id(partyId)
                     .name("Family Budget")
-                    .partyLeaderId(partyLeaderId)
-                    .partyMembers(new ArrayList<>(List.of(
-                            PartyMember.builder()
-                                    .playerId(partyLeaderId)
+                    .leaderId(partyLeaderId)
+                    .members(new ArrayList<>(List.of(
+                            HouseholdMember.builder()
+                                    .userId(partyLeaderId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
+                                    .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
-                            PartyMember.builder()
-                                    .playerId(memberId)
+                            HouseholdMember.builder()
+                                    .userId(memberId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
+                                    .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
 
-            when(partyRepository.retrieveByPlayerId(userId)).thenReturn(List.of(party));
+            when(householdRepository.retrieveByUserId(userId)).thenReturn(List.of(household));
             when(userClient.getUsersByIds(any())).thenReturn(List.of(
                     User.builder().id(partyLeaderId).firstName("Ada").lastName("Lovelace").build(),
                     User.builder().id(memberId).firstName("Alan").lastName("Turing").build()
@@ -331,16 +329,16 @@ class DefaultPartyServiceTest {
                     new SummaryPoint(memberId.toString(), 1.0)
             ));
 
-            List<PartySummary> result = service.retrieveByUserId(userId);
+            List<HouseholdSummary> result = service.retrieveByUserId(userId);
 
             assertNotNull(result);
             assertEquals(1, result.size());
-            PartySummary summary = result.getFirst();
+            HouseholdSummary summary = result.getFirst();
             assertEquals(partyId, summary.id());
-            assertEquals(2, summary.partyMembers().size());
+            assertEquals(2, summary.members().size());
 
-            PartyMemberSummary leaderSummary = summary.partyMembers().stream()
-                    .filter(PartyMemberSummary::partyLeader)
+            HouseholdMemberSummary leaderSummary = summary.members().stream()
+                    .filter(HouseholdMemberSummary::partyLeader)
                     .findFirst()
                     .orElseThrow();
             assertEquals(partyLeaderId, leaderSummary.playerId());
@@ -348,7 +346,7 @@ class DefaultPartyServiceTest {
             assertEquals("AL", leaderSummary.initial());
             assertEquals(3.5, leaderSummary.pastWeekDailyAverageTransactionCount());
 
-            PartyMemberSummary memberSummary = summary.partyMembers().stream()
+            HouseholdMemberSummary memberSummary = summary.members().stream()
                     .filter(s -> !s.partyLeader())
                     .findFirst()
                     .orElseThrow();
@@ -357,7 +355,7 @@ class DefaultPartyServiceTest {
             assertEquals("AT", memberSummary.initial());
             assertEquals(1.0, memberSummary.pastWeekDailyAverageTransactionCount());
 
-            verify(partyRepository).retrieveByPlayerId(userId);
+            verify(householdRepository).retrieveByUserId(userId);
             verify(userClient).getUsersByIds(List.of(partyLeaderId, memberId));
             verify(transactionRepository).getDailyAveragePastWeek(Set.of(partyLeaderId, memberId));
         }
@@ -366,62 +364,60 @@ class DefaultPartyServiceTest {
         void givenNoParties_thenReturnsEmptyList() {
             UUID userId = UUID.randomUUID();
 
-            when(partyRepository.retrieveByPlayerId(userId)).thenReturn(List.of());
+            when(householdRepository.retrieveByUserId(userId)).thenReturn(List.of());
 
-            List<PartySummary> result = service.retrieveByUserId(userId);
+            List<HouseholdSummary> result = service.retrieveByUserId(userId);
 
             assertNotNull(result);
             assertTrue(result.isEmpty());
 
-            verify(partyRepository).retrieveByPlayerId(userId);
+            verify(householdRepository).retrieveByUserId(userId);
             verify(transactionRepository, never()).getDailyAveragePastWeek(any());
         }
     }
 
     @Nested
-    class KickPartyMember {
+    class KickHouseholdMember {
 
         @Test
         void givenPartyLeaderKicksPartyMember_thenPartyMemberIsKicked() {
             UUID partyLeaderId = UUID.randomUUID();
             UUID participantId = UUID.randomUUID();
             UUID partyId = UUID.randomUUID();
-            Party party = Party.builder()
+            Household household = Household.builder()
                     .id(partyId)
                     .name("Family Budget")
-                    .partyLeaderId(partyLeaderId)
-                    .partyMembers(new ArrayList<>(List.of(
-                            PartyMember.builder()
-                                    .playerId(partyLeaderId)
+                    .leaderId(partyLeaderId)
+                    .members(new ArrayList<>(List.of(
+                            HouseholdMember.builder()
+                                    .userId(partyLeaderId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
+                                    .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
-                            PartyMember.builder()
-                                    .playerId(participantId)
+                            HouseholdMember.builder()
+                                    .userId(participantId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
+                                    .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
 
-            when(partyRepository.findById(partyId)).thenReturn(Optional.of(party));
-            when(partyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(householdRepository.findById(partyId)).thenReturn(Optional.of(household));
+            when(householdRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-            service.kickPartyMember(partyId, participantId, partyLeaderId);
+            service.removeMember(partyId, participantId, partyLeaderId);
 
-            ArgumentCaptor<Party> captor = ArgumentCaptor.forClass(Party.class);
-            verify(partyRepository).save(captor.capture());
-            Party saved = captor.getValue();
-            assertEquals(1, saved.partyMembers().size());
-            assertEquals(partyLeaderId, saved.partyMembers().getFirst().playerId());
-            assertTrue(saved.partyMembers().stream().noneMatch(p -> p.playerId().equals(participantId)));
+            ArgumentCaptor<Household> captor = ArgumentCaptor.forClass(Household.class);
+            verify(householdRepository).save(captor.capture());
+            Household saved = captor.getValue();
+            assertEquals(1, saved.members().size());
+            assertEquals(partyLeaderId, saved.members().getFirst().userId());
+            assertTrue(saved.members().stream().noneMatch(p -> p.userId().equals(participantId)));
         }
 
         @Test
@@ -429,70 +425,66 @@ class DefaultPartyServiceTest {
             UUID partyLeaderId = UUID.randomUUID();
             UUID participantId = UUID.randomUUID();
             UUID partyId = UUID.randomUUID();
-            Party party = Party.builder()
+            Household household = Household.builder()
                     .id(partyId)
                     .name("Family Budget")
-                    .partyLeaderId(partyLeaderId)
-                    .partyMembers(new ArrayList<>(List.of(
-                            PartyMember.builder()
-                                    .playerId(partyLeaderId)
+                    .leaderId(partyLeaderId)
+                    .members(new ArrayList<>(List.of(
+                            HouseholdMember.builder()
+                                    .userId(partyLeaderId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
+                                    .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
-                            PartyMember.builder()
-                                    .playerId(participantId)
+                            HouseholdMember.builder()
+                                    .userId(participantId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
+                                    .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
 
-            when(partyRepository.findById(partyId)).thenReturn(Optional.of(party));
-            when(partyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(householdRepository.findById(partyId)).thenReturn(Optional.of(household));
+            when(householdRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-            service.kickPartyMember(partyId, participantId, participantId);
+            service.removeMember(partyId, participantId, participantId);
 
-            ArgumentCaptor<Party> captor = ArgumentCaptor.forClass(Party.class);
-            verify(partyRepository).save(captor.capture());
-            Party saved = captor.getValue();
-            assertEquals(1, saved.partyMembers().size());
-            assertEquals(partyLeaderId, saved.partyMembers().getFirst().playerId());
+            ArgumentCaptor<Household> captor = ArgumentCaptor.forClass(Household.class);
+            verify(householdRepository).save(captor.capture());
+            Household saved = captor.getValue();
+            assertEquals(1, saved.members().size());
+            assertEquals(partyLeaderId, saved.members().getFirst().userId());
         }
 
         @Test
         void givenPartyLeaderKickThemselves_thenThrows() {
             UUID partyLeaderId = UUID.randomUUID();
             UUID partyId = UUID.randomUUID();
-            Party party = Party.builder()
+            Household household = Household.builder()
                     .id(partyId)
                     .name("Family Budget")
-                    .partyLeaderId(partyLeaderId)
-                    .partyMembers(new ArrayList<>(List.of(
-                            PartyMember.builder()
-                                    .playerId(partyLeaderId)
+                    .leaderId(partyLeaderId)
+                    .members(new ArrayList<>(List.of(
+                            HouseholdMember.builder()
+                                    .userId(partyLeaderId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
+                                    .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
 
-            when(partyRepository.findById(partyId)).thenReturn(Optional.of(party));
+            when(householdRepository.findById(partyId)).thenReturn(Optional.of(household));
 
-            assertThrows(CannotRemoveOwnerException.class, () -> service.kickPartyMember(partyId, partyLeaderId, partyLeaderId));
-            verify(partyRepository, never()).save(any());
+            assertThrows(CannotRemoveOwnerException.class, () -> service.removeMember(partyId, partyLeaderId, partyLeaderId));
+            verify(householdRepository, never()).save(any());
         }
 
         @Test
@@ -500,69 +492,65 @@ class DefaultPartyServiceTest {
             UUID partyLeaderId = UUID.randomUUID();
             UUID memberId = UUID.randomUUID();
             UUID partyId = UUID.randomUUID();
-            Party party = Party.builder()
+            Household household = Household.builder()
                     .id(partyId)
                     .name("Family Budget")
-                    .partyLeaderId(partyLeaderId)
-                    .partyMembers(new ArrayList<>(List.of(
-                            PartyMember.builder()
-                                    .playerId(partyLeaderId)
+                    .leaderId(partyLeaderId)
+                    .members(new ArrayList<>(List.of(
+                            HouseholdMember.builder()
+                                    .userId(partyLeaderId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
+                                    .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
-                            PartyMember.builder()
-                                    .playerId(memberId)
+                            HouseholdMember.builder()
+                                    .userId(memberId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
+                                    .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
 
-            when(partyRepository.findById(partyId)).thenReturn(Optional.of(party));
+            when(householdRepository.findById(partyId)).thenReturn(Optional.of(household));
 
-            assertThrows(ForbiddenException.class, () -> service.kickPartyMember(partyId, partyLeaderId, memberId));
-            verify(partyRepository, never()).save(any());
+            assertThrows(ForbiddenException.class, () -> service.removeMember(partyId, partyLeaderId, memberId));
+            verify(householdRepository, never()).save(any());
         }
     }
 
     @Nested
-    class DisbandParty {
+    class DisbandHousehold {
 
         @Test
         void givenPartyLeaderDisbandsParty_thenDeleteByIdIsCalled() {
             UUID partyLeaderId = UUID.randomUUID();
             UUID partyId = UUID.randomUUID();
-            Party party = Party.builder()
+            Household household = Household.builder()
                     .id(partyId)
                     .name("Family Budget")
-                    .partyLeaderId(partyLeaderId)
-                    .partyMembers(new ArrayList<>(List.of(
-                            PartyMember.builder()
-                                    .playerId(partyLeaderId)
+                    .leaderId(partyLeaderId)
+                    .members(new ArrayList<>(List.of(
+                            HouseholdMember.builder()
+                                    .userId(partyLeaderId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
+                                    .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
 
-            when(partyRepository.findById(partyId)).thenReturn(Optional.of(party));
+            when(householdRepository.findById(partyId)).thenReturn(Optional.of(household));
 
-            service.disbandParty(partyId, partyLeaderId);
+            service.disbandHousehold(partyId, partyLeaderId);
 
-            verify(partyRepository).deleteById(partyId);
+            verify(householdRepository).deleteById(partyId);
         }
 
         @Test
@@ -570,10 +558,10 @@ class DefaultPartyServiceTest {
             UUID partyId = UUID.randomUUID();
             UUID requesterId = UUID.randomUUID();
 
-            when(partyRepository.findById(partyId)).thenReturn(Optional.empty());
+            when(householdRepository.findById(partyId)).thenReturn(Optional.empty());
 
-            assertThrows(PartyNotFoundException.class, () -> service.disbandParty(partyId, requesterId));
-            verify(partyRepository, never()).deleteById(any());
+            assertThrows(PartyNotFoundException.class, () -> service.disbandHousehold(partyId, requesterId));
+            verify(householdRepository, never()).deleteById(any());
         }
 
         @Test
@@ -581,53 +569,49 @@ class DefaultPartyServiceTest {
             UUID partyLeaderId = UUID.randomUUID();
             UUID otherPlayerId = UUID.randomUUID();
             UUID partyId = UUID.randomUUID();
-            Party party = Party.builder()
+            Household household = Household.builder()
                     .id(partyId)
                     .name("Family Budget")
-                    .partyLeaderId(partyLeaderId)
-                    .partyMembers(new ArrayList<>(List.of(
-                            PartyMember.builder()
-                                    .playerId(partyLeaderId)
+                    .leaderId(partyLeaderId)
+                    .members(new ArrayList<>(List.of(
+                            HouseholdMember.builder()
+                                    .userId(partyLeaderId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
+                                    .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
 
-            when(partyRepository.findById(partyId)).thenReturn(Optional.of(party));
+            when(householdRepository.findById(partyId)).thenReturn(Optional.of(household));
 
-            assertThrows(NotPartyLeaderException.class, () -> service.disbandParty(partyId, otherPlayerId));
-            verify(partyRepository, never()).deleteById(any());
+            assertThrows(NotPartyLeaderException.class, () -> service.disbandHousehold(partyId, otherPlayerId));
+            verify(householdRepository, never()).deleteById(any());
         }
     }
 
     @Nested
-    class PatchParty {
+    class PatchHousehold {
 
         @Test
         void givenOwnerUpdatesName_thenNameIsUpdated() {
             UUID partyLeaderId = UUID.randomUUID();
             UUID partyId = UUID.randomUUID();
-            Party party = Party.builder()
+            Household household = Household.builder()
                     .id(partyId)
                     .name("Family Budget")
-                    .partyLeaderId(partyLeaderId)
-                    .partyMembers(new ArrayList<>(List.of(
-                            PartyMember.builder()
-                                    .playerId(partyLeaderId)
+                    .leaderId(partyLeaderId)
+                    .members(new ArrayList<>(List.of(
+                            HouseholdMember.builder()
+                                    .userId(partyLeaderId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
+                                    .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -639,14 +623,13 @@ class DefaultPartyServiceTest {
                     .playerId(partyLeaderId)
                     .build();
 
-            when(partyRepository.findById(partyId)).thenReturn(Optional.of(party));
-            when(partyRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(householdRepository.findById(partyId)).thenReturn(Optional.of(household));
+            when(householdRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-            Party updated = service.patchParty(command);
+            Household updated = service.patchHousehold(command);
 
             assertEquals("Updated Budget", updated.name(), "name should be updated");
-            assertEquals(SharingMode.EVEN_SHARE, updated.sharingMode(), "sharingMode should remain unchanged");
-            verify(partyRepository).save(any(Party.class));
+            verify(householdRepository).save(any(Household.class));
         }
 
         @Test
@@ -660,10 +643,10 @@ class DefaultPartyServiceTest {
                     .playerId(requesterId)
                     .build();
 
-            when(partyRepository.findById(partyId)).thenReturn(Optional.empty());
+            when(householdRepository.findById(partyId)).thenReturn(Optional.empty());
 
-            assertThrows(PartyNotFoundException.class, () -> service.patchParty(command));
-            verify(partyRepository, never()).save(any());
+            assertThrows(PartyNotFoundException.class, () -> service.patchHousehold(command));
+            verify(householdRepository, never()).save(any());
         }
 
         @Test
@@ -671,20 +654,18 @@ class DefaultPartyServiceTest {
             UUID partyLeaderId = UUID.randomUUID();
             UUID otherPlayerId = UUID.randomUUID();
             UUID partyId = UUID.randomUUID();
-            Party party = Party.builder()
+            Household household = Household.builder()
                     .id(partyId)
                     .name("Family Budget")
-                    .partyLeaderId(partyLeaderId)
-                    .partyMembers(new ArrayList<>(List.of(
-                            PartyMember.builder()
-                                    .playerId(partyLeaderId)
+                    .leaderId(partyLeaderId)
+                    .members(new ArrayList<>(List.of(
+                            HouseholdMember.builder()
+                                    .userId(partyLeaderId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(PartyMemberStatus.ACTIVE)
+                                    .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build()
                     )))
-                    .sharingMode(SharingMode.EVEN_SHARE)
-                    .sharedItems(new ArrayList<>())
                     .active(true)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -696,10 +677,10 @@ class DefaultPartyServiceTest {
                     .playerId(otherPlayerId)
                     .build();
 
-            when(partyRepository.findById(partyId)).thenReturn(Optional.of(party));
+            when(householdRepository.findById(partyId)).thenReturn(Optional.of(household));
 
-            assertThrows(NotPartyLeaderException.class, () -> service.patchParty(command));
-            verify(partyRepository, never()).save(any());
+            assertThrows(NotPartyLeaderException.class, () -> service.patchHousehold(command));
+            verify(householdRepository, never()).save(any());
         }
     }
 }

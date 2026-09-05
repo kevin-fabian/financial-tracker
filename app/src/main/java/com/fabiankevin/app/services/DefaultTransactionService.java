@@ -2,14 +2,24 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.events.EventPublisher;
-import com.fabiankevin.app.exceptions.*;
-import com.fabiankevin.app.models.*;
+import com.fabiankevin.app.exceptions.AccountNotFoundException;
+import com.fabiankevin.app.exceptions.CategoryNotFoundException;
+import com.fabiankevin.app.exceptions.DailyTransactionLimitExceededException;
+import com.fabiankevin.app.exceptions.InvalidAmountException;
+import com.fabiankevin.app.exceptions.TransactionNotFoundException;
+import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.ItemEvent;
+import com.fabiankevin.app.models.Page;
+import com.fabiankevin.app.models.SummarySeries;
+import com.fabiankevin.app.models.Transaction;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.EventAction;
 import com.fabiankevin.app.models.enums.SummaryType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
-import com.fabiankevin.app.persistence.PartyRepository;
+import com.fabiankevin.app.persistence.HouseholdRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.PatchTransactionCommand;
@@ -22,7 +32,13 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -33,7 +49,7 @@ public class DefaultTransactionService implements TransactionService {
     private final CategoryRepository categoryRepository;
     private final TransactionRepository transactionRepository;
     private final Map<SummaryType, SummaryGenerator> generators;
-    private final PartyRepository partyRepository;
+    private final HouseholdRepository householdRepository;
     private final EventPublisher<Transaction> compositeEventPublisher;
     private final int dailyTransactionLimit;
     private final UserClient userClient;
@@ -43,7 +59,7 @@ public class DefaultTransactionService implements TransactionService {
             CategoryRepository categoryRepository,
             TransactionRepository transactionRepository,
             List<SummaryGenerator> generators,
-            PartyRepository partyRepository,
+            HouseholdRepository householdRepository,
             EventPublisher<Transaction> compositeEventPublisher,
             int dailyTransactionLimit,
             UserClient userClient) {
@@ -55,7 +71,7 @@ public class DefaultTransactionService implements TransactionService {
                         SummaryGenerator::supports,
                         Function.identity()
                 ));
-        this.partyRepository = partyRepository;
+        this.householdRepository = householdRepository;
         this.compositeEventPublisher = compositeEventPublisher;
         this.dailyTransactionLimit = dailyTransactionLimit;
         this.userClient = userClient;
@@ -112,7 +128,7 @@ public class DefaultTransactionService implements TransactionService {
 
         Transaction savedTransaction = transactionRepository.save(transaction);
 
-        partyRepository.findByPlayerId(userId).ifPresent(party -> {
+        householdRepository.findByUserId(userId).ifPresent(party -> {
             compositeEventPublisher.publish(party.id(), new ItemEvent<>(
                     userId,
                     EventAction.ADDED,
@@ -180,7 +196,7 @@ public class DefaultTransactionService implements TransactionService {
 
     @Override
     public Page<Transaction> getTransactionsByPageQuery(PageQuery query, UUID userId, TransactionType type) {
-        Set<UUID> userIds = new HashSet<>(partyRepository.findPartyMembersPlayerIdsByPlayerId(userId));
+        Set<UUID> userIds = new HashSet<>(householdRepository.findMembersUserIdsByUserId(userId));
         userIds.add(userId);
         Page<Transaction> page = transactionRepository.getTransactionsByPageAndUserIdAndType(query, userIds, type);
 

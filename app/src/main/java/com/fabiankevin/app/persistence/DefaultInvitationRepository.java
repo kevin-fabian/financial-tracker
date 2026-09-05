@@ -1,7 +1,7 @@
 package com.fabiankevin.app.persistence;
 
-import com.fabiankevin.app.models.enums.party.InvitationStatus;
-import com.fabiankevin.app.models.party.Invitation;
+import com.fabiankevin.app.models.enums.household.InvitationStatus;
+import com.fabiankevin.app.models.household.Invitation;
 import com.fabiankevin.app.persistence.entities.InvitationEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaInvitationRepository;
 import lombok.RequiredArgsConstructor;

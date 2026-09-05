@@ -1,7 +1,11 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.exceptions.*;
+import com.fabiankevin.app.exceptions.AccountNotFoundException;
+import com.fabiankevin.app.exceptions.CategoryNotFoundException;
+import com.fabiankevin.app.exceptions.InvalidAmountException;
+import com.fabiankevin.app.exceptions.InvalidDurationException;
+import com.fabiankevin.app.exceptions.NotFoundException;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.Transaction;
@@ -42,7 +46,7 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
     private final AccountRepository accountRepository;
     private final CategoryRepository categoryRepository;
     private final UserClient userClient;
-    private final PartyService partyService;
+    private final HouseholdService householdService;
 
     @Override
     public RecurringTransactionSummary create(CreateRecurringTransactionCommand command) {
@@ -107,7 +111,7 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
     @Override
     public List<RecurringTransactionSummary> getRecurringTransactionsByUserId(UUID userId) {
         LocalDate today = LocalDate.now();
-        List<UUID> userIds = partyService.getPartyMembersUserId(userId);
+        List<UUID> userIds = householdService.getHouseholdMembersUserIds(userId);
         List<RecurringTransactionSummary> summaries = recurringTransactionRepository.findSummariesByUserIds(userIds, today);
         return enrichWithUserData(summaries, today);
     }

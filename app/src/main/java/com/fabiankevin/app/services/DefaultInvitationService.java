@@ -1,17 +1,24 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.exceptions.party.*;
+import com.fabiankevin.app.exceptions.party.ForbiddenException;
+import com.fabiankevin.app.exceptions.party.InvitationAlreadyHandledException;
+import com.fabiankevin.app.exceptions.party.InvitationExpiredException;
+import com.fabiankevin.app.exceptions.party.InvitationNotFoundException;
+import com.fabiankevin.app.exceptions.party.InviterCannotAcceptOwnInvitationException;
+import com.fabiankevin.app.exceptions.party.NotPartyLeaderException;
+import com.fabiankevin.app.exceptions.party.PartyMemberAlreadyExistsException;
+import com.fabiankevin.app.exceptions.party.PartyNotFoundException;
 import com.fabiankevin.app.models.User;
-import com.fabiankevin.app.models.enums.party.AccessLevel;
-import com.fabiankevin.app.models.enums.party.InvitationStatus;
-import com.fabiankevin.app.models.enums.party.PartyMemberStatus;
-import com.fabiankevin.app.models.party.Invitation;
-import com.fabiankevin.app.models.party.InvitationSummary;
-import com.fabiankevin.app.models.party.Party;
-import com.fabiankevin.app.models.party.PartyMember;
+import com.fabiankevin.app.models.enums.household.AccessLevel;
+import com.fabiankevin.app.models.enums.household.HouseholdMemberStatus;
+import com.fabiankevin.app.models.enums.household.InvitationStatus;
+import com.fabiankevin.app.models.household.Household;
+import com.fabiankevin.app.models.household.HouseholdMember;
+import com.fabiankevin.app.models.household.Invitation;
+import com.fabiankevin.app.models.household.InvitationSummary;
+import com.fabiankevin.app.persistence.HouseholdRepository;
 import com.fabiankevin.app.persistence.InvitationRepository;
-import com.fabiankevin.app.persistence.PartyRepository;
 import com.fabiankevin.app.services.commands.party.invitations.AcceptInvitationCommand;
 import com.fabiankevin.app.services.commands.party.invitations.RejectInvitationCommand;
 import com.fabiankevin.app.services.commands.party.invitations.SendInvitationCommand;
@@ -32,14 +39,14 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DefaultInvitationService implements InvitationService {
     private final InvitationRepository invitationRepository;
-    private final PartyRepository partyRepository;
+    private final HouseholdRepository householdRepository;
     private final UserClient userClient;
 
     @Transactional
     @Override
     public InvitationSummary sendInvitation(SendInvitationCommand command) {
-        Party space = findSpaceOrThrow(command.partyId());
-        if (!space.partyLeaderId().equals(command.inviterPlayerId())) {
+        Household space = findSpaceOrThrow(command.partyId());
+        if (!space.leaderId().equals(command.inviterPlayerId())) {
             throw new NotPartyLeaderException();
         }
 
@@ -49,7 +56,7 @@ public class DefaultInvitationService implements InvitationService {
             throw new PartyMemberAlreadyExistsException();
         }
 
-        if (partyRepository.findByPlayerId(invitee.id()).isPresent()) {
+        if (householdRepository.findByUserId(invitee.id()).isPresent()) {
             throw new PartyMemberAlreadyExistsException();
         }
 
@@ -58,7 +65,6 @@ public class DefaultInvitationService implements InvitationService {
                     Invitation newInvitation = Invitation.builder()
                             .inviterPlayerId(command.inviterPlayerId())
                             .inviteePlayerId(invitee.id())
-                            .proposedSharingMode(space.sharingMode())
                             .proposedRole(AccessLevel.VIEW_ONLY)
                             .status(InvitationStatus.PENDING)
                             .createdAt(Instant.now())
@@ -92,7 +98,6 @@ public class DefaultInvitationService implements InvitationService {
                 .id(invitation.id())
                 .inviterPlayerId(invitation.inviterPlayerId())
                 .inviteePlayerId(invitation.inviteePlayerId())
-                .proposedSharingMode(invitation.proposedSharingMode())
                 .proposedRole(invitation.proposedRole())
                 .status(InvitationStatus.ACCEPTED)
                 .createdAt(invitation.createdAt())
@@ -101,24 +106,24 @@ public class DefaultInvitationService implements InvitationService {
                 .build();
         invitationRepository.save(updatedInvitation);
 
-        Party space = findSpaceOrThrow(invitation.partyId());
+        Household space = findSpaceOrThrow(invitation.partyId());
 
-        PartyMember participant = PartyMember.builder()
-                .playerId(invitation.inviteePlayerId())
+        HouseholdMember participant = HouseholdMember.builder()
+                .userId(invitation.inviteePlayerId())
                 .accessLevel(invitation.proposedRole())
-                .status(PartyMemberStatus.ACTIVE)
+                .status(HouseholdMemberStatus.ACTIVE)
                 .joinedAt(Instant.now())
                 .build();
 
-        List<PartyMember> updatedParticipants = new ArrayList<>(space.partyMembers());
+        List<HouseholdMember> updatedParticipants = new ArrayList<>(space.members());
         updatedParticipants.add(participant);
 
-        Party updatedSpace = space.toBuilder()
-                .partyMembers(updatedParticipants)
+        Household updatedSpace = space.toBuilder()
+                .members(updatedParticipants)
                 .updatedAt(Instant.now())
                 .build();
 
-        partyRepository.save(updatedSpace);
+        householdRepository.save(updatedSpace);
 
         return toSummary(updatedInvitation, command.acceptingPlayerId());
     }
@@ -166,18 +171,18 @@ public class DefaultInvitationService implements InvitationService {
                 .distinct()
                 .toList();
 
-        Map<UUID, Party> spacesById = spaceIds.isEmpty()
+        Map<UUID, Household> spacesById = spaceIds.isEmpty()
                 ? Map.of()
-                : partyRepository.findAllById(spaceIds).stream()
-                        .collect(Collectors.toMap(Party::id, Function.identity()));
+                : householdRepository.findAllById(spaceIds).stream()
+                        .collect(Collectors.toMap(Household::id, Function.identity()));
 
         return invitations.stream()
                 .map(invitation -> toSummary(invitation, usersById, spacesById, userId))
                 .toList();
     }
 
-    private Party findSpaceOrThrow(UUID spaceId) {
-        return partyRepository.findById(spaceId)
+    private Household findSpaceOrThrow(UUID spaceId) {
+        return householdRepository.findById(spaceId)
                 .orElseThrow(PartyNotFoundException::new);
     }
 
@@ -186,9 +191,9 @@ public class DefaultInvitationService implements InvitationService {
                 .orElseThrow(InvitationNotFoundException::new);
     }
 
-    private boolean isUserParticipant(Party space, UUID userId) {
-        return space.partyMembers().stream()
-                .anyMatch(spaceParticipant -> spaceParticipant.playerId().equals(userId));
+    private boolean isUserParticipant(Household space, UUID userId) {
+        return space.members().stream()
+                .anyMatch(spaceParticipant -> spaceParticipant.userId().equals(userId));
     }
 
     private void validateInvitationActive(Invitation invitation) {
@@ -201,10 +206,10 @@ public class DefaultInvitationService implements InvitationService {
         }
     }
 
-    private InvitationSummary toSummary(Invitation invitation, Map<UUID, User> usersById, Map<UUID, Party> spacesById, UUID currentUserId) {
+    private InvitationSummary toSummary(Invitation invitation, Map<UUID, User> usersById, Map<UUID, Household> spacesById, UUID currentUserId) {
         User inviter = usersById.get(invitation.inviterPlayerId());
         User invitee = usersById.get(invitation.inviteePlayerId());
-        Party space = spacesById.get(invitation.partyId());
+        Household space = spacesById.get(invitation.partyId());
 
         return InvitationSummary.builder()
                 .id(invitation.id())
@@ -212,8 +217,6 @@ public class DefaultInvitationService implements InvitationService {
                 .inviterInitial(deriveInitial(inviter))
                 .inviteeName(invitee != null ? invitee.firstName() + " " + invitee.lastName() : null)
                 .inviteeInitial(deriveInitial(invitee))
-                .proposedSharingModeName(invitation.proposedSharingMode() != null ? invitation.proposedSharingMode().getName() : null)
-                .proposedSharingModeDescription(invitation.proposedSharingMode() != null ? invitation.proposedSharingMode().getDescription() : null)
                 .proposedRoleName(invitation.proposedRole() != null ? invitation.proposedRole().getName() : null)
                 .proposedRoleDescription(invitation.proposedRole() != null ? invitation.proposedRole().getDescription() : null)
                 .status(invitation.status())
@@ -229,8 +232,8 @@ public class DefaultInvitationService implements InvitationService {
         List<UUID> userIds = List.of(invitation.inviterPlayerId(), invitation.inviteePlayerId());
         Map<UUID, User> usersById = userClient.getUsersByIds(userIds).stream()
                 .collect(Collectors.toMap(User::id, Function.identity()));
-        Party space = partyRepository.findById(invitation.partyId()).orElse(null);
-        Map<UUID, Party> spacesById = space != null
+        Household space = householdRepository.findById(invitation.partyId()).orElse(null);
+        Map<UUID, Household> spacesById = space != null
                 ? Map.of(space.id(), space)
                 : Map.of();
         return toSummary(invitation, usersById, spacesById, currentUserId);

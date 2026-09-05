@@ -34,7 +34,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultBudgetServiceTest {
@@ -49,7 +52,7 @@ class DefaultBudgetServiceTest {
     private UserClient userClient;
 
     @Mock
-    private PartyService partyService;
+    private HouseholdService householdService;
 
     @InjectMocks
     private DefaultBudgetService budgetService;
@@ -332,7 +335,7 @@ class DefaultBudgetServiceTest {
 
             when(budgetRepository.findAllBudgetSummaryByUserId(eq(List.of(userId)), any(LocalDate.class), any(LocalDate.class)))
                     .thenReturn(List.of(summary));
-            when(partyService.getPartyMembersUserId(userId)).thenReturn(List.of(userId));
+            when(householdService.getHouseholdMembersUserIds(userId)).thenReturn(List.of(userId));
 
             List<BudgetSummary> results = budgetService.getBudgetsByUserId(userId);
 
@@ -367,7 +370,7 @@ class DefaultBudgetServiceTest {
 
             when(budgetRepository.findAllBudgetSummaryByUserId(eq(List.of(userId)), any(LocalDate.class), any(LocalDate.class)))
                     .thenReturn(List.of());
-            when(partyService.getPartyMembersUserId(userId)).thenReturn(List.of(userId));
+            when(householdService.getHouseholdMembersUserIds(userId)).thenReturn(List.of(userId));
 
             List<BudgetSummary> results = budgetService.getBudgetsByUserId(userId);
 

@@ -34,16 +34,16 @@ BLOCKING — Schema and service impact must be resolved before implementation.
 ### Q15. Party schema migrations must exist before bill-split implementation
 
 **Context**
-The `PartyEntity`, `PartyMemberEntity`, `SharedItemEntity`, and `InvitationEntity` JPA entities exist, but no Liquibase migrations create the `parties`, `party_members`, `shared_items`, or `invitations` tables.
+The `PartyEntity`, `HouseholdMemberEntity`, `SharedItemEntity`, and `InvitationEntity` JPA entities exist, but no Liquibase migrations create the `parties`, `party_members`, `shared_items`, or `invitations` tables.
 
-Bill-split does not involve the party feature (AD-4) and does not require the party schema for its own tables. However, the service-layer validation that "participants are valid user identifiers" may need the party schema to resolve user IDs against `party_members.player_id` when splits are used within a party context.
+Bill-split does not involve the household feature (AD-4) and does not require the household schema for its own tables. However, the service-layer validation that "participants are valid user identifiers" may need the household schema to resolve user IDs against `party_members.player_id` when splits are used within a household context.
 
 **Options**
-- A. Create party schema migrations (V1.0.5) before implementing bill-split.
-- B. Implement bill-split with application-level UUID validation only (no party membership check).
+- A. Create household schema migrations (V1.0.5) before implementing bill-split.
+- B. Implement bill-split with application-level UUID validation only (no household membership check).
 
 **AI Recommendation**
-B for v1 bill-split implementation. The party schema can be added later; bill-split works with plain UUIDs (AD-8).
+B for v1 bill-split implementation. The household schema can be added later; bill-split works with plain UUIDs (AD-8).
 
 **Decision**
 Since the Party is not related to Bill-Split, I believe this one isn't relevant anymore.
@@ -66,30 +66,30 @@ A. Payee = transaction owner (account holder).
 **Status**
 RESOLVED
 
-### Q2. Party table schema not in migrations — no party feature
+### Q2. Party table schema not in migrations — no household feature
 
 **Context**
-The `PartyEntity`, `PartyMemberEntity`, `SharedItemEntity`, and `InvitationEntity` JPA entities exist, but no Liquibase migrations create the `parties`, `party_members`, `shared_items`, or `invitations` tables.
+The `PartyEntity`, `HouseholdMemberEntity`, `SharedItemEntity`, and `InvitationEntity` JPA entities exist, but no Liquibase migrations create the `parties`, `party_members`, `shared_items`, or `invitations` tables.
 
-The bill-split feature was initially designed with party-scoped queries and `party_id` columns on `splits` and `settlements` tables.
+The bill-split feature was initially designed with household-scoped queries and `party_id` columns on `splits` and `settlements` tables.
 
 **Decision**
-No party feature (AD-4). Remove all `party_id` columns from `splits` and `settlements` tables. Remove party membership validation from command flows. Remove party-scoped queries. Participants are identified by plain UUIDs (AD-8).
+No household feature (AD-4). Remove all `party_id` columns from `splits` and `settlements` tables. Remove household membership validation from command flows. Remove household-scoped queries. Participants are identified by plain UUIDs (AD-8).
 
-**Resolution**: AD-4 updated to reflect no party feature. `party_id` columns removed from data-model.md. API paths changed from `/api/parties/{partyId}/...` to `/api/splits/...` and `/api/settlements/...`. Party membership validation removed from CF-1, CF-2, CF-4. QF-2 changed from "Get Party Balances" to "Get User Balances".
+**Resolution**: AD-4 updated to reflect no household feature. `party_id` columns removed from data-model.md. API paths changed from `/api/parties/{partyId}/...` to `/api/splits/...` and `/api/settlements/...`. Party membership validation removed from CF-1, CF-2, CF-4. QF-2 changed from "Get Party Balances" to "Get User Balances".
 
 **Status**
-RESOLVED — All artifacts updated to reflect no party feature.
+RESOLVED — All artifacts updated to reflect no household feature.
 
 ### Q3. Should splits support partial splits?
 
 **Context**
-A $100 transaction where only 2 of 4 party members participated.
+A $100 transaction where only 2 of 4 household members participated.
 
 **Decision**
 A. Support partial splits — only explicitly selected participants get split records.
 
-**Resolution**: The data model already supports this. The unique constraint `(transaction_id, user_id)` means non-participants simply have no split record. The sum of split amounts must equal the transaction amount (not all party members need a record).
+**Resolution**: The data model already supports this. The unique constraint `(transaction_id, user_id)` means non-participants simply have no split record. The sum of split amounts must equal the transaction amount (not all household members need a record).
 
 **Status**
 RESOLVED
@@ -112,7 +112,7 @@ A.
 **Resolution required**: Add a new command flow (CF-4: Patch Split) to data-flow.md. Add `PATCH /api/splits/{splitId}` endpoint to architecture.md. Implement `PatchSplitCommand` and `SplitService.patchSplit()` with validation that the new total still equals the transaction amount.
 
 **Status**
-RESOLVED — CF-4 added to data-flow.md. API path updated to no party feature.
+RESOLVED — CF-4 added to data-flow.md. API path updated to no household feature.
 
 ### Q6. Can a transaction be un-split?
 

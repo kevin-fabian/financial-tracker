@@ -1,6 +1,6 @@
 package com.fabiankevin.app.web.controllers.dtos.party;
 
-import com.fabiankevin.app.models.party.PartyMemberSummary;
+import com.fabiankevin.app.models.household.HouseholdMemberSummary;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
@@ -9,7 +9,7 @@ import java.util.UUID;
 
 @Builder(toBuilder = true)
 @Schema(description = "Response representing a participant in a party")
-public record PartyMemberResponse(
+public record HouseholdMemberResponse(
         @Schema(description = "Participant identifier", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
         UUID id,
 
@@ -46,8 +46,8 @@ public record PartyMemberResponse(
         @Schema(description = "Timestamp when the participant joined")
         Instant joinedAt
 ) {
-    public static PartyMemberResponse from(PartyMemberSummary partyMember) {
-        return PartyMemberResponse.builder()
+    public static HouseholdMemberResponse from(HouseholdMemberSummary partyMember) {
+        return HouseholdMemberResponse.builder()
                 .id(partyMember.id())
                 .playerId(partyMember.playerId())
                 .name(partyMember.name())

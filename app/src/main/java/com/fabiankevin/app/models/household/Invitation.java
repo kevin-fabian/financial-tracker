@@ -1,22 +1,20 @@
-package com.fabiankevin.app.models.party;
+package com.fabiankevin.app.models.household;
 
-import com.fabiankevin.app.models.enums.party.AccessLevel;
-import com.fabiankevin.app.models.enums.party.InvitationStatus;
-import com.fabiankevin.app.models.enums.party.SharingMode;
+import com.fabiankevin.app.models.enums.household.AccessLevel;
+import com.fabiankevin.app.models.enums.household.InvitationStatus;
 import lombok.Builder;
 
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
-import static com.fabiankevin.app.models.enums.party.InvitationStatus.PENDING;
+import static com.fabiankevin.app.models.enums.household.InvitationStatus.PENDING;
 
 @Builder(toBuilder = true)
 public record Invitation(
         UUID id,
         UUID inviterPlayerId,
         UUID inviteePlayerId,
-        SharingMode proposedSharingMode,
         AccessLevel proposedRole,
         InvitationStatus status,
         Instant createdAt,

@@ -4,7 +4,7 @@
 
 Bill Split enables users to split transactions across multiple participants and settle outstanding obligations. A single transaction (e.g., a dinner paid by one person) is allocated across participants via **splits**, and each participant's net obligation is tracked through **settlements**.
 
-This feature does **not involve the party system**. Participants are identified by `user_id` (plain UUIDs from JWT `sub` claims or downstream user service); no party membership validation is performed.
+This feature does **not involve the household system**. Participants are identified by `user_id` (plain UUIDs from JWT `sub` claims or downstream user service); no household membership validation is performed.
 
 ## Primary Resource
 
@@ -91,19 +91,19 @@ This feature does **not involve the party system**. Participants are identified 
 
 **Trade-off**: Equal splits are a convenience layer on top of custom splits — the system still creates individual `splits` rows.
 
-### AD-4: No party feature involvement
+### AD-4: No household feature involvement
 
-**Decision**: Splits and settlements do not involve the party system. No `party_id` columns. No party membership validation.
+**Decision**: Splits and settlements do not involve the household system. No `party_id` columns. No household membership validation.
 
 **Why**:
-- Human decision: bill-split works independently of the party system.
+- Human decision: bill-split works independently of the household system.
 - Participants are identified by `user_id` (plain UUIDs) directly.
 - Splits reference transactions (which have an `addedBy` user) for payee identification.
 - Settlements reference `user_id`s directly.
 
 **How it works**:
 - No `party_id` columns in `splits` or `settlements` tables.
-- No party membership validation for split participants or settlement parties.
+- No household membership validation for split participants or settlement parties.
 - Payee identification comes from the transaction's `addedBy` field (Q1 resolved).
 - Participants are identified by `user_id` — plain UUIDs from JWT `sub` claims or downstream user service.
 
@@ -207,7 +207,7 @@ This feature does **not involve the party system**. Participants are identified 
 **Decision**: `splits.user_id` and `settlements.payer_user_id` / `settlements.payee_user_id` are plain `UUID` columns with no database-level foreign key.
 
 **Why**:
-- No party feature: these UUIDs reference external identity providers (JWT `sub` claims, downstream user service).
+- No household feature: these UUIDs reference external identity providers (JWT `sub` claims, downstream user service).
 - No `party_id` scope means no meaningful FK to `party_members`.
 - Application-level validation ensures the UUIDs are valid user identifiers.
 
@@ -218,12 +218,12 @@ This feature does **not involve the party system**. Participants are identified 
 | Date | Change |
 |------|--------|
 | 2026-09-01 | Initial architecture draft |
-| 2026-09-01 | Review pass: 14 findings. AD-4 updated to reflect human decision (no party feature). Contradictions documented. Missing resources identified (SplitType enum, exception classes, SettlementEntity.updatedAt, settlement creates transaction). |
+| 2026-09-01 | Review pass: 14 findings. AD-4 updated to reflect human decision (no household feature). Contradictions documented. Missing resources identified (SplitType enum, exception classes, SettlementEntity.updatedAt, settlement creates transaction). |
 | 2026-09-01 | Validation pass: 3 blocking issues, 9 inconsistencies, 6 missing information, 5 unresolved decisions, 7 warnings. Party schema not in migrations confirmed. Settlement creates transaction impact documented. |
 | 2026-09-01 | Q14 resolved: Only `amount` field can be patched. CF-4 (Patch Split) added to data-flow.md. Validation constraints documented. |
-| 2026-09-01 | Analysis pass: Q2 resolved (remove party_id columns). Q11 resolved (defer to v2). Q12 resolved (keep current design). Q13 consolidated into Q4. AD-4 updated to remove all party references. Data model, data flows, use cases, and boundaries updated to reflect no-party design. |
-| 2026-09-01 | Artifact consistency pass: Removed all party_id columns from data-model.md. Removed party membership validation from data flows. Fixed API paths to no-party. Added AD-6 (BigDecimal), AD-7 (settlement creates transaction), AD-8 (user_id plain UUID). Fixed entity amount type from double to BigDecimal. Clarified user_id semantics. |
-| 2026-09-01 | Naming pass: Replaced all `playerId`/`payerPlayerId`/`payeePlayerId` with `userId`/`payerUserId`/`payeeUserId`. Replaced "party-agnostic" with "no party feature". Updated AD-4 title and description. |
+| 2026-09-01 | Analysis pass: Q2 resolved (remove party_id columns). Q11 resolved (defer to v2). Q12 resolved (keep current design). Q13 consolidated into Q4. AD-4 updated to remove all household references. Data model, data flows, use cases, and boundaries updated to reflect no-household design. |
+| 2026-09-01 | Artifact consistency pass: Removed all party_id columns from data-model.md. Removed household membership validation from data flows. Fixed API paths to no-household. Added AD-6 (BigDecimal), AD-7 (settlement creates transaction), AD-8 (user_id plain UUID). Fixed entity amount type from double to BigDecimal. Clarified user_id semantics. |
+| 2026-09-01 | Naming pass: Replaced all `userId`/`payerPlayerId`/`payeePlayerId` with `userId`/`payerUserId`/`payeeUserId`. Replaced "household-agnostic" with "no household feature". Updated AD-4 title and description. |
 
 ## Implementation Readiness: NOT READY
 

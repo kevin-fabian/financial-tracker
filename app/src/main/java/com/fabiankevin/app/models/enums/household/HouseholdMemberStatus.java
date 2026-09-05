@@ -1,6 +1,6 @@
-package com.fabiankevin.app.models.enums.party;
+package com.fabiankevin.app.models.enums.household;
 
-public enum PartyMemberStatus {
+public enum HouseholdMemberStatus {
     PENDING, // Invitation sent, not yet accepted
     ACTIVE,  // Currently participating
     LEFT,    // Voluntarily left

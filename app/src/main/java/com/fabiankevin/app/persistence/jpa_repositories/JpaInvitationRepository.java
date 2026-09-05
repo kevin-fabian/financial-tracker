@@ -1,6 +1,6 @@
 package com.fabiankevin.app.persistence.jpa_repositories;
 
-import com.fabiankevin.app.models.enums.party.InvitationStatus;
+import com.fabiankevin.app.models.enums.household.InvitationStatus;
 import com.fabiankevin.app.persistence.entities.InvitationEntity;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;

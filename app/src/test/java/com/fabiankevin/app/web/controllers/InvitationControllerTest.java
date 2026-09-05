@@ -3,12 +3,11 @@ package com.fabiankevin.app.web.controllers;
 import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.exceptions.party.InvitationNotFoundException;
 import com.fabiankevin.app.exceptions.party.NotPartyLeaderException;
-import com.fabiankevin.app.models.enums.party.AccessLevel;
-import com.fabiankevin.app.models.enums.party.InvitationStatus;
-import com.fabiankevin.app.models.enums.party.SharingMode;
-import com.fabiankevin.app.models.party.InvitationSummary;
+import com.fabiankevin.app.models.enums.household.AccessLevel;
+import com.fabiankevin.app.models.enums.household.InvitationStatus;
+import com.fabiankevin.app.models.household.InvitationSummary;
+import com.fabiankevin.app.services.HouseholdService;
 import com.fabiankevin.app.services.InvitationService;
-import com.fabiankevin.app.services.PartyService;
 import com.fabiankevin.app.services.commands.party.invitations.AcceptInvitationCommand;
 import com.fabiankevin.app.services.commands.party.invitations.RejectInvitationCommand;
 import com.fabiankevin.app.services.commands.party.invitations.SendInvitationCommand;
@@ -30,9 +29,14 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-import static com.fabiankevin.app.models.enums.party.InvitationStatus.*;
+import static com.fabiankevin.app.models.enums.household.InvitationStatus.ACCEPTED;
+import static com.fabiankevin.app.models.enums.household.InvitationStatus.PENDING;
+import static com.fabiankevin.app.models.enums.household.InvitationStatus.REJECTED;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -48,7 +52,7 @@ class InvitationControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private PartyService partyService;
+    private HouseholdService householdService;
 
     @MockitoBean
     private InvitationService invitationService;
@@ -79,8 +83,6 @@ class InvitationControllerTest {
             .inviterInitial("JD")
             .inviteeName("Jane Smith")
             .inviteeInitial("JS")
-            .proposedSharingModeName(SharingMode.EVEN_SHARE.getName())
-            .proposedSharingModeDescription(SharingMode.EVEN_SHARE.getDescription())
             .proposedRoleName(AccessLevel.VIEW_ONLY.getName())
             .proposedRoleDescription(AccessLevel.VIEW_ONLY.getDescription())
             .status(status)
@@ -106,8 +108,6 @@ class InvitationControllerTest {
                 .inviterInitial("JD")
                 .inviteeName("Jane Smith")
                 .inviteeInitial("JS")
-                .proposedSharingModeName(SharingMode.EVEN_SHARE.getName())
-                .proposedSharingModeDescription(SharingMode.EVEN_SHARE.getDescription())
                 .proposedRoleName(AccessLevel.VIEW_ONLY.getName())
                 .proposedRoleDescription(AccessLevel.VIEW_ONLY.getDescription())
                 .status(PENDING)
@@ -123,8 +123,6 @@ class InvitationControllerTest {
                 .inviterInitial("BJ")
                 .inviteeName("Alice Brown")
                 .inviteeInitial("AB")
-                .proposedSharingModeName(SharingMode.EVEN_SHARE.getName())
-                .proposedSharingModeDescription(SharingMode.EVEN_SHARE.getDescription())
                 .proposedRoleName(AccessLevel.VIEW_ONLY.getName())
                 .proposedRoleDescription(AccessLevel.VIEW_ONLY.getDescription())
                 .status(PENDING)
@@ -147,14 +145,13 @@ class InvitationControllerTest {
                 .andExpect(jsonPath("$[0].inviteeName").value("Jane Smith"))
                 .andExpect(jsonPath("$[0].inviteeInitial").value("JS"))
                 .andExpect(jsonPath("$[0].proposedSharingModeName").value("Even Share"))
-                .andExpect(jsonPath("$[0].proposedSharingModeDescription").value(SharingMode.EVEN_SHARE.getDescription()))
                 .andExpect(jsonPath("$[0].proposedRoleName").value("View Only"))
                 .andExpect(jsonPath("$[0].proposedRoleDescription").value(AccessLevel.VIEW_ONLY.getDescription()))
                 .andExpect(jsonPath("$[0].status").value("PENDING"))
                 .andExpect(jsonPath("$[0].createdAt").exists())
                 .andExpect(jsonPath("$[0].expiresAt").exists())
                 .andExpect(jsonPath("$[0].partyId").value(partyId.toString()))
-                .andExpect(jsonPath("$[0].partyName").value("Family 2026 Budget"))
+                .andExpect(jsonPath("$[0].householdName").value("Family 2026 Budget"))
                 .andExpect(jsonPath("$[0].inviter").value(true))
                 .andExpect(jsonPath("$[1].id").value(receivedId.toString()))
                 .andExpect(jsonPath("$[1].inviterName").value("Bob Jones"))
@@ -162,14 +159,13 @@ class InvitationControllerTest {
                 .andExpect(jsonPath("$[1].inviteeName").value("Alice Brown"))
                 .andExpect(jsonPath("$[1].inviteeInitial").value("AB"))
                 .andExpect(jsonPath("$[1].proposedSharingModeName").value("Even Share"))
-                .andExpect(jsonPath("$[1].proposedSharingModeDescription").value(SharingMode.EVEN_SHARE.getDescription()))
                 .andExpect(jsonPath("$[1].proposedRoleName").value("View Only"))
                 .andExpect(jsonPath("$[1].proposedRoleDescription").value(AccessLevel.VIEW_ONLY.getDescription()))
                 .andExpect(jsonPath("$[1].status").value("PENDING"))
                 .andExpect(jsonPath("$[1].createdAt").exists())
                 .andExpect(jsonPath("$[1].expiresAt").exists())
                 .andExpect(jsonPath("$[1].partyId").value(partyId.toString()))
-                .andExpect(jsonPath("$[1].partyName").value("Trip Expenses"))
+                .andExpect(jsonPath("$[1].householdName").value("Trip Expenses"))
                 .andExpect(jsonPath("$[1].inviter").value(false));
 
             verify(invitationService).getInvitationsByUserId(userId);
@@ -180,7 +176,7 @@ class InvitationControllerTest {
             mockMvc.perform(get("/api/parties/invitations"))
                 .andExpect(status().isUnauthorized());
 
-            verifyNoInteractions(partyService);
+            verifyNoInteractions(householdService);
         }
 
         @Test
@@ -236,14 +232,13 @@ class InvitationControllerTest {
                 .andExpect(jsonPath("$.inviteeName").value("Jane Smith"))
                 .andExpect(jsonPath("$.inviteeInitial").value("JS"))
                 .andExpect(jsonPath("$.proposedSharingModeName").value("Even Share"))
-                .andExpect(jsonPath("$.proposedSharingModeDescription").value(SharingMode.EVEN_SHARE.getDescription()))
                 .andExpect(jsonPath("$.proposedRoleName").value("View Only"))
                 .andExpect(jsonPath("$.proposedRoleDescription").value(AccessLevel.VIEW_ONLY.getDescription()))
                 .andExpect(jsonPath("$.status").value("PENDING"))
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andExpect(jsonPath("$.expiresAt").exists())
                 .andExpect(jsonPath("$.partyId").value(partyId.toString()))
-                .andExpect(jsonPath("$.partyName").value("Family 2026 Budget"))
+                .andExpect(jsonPath("$.householdName").value("Family 2026 Budget"))
                 .andExpect(jsonPath("$.inviter").value(true));
 
             verify(invitationService).sendInvitation(any(SendInvitationCommand.class));
@@ -261,7 +256,7 @@ class InvitationControllerTest {
                     .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden());
 
-            verifyNoInteractions(partyService);
+            verifyNoInteractions(householdService);
         }
 
         @Test
@@ -301,14 +296,13 @@ class InvitationControllerTest {
                 .andExpect(jsonPath("$.inviteeName").value("Jane Smith"))
                 .andExpect(jsonPath("$.inviteeInitial").value("JS"))
                 .andExpect(jsonPath("$.proposedSharingModeName").value("Even Share"))
-                .andExpect(jsonPath("$.proposedSharingModeDescription").value(SharingMode.EVEN_SHARE.getDescription()))
                 .andExpect(jsonPath("$.proposedRoleName").value("View Only"))
                 .andExpect(jsonPath("$.proposedRoleDescription").value(AccessLevel.VIEW_ONLY.getDescription()))
                 .andExpect(jsonPath("$.status").value("ACCEPTED"))
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andExpect(jsonPath("$.expiresAt").exists())
                 .andExpect(jsonPath("$.partyId").value(partyId.toString()))
-                .andExpect(jsonPath("$.partyName").value("Family 2026 Budget"))
+                .andExpect(jsonPath("$.householdName").value("Family 2026 Budget"))
                 .andExpect(jsonPath("$.inviter").value(false));
 
             verify(invitationService).acceptInvitation(any(AcceptInvitationCommand.class));
@@ -322,7 +316,7 @@ class InvitationControllerTest {
             mockMvc.perform(post("/api/parties/" + partyId + "/invitations/" + invitationId + "/accept"))
                 .andExpect(status().isForbidden());
 
-            verifyNoInteractions(partyService);
+            verifyNoInteractions(householdService);
         }
 
         @Test
@@ -359,14 +353,13 @@ class InvitationControllerTest {
                 .andExpect(jsonPath("$.inviteeName").value("Jane Smith"))
                 .andExpect(jsonPath("$.inviteeInitial").value("JS"))
                 .andExpect(jsonPath("$.proposedSharingModeName").value("Even Share"))
-                .andExpect(jsonPath("$.proposedSharingModeDescription").value(SharingMode.EVEN_SHARE.getDescription()))
                 .andExpect(jsonPath("$.proposedRoleName").value("View Only"))
                 .andExpect(jsonPath("$.proposedRoleDescription").value(AccessLevel.VIEW_ONLY.getDescription()))
                 .andExpect(jsonPath("$.status").value("REJECTED"))
                 .andExpect(jsonPath("$.createdAt").exists())
                 .andExpect(jsonPath("$.expiresAt").exists())
                 .andExpect(jsonPath("$.partyId").value(partyId.toString()))
-                .andExpect(jsonPath("$.partyName").value("Family 2026 Budget"))
+                .andExpect(jsonPath("$.householdName").value("Family 2026 Budget"))
                 .andExpect(jsonPath("$.inviter").value(false));
 
             verify(invitationService).rejectInvitation(any(RejectInvitationCommand.class));
@@ -380,7 +373,7 @@ class InvitationControllerTest {
             mockMvc.perform(post("/api/parties/" + partyId + "/invitations/" + invitationId + "/reject"))
                 .andExpect(status().isForbidden());
 
-            verifyNoInteractions(partyService);
+            verifyNoInteractions(householdService);
         }
 
         @Test

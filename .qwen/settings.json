@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "intellij": {
+      "type": "sse",
+      "url": "http://127.0.0.1:64342/sse",
+      "headers": {
+        "IJ_MCP_SERVER_PROJECT_PATH": "/Users/kevinl.fabian/workspace/springboot/million_dollars_project/financial-tracker"
+      },
+      "trust": true
+    }
+  },
+  "permissions": {
+    "allow": [
+      "Bash(./mvnw *)",
+      "Bash(grep *)",
+      "Bash(git stash)",
+      "Agent(Explore)",
+      "Bash(cd *)",
+      "Bash(head *)",
+      "Bash(find *)",
+      "Bash(unzip *)",
+      "Bash(tail *)",
+      "Bash(mkdir *)",
+      "Bash(cat *)",
+      "Bash(ls *)",
+      "Bash(mv *)",
+      "Bash(sed *)"
+    ]
+  },
+  "$version": 4
+}

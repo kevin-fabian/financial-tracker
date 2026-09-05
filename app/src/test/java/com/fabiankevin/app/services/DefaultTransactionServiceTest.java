@@ -6,13 +6,19 @@ import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.exceptions.DailyTransactionLimitExceededException;
 import com.fabiankevin.app.exceptions.TransactionNotFoundException;
-import com.fabiankevin.app.models.*;
+import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.Page;
+import com.fabiankevin.app.models.SummaryPoint;
+import com.fabiankevin.app.models.SummarySeries;
+import com.fabiankevin.app.models.Transaction;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.SummaryType;
 import com.fabiankevin.app.models.enums.TransactionType;
-import com.fabiankevin.app.models.party.Party;
+import com.fabiankevin.app.models.household.Household;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
-import com.fabiankevin.app.persistence.PartyRepository;
+import com.fabiankevin.app.persistence.HouseholdRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.PatchTransactionCommand;
@@ -28,13 +34,21 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.Currency;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultTransactionServiceTest {
@@ -46,7 +60,7 @@ class DefaultTransactionServiceTest {
     private TransactionRepository transactionRepository;
     private final SummaryGenerator categorySummaryGenerator = mock(SummaryGenerator.class);
     @Mock
-    private PartyRepository partyRepository;
+    private HouseholdRepository householdRepository;
     @Mock
     private EventPublisher<Transaction> eventPublisher;
     @Mock
@@ -62,7 +76,7 @@ class DefaultTransactionServiceTest {
                 categoryRepository,
                 transactionRepository,
                 summaryGenerators,
-                partyRepository,
+                householdRepository,
                 eventPublisher,
                 100,
                 userClient
@@ -241,15 +255,15 @@ class DefaultTransactionServiceTest {
                    .userId(userId)
                    .build()));
            when(transactionRepository.save(any())).then(invocation -> invocation.getArgument(0));
-           Party party = mock(Party.class);
-           when(party.id()).thenReturn(sharedSpaceId);
-           when(partyRepository.findByPlayerId(userId)).thenReturn(Optional.of(party));
+           Household household = mock(Household.class);
+           when(household.id()).thenReturn(sharedSpaceId);
+           when(householdRepository.findByUserId(userId)).thenReturn(Optional.of(household));
 
            Transaction transaction = transactionService.addTransaction(command);
 
            assertEquals("Food and drinks", transaction.description());
            verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, LocalDate.now());
-           verify(partyRepository, times(1)).findByPlayerId(userId);
+           verify(householdRepository, times(1)).findByUserId(userId);
            verify(eventPublisher, times(1)).publish(eq(sharedSpaceId), any());
        }
 
@@ -277,13 +291,13 @@ class DefaultTransactionServiceTest {
                    .userId(userId)
                    .build()));
            when(transactionRepository.save(any())).then(invocation -> invocation.getArgument(0));
-           when(partyRepository.findByPlayerId(userId)).thenReturn(Optional.empty());
+           when(householdRepository.findByUserId(userId)).thenReturn(Optional.empty());
 
            Transaction transaction = transactionService.addTransaction(command);
 
            assertEquals("Food and drinks", transaction.description());
            verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, LocalDate.now());
-           verify(partyRepository, times(1)).findByPlayerId(userId);
+           verify(householdRepository, times(1)).findByUserId(userId);
            verify(eventPublisher, never()).publish(any(), any());
        }
 

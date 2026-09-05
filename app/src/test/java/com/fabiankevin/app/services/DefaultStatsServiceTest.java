@@ -20,14 +20,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultStatsServiceTest {
     @Mock
     private TransactionRepository transactionRepository;
     @Mock
-    private PartyService partyService;
+    private HouseholdService householdService;
     @InjectMocks
     private DefaultStatsService statsService;
 
@@ -58,7 +60,7 @@ class DefaultStatsServiceTest {
         double totalBalance = 15000.0;
         double priorBalance = 12000.0;
 
-        when(partyService.getPartyMembersUserId(userId)).thenReturn(List.of());
+        when(householdService.getHouseholdMembersUserIds(userId)).thenReturn(List.of());
         when(transactionRepository.sumByTypeAndUserId(eq(Set.of(userId)), eq(fromDate), eq(toDate), eq(categoryId)))
                 .thenReturn(summaryPoints(currentIncome, currentExpenses));
         when(transactionRepository.sumBalance(eq(Set.of(userId))))
@@ -74,7 +76,7 @@ class DefaultStatsServiceTest {
         assertEquals(currentExpenses, summary.totalExpenses(), 0.001, "Total expenses should match");
         assertEquals(25.0, summary.growthPercentage(), 0.01, "Growth percentage should reflect month-over-month balance change");
 
-        verify(partyService, times(1)).getPartyMembersUserId(userId);
+        verify(householdService, times(1)).getHouseholdMembersUserIds(userId);
         verify(transactionRepository, times(1)).sumByTypeAndUserId(any(), any(), any(), any());
         verify(transactionRepository, times(1)).sumBalance(any(), any(), any());
         verify(transactionRepository, times(1)).sumBalance(eq(Set.of(userId)));
@@ -91,7 +93,7 @@ class DefaultStatsServiceTest {
         double currentExpenses = 1500.0;
         double totalBalance = 10000.0;
 
-        when(partyService.getPartyMembersUserId(userId)).thenReturn(List.of());
+        when(householdService.getHouseholdMembersUserIds(userId)).thenReturn(List.of());
         when(transactionRepository.sumByTypeAndUserId(eq(Set.of(userId)), any(), any(), any()))
                 .thenReturn(summaryPoints(currentIncome, currentExpenses));
         when(transactionRepository.sumBalance(eq(Set.of(userId))))
@@ -107,7 +109,7 @@ class DefaultStatsServiceTest {
         assertEquals(currentExpenses, summary.totalExpenses(), 0.001, "Total expenses should match");
         assertEquals(100.0, summary.growthPercentage(), 0.001, "Growth percentage should be 100.0% when prior balance is zero");
 
-        verify(partyService, times(1)).getPartyMembersUserId(userId);
+        verify(householdService, times(1)).getHouseholdMembersUserIds(userId);
         verify(transactionRepository, times(1)).sumByTypeAndUserId(any(), any(), any(), any());
         verify(transactionRepository, times(1)).sumBalance(any(), any(), any());
         verify(transactionRepository, times(1)).sumBalance(eq(Set.of(userId)));
@@ -133,7 +135,7 @@ class DefaultStatsServiceTest {
             double totalBalance = 25000.0;
             double priorBalance = 20000.0;
 
-            when(partyService.getPartyMembersUserId(userId)).thenReturn(participantIds);
+            when(householdService.getHouseholdMembersUserIds(userId)).thenReturn(participantIds);
             when(transactionRepository.sumByTypeAndUserId(eq(expectedUserIds), any(), any(), any()))
                     .thenReturn(summaryPoints(currentIncome, currentExpenses));
             when(transactionRepository.sumBalance(eq(expectedUserIds)))
@@ -149,7 +151,7 @@ class DefaultStatsServiceTest {
             assertEquals(currentExpenses, summary.totalExpenses(), 0.001);
             assertEquals(25.0, summary.growthPercentage(), 0.01);
 
-            verify(partyService).getPartyMembersUserId(userId);
+            verify(householdService).getHouseholdMembersUserIds(userId);
             verify(transactionRepository).sumByTypeAndUserId(eq(expectedUserIds), any(), any(), any());
             verify(transactionRepository).sumBalance(eq(expectedUserIds));
             verify(transactionRepository).sumBalance(eq(expectedUserIds), any(), any());
@@ -165,7 +167,7 @@ class DefaultStatsServiceTest {
 
             StatsQuery query = StatsQuery.builder().build();
 
-            when(partyService.getPartyMembersUserId(userId)).thenReturn(participantIds);
+            when(householdService.getHouseholdMembersUserIds(userId)).thenReturn(participantIds);
             when(transactionRepository.sumByTypeAndUserId(eq(expectedUserIds), any(), any(), any()))
                     .thenReturn(summaryPoints(6000.0, 2000.0));
             when(transactionRepository.sumBalance(eq(expectedUserIds)))
@@ -178,7 +180,7 @@ class DefaultStatsServiceTest {
             assertNotNull(summary);
             assertEquals(0.0, summary.growthPercentage(), 0.001, "Growth should be 0 when prior and current balances are equal");
 
-            verify(partyService).getPartyMembersUserId(userId);
+            verify(householdService).getHouseholdMembersUserIds(userId);
             verify(transactionRepository).sumByTypeAndUserId(eq(expectedUserIds), any(), any(), any());
             verify(transactionRepository).sumBalance(eq(expectedUserIds));
         }
@@ -193,7 +195,7 @@ class DefaultStatsServiceTest {
 
             StatsQuery query = StatsQuery.builder().build();
 
-            when(partyService.getPartyMembersUserId(userId)).thenReturn(participantIds);
+            when(householdService.getHouseholdMembersUserIds(userId)).thenReturn(participantIds);
             when(transactionRepository.sumByTypeAndUserId(eq(expectedUserIds), any(), any(), any()))
                     .thenReturn(summaryPoints(10000.0, 7000.0));
             when(transactionRepository.sumBalance(eq(expectedUserIds)))
@@ -206,7 +208,7 @@ class DefaultStatsServiceTest {
             assertNotNull(summary);
             assertEquals(10000.0, summary.totalIncome(), 0.001);
 
-            verify(partyService).getPartyMembersUserId(userId);
+            verify(householdService).getHouseholdMembersUserIds(userId);
             verify(transactionRepository).sumByTypeAndUserId(eq(expectedUserIds), any(), any(), any());
             verify(transactionRepository).sumBalance(eq(expectedUserIds));
             verify(transactionRepository).sumBalance(eq(expectedUserIds), any(), any());

@@ -1,11 +1,11 @@
 package com.fabiankevin.app.web.controllers;
 
-import com.fabiankevin.app.models.party.Party;
-import com.fabiankevin.app.models.party.PartySummary;
-import com.fabiankevin.app.services.PartyService;
-import com.fabiankevin.app.web.controllers.dtos.party.OrganizePartyRequest;
-import com.fabiankevin.app.web.controllers.dtos.party.PartyResponse;
-import com.fabiankevin.app.web.controllers.dtos.party.PatchPartyRequest;
+import com.fabiankevin.app.models.household.Household;
+import com.fabiankevin.app.models.household.HouseholdSummary;
+import com.fabiankevin.app.services.HouseholdService;
+import com.fabiankevin.app.web.controllers.dtos.party.HouseholdResponse;
+import com.fabiankevin.app.web.controllers.dtos.party.OrganizeHouseholdRequest;
+import com.fabiankevin.app.web.controllers.dtos.party.PatchHouseholdRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -17,7 +17,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
@@ -29,25 +36,25 @@ import java.util.UUID;
 @RestController
 @RequestMapping(value = "/api/parties", version = "v1")
 public class PartyController {
-    private final PartyService partyService;
+    private final HouseholdService householdService;
 
     @Operation(
         summary = "Create a party",
         description = "Creates a new party owned by the authenticated user and returns it.",
         responses = {
             @ApiResponse(responseCode = "201", description = "Created - Party created successfully",
-                content = @Content(schema = @Schema(implementation = PartyResponse.class))),
+                content = @Content(schema = @Schema(implementation = HouseholdResponse.class))),
             @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input"),
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
     @PostMapping
-    public ResponseEntity<PartyResponse> organizeParty(
-        @Valid @RequestBody OrganizePartyRequest request,
+    public ResponseEntity<HouseholdResponse> organizeParty(
+        @Valid @RequestBody OrganizeHouseholdRequest request,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        PartySummary created = partyService.organize(request.toCommand(userId));
-        PartyResponse response = PartyResponse.from(created);
+        HouseholdSummary created = householdService.organize(request.toCommand(userId));
+        HouseholdResponse response = HouseholdResponse.from(created);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
             .path("/{id}")
             .buildAndExpand(response.id())
@@ -60,15 +67,15 @@ public class PartyController {
         description = "Retrieves all parties the authenticated user participates in.",
         responses = {
             @ApiResponse(responseCode = "200", description = "OK - Parties retrieved successfully",
-                content = @Content(array = @ArraySchema(schema = @Schema(implementation = PartyResponse.class)))),
+                content = @Content(array = @ArraySchema(schema = @Schema(implementation = HouseholdResponse.class)))),
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
     @GetMapping
-    public List<PartyResponse> getParties(JwtAuthenticationToken jwtAuthenticationToken) {
+    public List<HouseholdResponse> getParties(JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        return partyService.retrieveByUserId(userId).stream()
-            .map(PartyResponse::from)
+        return householdService.retrieveByUserId(userId).stream()
+            .map(HouseholdResponse::from)
             .toList();
     }
 
@@ -77,20 +84,20 @@ public class PartyController {
         description = "Updates the name and/or sharing mode of the party owned by the authenticated user.",
         responses = {
             @ApiResponse(responseCode = "200", description = "OK - Party updated successfully",
-                content = @Content(schema = @Schema(implementation = PartyResponse.class))),
+                content = @Content(schema = @Schema(implementation = HouseholdResponse.class))),
             @ApiResponse(responseCode = "403", description = "Forbidden - Only the owner can update the party"),
             @ApiResponse(responseCode = "404", description = "Not Found - Party not found"),
             @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure")
         }
     )
     @PatchMapping("/{partyId}")
-    public PartyResponse patchParty(
+    public HouseholdResponse patchParty(
         @PathVariable @NotNull @Schema(description = "ID of the party to update") UUID partyId,
-        @RequestBody PatchPartyRequest request,
+        @RequestBody PatchHouseholdRequest request,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        Party updated = partyService.patchParty(request.toCommand(partyId, userId));
-        return PartyResponse.from(updated);
+        Household updated = householdService.patchHousehold(request.toCommand(partyId, userId));
+        return HouseholdResponse.from(updated);
     }
 
     @Operation(
@@ -108,7 +115,7 @@ public class PartyController {
         @PathVariable @NotNull @Schema(description = "ID of the party to delete") UUID partyId,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        partyService.disbandParty(partyId, userId);
+        householdService.disbandHousehold(partyId, userId);
         return ResponseEntity.noContent().build();
     }
 
@@ -128,7 +135,7 @@ public class PartyController {
         @PathVariable @NotNull @Schema(description = "ID of the participant to remove") UUID partyMemberId,
         JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        partyService.kickPartyMember(partyId, partyMemberId, userId);
+        householdService.removeMember(partyId, partyMemberId, userId);
         return ResponseEntity.noContent().build();
     }
 }

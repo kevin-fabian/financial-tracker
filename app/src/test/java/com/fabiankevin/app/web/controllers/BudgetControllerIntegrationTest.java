@@ -22,7 +22,7 @@ import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.budgets.CreateBudgetCommand;
 import com.fabiankevin.app.web.controllers.dtos.budgets.CreateBudgetRequest;
 import com.fabiankevin.app.web.controllers.dtos.budgets.PatchBudgetRequest;
-import com.fabiankevin.app.web.controllers.dtos.party.PartyResponse;
+import com.fabiankevin.app.web.controllers.dtos.party.HouseholdResponse;
 import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -50,8 +50,13 @@ import java.util.stream.Stream;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -249,8 +254,8 @@ class BudgetControllerIntegrationTest {
                     );
 
             // Create party and invite + accept via helper
-            PartyResponse partyResponse = householdHelper.createHouseHold(userId);
-            householdHelper.inviteAndAccept(partyResponse.id(), userId, otherUserId, "invitee@example.com");
+            HouseholdResponse householdResponse = householdHelper.createHouseHold(userId);
+            householdHelper.inviteAndAccept(householdResponse.id(), userId, otherUserId, "invitee@example.com");
 
             // Create categories and budgets for both users
             Category userCategory = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");

@@ -18,7 +18,7 @@ import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateTransactionRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchTransactionRequest;
-import com.fabiankevin.app.web.controllers.dtos.party.PartyResponse;
+import com.fabiankevin.app.web.controllers.dtos.party.HouseholdResponse;
 import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -48,8 +48,13 @@ import static com.fabiankevin.app.models.enums.AccountType.E_WALLET;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -763,7 +768,7 @@ class TransactionControllerIntegrationTest {
             when(userClient.getUsersByIds(any())).thenReturn(List.of(leaderUser, inviteeUser));
 
             // Create party and invite + accept
-            PartyResponse party = householdHelper.createHouseHold(partyLeaderId);
+            HouseholdResponse party = householdHelper.createHouseHold(partyLeaderId);
             householdHelper.inviteAndAccept(party.id(), partyLeaderId, inviteeId, "invitee@example.com");
 
             // Create accounts for both users

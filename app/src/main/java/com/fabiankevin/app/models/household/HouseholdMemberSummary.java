@@ -1,7 +1,7 @@
-package com.fabiankevin.app.models.party;
+package com.fabiankevin.app.models.household;
 
-import com.fabiankevin.app.models.enums.party.AccessLevel;
-import com.fabiankevin.app.models.enums.party.PartyMemberStatus;
+import com.fabiankevin.app.models.enums.household.AccessLevel;
+import com.fabiankevin.app.models.enums.household.HouseholdMemberStatus;
 import lombok.Builder;
 
 import java.time.Instant;
@@ -9,7 +9,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
-public record PartyMemberSummary(
+public record HouseholdMemberSummary(
         UUID id,
         UUID playerId,
         String name,
@@ -17,12 +17,12 @@ public record PartyMemberSummary(
         boolean partyLeader,
         boolean partyMember,
         AccessLevel accessLevel,
-        PartyMemberStatus status,
+        HouseholdMemberStatus status,
         double pastWeekDailyAverageTransactionCount,
         int activeBudgetCount,
         int activeShoppingListCount,
         Instant joinedAt) {
-    public PartyMemberSummary {
+    public HouseholdMemberSummary {
         Objects.requireNonNull(accessLevel, "accessLevel");
         Objects.requireNonNull(status, "status");
     }

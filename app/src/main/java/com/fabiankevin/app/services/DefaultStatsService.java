@@ -9,13 +9,17 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 @Slf4j
 @RequiredArgsConstructor
 public class DefaultStatsService implements StatsService {
     private final TransactionRepository transactionRepository;
-    private final PartyService partyService;
+    private final HouseholdService householdService;
 
     private static double sumByType(List<SummaryPoint> points, TransactionType type) {
         return points.stream()
@@ -57,7 +61,7 @@ public class DefaultStatsService implements StatsService {
     }
 
     private Set<UUID> resolveUserIds(UUID userId) {
-        Set<UUID> userIds = new HashSet<>(partyService.getPartyMembersUserId(userId));
+        Set<UUID> userIds = new HashSet<>(householdService.getHouseholdMembersUserIds(userId));
         userIds.add(userId);
         return userIds;
     }

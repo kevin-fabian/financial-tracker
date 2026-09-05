@@ -31,7 +31,7 @@ public class DefaultAccountService implements AccountService {
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
     private final UserClient userClient;
-    private final PartyService partyService;
+    private final HouseholdService householdService;
 
     @Override
     public Account getAccountById(UUID id, UUID userId) {
@@ -161,7 +161,7 @@ public class DefaultAccountService implements AccountService {
 
     @Override
     public Page<AccountSummary> getAccountSummariesByPageQuery(PageQuery query, UUID userId, LocalDate monthStart, LocalDate monthEnd) {
-        List<UUID> userIds = partyService.getPartyMembersUserId(userId);
+        List<UUID> userIds = householdService.getHouseholdMembersUserIds(userId);
         Page<AccountSummary> summaries = accountRepository.findAllByPageQueryWithSummary(query, userIds, monthStart, monthEnd);
         return Page.<AccountSummary>builder()
                 .content(enrichWithUserData(summaries.content()))

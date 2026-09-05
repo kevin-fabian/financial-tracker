@@ -1,10 +1,16 @@
 package com.fabiankevin.app.persistence.entities;
 
-import com.fabiankevin.app.models.enums.party.AccessLevel;
-import com.fabiankevin.app.models.enums.party.InvitationStatus;
-import com.fabiankevin.app.models.enums.party.SharingMode;
-import com.fabiankevin.app.models.party.Invitation;
-import jakarta.persistence.*;
+import com.fabiankevin.app.models.enums.household.AccessLevel;
+import com.fabiankevin.app.models.enums.household.InvitationStatus;
+import com.fabiankevin.app.models.household.Invitation;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -31,10 +37,6 @@ public class InvitationEntity {
     private UUID inviteePlayerId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "proposed_sharing_mode")
-    private SharingMode proposedSharingMode;
-
-    @Enumerated(EnumType.STRING)
     @Column(name = "proposed_role")
     private AccessLevel proposedRole;
 
@@ -56,7 +58,6 @@ public class InvitationEntity {
                 .id(invitation.id())
                 .inviterPlayerId(invitation.inviterPlayerId())
                 .inviteePlayerId(invitation.inviteePlayerId())
-                .proposedSharingMode(invitation.proposedSharingMode())
                 .proposedRole(invitation.proposedRole())
                 .status(invitation.status())
                 .createdAt(invitation.createdAt())
@@ -70,7 +71,6 @@ public class InvitationEntity {
                 .id(this.id)
                 .inviterPlayerId(this.inviterPlayerId)
                 .inviteePlayerId(this.inviteePlayerId)
-                .proposedSharingMode(this.proposedSharingMode)
                 .proposedRole(this.proposedRole)
                 .status(this.status)
                 .createdAt(this.createdAt)

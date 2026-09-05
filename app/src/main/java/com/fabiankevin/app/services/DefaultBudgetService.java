@@ -32,7 +32,7 @@ public class DefaultBudgetService implements BudgetService {
     private final BudgetRepository budgetRepository;
     private final CategoryRepository categoryRepository;
     private final UserClient userClient;
-    private final PartyService partyService;
+    private final HouseholdService householdService;
 
     @Transactional
     @Override
@@ -63,7 +63,7 @@ public class DefaultBudgetService implements BudgetService {
 
     @Override
     public List<BudgetSummary> getBudgetsByUserId(UUID userId) {
-        List<UUID> userIds = partyService.getPartyMembersUserId(userId);
+        List<UUID> userIds = householdService.getHouseholdMembersUserIds(userId);
         LocalDate monthStart = ZonedDateTime.now(ZoneOffset.UTC).withDayOfMonth(1).toLocalDate();
         LocalDate monthEnd = monthStart.plusMonths(1);
         List<BudgetSummary> summaries = budgetRepository.findAllBudgetSummaryByUserId(

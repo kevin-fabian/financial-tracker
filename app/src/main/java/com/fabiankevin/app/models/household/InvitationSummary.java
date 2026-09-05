@@ -1,6 +1,6 @@
-package com.fabiankevin.app.models.party;
+package com.fabiankevin.app.models.household;
 
-import com.fabiankevin.app.models.enums.party.InvitationStatus;
+import com.fabiankevin.app.models.enums.household.InvitationStatus;
 import lombok.Builder;
 
 import java.time.Instant;

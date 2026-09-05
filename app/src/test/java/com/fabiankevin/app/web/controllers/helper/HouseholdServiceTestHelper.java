@@ -1,10 +1,9 @@
 package com.fabiankevin.app.web.controllers.helper;
 
-import com.fabiankevin.app.models.enums.party.SharingMode;
-import com.fabiankevin.app.models.party.InvitationSummary;
+import com.fabiankevin.app.models.household.InvitationSummary;
 import com.fabiankevin.app.web.controllers.dtos.SendInvitationRequest;
-import com.fabiankevin.app.web.controllers.dtos.party.OrganizePartyRequest;
-import com.fabiankevin.app.web.controllers.dtos.party.PartyResponse;
+import com.fabiankevin.app.web.controllers.dtos.party.HouseholdResponse;
+import com.fabiankevin.app.web.controllers.dtos.party.OrganizeHouseholdRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
@@ -25,10 +24,9 @@ public class HouseholdServiceTestHelper {
     private final MockMvc mockMvc;
     private final JsonMapper jsonMapper;
 
-    public PartyResponse createHouseHold(UUID userId) throws Exception {
-        OrganizePartyRequest request =  OrganizePartyRequest.builder()
-                .name("Test Party")
-                .sharingMode(SharingMode.EVEN_SHARE)
+    public HouseholdResponse createHouseHold(UUID userId) throws Exception {
+        OrganizeHouseholdRequest request =  OrganizeHouseholdRequest.builder()
+                .name("Test Household")
                 .build();
 
         MvcResult mvcResult = mockMvc.perform(post("/api/parties")
@@ -45,7 +43,7 @@ public class HouseholdServiceTestHelper {
                 .andReturn();
 
         mvcResult.getResponse().getContentAsString();
-        return jsonMapper.readValue(mvcResult.getResponse().getContentAsString(), PartyResponse.class);
+        return jsonMapper.readValue(mvcResult.getResponse().getContentAsString(), HouseholdResponse.class);
     }
 
     public InvitationSummary inviteAndAccept(UUID partyId, UUID partyLeaderId, UUID inviteeId, String inviteeEmail) throws Exception {

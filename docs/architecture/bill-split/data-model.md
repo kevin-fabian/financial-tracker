@@ -4,7 +4,7 @@
 
 ### `splits`
 
-Allocates a transaction's cost across participants. No party involvement.
+Allocates a transaction's cost across participants. No household involvement.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
@@ -29,7 +29,7 @@ Allocates a transaction's cost across participants. No party involvement.
 
 ### `settlements`
 
-Records when one participant pays another. No party involvement.
+Records when one participant pays another. No household involvement.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
@@ -103,7 +103,7 @@ SettlementEntity
 **Notes**:
 - `relatedSplitIds` stored as JSON array via `@JdbcTypeCode(SqlTypes.JSON)` (Hibernate 6 convention).
 - `transaction` is LAZY; created via `TransactionService` on settlement creation (AD-7).
-- No `party` relationship — no party feature (AD-4).
+- No `household` relationship — no household feature (AD-4).
 
 ### Domain Model Records (new)
 
@@ -122,7 +122,7 @@ record Split(
 ```
 
 **Notes**:
-- No `partyId` — no party feature (AD-4).
+- No `partyId` — no household feature (AD-4).
 - `amount` is `BigDecimal` — financial precision (AD-6).
 
 #### `Settlement`
@@ -142,7 +142,7 @@ record Settlement(
 ```
 
 **Notes**:
-- No `partyId` — no party feature (AD-4).
+- No `partyId` — no household feature (AD-4).
 - `amount` is `BigDecimal` — financial precision (AD-6).
 - `transactionId` is nullable because the settlement record exists before the transaction is created (service-layer ordering).
 
@@ -211,7 +211,7 @@ Simplified: the transaction owner (identified via `TransactionEntity.addedBy`) i
 | Date | Change |
 |------|--------|
 | 2026-09-01 | Initial data model draft |
-| 2026-09-01 | Artifact consistency pass: Removed `party_id` from splits and settlements tables. Removed `party` relationships from entities and domain models. Fixed `amount` type from `double` to `BigDecimal`. Changed `SplitEntity.transaction` from EAGER to LAZY. Added AD-6, AD-7, AD-8 references. Added exception class table. Clarified balance derivation formula. |
+| 2026-09-01 | Artifact consistency pass: Removed `party_id` from splits and settlements tables. Removed `household` relationships from entities and domain models. Fixed `amount` type from `double` to `BigDecimal`. Changed `SplitEntity.transaction` from EAGER to LAZY. Added AD-6, AD-7, AD-8 references. Added exception class table. Clarified balance derivation formula. |
 
 ## Constraints Summary
 

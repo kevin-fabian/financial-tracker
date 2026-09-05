@@ -44,7 +44,7 @@ User ──splits transaction──→ SplitController
 - Transaction exists → `TransactionNotFoundException`
 - At least one participant → `InvalidSplitException`
 - Sum of shares ≤ transaction amount → `InvalidSplitException`
-- No party membership validation (no party feature, AD-4)
+- No household membership validation (no household feature, AD-4)
 
 ### CF-2: Create Custom Split
 
@@ -390,5 +390,5 @@ User ──GET /api/settlements──→ SettlementController
 |------|--------|
 | 2026-09-01 | Initial data flow draft |
 | 2026-09-01 | CF-3 updated: settlement creates transaction flow (Q4 decision). Added CF-4 (Patch Split) for Q5 decision. Added constraints section to CF-4 (Q14: only amount field can be patched). |
-| 2026-09-01 | Artifact consistency pass: Removed all party_id references from API paths. Changed paths from `/api/parties/{partyId}/...` to `/api/splits/...` and `/api/settlements/...`. Removed party membership validation from CF-1, CF-2, CF-4. Removed `party.id` from field lineage. Updated QF-2 from "Get Party Balances" to "Get User Balances" (no party feature). Updated QF-4 from party-scoped to user-scoped. Updated validation points table to remove party checks. |
-| 2026-09-01 | Naming pass: Replaced all `playerId`/`payerPlayerId`/`payeePlayerId` with `userId`/`payerUserId`/`payeeUserId`. Replaced "party-agnostic" with "no party feature". Updated repository method names (`findByPlayerId` → `findByUserId`). Updated projection field names. Updated validation point descriptions. |
+| 2026-09-01 | Artifact consistency pass: Removed all party_id references from API paths. Changed paths from `/api/parties/{partyId}/...` to `/api/splits/...` and `/api/settlements/...`. Removed household membership validation from CF-1, CF-2, CF-4. Removed `household.id` from field lineage. Updated QF-2 from "Get Party Balances" to "Get User Balances" (no household feature). Updated QF-4 from household-scoped to user-scoped. Updated validation points table to remove household checks. |
+| 2026-09-01 | Naming pass: Replaced all `userId`/`payerPlayerId`/`payeePlayerId` with `userId`/`payerUserId`/`payeeUserId`. Replaced "household-agnostic" with "no household feature". Updated repository method names (`findByUserId` → `findByUserId`). Updated projection field names. Updated validation point descriptions. |

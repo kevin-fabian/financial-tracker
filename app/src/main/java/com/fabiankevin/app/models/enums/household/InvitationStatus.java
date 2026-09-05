@@ -1,4 +1,4 @@
-package com.fabiankevin.app.models.enums.party;
+package com.fabiankevin.app.models.enums.household;
 
 public enum InvitationStatus {
     PENDING,

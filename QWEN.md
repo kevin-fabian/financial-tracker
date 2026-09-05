@@ -1,6 +1,6 @@
 # QWEN.md
 
-Personal financial tracker: multi-currency accounts, transactions, categories, aggregated statistics, budgets, recurring transactions, shopping lists, and party collaboration. Spring Boot 3 + Spring Security OAuth2 resource server, backed by PostgreSQL (local H2 for tests).
+Personal financial tracker: multi-currency accounts, transactions, categories, aggregated statistics, budgets, recurring transactions, shopping lists, and household collaboration. Spring Boot 3 + Spring Security OAuth2 resource server, backed by PostgreSQL (local H2 for tests).
 
 Entry point: `app/src/main/java/com/fabiankevin/app/App.java`. Single-module build (`app`); multi-module parent is scaffolding for future use.
 
@@ -22,7 +22,7 @@ Layered hexagonal: `controllers -> services -> repositories -> jpa_repositories 
 
 **Stats aggregation** — `StatsService` builds `StatsSummary` from JPQL projections in `persistence/entities/projections/`. Query params arrive through `StatsQuery`.
 
-**Party collaboration** — Multi-user collaboration via parties, invitations, members, and shared items. Domain models live in `models/party/`; entities in `persistence/entities/` (`PartyEntity`, `PartyMemberEntity`, `SharedItemEntity`, `InvitationEntity`). Parties are owned by a `partyLeaderId` and governed by a `SharingMode`.
+**Party collaboration** — Multi-user collaboration via parties, invitations, members, and shared items. Domain models live in `models/household/`; entities in `persistence/entities/` (`PartyEntity`, `HouseholdMemberEntity`, `SharedItemEntity`, `InvitationEntity`). Parties are owned by a `leaderId` and governed by a `SharingMode`.
 
 **User provisioning** — `UserProvisioningService` coordinates onboarding (`DefaultUserProvisioningService` splits work into `UserAccountProvisioner` and `UserCategoryProvisioner`, with in-memory implementations available).
 
@@ -46,7 +46,7 @@ Layered hexagonal: `controllers -> services -> repositories -> jpa_repositories 
 | `InvitationController` | `/api/parties/invitations` |
 | `UserCreatedEventController` | `/api/users` |
 
-Request/response DTOs are nested under `web/controllers/dtos/` (e.g. `CreateTransactionRequest`, `PageResponse`, `StatsQuery`, `party/PartyResponse`, `budgets/BudgetResponse`).
+Request/response DTOs are nested under `web/controllers/dtos/` (e.g. `CreateTransactionRequest`, `PageResponse`, `StatsQuery`, `household/PartyResponse`, `budgets/BudgetResponse`).
 
 ---
 
@@ -56,7 +56,7 @@ Request/response DTOs are nested under `web/controllers/dtos/` (e.g. `CreateTran
 
 Key models: `Account`, `Transaction`, `Amount`, `Category`, `User`, `Page`, `AccountSummary`, `CategorySummary`, `SummaryPoint`, `SummarySeries`, `StatsSummary`, `ItemEvent<T>`.
 
-**Party models** (`models/party/`): `Party`, `PartyMember`, `Invitation`, `SharedItem`, `PartySummary`, `PartyMemberSummary`, `InvitationSummary`.
+**Party models** (`models/household/`): `Household`, `HouseholdMember`, `Invitation`, `SharedItem`, `HouseholdSummary`, `HouseholdMemberSummary`, `InvitationSummary`.
 
 **Budget models** (`models/budgets/`): `Budget`, `BudgetSummary`, `BudgetPeriod` (enum).
 
@@ -66,7 +66,7 @@ Key models: `Account`, `Transaction`, `Amount`, `Category`, `User`, `Page`, `Acc
 
 **Enums** (`models/enums/`): `SummaryType`, `TransactionType`, `AccountType`, `AccountStatus`, `Category`, `UserStatus`, `EventAction`, `ItemPriority`, `ShoppingListStatus`.
 
-**Party enums** (`models/enums/party/`): `AccessLevel`, `InvitationStatus`, `PartyMemberStatus`, `ResourceType`, `SharingMode`.
+**Party enums** (`models/enums/household/`): `AccessLevel`, `InvitationStatus`, `HouseholdMemberStatus`, `ResourceType`, `SharingMode`.
 
 ---
 
@@ -78,8 +78,8 @@ Key models: `Account`, `Transaction`, `Amount`, `Category`, `User`, `Page`, `Acc
 - Schema via Liquibase under `src/main/resources/db/`; master changelog (`db.changelog.master.yml`) includes raw SQL scripts (`rollouts/`, `rollbacks/`).
 
 ### Party entities
-- `PartyEntity` (`parties` table) — owns `PartyMemberEntity` and `SharedItemEntity` via `OneToMany` with `orphanRemoval`.
-- `PartyMemberEntity` (`party_members` table) — `playerId`, `accessLevel`, `status`, `joinedAt`.
+- `PartyEntity` (`parties` table) — owns `HouseholdMemberEntity` and `SharedItemEntity` via `OneToMany` with `orphanRemoval`.
+- `HouseholdMemberEntity` (`party_members` table) — `userId`, `accessLevel`, `status`, `joinedAt`.
 - `SharedItemEntity` (`shared_items` table) — `resourceType`, `itemIds` (JSON column), `sharedAt`.
 - `InvitationEntity` (`invitations` table) — `inviterPlayerId`, `inviteePlayerId`, `proposedSharingMode`, `proposedRole`, `status`, `expiresAt`.
 
@@ -114,7 +114,7 @@ Key models: `Account`, `Transaction`, `Amount`, `Category`, `User`, `Page`, `Acc
 
 ### Testing conventions
 
-- Controller: `@WebMvcTest` + `@MockitoBean` + `MockMvc` + `jwt()` post-processor (see `StatsControllerTest`). Some controllers use full `@SpringBootTest` (see `PartyControllerTest`, `BudgetControllerIntegrationTest`).
+- Controller: `@WebMvcTest` + `@MockitoBean` + `MockMvc` + `jwt()` post-processor (see `StatsControllerTest`). Some controllers use full `@SpringBootTest` (see `HouseholdControllerTest`, `BudgetControllerIntegrationTest`).
 - Repository: `@DataJpaTest` + nested `@TestConfiguration` (see `DefaultTransactionRepositoryTest`). Some slices use `local`; repository tests typically use `@ActiveProfiles("test")` — verify per test.
 - Service/strategy tests live next to tested class under `app/src/test/java/.../services/`.
 - Cache config: `CacheConfig`.

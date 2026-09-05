@@ -1,9 +1,8 @@
 package com.fabiankevin.app.persistence;
 
-import com.fabiankevin.app.models.enums.party.AccessLevel;
-import com.fabiankevin.app.models.enums.party.InvitationStatus;
-import com.fabiankevin.app.models.enums.party.SharingMode;
-import com.fabiankevin.app.models.party.Invitation;
+import com.fabiankevin.app.models.enums.household.AccessLevel;
+import com.fabiankevin.app.models.enums.household.InvitationStatus;
+import com.fabiankevin.app.models.household.Invitation;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaInvitationRepository;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,7 +49,6 @@ class DefaultInvitationRepositoryTest {
         invitation = Invitation.builder()
                 .inviterPlayerId(UUID.randomUUID())
                 .inviteePlayerId(UUID.randomUUID())
-                .proposedSharingMode(SharingMode.EVEN_SHARE)
                 .proposedRole(AccessLevel.VIEW_ONLY)
                 .status(InvitationStatus.PENDING)
                 .createdAt(Instant.now())
@@ -70,7 +68,6 @@ class DefaultInvitationRepositoryTest {
         Assertions.assertThat(restored.id()).as("generated id should be present").isNotNull();
         Assertions.assertThat(restored.inviterPlayerId()).isEqualTo(invitation.inviterPlayerId());
         Assertions.assertThat(restored.inviteePlayerId()).isEqualTo(invitation.inviteePlayerId());
-        Assertions.assertThat(restored.proposedSharingMode()).isEqualTo(SharingMode.EVEN_SHARE);
         Assertions.assertThat(restored.proposedRole()).isEqualTo(AccessLevel.VIEW_ONLY);
         Assertions.assertThat(restored.status()).isEqualTo(InvitationStatus.PENDING);
         Assertions.assertThat(restored.createdAt()).isEqualTo(invitation.createdAt());
@@ -89,7 +86,6 @@ class DefaultInvitationRepositoryTest {
         Invitation accepted = Invitation.builder()
                 .inviterPlayerId(UUID.randomUUID())
                 .inviteePlayerId(inviteeUserId)
-                .proposedSharingMode(SharingMode.EVEN_SHARE)
                 .proposedRole(AccessLevel.VIEW_ONLY)
                 .status(InvitationStatus.ACCEPTED)
                 .createdAt(Instant.now())
@@ -116,7 +112,6 @@ class DefaultInvitationRepositoryTest {
         Assertions.assertThat(found).isPresent();
         Assertions.assertThat(found.get().inviteePlayerId()).isEqualTo(invitation.inviteePlayerId());
         Assertions.assertThat(found.get().status()).isEqualTo(InvitationStatus.PENDING);
-        Assertions.assertThat(found.get().proposedSharingMode()).isEqualTo(SharingMode.EVEN_SHARE);
         Assertions.assertThat(found.get().proposedRole()).isEqualTo(AccessLevel.VIEW_ONLY);
 
         verify(jpaInvitationRepository, times(1)).findById(saved.id());
@@ -138,7 +133,6 @@ class DefaultInvitationRepositoryTest {
             Invitation incoming = Invitation.builder()
                     .inviterPlayerId(UUID.randomUUID())
                     .inviteePlayerId(userId)
-                    .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
@@ -148,7 +142,6 @@ class DefaultInvitationRepositoryTest {
             Invitation outgoing = Invitation.builder()
                     .inviterPlayerId(userId)
                     .inviteePlayerId(UUID.randomUUID())
-                    .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
@@ -173,7 +166,6 @@ class DefaultInvitationRepositoryTest {
             Invitation accepted = Invitation.builder()
                     .inviterPlayerId(UUID.randomUUID())
                     .inviteePlayerId(userId)
-                    .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.ACCEPTED)
                     .createdAt(Instant.now())
@@ -197,7 +189,6 @@ class DefaultInvitationRepositoryTest {
             Invitation pending = Invitation.builder()
                     .inviterPlayerId(invitation.inviterPlayerId())
                     .inviteePlayerId(invitation.inviteePlayerId())
-                    .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
@@ -221,7 +212,6 @@ class DefaultInvitationRepositoryTest {
             Invitation pending = Invitation.builder()
                     .inviterPlayerId(invitation.inviterPlayerId())
                     .inviteePlayerId(invitation.inviteePlayerId())
-                    .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
@@ -242,7 +232,6 @@ class DefaultInvitationRepositoryTest {
             Invitation accepted = Invitation.builder()
                     .inviterPlayerId(invitation.inviterPlayerId())
                     .inviteePlayerId(invitation.inviteePlayerId())
-                    .proposedSharingMode(SharingMode.EVEN_SHARE)
                     .proposedRole(AccessLevel.VIEW_ONLY)
                     .status(InvitationStatus.ACCEPTED)
                     .createdAt(Instant.now())

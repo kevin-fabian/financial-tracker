@@ -10,7 +10,7 @@ import com.fabiankevin.app.persistence.entities.AccountEntity;
 import com.fabiankevin.app.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
-import com.fabiankevin.app.persistence.jpa_repositories.JpaPartyRepository;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaHouseholdRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import com.fabiankevin.app.services.DefaultTransactionService;
 import com.fabiankevin.app.services.TransactionService;
@@ -39,7 +39,14 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.offset;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @Import(DefaultTransactionRepositoryTest.TestContextConfiguration.class)
 @DataJpaTest
@@ -75,8 +82,8 @@ class DefaultTransactionRepositoryTest {
         }
 
         @Bean
-        public PartyRepository sharedSpaceRepository(JpaPartyRepository jpaPartyRepository) {
-            return new DefaultPartyRepository(jpaPartyRepository);
+        public HouseholdRepository sharedSpaceRepository(JpaHouseholdRepository jpaHouseholdRepository) {
+            return new DefaultHouseholdRepository(jpaHouseholdRepository);
         }
 
         @Bean
@@ -89,14 +96,14 @@ class DefaultTransactionRepositoryTest {
                 AccountRepository accountRepository,
                 CategoryRepository categoryRepository,
                 TransactionRepository transactionRepository,
-                PartyRepository partyRepository,
+                HouseholdRepository householdRepository,
                 UserClient userClient) {
             return new DefaultTransactionService(
                     accountRepository,
                     categoryRepository,
                     transactionRepository,
                     List.of(),
-                    partyRepository,
+                    householdRepository,
                     new CompositeTransactionEventPublisher(List.of()),
                     100,
                     userClient);

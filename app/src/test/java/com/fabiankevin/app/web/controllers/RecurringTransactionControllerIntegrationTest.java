@@ -20,7 +20,7 @@ import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateRecurringTransactionRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchRecurringTransactionRequest;
-import com.fabiankevin.app.web.controllers.dtos.party.PartyResponse;
+import com.fabiankevin.app.web.controllers.dtos.party.HouseholdResponse;
 import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,7 +52,10 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -472,8 +475,8 @@ class RecurringTransactionControllerIntegrationTest {
                     );
 
             // Create party and invite + accept via helper
-            PartyResponse partyResponse = householdHelper.createHouseHold(partyLeaderId);
-            householdHelper.inviteAndAccept(partyResponse.id(), partyLeaderId, inviteeId, "invitee@example.com");
+            HouseholdResponse householdResponse = householdHelper.createHouseHold(partyLeaderId);
+            householdHelper.inviteAndAccept(householdResponse.id(), partyLeaderId, inviteeId, "invitee@example.com");
 
             // Create recurring transactions for both users
             Category leaderCategory = createCategory(partyLeaderId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
