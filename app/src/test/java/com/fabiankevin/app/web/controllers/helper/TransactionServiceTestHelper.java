@@ -39,7 +39,15 @@ public class TransactionServiceTestHelper {
     }
 
     public Transaction createExpenseTransaction(UUID userId, double amount, LocalDate transactionDate) {
-        Category category = getOrCreateExpenseCategory(userId);
+        return createExpenseTransaction(userId, amount, EXPENSE_CATEGORY_NAME, transactionDate);
+    }
+
+    public Transaction createExpenseTransaction(UUID userId, double amount, String categoryName) {
+        return createExpenseTransaction(userId, amount, categoryName, LocalDate.now());
+    }
+
+    public Transaction createExpenseTransaction(UUID userId, double amount, String categoryName, LocalDate transactionDate) {
+        Category category = getOrCreateCategory(userId, categoryName, TransactionType.EXPENSE, "food");
         Account account = getOrCreateAccount(userId);
 
         return transactionService.addTransaction(AddTransactionCommand.builder()
@@ -56,7 +64,15 @@ public class TransactionServiceTestHelper {
     }
 
     public Transaction createIncomeTransaction(UUID userId, double amount, LocalDate transactionDate) {
-        Category category = getOrCreateIncomeCategory(userId);
+        return createIncomeTransaction(userId, amount, INCOME_CATEGORY_NAME, transactionDate);
+    }
+
+    public Transaction createIncomeTransaction(UUID userId, double amount, String categoryName) {
+        return createIncomeTransaction(userId, amount, categoryName, LocalDate.now());
+    }
+
+    public Transaction createIncomeTransaction(UUID userId, double amount, String categoryName, LocalDate transactionDate) {
+        Category category = getOrCreateCategory(userId, categoryName, TransactionType.INCOME, "salary");
         Account account = getOrCreateAccount(userId);
 
         return transactionService.addTransaction(AddTransactionCommand.builder()
@@ -68,22 +84,12 @@ public class TransactionServiceTestHelper {
                 .build());
     }
 
-    private Category getOrCreateExpenseCategory(UUID userId) {
-        return findCategory(userId, EXPENSE_CATEGORY_NAME, TransactionType.EXPENSE)
+    private Category getOrCreateCategory(UUID userId, String name, TransactionType type, String icon) {
+        return findCategory(userId, name, type)
                 .orElseGet(() -> categoryService.createCategory(CreateCategoryCommand.builder()
-                        .name(EXPENSE_CATEGORY_NAME)
-                        .type(TransactionType.EXPENSE)
-                        .icon("food")
-                        .userId(userId)
-                        .build()));
-    }
-
-    private Category getOrCreateIncomeCategory(UUID userId) {
-        return findCategory(userId, INCOME_CATEGORY_NAME, TransactionType.INCOME)
-                .orElseGet(() -> categoryService.createCategory(CreateCategoryCommand.builder()
-                        .name(INCOME_CATEGORY_NAME)
-                        .type(TransactionType.INCOME)
-                        .icon("salary")
+                        .name(name)
+                        .type(type)
+                        .icon(icon)
                         .userId(userId)
                         .build()));
     }

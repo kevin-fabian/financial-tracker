@@ -1,17 +1,9 @@
 package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.models.Account;
-import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.models.User;
-import com.fabiankevin.app.models.enums.AccountType;
-import com.fabiankevin.app.models.enums.TransactionType;
-import com.fabiankevin.app.services.AccountService;
-import com.fabiankevin.app.services.CategoryService;
-import com.fabiankevin.app.services.TransactionService;
-import com.fabiankevin.app.services.commands.AddTransactionCommand;
-import com.fabiankevin.app.services.commands.CreateAccountCommand;
-import com.fabiankevin.app.services.commands.CreateCategoryCommand;
+import com.fabiankevin.app.web.controllers.helper.TransactionServiceTestHelper;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +19,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDate;
-import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
 
@@ -58,13 +49,7 @@ class StatsControllerIntegrationTest {
     private UserClient userClient;
 
     @Autowired
-    private CategoryService categoryService;
-
-    @Autowired
-    private AccountService accountService;
-
-    @Autowired
-    private TransactionService transactionService;
+    private TransactionServiceTestHelper transactionHelper;
 
     @Autowired
     private JsonMapper jsonMapper;
@@ -78,35 +63,12 @@ class StatsControllerIntegrationTest {
             when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
                     .thenReturn(List.of(User.builder().id(userId).firstName("Alice").lastName("Smith").build()));
 
-            Category incomeCategory = createCategory(userId, "SALARY", TransactionType.INCOME, "salary");
-            Category expenseCategory = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-            Account account = createAccount(userId, "Main Account");
-
             // Add income transaction
-            transactionService.addTransaction(AddTransactionCommand.builder()
-                    .amount(5000.0)
-                    .transactionDate(LocalDate.now())
-                    .categoryId(incomeCategory.id())
-                    .accountId(account.id())
-                    .userId(userId)
-                    .build());
+            transactionHelper.createIncomeTransaction(userId, 5000.0);
 
             // Add expense transactions
-            transactionService.addTransaction(AddTransactionCommand.builder()
-                    .amount(150.0)
-                    .transactionDate(LocalDate.now())
-                    .categoryId(expenseCategory.id())
-                    .accountId(account.id())
-                    .userId(userId)
-                    .build());
-
-            transactionService.addTransaction(AddTransactionCommand.builder()
-                    .amount(50.0)
-                    .transactionDate(LocalDate.now())
-                    .categoryId(expenseCategory.id())
-                    .accountId(account.id())
-                    .userId(userId)
-                    .build());
+            transactionHelper.createExpenseTransaction(userId, 150.0);
+            transactionHelper.createExpenseTransaction(userId, 50.0);
 
             mockMvc.perform(get("/api/stats")
                             .with(jwt()
@@ -130,17 +92,8 @@ class StatsControllerIntegrationTest {
             when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
                     .thenReturn(List.of(User.builder().id(userId).firstName("Eve").lastName("Wilson").build()));
 
-            Category incomeCategory = createCategory(userId, "FREELANCE", TransactionType.INCOME, "freelance");
-            Account account = createAccount(userId, "Business Account");
-
             // Add income to build positive balance
-            transactionService.addTransaction(AddTransactionCommand.builder()
-                    .amount(3000.0)
-                    .transactionDate(LocalDate.now())
-                    .categoryId(incomeCategory.id())
-                    .accountId(account.id())
-                    .userId(userId)
-                    .build());
+            transactionHelper.createIncomeTransaction(userId, 3000.0);
 
             mockMvc.perform(get("/api/stats")
                             .with(jwt()
@@ -187,29 +140,14 @@ class StatsControllerIntegrationTest {
             when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
                     .thenReturn(List.of(User.builder().id(userId).firstName("Charlie").lastName("Brown").build()));
 
-            Category expenseCategory = createCategory(userId, "DINING", TransactionType.EXPENSE, "restaurant");
-            Account account = createAccount(userId, "Savings Account");
-
             LocalDate today = LocalDate.now();
             LocalDate lastMonth = today.minusMonths(1);
 
             // Add expense in current month
-            transactionService.addTransaction(AddTransactionCommand.builder()
-                    .amount(100.0)
-                    .transactionDate(today)
-                    .categoryId(expenseCategory.id())
-                    .accountId(account.id())
-                    .userId(userId)
-                    .build());
+            transactionHelper.createExpenseTransaction(userId, 100.0, today);
 
             // Add expense in last month
-            transactionService.addTransaction(AddTransactionCommand.builder()
-                    .amount(300.0)
-                    .transactionDate(lastMonth)
-                    .categoryId(expenseCategory.id())
-                    .accountId(account.id())
-                    .userId(userId)
-                    .build());
+            transactionHelper.createExpenseTransaction(userId, 300.0, lastMonth);
 
             mockMvc.perform(get("/api/stats")
                             .param("from", today.toString())
@@ -233,30 +171,12 @@ class StatsControllerIntegrationTest {
             when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
                     .thenReturn(List.of(User.builder().id(userId).firstName("Diana").lastName("Prince").build()));
 
-            Category groceriesCategory = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
-            Category diningCategory = createCategory(userId, "DINING", TransactionType.EXPENSE, "restaurant");
-            Account account = createAccount(userId, "Checking Account");
-
-            // Add groceries expense
-            transactionService.addTransaction(AddTransactionCommand.builder()
-                    .amount(200.0)
-                    .transactionDate(LocalDate.now())
-                    .categoryId(groceriesCategory.id())
-                    .accountId(account.id())
-                    .userId(userId)
-                    .build());
-
-            // Add dining expense
-            transactionService.addTransaction(AddTransactionCommand.builder()
-                    .amount(150.0)
-                    .transactionDate(LocalDate.now())
-                    .categoryId(diningCategory.id())
-                    .accountId(account.id())
-                    .userId(userId)
-                    .build());
+            // Add two expense transactions with different categories for filter test
+            Transaction expense1 = transactionHelper.createExpenseTransaction(userId, 200.0, "Dining");
+            Transaction expense2 = transactionHelper.createExpenseTransaction(userId, 150.0, "Groceries");
 
             mockMvc.perform(get("/api/stats")
-                            .param("categoryId", groceriesCategory.id().toString())
+                            .param("categoryId", expense1.category().id().toString())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -268,25 +188,5 @@ class StatsControllerIntegrationTest {
                     .andExpect(jsonPath("$.totalExpenses").value(200.0))
                     .andExpect(jsonPath("$.totalIncome").value(0.0));
         }
-    }
-
-    // --- Test helpers ---
-
-    private Category createCategory(UUID userId, String name, TransactionType type, String icon) {
-        return categoryService.createCategory(CreateCategoryCommand.builder()
-                .name(name)
-                .type(type)
-                .icon(icon)
-                .userId(userId)
-                .build());
-    }
-
-    private Account createAccount(UUID userId, String name) {
-        return accountService.createAccount(CreateAccountCommand.builder()
-                .name(name)
-                .currency(Currency.getInstance("USD"))
-                .type(AccountType.CASH)
-                .userId(userId)
-                .build());
     }
 }
