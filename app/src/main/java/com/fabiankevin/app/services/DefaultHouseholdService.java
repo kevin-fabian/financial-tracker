@@ -44,10 +44,15 @@ public class DefaultHouseholdService implements HouseholdService {
     private final UserClient userClient;
 
     private static final String DEFAULT_HOUSEHOLD_NAME = "New Household";
+    private static final int MAX_HOUSEHOLD_NAME_LENGTH = 100;
 
     @Transactional
     @Override
     public HouseholdSummary organize(OrganizeHouseholdCommand command) {
+        if (command.householdName() != null && command.householdName().length() > MAX_HOUSEHOLD_NAME_LENGTH) {
+            throw new IllegalArgumentException("Household name must not exceed " + MAX_HOUSEHOLD_NAME_LENGTH + " characters");
+        }
+
         Optional<Household> existingHousehold = householdRepository.findByUserId(command.leaderId());
         if (existingHousehold.isPresent()) {
             throw new HouseholdAlreadyExistsException();

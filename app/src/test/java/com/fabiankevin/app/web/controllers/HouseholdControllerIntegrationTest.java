@@ -207,5 +207,28 @@ class HouseholdControllerIntegrationTest {
                             .content(jsonMapper.writeValueAsString(secondRequest)))
                     .andExpect(status().isBadRequest());
         }
+
+        @Test
+        @DisplayName("Creating a household with a name exceeding 100 characters returns 400")
+        void givenRequestWithTooLongName_thenShouldReturnBadRequest() throws Exception {
+            UUID userId = UUID.randomUUID();
+            String longName = "A".repeat(101);
+
+            OrganizeHouseholdRequest request = OrganizeHouseholdRequest.builder()
+                    .name(longName)
+                    .build();
+
+            mockMvc.perform(post("/api/households")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
     }
 }
