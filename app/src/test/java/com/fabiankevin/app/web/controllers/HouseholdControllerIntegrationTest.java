@@ -22,15 +22,18 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.JsonNode;
 
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -394,6 +397,220 @@ class HouseholdControllerIntegrationTest {
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(patchRequest)))
                     .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    class DisbandHousehold {
+
+        @Test
+        void givenLeaderDisbandsHousehold_thenShouldReturnNoContent() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("Alice").lastName("Smith").build()));
+
+            OrganizeHouseholdRequest organizeRequest = OrganizeHouseholdRequest.builder()
+                    .name("Household to Disband")
+                    .build();
+
+            String createResponse = mockMvc.perform(post("/api/households")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(organizeRequest)))
+                    .andExpect(status().isCreated())
+                    .andReturn().getResponse().getContentAsString();
+
+            UUID householdId = UUID.fromString(jsonMapper.readTree(createResponse).get("id").asText());
+
+            mockMvc.perform(delete("/api/households/{householdId}", householdId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isNoContent());
+
+            mockMvc.perform(get("/api/households")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$").isArray())
+                    .andExpect(jsonPath("$.length()").value(0));
+        }
+
+        @Test
+        void givenNonExistentHouseholdId_thenShouldReturnNotFound() throws Exception {
+            UUID userId = UUID.randomUUID();
+            UUID nonExistentHouseholdId = UUID.randomUUID();
+
+            mockMvc.perform(delete("/api/households/{householdId}", nonExistentHouseholdId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    class RemoveHouseholdMember {
+
+        @Test
+        void givenLeaderRemovesMember_thenShouldReturnNoContent() throws Exception {
+            UUID leaderId = UUID.randomUUID();
+            UUID memberId = UUID.randomUUID();
+
+            when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.contains(leaderId))))
+                    .thenReturn(List.of(User.builder().id(leaderId).firstName("Alice").lastName("Smith").build()));
+
+            when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.contains(memberId))))
+                    .thenReturn(List.of(User.builder().id(memberId).firstName("Bob").lastName("Jones").build()));
+
+            when(userClient.getUserByEmail("bob@example.com"))
+                    .thenReturn(User.builder().id(memberId).firstName("Bob").lastName("Jones").build());
+
+            OrganizeHouseholdRequest organizeRequest = OrganizeHouseholdRequest.builder()
+                    .name("Household with Member")
+                    .build();
+
+            String createResponse = mockMvc.perform(post("/api/households")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", leaderId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(organizeRequest)))
+                    .andExpect(status().isCreated())
+                    .andReturn().getResponse().getContentAsString();
+
+            UUID householdId = UUID.fromString(jsonMapper.readTree(createResponse).get("id").asText());
+
+            String inviteResponse = mockMvc.perform(post("/api/households/{householdId}/invitations", householdId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", leaderId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(
+                                    com.fabiankevin.app.web.controllers.dtos.SendInvitationRequest.builder()
+                                            .email("bob@example.com")
+                                            .build())))
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
+
+            UUID invitationId = UUID.fromString(jsonMapper.readTree(inviteResponse).get("id").asText());
+
+            mockMvc.perform(post("/api/households/{householdId}/invitations/{invitationId}/accept", householdId, invitationId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", memberId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk());
+
+            String memberResponse = mockMvc.perform(get("/api/households")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", leaderId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
+
+            int memberCount = jsonMapper.readTree(memberResponse).get(0).get("members").size();
+            assertEquals(2, memberCount, "Household should have 2 members before removal");
+
+            JsonNode firstMember = jsonMapper.readTree(memberResponse).get(0).get("members").get(0);
+            JsonNode secondMember = jsonMapper.readTree(memberResponse).get(0).get("members").get(1);
+            UUID memberToRemove = firstMember.get("user").get("id").asText().equals(leaderId.toString())
+                    ? UUID.fromString(secondMember.get("user").get("id").asText())
+                    : UUID.fromString(firstMember.get("user").get("id").asText());
+
+            mockMvc.perform(delete("/api/households/{householdId}/members/{householdMemberId}", householdId, memberToRemove)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", leaderId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isNoContent());
+
+            mockMvc.perform(get("/api/households")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", leaderId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].members.length()").value(1));
+        }
+
+        @Test
+        void givenNonExistentMemberId_thenShouldReturnNoContent() throws Exception {
+            UUID userId = UUID.randomUUID();
+            UUID nonExistentMemberId = UUID.randomUUID();
+
+            when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.contains(userId))))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("Alice").lastName("Smith").build()));
+
+            OrganizeHouseholdRequest organizeRequest = OrganizeHouseholdRequest.builder()
+                    .name("Household")
+                    .build();
+
+            String createResponse = mockMvc.perform(post("/api/households")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(organizeRequest)))
+                    .andExpect(status().isCreated())
+                    .andReturn().getResponse().getContentAsString();
+
+            UUID householdId = UUID.fromString(jsonMapper.readTree(createResponse).get("id").asText());
+
+            mockMvc.perform(delete("/api/households/{householdId}/members/{householdMemberId}", householdId, nonExistentMemberId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isNoContent());
         }
     }
 }
