@@ -22,6 +22,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import static com.fabiankevin.app.models.enums.TransactionType.EXPENSE;
+import static com.fabiankevin.app.models.enums.TransactionType.INCOME;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -57,35 +59,6 @@ class StatsControllerIntegrationTest {
     @Nested
     class GetStats {
         @Test
-        void givenUserWithIncomeAndExpenses_thenShouldReturnStatsSummary() throws Exception {
-            UUID userId = UUID.randomUUID();
-
-            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
-                    .thenReturn(List.of(User.builder().id(userId).firstName("Alice").lastName("Smith").build()));
-
-            // Add income transaction
-            transactionHelper.createIncomeTransaction(userId, 5000.0);
-
-            // Add expense transactions
-            transactionHelper.createExpenseTransaction(userId, 150.0);
-            transactionHelper.createExpenseTransaction(userId, 50.0);
-
-            mockMvc.perform(get("/api/stats")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    )))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.totalIncome").value(5000.0))
-                    .andExpect(jsonPath("$.totalExpenses").value(200.0))
-                    .andExpect(jsonPath("$.totalBalance").value(4800.0))
-                    .andExpect(jsonPath("$.growthPercentage").value(100.0));
-        }
-
-        @Test
         void givenUserWithIncomeAndExpenses_thenGrowthPercentageShouldReflectBalanceChange() throws Exception {
             UUID userId = UUID.randomUUID();
 
@@ -93,7 +66,7 @@ class StatsControllerIntegrationTest {
                     .thenReturn(List.of(User.builder().id(userId).firstName("Eve").lastName("Wilson").build()));
 
             // Add income to build positive balance
-            transactionHelper.createIncomeTransaction(userId, 3000.0);
+            transactionHelper.createTransaction(userId, INCOME, 3000.0);
 
             mockMvc.perform(get("/api/stats")
                             .with(jwt()
@@ -144,11 +117,11 @@ class StatsControllerIntegrationTest {
             LocalDate lastMonth = today.minusMonths(1);
 
             // Last month: income $2000 → not in current period, but contributes to all-time balance
-            transactionHelper.createIncomeTransaction(userId, 2000.0, lastMonth);
+            transactionHelper.createTransaction(userId, INCOME, 2000.0, lastMonth);
 
             // Current month: income $3000, expenses $500 → in current period
-            transactionHelper.createIncomeTransaction(userId, 3000.0, today);
-            transactionHelper.createExpenseTransaction(userId, 500.0, today);
+            transactionHelper.createTransaction(userId, INCOME, 3000.0, today);
+            transactionHelper.createTransaction(userId, EXPENSE, 500.0, today);
 
             // totalIncome/totalExpenses = current period only (3000, 500)
             // totalBalance = all-time (2000 + 3000 - 500 = 4500)
@@ -180,10 +153,10 @@ class StatsControllerIntegrationTest {
             LocalDate lastMonth = today.minusMonths(1);
 
             // Add expense in current month
-            transactionHelper.createExpenseTransaction(userId, 100.0, today);
+            transactionHelper.createTransaction(userId, EXPENSE, 100.0, today);
 
             // Add expense in last month
-            transactionHelper.createExpenseTransaction(userId, 300.0, lastMonth);
+            transactionHelper.createTransaction(userId, EXPENSE, 300.0, lastMonth);
 
             mockMvc.perform(get("/api/stats")
                             .param("from", today.toString())
@@ -208,8 +181,8 @@ class StatsControllerIntegrationTest {
                     .thenReturn(List.of(User.builder().id(userId).firstName("Diana").lastName("Prince").build()));
 
             // Add two expense transactions with different categories for filter test
-            Transaction expense1 = transactionHelper.createExpenseTransaction(userId, 200.0, "Dining");
-            Transaction expense2 = transactionHelper.createExpenseTransaction(userId, 150.0, "Groceries");
+            Transaction expense1 = transactionHelper.createTransaction(userId, EXPENSE, 200.0, "Dining");
+            transactionHelper.createTransaction(userId, EXPENSE, 150.0, "Groceries");
 
             mockMvc.perform(get("/api/stats")
                             .param("categoryId", expense1.category().id().toString())

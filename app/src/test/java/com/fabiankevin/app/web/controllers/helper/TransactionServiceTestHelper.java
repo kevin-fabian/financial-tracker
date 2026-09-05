@@ -26,7 +26,7 @@ import java.util.UUID;
 public class TransactionServiceTestHelper {
     private static final String EXPENSE_CATEGORY_NAME = "Food";
     private static final String INCOME_CATEGORY_NAME = "Salary";
-    private static final String ACCOUNT_NAME = "Test Account";
+    private static final String ACCOUNT_NAME = "Cash";
 
     private final TransactionService transactionService;
     private final CategoryService categoryService;
@@ -34,45 +34,22 @@ public class TransactionServiceTestHelper {
     private final CategoryRepository categoryRepository;
     private final AccountRepository accountRepository;
 
-    public Transaction createExpenseTransaction(UUID userId, double amount) {
-        return createExpenseTransaction(userId, amount, LocalDate.now());
+    public Transaction createTransaction(UUID userId, TransactionType type, double amount) {
+        return createTransaction(userId, type, amount, LocalDate.now());
     }
 
-    public Transaction createExpenseTransaction(UUID userId, double amount, LocalDate transactionDate) {
-        return createExpenseTransaction(userId, amount, EXPENSE_CATEGORY_NAME, transactionDate);
+    public Transaction createTransaction(UUID userId, TransactionType type, double amount, LocalDate transactionDate) {
+        return createTransaction(userId, type, amount, null, transactionDate);
     }
 
-    public Transaction createExpenseTransaction(UUID userId, double amount, String categoryName) {
-        return createExpenseTransaction(userId, amount, categoryName, LocalDate.now());
+    public Transaction createTransaction(UUID userId, TransactionType type, double amount, String categoryName) {
+        return createTransaction(userId, type, amount, categoryName, LocalDate.now());
     }
 
-    public Transaction createExpenseTransaction(UUID userId, double amount, String categoryName, LocalDate transactionDate) {
-        Category category = getOrCreateCategory(userId, categoryName, TransactionType.EXPENSE, "food");
-        Account account = getOrCreateAccount(userId);
-
-        return transactionService.addTransaction(AddTransactionCommand.builder()
-                .amount(amount)
-                .transactionDate(transactionDate)
-                .categoryId(category.id())
-                .accountId(account.id())
-                .userId(userId)
-                .build());
-    }
-
-    public Transaction createIncomeTransaction(UUID userId, double amount) {
-        return createIncomeTransaction(userId, amount, LocalDate.now());
-    }
-
-    public Transaction createIncomeTransaction(UUID userId, double amount, LocalDate transactionDate) {
-        return createIncomeTransaction(userId, amount, INCOME_CATEGORY_NAME, transactionDate);
-    }
-
-    public Transaction createIncomeTransaction(UUID userId, double amount, String categoryName) {
-        return createIncomeTransaction(userId, amount, categoryName, LocalDate.now());
-    }
-
-    public Transaction createIncomeTransaction(UUID userId, double amount, String categoryName, LocalDate transactionDate) {
-        Category category = getOrCreateCategory(userId, categoryName, TransactionType.INCOME, "salary");
+    public Transaction createTransaction(UUID userId, TransactionType type, double amount, String categoryName, LocalDate transactionDate) {
+        String resolvedCategory = categoryName != null ? categoryName : (type == TransactionType.EXPENSE ? EXPENSE_CATEGORY_NAME : INCOME_CATEGORY_NAME);
+        String icon = categoryName != null ? resolvedCategory.toLowerCase() : (type == TransactionType.EXPENSE ? "food" : "salary");
+        Category category = getOrCreateCategory(userId, resolvedCategory, type, icon);
         Account account = getOrCreateAccount(userId);
 
         return transactionService.addTransaction(AddTransactionCommand.builder()
