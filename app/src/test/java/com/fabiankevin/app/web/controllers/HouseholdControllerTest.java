@@ -9,7 +9,7 @@ import com.fabiankevin.app.models.household.HouseholdSummary;
 import com.fabiankevin.app.services.HouseholdService;
 import com.fabiankevin.app.services.InvitationService;
 import com.fabiankevin.app.services.commands.party.OrganizeHouseholdCommand;
-import com.fabiankevin.app.services.commands.party.PatchPartyCommand;
+import com.fabiankevin.app.services.commands.party.PatchHouseholdCommand;
 import com.fabiankevin.app.web.controllers.dtos.party.OrganizeHouseholdRequest;
 import com.fabiankevin.app.web.controllers.dtos.party.PatchHouseholdRequest;
 import com.github.fabiankevin.lemon.web.GlobalExceptionHandler;
@@ -410,7 +410,7 @@ class HouseholdControllerTest {
                     .build();
 
             when(householdService.patchHousehold(any())).thenAnswer(invocation -> {
-                var command = invocation.getArgument(0, PatchPartyCommand.class);
+                var command = invocation.getArgument(0, PatchHouseholdCommand.class);
                 return Household.builder()
                         .id(command.id())
                         .name(command.partyName())

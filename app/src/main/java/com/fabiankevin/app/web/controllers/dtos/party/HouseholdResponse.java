@@ -33,15 +33,15 @@ public record HouseholdResponse(
         @Schema(description = "Timestamp when the party was last updated")
         Instant updatedAt
 ) {
-    public static HouseholdResponse from(HouseholdSummary party) {
+    public static HouseholdResponse from(HouseholdSummary household) {
         return HouseholdResponse.builder()
-                .id(party.id())
-                .name(party.name())
-                .leaderId(party.leaderId())
-                .members(party.members().stream().map(HouseholdMemberResponse::from).toList())
-                .active(party.active())
-                .createdAt(party.createdAt())
-                .updatedAt(party.updatedAt())
+                .id(household.id())
+                .name(household.name())
+                .leaderId(household.leaderId())
+                .members(household.members().stream().map(HouseholdMemberResponse::from).toList())
+                .active(household.active())
+                .createdAt(household.createdAt())
+                .updatedAt(household.updatedAt())
                 .build();
     }
 

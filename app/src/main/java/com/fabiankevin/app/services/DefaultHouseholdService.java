@@ -19,7 +19,7 @@ import com.fabiankevin.app.persistence.HouseholdRepository;
 import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.party.OrganizeHouseholdCommand;
-import com.fabiankevin.app.services.commands.party.PatchPartyCommand;
+import com.fabiankevin.app.services.commands.party.PatchHouseholdCommand;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -47,9 +47,9 @@ public class DefaultHouseholdService implements HouseholdService {
     @Transactional
     @Override
     public HouseholdSummary organize(OrganizeHouseholdCommand command) {
-        Optional<Household> existingParty = householdRepository.findByUserId(command.leaderId());
-        if (existingParty.isPresent()) {
-            return toSummaryWithUsers(existingParty.get());
+        Optional<Household> existingHousehold = householdRepository.findByUserId(command.leaderId());
+        if (existingHousehold.isPresent()) {
+            return toSummaryWithUsers(existingHousehold.get());
         }
 
         List<HouseholdMember> initialHouseholdMembers = new ArrayList<>();
@@ -77,22 +77,22 @@ public class DefaultHouseholdService implements HouseholdService {
 
     @Transactional
     @Override
-    public void removeMember(UUID partyId, UUID partyMemberId, UUID requesterId) {
+    public void removeMember(UUID partyId, UUID memberId, UUID leaderId) {
         Household household = findPartyOrThrow(partyId);
 
-        boolean partyLeader = household.leaderId().equals(requesterId);
-        boolean isSelf = partyMemberId.equals(requesterId);
+        boolean partyLeader = household.leaderId().equals(leaderId);
+        boolean isSelf = memberId.equals(leaderId);
 
         if (!partyLeader && !isSelf) {
             throw new ForbiddenException("Only the owner or the participant themselves can remove a participant");
         }
 
-        if (partyMemberId.equals(household.leaderId())) {
+        if (memberId.equals(household.leaderId())) {
             throw new CannotRemoveOwnerException();
         }
 
         List<HouseholdMember> updatedParticipants = household.members().stream()
-                .filter(p -> !p.userId().equals(partyMemberId))
+                .filter(p -> !p.userId().equals(memberId))
                 .toList();
 
         Household updatedHousehold = household.toBuilder()
@@ -118,10 +118,10 @@ public class DefaultHouseholdService implements HouseholdService {
 
     @Transactional
     @Override
-    public void disbandHousehold(UUID householdParty, UUID requesterId) {
+    public void disbandHousehold(UUID householdParty, UUID leaderId) {
         Household household = findPartyOrThrow(householdParty);
 
-        if (!household.leaderId().equals(requesterId)) {
+        if (!household.leaderId().equals(leaderId)) {
             throw new NotPartyLeaderException();
         }
 
@@ -130,7 +130,7 @@ public class DefaultHouseholdService implements HouseholdService {
 
     @Transactional
     @Override
-    public Household patchHousehold(PatchPartyCommand command) {
+    public Household patchHousehold(PatchHouseholdCommand command) {
         Household existing = findPartyOrThrow(command.id());
 
         if (!existing.leaderId().equals(command.playerId())) {

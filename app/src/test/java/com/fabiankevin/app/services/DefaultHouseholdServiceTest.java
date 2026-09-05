@@ -19,7 +19,7 @@ import com.fabiankevin.app.persistence.HouseholdRepository;
 import com.fabiankevin.app.persistence.InvitationRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.party.OrganizeHouseholdCommand;
-import com.fabiankevin.app.services.commands.party.PatchPartyCommand;
+import com.fabiankevin.app.services.commands.party.PatchHouseholdCommand;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -66,7 +66,7 @@ class DefaultHouseholdServiceTest {
     @Nested
     class OrganizeHousehold {
         @Test
-        void givenValidCommand_thenCreatesPartyWithOwnerAsPartyMember() {
+        void givenValidCommand_thenCreatesHouseholdWithOwnerAsHouseholdMember() {
             UUID partyLeaderId = UUID.randomUUID();
             OrganizeHouseholdCommand command = new OrganizeHouseholdCommand(
                     partyLeaderId,
@@ -86,8 +86,8 @@ class DefaultHouseholdServiceTest {
             assertEquals(1, result.members().size());
 
             HouseholdMemberSummary leader = result.members().getFirst();
-            assertTrue(leader.partyLeader(), "initial party member should be a leader");
-            assertFalse(leader.partyMember(), "initial party member should not be a member");
+            assertTrue(leader.partyLeader(), "initial household member should be a leader");
+            assertFalse(leader.partyMember(), "initial household member should not be a member");
             assertEquals(AccessLevel.VIEW_ONLY, leader.accessLevel());
             assertEquals(HouseholdMemberStatus.ACTIVE, leader.status());
 
@@ -95,7 +95,7 @@ class DefaultHouseholdServiceTest {
         }
 
         @Test
-        void givenNullPartyName_thenUsesDefaultName() {
+        void givenNullHouseholdName_thenUsesDefaultName() {
             UUID partyLeaderId = UUID.randomUUID();
             OrganizeHouseholdCommand command = new OrganizeHouseholdCommand(
                     partyLeaderId,
@@ -113,16 +113,16 @@ class DefaultHouseholdServiceTest {
         }
 
         @Test
-        void givenNullPartyLeaderId_thenThrows() {
+        void givenNullHouseholdLeaderId_thenThrows() {
             assertThrows(NullPointerException.class, () -> new OrganizeHouseholdCommand(
                     null,
-                    "My Party"
+                    "My Household"
             ));
             verify(householdRepository, never()).save(any());
         }
 
         @Test
-        void givenPartyLeaderAlreadyBelongsToParty_thenReturnsExistingParty() {
+        void givenHouseholdLeaderAlreadyBelongsToHousehold_thenReturnsExistingHousehold() {
             UUID partyLeaderId = UUID.randomUUID();
             UUID householdId = UUID.randomUUID();
             Household existingHousehold = Household.builder()
@@ -162,7 +162,7 @@ class DefaultHouseholdServiceTest {
         }
 
         @Test
-        void givenIncomingPendingInvitations_thenCancelsAllBeforeCreatingParty() {
+        void givenIncomingPendingInvitations_thenCancelsAllBeforeCreatingHousehold() {
             UUID partyLeaderId = UUID.randomUUID();
             OrganizeHouseholdCommand command = new OrganizeHouseholdCommand(
                     partyLeaderId,
@@ -207,7 +207,7 @@ class DefaultHouseholdServiceTest {
         }
 
         @Test
-        void givenPartyMemberAlreadyBelongsToParty_thenReturnsExistingParty() {
+        void givenHouseholdMemberAlreadyBelongsToHousehold_thenReturnsExistingHousehold() {
             UUID partyLeaderId = UUID.randomUUID();
             UUID memberId = UUID.randomUUID();
             UUID householdId = UUID.randomUUID();
@@ -291,7 +291,7 @@ class DefaultHouseholdServiceTest {
     class RetrieveByUserId {
 
         @Test
-        void givenPartyWithMembers_thenMapsPartyMemberSummariesWithDailyAverage() {
+        void givenHouseholdWithMembers_thenMapsHouseholdMemberSummariesWithDailyAverage() {
             UUID userId = UUID.randomUUID();
             UUID partyLeaderId = UUID.randomUUID();
             UUID memberId = UUID.randomUUID();
@@ -361,7 +361,7 @@ class DefaultHouseholdServiceTest {
         }
 
         @Test
-        void givenNoParties_thenReturnsEmptyList() {
+        void givenNoHouseholds_thenReturnsEmptyList() {
             UUID userId = UUID.randomUUID();
 
             when(householdRepository.retrieveByUserId(userId)).thenReturn(List.of());
@@ -380,7 +380,7 @@ class DefaultHouseholdServiceTest {
     class KickHouseholdMember {
 
         @Test
-        void givenPartyLeaderKicksPartyMember_thenPartyMemberIsKicked() {
+        void givenHouseholdLeaderKicksHouseholdMember_thenHouseholdMemberIsKicked() {
             UUID partyLeaderId = UUID.randomUUID();
             UUID participantId = UUID.randomUUID();
             UUID householdId = UUID.randomUUID();
@@ -421,7 +421,7 @@ class DefaultHouseholdServiceTest {
         }
 
         @Test
-        void givenPartyMemberKickThemselves_thenPartyMemberIsRemoved() {
+        void givenHouseholdMemberKickThemselves_thenHouseholdMemberIsRemoved() {
             UUID partyLeaderId = UUID.randomUUID();
             UUID participantId = UUID.randomUUID();
             UUID householdId = UUID.randomUUID();
@@ -461,7 +461,7 @@ class DefaultHouseholdServiceTest {
         }
 
         @Test
-        void givenPartyLeaderKickThemselves_thenThrows() {
+        void givenHouseholdLeaderKickThemselves_thenThrows() {
             UUID partyLeaderId = UUID.randomUUID();
             UUID householdId = UUID.randomUUID();
             Household household = Household.builder()
@@ -488,7 +488,7 @@ class DefaultHouseholdServiceTest {
         }
 
         @Test
-        void givenPartyMemberKicksLeader_thenThrows() {
+        void givenHouseholdMemberKicksLeader_thenThrows() {
             UUID partyLeaderId = UUID.randomUUID();
             UUID memberId = UUID.randomUUID();
             UUID householdId = UUID.randomUUID();
@@ -526,7 +526,7 @@ class DefaultHouseholdServiceTest {
     class DisbandHousehold {
 
         @Test
-        void givenPartyLeaderDisbandsParty_thenDeleteByIdIsCalled() {
+        void givenHouseholdLeaderDisbandsHousehold_thenDeleteByIdIsCalled() {
             UUID partyLeaderId = UUID.randomUUID();
             UUID householdId = UUID.randomUUID();
             Household household = Household.builder()
@@ -554,7 +554,7 @@ class DefaultHouseholdServiceTest {
         }
 
         @Test
-        void givenPartyNotFound_thenThrows() {
+        void givenHouseholdNotFound_thenThrows() {
             UUID householdId = UUID.randomUUID();
             UUID requesterId = UUID.randomUUID();
 
@@ -565,7 +565,7 @@ class DefaultHouseholdServiceTest {
         }
 
         @Test
-        void givenNotLeaderOrPartyMember_thenThrows() {
+        void givenNotLeaderOrHouseholdMember_thenThrows() {
             UUID partyLeaderId = UUID.randomUUID();
             UUID otherPlayerId = UUID.randomUUID();
             UUID householdId = UUID.randomUUID();
@@ -617,7 +617,7 @@ class DefaultHouseholdServiceTest {
                     .updatedAt(Instant.now())
                     .build();
 
-            PatchPartyCommand command = PatchPartyCommand.builder()
+            PatchHouseholdCommand command = PatchHouseholdCommand.builder()
                     .id(householdId)
                     .partyName("Updated Budget")
                     .playerId(partyLeaderId)
@@ -633,11 +633,11 @@ class DefaultHouseholdServiceTest {
         }
 
         @Test
-        void givenPartyNotFound_thenThrows() {
+        void givenHouseholdNotFound_thenThrows() {
             UUID householdId = UUID.randomUUID();
             UUID requesterId = UUID.randomUUID();
 
-            PatchPartyCommand command = PatchPartyCommand.builder()
+            PatchHouseholdCommand command = PatchHouseholdCommand.builder()
                     .id(householdId)
                     .partyName("Updated Budget")
                     .playerId(requesterId)
@@ -650,7 +650,7 @@ class DefaultHouseholdServiceTest {
         }
 
         @Test
-        void givenNotPartyLeader_thenThrows() {
+        void givenNotHouseholdLeader_thenThrows() {
             UUID partyLeaderId = UUID.randomUUID();
             UUID otherPlayerId = UUID.randomUUID();
             UUID householdId = UUID.randomUUID();
@@ -671,7 +671,7 @@ class DefaultHouseholdServiceTest {
                     .updatedAt(Instant.now())
                     .build();
 
-            PatchPartyCommand command = PatchPartyCommand.builder()
+            PatchHouseholdCommand command = PatchHouseholdCommand.builder()
                     .id(householdId)
                     .partyName("Updated Budget")
                     .playerId(otherPlayerId)

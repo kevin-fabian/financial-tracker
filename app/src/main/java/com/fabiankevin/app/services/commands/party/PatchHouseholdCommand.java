@@ -5,7 +5,7 @@ import lombok.Builder;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
-public record PatchPartyCommand(
+public record PatchHouseholdCommand(
         UUID id,
         String partyName,
         UUID playerId

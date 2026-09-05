@@ -2,12 +2,12 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.party.ForbiddenException;
+import com.fabiankevin.app.exceptions.party.HouseholdMemberAlreadyExistsException;
 import com.fabiankevin.app.exceptions.party.InvitationAlreadyHandledException;
 import com.fabiankevin.app.exceptions.party.InvitationExpiredException;
 import com.fabiankevin.app.exceptions.party.InvitationNotFoundException;
 import com.fabiankevin.app.exceptions.party.InviterCannotAcceptOwnInvitationException;
 import com.fabiankevin.app.exceptions.party.NotPartyLeaderException;
-import com.fabiankevin.app.exceptions.party.PartyMemberAlreadyExistsException;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.household.AccessLevel;
 import com.fabiankevin.app.models.enums.household.HouseholdMemberStatus;
@@ -250,7 +250,7 @@ class DefaultInvitationServiceTest {
             when(userClient.getUserByEmail(inviteeEmail))
                     .thenReturn(User.builder().id(inviteeUserId).firstName("Jane").lastName("Doe").build());
 
-            assertThrows(PartyMemberAlreadyExistsException.class, () -> service.sendInvitation(command));
+            assertThrows(HouseholdMemberAlreadyExistsException.class, () -> service.sendInvitation(command));
             verify(invitationRepository, never()).save(any());
         }
 

@@ -181,11 +181,11 @@ class DefaultInvitationRepositoryTest {
     }
 
     @Nested
-    class FindPendingBySpaceIdAndInviterAndInviteeTest {
+    class FindPendingByHouseholdIdAndInviterAndInviteeTest {
 
         @Test
         void givenMatchingPendingInvitation_shouldReturnInvitation() {
-            UUID spaceId = UUID.randomUUID();
+            UUID householdId = UUID.randomUUID();
             Invitation pending = Invitation.builder()
                     .inviterUserId(invitation.inviterUserId())
                     .inviteeUserId(invitation.inviteeUserId())
@@ -193,22 +193,22 @@ class DefaultInvitationRepositoryTest {
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
-                    .householdId(spaceId)
+                    .householdId(householdId)
                     .build();
             Invitation saved = invitationRepository.save(pending);
 
             Optional<Invitation> found = invitationRepository.findPendingByHouseholdIdAndInviterAndInvitee(
-                    spaceId, saved.inviterUserId(), saved.inviteeUserId());
+                    householdId, saved.inviterUserId(), saved.inviteeUserId());
 
             Assertions.assertThat(found).isPresent();
             Assertions.assertThat(found.get().id()).isEqualTo(saved.id());
-            Assertions.assertThat(found.get().householdId()).isEqualTo(spaceId);
+            Assertions.assertThat(found.get().householdId()).isEqualTo(householdId);
             Assertions.assertThat(found.get().status()).isEqualTo(InvitationStatus.PENDING);
         }
 
         @Test
-        void givenDifferentSpace_shouldReturnEmpty() {
-            UUID spaceId = UUID.randomUUID();
+        void givenDifferentHousehold_shouldReturnEmpty() {
+            UUID householdId = UUID.randomUUID();
             Invitation pending = Invitation.builder()
                     .inviterUserId(invitation.inviterUserId())
                     .inviteeUserId(invitation.inviteeUserId())
@@ -216,7 +216,7 @@ class DefaultInvitationRepositoryTest {
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
-                    .householdId(spaceId)
+                    .householdId(householdId)
                     .build();
             Invitation saved = invitationRepository.save(pending);
 
@@ -228,7 +228,7 @@ class DefaultInvitationRepositoryTest {
 
         @Test
         void givenNonPendingStatus_shouldReturnEmpty() {
-            UUID spaceId = UUID.randomUUID();
+            UUID householdId = UUID.randomUUID();
             Invitation accepted = Invitation.builder()
                     .inviterUserId(invitation.inviterUserId())
                     .inviteeUserId(invitation.inviteeUserId())
@@ -236,12 +236,12 @@ class DefaultInvitationRepositoryTest {
                     .status(InvitationStatus.ACCEPTED)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(86400))
-                    .householdId(spaceId)
+                    .householdId(householdId)
                     .build();
             Invitation saved = invitationRepository.save(accepted);
 
             Optional<Invitation> found = invitationRepository.findPendingByHouseholdIdAndInviterAndInvitee(
-                    spaceId, saved.inviterUserId(), saved.inviteeUserId());
+                    householdId, saved.inviterUserId(), saved.inviteeUserId());
 
             Assertions.assertThat(found).isEmpty();
         }
