@@ -16,8 +16,6 @@ import java.util.UUID;
 public interface JpaAccountRepository extends JpaRepository<AccountEntity, UUID> {
     Page<AccountEntity> findAllByUserId(UUID userId, Pageable pageable);
 
-    List<AccountEntity> findAllByNameIn(List<String> accountNames);
-
     Optional<AccountEntity> findByNameAndTypeAndUserId(String name, String type, UUID userId);
 
     int deleteByIdAndUserId(UUID accountId, UUID userId);
@@ -30,8 +28,7 @@ public interface JpaAccountRepository extends JpaRepository<AccountEntity, UUID>
                 CAST(COALESCE(COUNT(t.id), 0) AS int)
             FROM AccountEntity acc
             LEFT JOIN TransactionEntity t ON t.account.id = acc.id
-                AND t.transactionDate >= :monthStart
-                AND t.transactionDate <= :monthEnd
+                AND t.transactionDate BETWEEN :monthStart AND :monthEnd
                 AND t.account.userId IN (:userIds)
             LEFT JOIN t.category
             WHERE acc.userId IN (:userIds)

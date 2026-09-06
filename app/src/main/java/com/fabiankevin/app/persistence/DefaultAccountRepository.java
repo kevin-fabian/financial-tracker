@@ -107,14 +107,6 @@ public class DefaultAccountRepository implements AccountRepository {
     }
 
     @Override
-    public List<Account> findAllByNamesIn(List<String> accountNames) {
-        return jpaAccountRepository.findAllByNameIn(accountNames)
-                .stream()
-                .map(AccountEntity::toModel)
-                .collect(Collectors.toList());
-    }
-
-    @Override
     public long deleteAllByUserId(UUID userId) {
         return jpaAccountRepository.deleteAllByUserId(userId);
     }

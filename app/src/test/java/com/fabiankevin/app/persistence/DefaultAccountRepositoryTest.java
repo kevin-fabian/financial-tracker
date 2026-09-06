@@ -26,7 +26,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.Currency;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static com.fabiankevin.app.models.enums.AccountType.BANK_ACCOUNT;
@@ -213,21 +217,29 @@ class DefaultAccountRepositoryTest {
                     .amount(50)
                     .transactionDate(today)
                     .account(jpaAccountRepository.findById(acc1.id()).orElseThrow())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
                     .category(expenseCategory1).build());
             jpaTransactionRepository.save(TransactionEntity.builder()
                     .amount(50)
                     .transactionDate(today)
                     .account(jpaAccountRepository.findById(acc1.id()).orElseThrow())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
                     .category(expenseCategory1).build());
             jpaTransactionRepository.save(TransactionEntity.builder()
                     .amount(50)
                     .transactionDate(today)
                     .account(jpaAccountRepository.findById(acc2.id()).orElseThrow())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
                     .category(incomeCategory).build());
             jpaTransactionRepository.save(TransactionEntity.builder()
                     .amount(300)
                     .transactionDate(today)
                     .account(jpaAccountRepository.findById(acc3.id()).orElseThrow())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
                     .category(expenseCategory3).build());
 
             PageQuery query = new PageQuery(0, 10, "name", "ASC");
@@ -284,11 +296,15 @@ class DefaultAccountRepositoryTest {
                     .amount(100)
                     .transactionDate(today)
                     .account(jpaAccountRepository.findById(account.id()).orElseThrow())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
                     .category(expenseCategory).build());
             jpaTransactionRepository.save(TransactionEntity.builder()
                     .amount(50)
                     .transactionDate(today)
                     .account(jpaAccountRepository.findById(account.id()).orElseThrow())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
                     .category(expenseCategory).build());
 
             PageQuery query = new PageQuery(0, 10, "name", "ASC");
@@ -339,9 +355,7 @@ class DefaultAccountRepositoryTest {
             long deleted = accountRepository.deleteAllByUserId(userId);
 
             Assertions.assertThat(deleted).as("should return the number of deleted accounts").isEqualTo(3);
-            Assertions.assertThat(accountRepository.findAllByNamesIn(List.of("Account 0", "Account 1", "Account 2")))
-                    .as("all accounts for user should be deleted")
-                    .isEmpty();
+            Assertions.assertThat(jpaAccountRepository.count()).as("all accounts should be deleted").isZero();
 
             verify(jpaAccountRepository, times(1)).deleteAllByUserId(userId);
         }

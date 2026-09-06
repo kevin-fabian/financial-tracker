@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS accounts (
     user_id UUID NULL,
     currency VARCHAR(3) NOT NULL,
     type VARCHAR(32) NOT NULL DEFAULT 'OTHER',
-    system BOOLEAN NOT NULL DEFAULT FALSE,
     active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -18,7 +17,6 @@ CREATE TABLE IF NOT EXISTS accounts (
     CONSTRAINT chk_accounts_type CHECK (type IN ('CASH', 'BANK_ACCOUNT', 'CREDIT_CARD', 'E_WALLET', 'INVESTMENT', 'LOAN', 'OTHER'));
 );
 CREATE INDEX IF NOT EXISTS idx_accounts_user_id ON accounts (user_id);
-CREATE INDEX IF NOT EXISTS idxs_accounts_name ON accounts (name);
 
 CREATE TABLE IF NOT EXISTS categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
@@ -40,10 +38,11 @@ CREATE TABLE IF NOT EXISTS transactions (
     account_id UUID NOT NULL,
     category_id UUID NOT NULL,
     amount NUMERIC(12, 2) NOT NULL,
-    currency VARCHAR(3) NOT NULL,
     transaction_date DATE NOT NULL,
     description TEXT NULL,
     recurring_transaction_id UUID NULL,
+    added_by_user_id UUID NULL,
+    updated_by_user_id UUID NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT fk_transactions_account_id FOREIGN KEY (account_id) REFERENCES accounts (id),

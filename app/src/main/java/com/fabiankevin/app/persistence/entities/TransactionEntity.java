@@ -3,7 +3,15 @@ package com.fabiankevin.app.persistence.entities;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.models.User;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,7 +28,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @Table(name = "transactions", indexes = {
         @Index(name = "idx_transactions_account_id", columnList = "account_id"),
-        @Index(name = "idx_transactions_category_id", columnList = "category_id")
+        @Index(name = "idx_transactions_category_id", columnList = "category_id"),
+        @Index(name = "idx_transactions_recurring_transaction_id", columnList = "recurring_transaction_id")
 })
 @Entity
 public class TransactionEntity {
@@ -38,7 +47,9 @@ public class TransactionEntity {
     private String description;
     private LocalDate transactionDate;
     private UUID recurringTransactionId;
+    @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+    @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
     @Column(name = "added_by_user_id")
     private UUID addedBy;

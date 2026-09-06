@@ -3,7 +3,13 @@ package com.fabiankevin.app.persistence.entities;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.AccountType;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,7 +24,12 @@ import java.util.UUID;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name = "accounts")
+@Table(name = "accounts",
+        indexes = {
+                @Index(name = "idx_accounts_user_id", columnList = "user_id"),
+                @Index(name = "idxs_accounts_name", columnList = "name"),
+                @Index(name = "uk_accounts_name_user_id", columnList = "name, user_id", unique = true)
+        })
 @Entity
 public class AccountEntity {
     @Id
@@ -29,9 +40,9 @@ public class AccountEntity {
     private UUID userId;
     private String currency;
     private String type;
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     private Instant createdAt;
-    @Column(nullable = false)
+    @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
     @Column(nullable = false)
     private boolean active = true;

@@ -24,8 +24,6 @@ public interface AccountRepository {
 
     Optional<AccountSummary> findSummaryByIdAndUserId(UUID accountId, UUID userId);
 
-    List<Account> findAllByNamesIn(List<String> accountNames);
-
     Optional<Account> findByNameAndTypeAndUserId(String name, AccountType type, UUID userId);
 
     long deleteAllByUserId(UUID userId);
