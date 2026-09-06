@@ -20,6 +20,7 @@ import com.fabiankevin.app.web.controllers.dtos.CreateTransactionRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchTransactionRequest;
 import com.fabiankevin.app.web.controllers.dtos.household.HouseholdResponse;
 import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
+import com.fabiankevin.app.web.controllers.helper.TransactionServiceTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,9 @@ import java.util.List;
 import java.util.UUID;
 
 import static com.fabiankevin.app.models.enums.AccountType.E_WALLET;
+import static org.hamcrest.Matchers.closeTo;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -102,6 +106,9 @@ class TransactionControllerIntegrationTest {
 
     @Autowired
     private HouseholdServiceTestHelper householdHelper;
+
+    @Autowired
+    private TransactionServiceTestHelper transactionHelper;
 
     private UUID userId;
     private Account account;
@@ -164,7 +171,7 @@ class TransactionControllerIntegrationTest {
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isCreated())
-                    .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/transactions/[-a-f0-9]{36}")))
+                    .andExpect(header().string("Location", matchesPattern("http://localhost/api/transactions/[-a-f0-9]{36}")))
                     .andExpect(jsonPath("$.id").isNotEmpty())
                     .andExpect(jsonPath("$.description").value("Dinner"))
                     .andExpect(jsonPath("$.amount.value").value(100))
@@ -280,7 +287,7 @@ class TransactionControllerIntegrationTest {
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isCreated())
-                    .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/transactions/[-a-f0-9]{36}")))
+                    .andExpect(header().string("Location", matchesPattern("http://localhost/api/transactions/[-a-f0-9]{36}")))
                     .andExpect(jsonPath("$.id").isNotEmpty())
                     .andExpect(jsonPath("$.description").isEmpty())
                     .andExpect(jsonPath("$.amount.value").value(100))
@@ -462,7 +469,7 @@ class TransactionControllerIntegrationTest {
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isCreated())
-                    .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/transactions/[-a-f0-9]{36}")))
+                    .andExpect(header().string("Location", matchesPattern("http://localhost/api/transactions/[-a-f0-9]{36}")))
                     .andExpect(jsonPath("$.id").isNotEmpty())
                     .andExpect(jsonPath("$.amount.value").value(50))
                     .andExpect(jsonPath("$.type").value("EXPENSE"))
@@ -576,6 +583,158 @@ class TransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.type").value("CATEGORY"))
                     .andExpect(jsonPath("$.points").isArray())
                     .andExpect(jsonPath("$.points").isEmpty());
+        }
+
+        @Test
+        void givenDailySummaryType_thenReturnsDailyPoints() throws Exception {
+            transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 30, null, LocalDate.of(2026, 3, 10));
+            transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 20, null, LocalDate.of(2026, 3, 10));
+            transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 50, null, LocalDate.of(2026, 3, 15));
+
+            mockMvc.perform(get("/api/transactions/summary")
+                            .param("type", "DAILY")
+                            .param("from", "2026-03-01")
+                            .param("to", "2026-03-31")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.type").value("DAILY"))
+                    .andExpect(jsonPath("$.points").isArray())
+                    .andExpect(jsonPath("$.points.length()").value(2))
+                    .andExpect(jsonPath("$.points[*].label", hasItems("10", "15")))
+                    .andExpect(jsonPath("$.points[0].total", closeTo(-50.0, 0.01)))
+                    .andExpect(jsonPath("$.points[1].total", closeTo(-50.0, 0.01)));
+        }
+
+        @Test
+        void givenMonthlySummaryType_thenReturnsMonthlyPoints() throws Exception {
+            transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 100, null, LocalDate.of(2026, 1, 5));
+            transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 200, null, LocalDate.of(2026, 2, 15));
+            transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 150, null, LocalDate.of(2026, 2, 28));
+
+            mockMvc.perform(get("/api/transactions/summary")
+                            .param("type", "MONTHLY")
+                            .param("from", "2026-01-01")
+                            .param("to", "2026-12-31")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.type").value("MONTHLY"))
+                    .andExpect(jsonPath("$.points").isArray())
+                    .andExpect(jsonPath("$.points.length()").value(2))
+                    .andExpect(jsonPath("$.points[0].label").value("JANUARY"))
+                    .andExpect(jsonPath("$.points[0].total").value(100))
+                    .andExpect(jsonPath("$.points[1].label").value("FEBRUARY"))
+                    .andExpect(jsonPath("$.points[1].total").value(350));
+        }
+
+        @Test
+        void givenYearlySummaryType_thenReturnsYearlyPoints() throws Exception {
+            transactionHelper.createTransaction(userId, TransactionType.INCOME, 5000, null, LocalDate.of(2025, 6, 1));
+            transactionHelper.createTransaction(userId, TransactionType.INCOME, 6000, null, LocalDate.of(2026, 1, 15));
+            transactionHelper.createTransaction(userId, TransactionType.INCOME, 7000, null, LocalDate.of(2026, 8, 30));
+
+            mockMvc.perform(get("/api/transactions/summary")
+                            .param("type", "YEARLY")
+                            .param("from", "2025-01-01")
+                            .param("to", "2026-12-31")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.type").value("YEARLY"))
+                    .andExpect(jsonPath("$.points").isArray())
+                    .andExpect(jsonPath("$.points.length()").value(2))
+                    .andExpect(jsonPath("$.points[0].label").value("2025"))
+                    .andExpect(jsonPath("$.points[0].total").value(5000))
+                    .andExpect(jsonPath("$.points[1].label").value("2026"))
+                    .andExpect(jsonPath("$.points[1].total").value(13000));
+        }
+
+        @Test
+        void givenDateRangeExcludesTransactions_thenReturnsEmptyPoints() throws Exception {
+            transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 100, null, LocalDate.of(2026, 6, 15));
+
+            mockMvc.perform(get("/api/transactions/summary")
+                            .param("type", "CATEGORY")
+                            .param("from", "2027-01-01")
+                            .param("to", "2027-12-31")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.type").value("CATEGORY"))
+                    .andExpect(jsonPath("$.points").isArray())
+                    .andExpect(jsonPath("$.points").isEmpty());
+        }
+
+        @Test
+        void givenMultipleCategories_thenReturnsAggregatedByCategory() throws Exception {
+            transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 40, "Food", LocalDate.of(2026, 5, 1));
+            transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 60, "Food", LocalDate.of(2026, 5, 20));
+            transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 80, "Transport", LocalDate.of(2026, 5, 10));
+
+            mockMvc.perform(get("/api/transactions/summary")
+                            .param("type", "CATEGORY")
+                            .param("from", "2026-05-01")
+                            .param("to", "2026-05-31")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.type").value("CATEGORY"))
+                    .andExpect(jsonPath("$.points").isArray())
+                    .andExpect(jsonPath("$.points.length()").value(2))
+                    .andExpect(jsonPath("$.points[*].label", hasItems("Food", "Transport")))
+                    .andExpect(jsonPath("$.points[0].total", closeTo(100.0, 0.01)))
+                    .andExpect(jsonPath("$.points[1].total", closeTo(80.0, 0.01)));
+        }
+
+        @Test
+        void givenMixedTransactionTypes_thenReturnsAggregatedByCategory() throws Exception {
+            transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 100, "Food", LocalDate.of(2026, 7, 1));
+            transactionHelper.createTransaction(userId, TransactionType.INCOME, 500, "Salary", LocalDate.of(2026, 7, 15));
+
+            mockMvc.perform(get("/api/transactions/summary")
+                            .param("type", "CATEGORY")
+                            .param("from", "2026-07-01")
+                            .param("to", "2026-07-31")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.type").value("CATEGORY"))
+                    .andExpect(jsonPath("$.points").isArray())
+                    .andExpect(jsonPath("$.points.length()").value(2))
+                    .andExpect(jsonPath("$.points[*].label", hasItems("Food", "Salary")))
+                    .andExpect(jsonPath("$.points[0].total", closeTo(100.0, 0.01)))
+                    .andExpect(jsonPath("$.points[1].total", closeTo(500.0, 0.01)));
         }
     }
 
