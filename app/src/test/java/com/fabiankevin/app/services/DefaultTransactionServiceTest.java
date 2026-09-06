@@ -62,7 +62,7 @@ class DefaultTransactionServiceTest {
     @Mock
     private HouseholdRepository householdRepository;
     @Mock
-    private EventPublisher<Transaction> eventPublisher;
+    private EventPublisher eventPublisher;
     @Mock
     private UserClient userClient;
     private DefaultTransactionService transactionService;
@@ -384,16 +384,113 @@ class DefaultTransactionServiceTest {
         verify(transactionRepository, never()).save(any());
     }
 
-    @Test
-    void deleteTransaction_givenExisting_thenShouldDelete() {
-        UUID userId = UUID.randomUUID();
-        UUID transactionId = UUID.randomUUID();
+    @Nested
+    class DeleteTransaction {
+        @Test
+        void givenExistingTransactionAndUserHasParty_thenShouldDeleteAndPublishEvent() {
+            UUID userId = UUID.randomUUID();
+            UUID transactionId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
 
-        when(transactionRepository.deleteByIdAndUserId(transactionId, userId)).thenReturn(1);
+            Transaction existing = Transaction.builder()
+                    .id(transactionId)
+                    .account(Account.builder().id(UUID.randomUUID()).user(User.of(userId)).name("GCASH").currency(java.util.Currency.getInstance("PHP")).build())
+                    .category(Category.builder().id(UUID.randomUUID()).type(TransactionType.EXPENSE).userId(userId).name("FOOD").build())
+                    .type(TransactionType.EXPENSE)
+                    .amount(100)
+                    .description("deleted")
+                    .transactionDate(LocalDate.now())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .addedBy(User.of(userId))
+                    .updatedBy(User.of(userId))
+                    .build();
 
-        transactionService.deleteTransaction(transactionId, userId);
+            when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(existing));
+            when(transactionRepository.deleteByIdAndUserId(transactionId, userId)).thenReturn(1);
+            Household household = mock(Household.class);
+            when(household.id()).thenReturn(partyId);
+            when(householdRepository.findByUserId(userId)).thenReturn(Optional.of(household));
 
-        verify(transactionRepository, times(1)).deleteByIdAndUserId(transactionId, userId);
+            transactionService.deleteTransaction(transactionId, userId);
+
+            verify(transactionRepository, times(1)).findById(transactionId);
+            verify(transactionRepository, times(1)).deleteByIdAndUserId(transactionId, userId);
+            verify(householdRepository, times(1)).findByUserId(userId);
+            verify(eventPublisher, times(1)).publish(eq(partyId), any());
+        }
+
+        @Test
+        void givenExistingTransactionButUserHasNoParty_thenShouldDeleteWithoutPublishing() {
+            UUID userId = UUID.randomUUID();
+            UUID transactionId = UUID.randomUUID();
+
+            Transaction existing = Transaction.builder()
+                    .id(transactionId)
+                    .account(Account.builder().id(UUID.randomUUID()).user(User.of(userId)).name("GCASH").currency(java.util.Currency.getInstance("PHP")).build())
+                    .category(Category.builder().id(UUID.randomUUID()).type(TransactionType.EXPENSE).userId(userId).name("FOOD").build())
+                    .type(TransactionType.EXPENSE)
+                    .amount(100)
+                    .description("deleted")
+                    .transactionDate(LocalDate.now())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .addedBy(User.of(userId))
+                    .updatedBy(User.of(userId))
+                    .build();
+
+            when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(existing));
+            when(transactionRepository.deleteByIdAndUserId(transactionId, userId)).thenReturn(1);
+            when(householdRepository.findByUserId(userId)).thenReturn(Optional.empty());
+
+            transactionService.deleteTransaction(transactionId, userId);
+
+            verify(transactionRepository, times(1)).findById(transactionId);
+            verify(transactionRepository, times(1)).deleteByIdAndUserId(transactionId, userId);
+            verify(householdRepository, times(1)).findByUserId(userId);
+            verify(eventPublisher, never()).publish(any(), any());
+        }
+
+        @Test
+        void givenNonExistingTransaction_thenShouldThrow() {
+            UUID userId = UUID.randomUUID();
+            UUID transactionId = UUID.randomUUID();
+
+            when(transactionRepository.findById(transactionId)).thenReturn(Optional.empty());
+
+            assertThrows(TransactionNotFoundException.class, () -> transactionService.deleteTransaction(transactionId, userId));
+            verify(transactionRepository, times(1)).findById(transactionId);
+            verify(transactionRepository, never()).deleteByIdAndUserId(any(), any());
+            verify(eventPublisher, never()).publish(any(), any());
+        }
+
+        @Test
+        void givenTransactionBelongsToAnotherUser_thenShouldThrow() {
+            UUID userId = UUID.randomUUID();
+            UUID otherUserId = UUID.randomUUID();
+            UUID transactionId = UUID.randomUUID();
+
+            Transaction otherTransaction = Transaction.builder()
+                    .id(transactionId)
+                    .account(Account.builder().id(UUID.randomUUID()).user(User.of(otherUserId)).name("GCASH").currency(java.util.Currency.getInstance("PHP")).build())
+                    .category(Category.builder().id(UUID.randomUUID()).type(TransactionType.EXPENSE).userId(otherUserId).name("FOOD").build())
+                    .type(TransactionType.EXPENSE)
+                    .amount(100)
+                    .description("other")
+                    .transactionDate(LocalDate.now())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .addedBy(User.of(otherUserId))
+                    .updatedBy(User.of(otherUserId))
+                    .build();
+
+            when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(otherTransaction));
+
+            assertThrows(TransactionNotFoundException.class, () -> transactionService.deleteTransaction(transactionId, userId));
+            verify(transactionRepository, times(1)).findById(transactionId);
+            verify(transactionRepository, never()).deleteByIdAndUserId(any(), any());
+            verify(eventPublisher, never()).publish(any(), any());
+        }
     }
 
     @Test

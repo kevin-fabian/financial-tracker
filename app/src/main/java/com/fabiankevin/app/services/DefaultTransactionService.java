@@ -2,6 +2,7 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.events.EventPublisher;
+import com.fabiankevin.app.events.TransactionEvent;
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.exceptions.DailyTransactionLimitExceededException;
@@ -9,7 +10,6 @@ import com.fabiankevin.app.exceptions.InvalidAmountException;
 import com.fabiankevin.app.exceptions.TransactionNotFoundException;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Category;
-import com.fabiankevin.app.models.ItemEvent;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.SummarySeries;
 import com.fabiankevin.app.models.Transaction;
@@ -50,7 +50,7 @@ public class DefaultTransactionService implements TransactionService {
     private final TransactionRepository transactionRepository;
     private final Map<SummaryType, SummaryGenerator> generators;
     private final HouseholdRepository householdRepository;
-    private final EventPublisher<Transaction> compositeEventPublisher;
+    private final EventPublisher compositeEventPublisher;
     private final int dailyTransactionLimit;
     private final UserClient userClient;
 
@@ -60,7 +60,7 @@ public class DefaultTransactionService implements TransactionService {
             TransactionRepository transactionRepository,
             List<SummaryGenerator> generators,
             HouseholdRepository householdRepository,
-            EventPublisher<Transaction> compositeEventPublisher,
+            EventPublisher compositeEventPublisher,
             int dailyTransactionLimit,
             UserClient userClient) {
         this.accountRepository = accountRepository;
@@ -80,6 +80,18 @@ public class DefaultTransactionService implements TransactionService {
     @Transactional
     @Override
     public void deleteTransaction(UUID transactionId, UUID userId) {
+        Transaction existing = transactionRepository.findById(transactionId)
+                .filter(t -> t.account().user().id().equals(userId))
+                .orElseThrow(TransactionNotFoundException::new);
+
+        householdRepository.findByUserId(userId).ifPresent(household ->
+            compositeEventPublisher.publish(household.id(), new TransactionEvent(
+                    userId,
+                    EventAction.DELETED,
+                    existing
+            ))
+        );
+
         transactionRepository.deleteByIdAndUserId(transactionId, userId);
     }
 
@@ -90,7 +102,7 @@ public class DefaultTransactionService implements TransactionService {
                 .orElseThrow(TransactionNotFoundException::new);
 
         List<Transaction> enrichedList = enrichWithUserData(List.of(transaction));
-        return TransactionResponse.from(enrichedList.get(0));
+        return TransactionResponse.from(enrichedList.getFirst());
     }
 
     @Transactional
@@ -128,15 +140,15 @@ public class DefaultTransactionService implements TransactionService {
 
         Transaction savedTransaction = transactionRepository.save(transaction);
 
-        householdRepository.findByUserId(userId).ifPresent(party -> {
-            compositeEventPublisher.publish(party.id(), new ItemEvent<>(
+        householdRepository.findByUserId(userId).ifPresent(household ->
+            compositeEventPublisher.publish(household.id(), new TransactionEvent(
                     userId,
                     EventAction.ADDED,
                     savedTransaction
-            ));
-        });
+            ))
+        );
 
-        return enrichWithUserData(List.of(savedTransaction)).get(0);
+        return enrichWithUserData(List.of(savedTransaction)).getFirst();
     }
 
     @Transactional
@@ -178,7 +190,17 @@ public class DefaultTransactionService implements TransactionService {
         Optional.ofNullable(command.amount()).ifPresent(builder::amount);
         Optional.ofNullable(command.transactionDate()).ifPresent(builder::transactionDate);
 
-        return enrichWithUserData(List.of(transactionRepository.save(builder.build()))).get(0);
+        Transaction saved = transactionRepository.save(builder.build());
+
+        householdRepository.findByUserId(userId).ifPresent(household ->
+            compositeEventPublisher.publish(household.id(), new TransactionEvent(
+                    userId,
+                    EventAction.UPDATED,
+                    saved
+            ))
+        );
+
+        return enrichWithUserData(List.of(saved)).getFirst();
     }
 
     @Override
@@ -243,11 +265,9 @@ public class DefaultTransactionService implements TransactionService {
 
                     Optional.ofNullable(addedBy).ifPresent(builder::addedBy);
                     Optional.ofNullable(updatedBy).ifPresent(builder::updatedBy);
-                    Optional.ofNullable(accountUser).ifPresent(user -> {
-                        builder.account(t.account().toBuilder()
-                                .user(user)
-                                .build());
-                    });
+                    Optional.ofNullable(accountUser).ifPresent(user ->
+                        builder.account(t.account().toBuilder().user(user).build())
+                    );
 
                     return builder.build();
                 })

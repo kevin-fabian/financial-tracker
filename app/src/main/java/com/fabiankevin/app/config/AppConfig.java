@@ -1,8 +1,8 @@
 package com.fabiankevin.app.config;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.events.CompositeTransactionEventPublisher;
-import com.fabiankevin.app.events.StatsEventPublisher;
+import com.fabiankevin.app.events.CompositeEventPublisher;
+import com.fabiankevin.app.events.EventPublisher;
 import com.fabiankevin.app.events.TransactionEventPublisher;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
@@ -40,12 +40,9 @@ public class AppConfig {
     }
 
     @Bean
-    public CompositeTransactionEventPublisher compositeEventPublisher(
-            StatsEventPublisher statsEventPublisher,
+    public CompositeEventPublisher compositeEventPublisher(
             TransactionEventPublisher transactionEventPublisher) {
-        return new CompositeTransactionEventPublisher(
-                List.of(statsEventPublisher,
-                        transactionEventPublisher));
+        return new CompositeEventPublisher(List.of(transactionEventPublisher));
     }
 
     @Bean
@@ -55,7 +52,7 @@ public class AppConfig {
             TransactionRepository transactionRepository,
             List<SummaryGenerator> generators,
             HouseholdRepository householdRepository,
-            CompositeTransactionEventPublisher compositeTransactionEventPublisher,
+            EventPublisher compositeEventPublisher,
             @Value("${transaction.daily-limit:100}") int dailyTransactionLimit,
             UserClient userClient) {
         return new DefaultTransactionService(
@@ -64,7 +61,7 @@ public class AppConfig {
                 transactionRepository,
                 generators,
                 householdRepository,
-                compositeTransactionEventPublisher,
+                compositeEventPublisher,
                 dailyTransactionLimit,
                 userClient);
     }

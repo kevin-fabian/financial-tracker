@@ -1430,7 +1430,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenNonExistentId_thenReturnsNoContent() throws Exception {
+        void givenNonExistentId_thenReturnsNotFound() throws Exception {
             mockMvc.perform(delete("/api/transactions/" + UUID.randomUUID())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -1439,7 +1439,7 @@ class TransactionControllerIntegrationTest {
                                             .claim("sub", userId)
                                             .claim("scope", List.of())
                                     )))
-                    .andExpect(status().isNoContent());
+                    .andExpect(status().isNotFound());
         }
     }
 
