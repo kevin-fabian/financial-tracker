@@ -11,18 +11,10 @@ spring:
       ddl-auto: update
   security:
     oauth2:
-      resourceserver:
-        jwt:
-          jwk-set-uri: http://localhost:9000/oauth2/jwks
       client:
         registration:
           financial-tracker-client:
-            provider: identity
-            client-id: financial-tracker-client
-            authorization-grant-type: client_credentials
-        provider:
-          identity:
-            token-uri: http://localhost:9000/oauth2/token
+            client-secret: 123456
 
 logging:
   level:
