@@ -36,7 +36,7 @@ public class BudgetEntity {
     @Column(nullable = false, length = 32)
     private BudgetPeriod period;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne
     @JoinColumn(name = "category_id")
     private CategoryEntity category;
 

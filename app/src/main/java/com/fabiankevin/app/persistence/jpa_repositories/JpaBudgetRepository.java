@@ -2,6 +2,7 @@ package com.fabiankevin.app.persistence.jpa_repositories;
 
 import com.fabiankevin.app.persistence.entities.BudgetEntity;
 import com.fabiankevin.app.persistence.entities.projections.BudgetSummaryProjection;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,6 +16,7 @@ import java.util.UUID;
 
 public interface JpaBudgetRepository extends JpaRepository<BudgetEntity, UUID> {
 
+    @EntityGraph(attributePaths = {"category"})
     Optional<BudgetEntity> findByIdAndUserId(UUID id, UUID userId);
 
     boolean existsByCategoryIdAndUserId(UUID categoryId, UUID userId);
@@ -23,6 +25,7 @@ public interface JpaBudgetRepository extends JpaRepository<BudgetEntity, UUID> {
 
     int deleteByIdAndUserId(UUID id, UUID userId);
 
+    @EntityGraph(attributePaths = {"category"})
     @Query("""
                 SELECT b FROM BudgetEntity b
                 WHERE b.userId = :userId

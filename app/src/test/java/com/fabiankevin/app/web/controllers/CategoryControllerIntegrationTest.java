@@ -8,6 +8,7 @@ import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaBudgetRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaRecurringTransactionRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
@@ -93,6 +94,9 @@ class CategoryControllerIntegrationTest {
     private JpaTransactionRepository jpaTransactionRepository;
 
     @Autowired
+    private JpaBudgetRepository jpaBudgetRepository;
+
+    @Autowired
     private JpaRecurringTransactionRepository jpaRecurringTransactionRepository;
 
     @Autowired
@@ -105,6 +109,7 @@ class CategoryControllerIntegrationTest {
         userId = UUID.randomUUID();
         jpaRecurringTransactionRepository.deleteAll();
         jpaTransactionRepository.deleteAll();
+        jpaBudgetRepository.deleteAll();
         jpaCategoryRepository.deleteAll();
     }
 

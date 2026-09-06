@@ -38,11 +38,11 @@ public class RecurringTransactionEntity {
     @Column(name = "variable_amount", nullable = false)
     private boolean variableAmount;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne
     @JoinColumn(name = "category_id")
     private CategoryEntity category;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne
     @JoinColumn(name = "account_id")
     private AccountEntity account;
 

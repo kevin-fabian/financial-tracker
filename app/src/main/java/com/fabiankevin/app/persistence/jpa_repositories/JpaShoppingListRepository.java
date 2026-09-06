@@ -7,10 +7,11 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface JpaShoppingListRepository extends JpaRepository<ShoppingListEntity, UUID> {
-    @EntityGraph(attributePaths = {"items"})
+    @EntityGraph(attributePaths = {"items", "category"})
     @Query("""
             SELECT DISTINCT sl FROM ShoppingListEntity sl
             LEFT JOIN FETCH sl.sharedWithUserIds su
@@ -18,4 +19,8 @@ public interface JpaShoppingListRepository extends JpaRepository<ShoppingListEnt
             ORDER BY sl.id ASC
             """)
     List<ShoppingListEntity> findAllByUserId(@Param("userId") UUID userId);
+
+    @EntityGraph(attributePaths = {"items", "category"})
+    @Query("SELECT sl FROM ShoppingListEntity sl WHERE sl.id = :id")
+    Optional<ShoppingListEntity> findByIdWithDetails(@Param("id") UUID id);
 }

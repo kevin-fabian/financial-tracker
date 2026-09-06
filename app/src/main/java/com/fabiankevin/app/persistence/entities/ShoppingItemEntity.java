@@ -55,7 +55,7 @@ public class ShoppingItemEntity {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "shopping_list_id", nullable = false)
     private ShoppingListEntity shoppingList;
 

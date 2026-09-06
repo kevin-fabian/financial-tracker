@@ -3,6 +3,7 @@ package com.fabiankevin.app.persistence.jpa_repositories;
 import com.fabiankevin.app.persistence.entities.RecurringTransactionEntity;
 import com.fabiankevin.app.persistence.entities.projections.RecurringTransactionSummaryProjection;
 import jakarta.persistence.QueryHint;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.QueryHints;
@@ -35,7 +36,7 @@ public interface JpaRecurringTransactionRepository extends JpaRepository<Recurri
             """)
     List<RecurringTransactionSummaryProjection> findAllSummariesByUserId(@Param("userId") UUID userId, @Param("now") LocalDate now);
 
-    @QueryHints(value = @QueryHint(name = "org.hibernate.fetchSize", value = "50"))
+    @EntityGraph(attributePaths = {"account", "category"})
     @Query("""
             SELECT rt FROM RecurringTransactionEntity rt
             WHERE rt.nextOccurrenceDate < :now
@@ -44,7 +45,8 @@ public interface JpaRecurringTransactionRepository extends JpaRepository<Recurri
             """)
     Stream<RecurringTransactionEntity> streamDueRecurringTransactions(@Param("now") LocalDate now);
 
-    int deleteByIdAndAccountUserId(UUID id, UUID userId);
-
+    @EntityGraph(attributePaths = {"account", "category"})
     Optional<RecurringTransactionEntity> findByIdAndAccountUserId(UUID id, UUID userId);
+
+    int deleteByIdAndAccountUserId(UUID id, UUID userId);
 }

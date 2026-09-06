@@ -5,6 +5,7 @@ import com.fabiankevin.app.persistence.entities.TransactionEntity;
 import com.fabiankevin.app.persistence.entities.projections.SummaryPointProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -162,7 +163,11 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             """)
     double sumSpentByCategoryIdAndUserId(@Param("categoryId") UUID categoryId, @Param("userId") UUID userId);
 
+    @EntityGraph(attributePaths = {"account", "category"})
     Optional<TransactionEntity> findByRecurringTransactionId(UUID recurringTransactionId);
+
+    @EntityGraph(attributePaths = {"account", "category"})
+    Optional<TransactionEntity> findByIdAndAccountUserId(UUID id, UUID userId);
 
     @Query("""
             SELECT COUNT(t)
