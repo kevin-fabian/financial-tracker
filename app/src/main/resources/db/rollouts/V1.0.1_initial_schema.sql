@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uk_accounts_name_user_id UNIQUE (name, user_id),
-    CONSTRAINT chk_accounts_type CHECK (type IN ('CASH', 'BANK_ACCOUNT', 'CREDIT_CARD', 'E_WALLET', 'INVESTMENT', 'LOAN', 'OTHER'));
+    CONSTRAINT chk_accounts_type CHECK (type IN ('CASH', 'BANK_ACCOUNT', 'CREDIT_CARD', 'E_WALLET', 'INVESTMENT', 'LOAN', 'OTHER'))
 );
 CREATE INDEX IF NOT EXISTS idx_accounts_user_id ON accounts (user_id);
 

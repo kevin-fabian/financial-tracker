@@ -27,7 +27,6 @@ import java.util.UUID;
 @Table(name = "accounts",
         indexes = {
                 @Index(name = "idx_accounts_user_id", columnList = "user_id"),
-                @Index(name = "idxs_accounts_name", columnList = "name"),
                 @Index(name = "uk_accounts_name_user_id", columnList = "name, user_id", unique = true)
         })
 @Entity
