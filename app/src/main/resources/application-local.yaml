@@ -13,19 +13,13 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jws-algorithms: RS256
           jwk-set-uri: http://localhost:9000/oauth2/jwks
-          audiences:
-            - laan-app
-            - identity-service
       client:
         registration:
           financial-tracker-client:
             provider: identity
             client-id: financial-tracker-client
-            client-secret: 123456
             authorization-grant-type: client_credentials
-            scope: user:read
         provider:
           identity:
             token-uri: http://localhost:9000/oauth2/token

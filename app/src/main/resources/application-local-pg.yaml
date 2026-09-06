@@ -9,19 +9,36 @@ spring:
       maximum-pool-size: 10
       minimum-idle: 1
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-    show-sql: false
-
+    database-platform: org.hibernate.dialect.H2Dialect
+    properties:
+      hibernate:
+        show_sql: true
+    hibernate:
+      ddl-auto: update
   security:
     oauth2:
       resourceserver:
         jwt:
-          jws-algorithms: RS256
           jwk-set-uri: http://localhost:9000/oauth2/jwks
-          audiences:
-            - squeeze-web-client
-            - test-client
+      client:
+        registration:
+          financial-tracker-client:
+            provider: identity
+            client-id: financial-tracker-client
+            authorization-grant-type: client_credentials
+        provider:
+          identity:
+            token-uri: http://localhost:9000/oauth2/token
 
 logging:
   level:
-    com.fabiankevin.app: DEBUG
+    org.zalando.logbook: INFO
+    com.fabiankevin.app: INFO
+
+management:
+  tracing:
+    enabled: false
+  otlp:
+    metrics:
+      export:
+        enabled: false

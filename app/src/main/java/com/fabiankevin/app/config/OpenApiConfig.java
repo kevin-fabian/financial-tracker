@@ -1,11 +1,7 @@
 package com.fabiankevin.app.config;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Info;
-import io.swagger.v3.oas.annotations.security.OAuthFlow;
-import io.swagger.v3.oas.annotations.security.OAuthFlows;
-import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,21 +12,81 @@ import org.springframework.context.annotation.Configuration;
                 version = "${springdoc.api-docs.info.version}",
                 description = "${springdoc.api-docs.info.description}")
 )
-@SecurityScheme(
-        name = "Spring Oauth2",
-        type = SecuritySchemeType.OAUTH2,
-        flows = @OAuthFlows(
-                clientCredentials = @OAuthFlow(
-                        tokenUrl = "http://localhost:9000/oauth2/token",
-                        scopes = {
-                                @io.swagger.v3.oas.annotations.security.OAuthScope(name = "user:read", description = "Read access"),
-                                @io.swagger.v3.oas.annotations.security.OAuthScope(name = "user:write", description = "Write access"),
-                                @io.swagger.v3.oas.annotations.security.OAuthScope(name = "user:manage", description = "Read and write access"),
-                        }
-                )
-        )
-)
 public class OpenApiConfig {
+
+    @Bean
+    public GroupedOpenApi accountsApi() {
+        return GroupedOpenApi.builder()
+                .group("accounts")
+                .displayName("Accounts API")
+                .pathsToMatch("/api/accounts/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi categoriesApi() {
+        return GroupedOpenApi.builder()
+                .group("categories")
+                .displayName("Categories API")
+                .pathsToMatch("/api/categories/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi transactionsApi() {
+        return GroupedOpenApi.builder()
+                .group("transactions")
+                .displayName("Transactions API")
+                .pathsToMatch("/api/transactions/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi statsApi() {
+        return GroupedOpenApi.builder()
+                .group("stats")
+                .displayName("Stats API")
+                .pathsToMatch("/api/stats")
+                .pathsToMatch("/api/stats*")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi budgetsApi() {
+        return GroupedOpenApi.builder()
+                .group("budgets")
+                .displayName("Budgets API")
+                .pathsToMatch("/api/budgets/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi recurringTransactionsApi() {
+        return GroupedOpenApi.builder()
+                .group("recurring-transactions")
+                .displayName("Recurring Transactions API")
+                .pathsToMatch("/api/recurring-transactions/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi householdsApi() {
+        return GroupedOpenApi.builder()
+                .group("households")
+                .displayName("Households API")
+                .pathsToMatch("/api/households/**")
+                .build();
+    }
+
+    @Bean
+    public GroupedOpenApi usersApi() {
+        return GroupedOpenApi.builder()
+                .group("users")
+                .displayName("Users API")
+                .pathsToMatch("/api/users/**")
+                .build();
+    }
+
     @Bean
     public GroupedOpenApi shoppingListsApi() {
         return GroupedOpenApi.builder()
