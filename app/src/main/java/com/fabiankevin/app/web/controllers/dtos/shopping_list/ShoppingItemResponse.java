@@ -1,8 +1,8 @@
 package com.fabiankevin.app.web.controllers.dtos.shopping_list;
 
-import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ItemPriority;
 import com.fabiankevin.app.models.shopping_list.ShoppingItemSummary;
+import com.fabiankevin.app.web.controllers.dtos.UserResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
@@ -39,14 +39,9 @@ public record ShoppingItemResponse(
         @Schema(description = "Notes", example = "Whole milk")
         String notes,
 
-        @Schema(description = "First name of the item creator", example = "Kevin")
-        String addedByFirstName,
-
-        @Schema(description = "Last name of the item creator", example = "Fabian")
-        String addedByLastName,
-
-        @Schema(description = "Initial of the item creator", example = "KF")
-        String addedByInitial,
+        @Schema(description = "User who added the item",
+                exampleClasses = UserResponse.class)
+        UserResponse addedBy,
 
         @Schema(description = "Creation timestamp", example = "2025-01-01T00:00:00Z")
         Instant createdAt,
@@ -55,7 +50,6 @@ public record ShoppingItemResponse(
         Instant updatedAt
 ) {
     public static ShoppingItemResponse from(ShoppingItemSummary summary) {
-        User user = summary.addedBy();
         return ShoppingItemResponse.builder()
                 .id(summary.id())
                 .name(summary.name())
@@ -66,9 +60,7 @@ public record ShoppingItemResponse(
                 .purchased(summary.purchased())
                 .priority(summary.priority())
                 .notes(summary.notes())
-                .addedByFirstName(user != null ? user.firstName() : null)
-                .addedByLastName(user != null ? user.lastName() : null)
-                .addedByInitial(user != null ? user.initial() : null)
+                .addedBy(UserResponse.from(summary.addedBy()))
                 .createdAt(summary.createdAt())
                 .updatedAt(summary.updatedAt())
                 .build();

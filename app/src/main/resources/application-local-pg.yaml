@@ -24,8 +24,8 @@ spring:
 
 logging:
   level:
-    org.zalando.logbook: INFO
-    com.fabiankevin.app: INFO
+    org.zalando.logbook: TRACE
+    com.fabiankevin.app: DEBUG
 
 management:
   tracing:

@@ -13,7 +13,11 @@ import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
 import com.fabiankevin.app.services.ShoppingListService;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingListCommand;
-import com.fabiankevin.app.web.controllers.dtos.shopping_list.*;
+import com.fabiankevin.app.web.controllers.dtos.shopping_list.CompleteShoppingListRequest;
+import com.fabiankevin.app.web.controllers.dtos.shopping_list.CreateShoppingItemRequest;
+import com.fabiankevin.app.web.controllers.dtos.shopping_list.CreateShoppingListRequest;
+import com.fabiankevin.app.web.controllers.dtos.shopping_list.PatchShoppingItemRequest;
+import com.fabiankevin.app.web.controllers.dtos.shopping_list.PatchShoppingListRequest;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -43,7 +47,10 @@ import java.util.stream.Stream;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -819,6 +826,11 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(jsonPath("$[0].user.lastName").value("Doe"))
                     .andExpect(jsonPath("$[0].user.initial").value("JD"))
                     .andExpect(jsonPath("$[0].items").isArray())
+                    .andExpect(jsonPath("$[0].items[0].addedBy").exists())
+                    .andExpect(jsonPath("$[0].items[0].addedBy.id").value(addedBy.toString()))
+                    .andExpect(jsonPath("$[0].items[0].addedBy.firstName").value("Jane"))
+                    .andExpect(jsonPath("$[0].items[0].addedBy.lastName").value("Doe"))
+                    .andExpect(jsonPath("$[0].items[0].addedBy.initial").value("JD"))
                     .andExpect(jsonPath("$[0].createdAt").exists())
                     .andExpect(jsonPath("$[0].updatedAt").exists())
                     .andExpect(jsonPath("$[1].items").isArray());
@@ -1010,9 +1022,11 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(jsonPath("$.purchased").value(false))
                     .andExpect(jsonPath("$.priority").value("HIGH"))
                     .andExpect(jsonPath("$.notes").value("Whole milk"))
-                    .andExpect(jsonPath("$.addedByFirstName").value("John"))
-                    .andExpect(jsonPath("$.addedByLastName").value("Doe"))
-                    .andExpect(jsonPath("$.addedByInitial").value("JD"))
+                    .andExpect(jsonPath("$.addedBy").exists())
+                    .andExpect(jsonPath("$.addedBy.id").isNotEmpty())
+                    .andExpect(jsonPath("$.addedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$.addedBy.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.addedBy.initial").value("JD"))
                     .andExpect(jsonPath("$.createdAt").exists())
                     .andExpect(jsonPath("$.updatedAt").exists());
         }
@@ -1209,9 +1223,11 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(jsonPath("$.price").value(4.0))
                     .andExpect(jsonPath("$.priority").value("MEDIUM"))
                     .andExpect(jsonPath("$.notes").value("Whole milk"))
-                    .andExpect(jsonPath("$.addedByFirstName").value("Jane"))
-                    .andExpect(jsonPath("$.addedByLastName").value("Doe"))
-                    .andExpect(jsonPath("$.addedByInitial").value("JD"))
+                    .andExpect(jsonPath("$.addedBy").exists())
+                    .andExpect(jsonPath("$.addedBy.id").value(addedBy.toString()))
+                    .andExpect(jsonPath("$.addedBy.firstName").value("Jane"))
+                    .andExpect(jsonPath("$.addedBy.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.addedBy.initial").value("JD"))
                     .andExpect(jsonPath("$.purchased").value(false))
                     .andExpect(jsonPath("$.createdAt").exists())
                     .andExpect(jsonPath("$.updatedAt").exists());

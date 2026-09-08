@@ -16,7 +16,6 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -53,16 +52,13 @@ class StatsControllerIntegrationTest {
     @Autowired
     private TransactionServiceTestHelper transactionHelper;
 
-    @Autowired
-    private JsonMapper jsonMapper;
-
     @Nested
     class GetStats {
         @Test
         void givenUserWithIncomeAndExpenses_thenGrowthPercentageShouldReflectBalanceChange() throws Exception {
             UUID userId = UUID.randomUUID();
 
-            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
+            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.getFirst().equals(userId))))
                     .thenReturn(List.of(User.builder().id(userId).firstName("Eve").lastName("Wilson").build()));
 
             // Add income to build positive balance
@@ -88,7 +84,7 @@ class StatsControllerIntegrationTest {
         void givenUserWithNoTransactions_thenShouldReturnZeroStats() throws Exception {
             UUID userId = UUID.randomUUID();
 
-            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
+            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.getFirst().equals(userId))))
                     .thenReturn(List.of(User.builder().id(userId).firstName("Bob").lastName("Jones").build()));
 
             mockMvc.perform(get("/api/stats")
@@ -110,7 +106,7 @@ class StatsControllerIntegrationTest {
         void givenUserWithTransactionsLastMonthAndCurrentMonth_thenGrowthPercentageShouldReflectBalanceChange() throws Exception {
             UUID userId = UUID.randomUUID();
 
-            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
+            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.getFirst().equals(userId))))
                     .thenReturn(List.of(User.builder().id(userId).firstName("Frank").lastName("Miller").build()));
 
             LocalDate today = LocalDate.now();
@@ -146,7 +142,7 @@ class StatsControllerIntegrationTest {
         void givenUserWithDateFilter_thenShouldReturnFilteredStats() throws Exception {
             UUID userId = UUID.randomUUID();
 
-            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
+            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.getFirst().equals(userId))))
                     .thenReturn(List.of(User.builder().id(userId).firstName("Charlie").lastName("Brown").build()));
 
             LocalDate today = LocalDate.now();
@@ -177,7 +173,7 @@ class StatsControllerIntegrationTest {
         void givenUserWithCategoryFilter_thenShouldReturnCategoryFilteredStats() throws Exception {
             UUID userId = UUID.randomUUID();
 
-            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(userId))))
+            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.getFirst().equals(userId))))
                     .thenReturn(List.of(User.builder().id(userId).firstName("Diana").lastName("Prince").build()));
 
             // Add two expense transactions with different categories for filter test

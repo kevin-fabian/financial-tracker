@@ -54,7 +54,7 @@ public record TransactionResponse(
                 .account(AccountResponse.from(t.account()))
                 .type(t.category().type().name())
                 .category(CategoryResponse.from(t.category()))
-                .amount(new AmountResponse(t.amount(), t.account().currency()))
+                .amount(new AmountResponse(t.amount(), t.account().currency().getCurrencyCode()))
                 .description(t.description())
                 .transactionDate(t.transactionDate())
                 .createdAt(t.createdAt())
