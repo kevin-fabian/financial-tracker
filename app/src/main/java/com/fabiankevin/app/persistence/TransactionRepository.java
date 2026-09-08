@@ -25,8 +25,7 @@ public interface TransactionRepository {
     List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByMonth(LocalDate from, LocalDate to, Set<UUID> userIds, TransactionType type);
     List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByYear(LocalDate from, LocalDate to, Set<UUID> userIds, TransactionType type);
     List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByDay(LocalDate from, LocalDate to, Set<UUID> userIds, TransactionType type);
-    List<SummaryPoint> sumByTypeAndUserId(Set<UUID> userIds, LocalDate from, LocalDate to, UUID accountId, UUID categoryId);
-    List<SummaryPoint> sumByTypeAndUserId(Set<UUID> userIds, LocalDate from, LocalDate to, UUID categoryId);
+    List<SummaryPoint> sumByTypeAndUserId(Set<UUID> userIds, LocalDate from, LocalDate to);
     double sumBalance(Set<UUID> userIds, LocalDate from, LocalDate to);
     double sumBalance(Set<UUID> userIds);
     Page<Transaction> getTransactionsByPageAndUserId(PageQuery query, Set<UUID> userIds);

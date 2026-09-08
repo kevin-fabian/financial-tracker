@@ -37,7 +37,7 @@ public class DefaultStatsService implements StatsService {
         Set<UUID> userIds = resolveUserIds(userId);
 
         // Query current period totals (single grouped query)
-        List<SummaryPoint> currentPeriod = transactionRepository.sumByTypeAndUserId(userIds, fromDate, toDate, query.categoryId());
+        List<SummaryPoint> currentPeriod = transactionRepository.sumByTypeAndUserId(userIds, fromDate, toDate);
         double currentIncome = sumByType(currentPeriod, TransactionType.INCOME);
         double currentExpenses = sumByType(currentPeriod, TransactionType.EXPENSE);
 

@@ -176,7 +176,7 @@ class StatsControllerIntegrationTest {
             when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.getFirst().equals(userId))))
                     .thenReturn(List.of(User.builder().id(userId).firstName("Diana").lastName("Prince").build()));
 
-            // Add two expense transactions with different categories for filter test
+            // Stats endpoint returns aggregate totals across all categories — categoryId filter is not supported
             Transaction expense1 = transactionHelper.createTransaction(userId, EXPENSE, 200.0, "Dining");
             transactionHelper.createTransaction(userId, EXPENSE, 150.0, "Groceries");
 
@@ -190,7 +190,7 @@ class StatsControllerIntegrationTest {
                                             .claim("scope", List.of())
                                     )))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.totalExpenses").value(200.0))
+                    .andExpect(jsonPath("$.totalExpenses").value(350.0))
                     .andExpect(jsonPath("$.totalIncome").value(0.0));
         }
     }

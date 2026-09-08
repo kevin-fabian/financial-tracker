@@ -61,7 +61,7 @@ class DefaultStatsServiceTest {
         double priorBalance = 12000.0;
 
         when(householdService.getHouseholdMembersUserIds(userId)).thenReturn(List.of());
-        when(transactionRepository.sumByTypeAndUserId(eq(Set.of(userId)), eq(fromDate), eq(toDate), eq(categoryId)))
+        when(transactionRepository.sumByTypeAndUserId(eq(Set.of(userId)), eq(fromDate), eq(toDate)))
                 .thenReturn(summaryPoints(currentIncome, currentExpenses));
         when(transactionRepository.sumBalance(eq(Set.of(userId))))
                 .thenReturn(totalBalance);
@@ -77,7 +77,7 @@ class DefaultStatsServiceTest {
         assertEquals(25.0, summary.growthPercentage(), 0.01, "Growth percentage should reflect month-over-month balance change");
 
         verify(householdService, times(1)).getHouseholdMembersUserIds(userId);
-        verify(transactionRepository, times(1)).sumByTypeAndUserId(any(), any(), any(), any());
+        verify(transactionRepository, times(1)).sumByTypeAndUserId(any(), any(), any());
         verify(transactionRepository, times(1)).sumBalance(any(), any(), any());
         verify(transactionRepository, times(1)).sumBalance(eq(Set.of(userId)));
     }
@@ -94,7 +94,7 @@ class DefaultStatsServiceTest {
         double totalBalance = 10000.0;
 
         when(householdService.getHouseholdMembersUserIds(userId)).thenReturn(List.of());
-        when(transactionRepository.sumByTypeAndUserId(eq(Set.of(userId)), any(), any(), any()))
+        when(transactionRepository.sumByTypeAndUserId(eq(Set.of(userId)), any(), any()))
                 .thenReturn(summaryPoints(currentIncome, currentExpenses));
         when(transactionRepository.sumBalance(eq(Set.of(userId))))
                 .thenReturn(totalBalance);
@@ -110,7 +110,7 @@ class DefaultStatsServiceTest {
         assertEquals(100.0, summary.growthPercentage(), 0.001, "Growth percentage should be 100.0% when prior balance is zero");
 
         verify(householdService, times(1)).getHouseholdMembersUserIds(userId);
-        verify(transactionRepository, times(1)).sumByTypeAndUserId(any(), any(), any(), any());
+        verify(transactionRepository, times(1)).sumByTypeAndUserId(any(), any(), any());
         verify(transactionRepository, times(1)).sumBalance(any(), any(), any());
         verify(transactionRepository, times(1)).sumBalance(eq(Set.of(userId)));
     }
@@ -136,7 +136,7 @@ class DefaultStatsServiceTest {
             double priorBalance = 20000.0;
 
             when(householdService.getHouseholdMembersUserIds(userId)).thenReturn(participantIds);
-            when(transactionRepository.sumByTypeAndUserId(eq(expectedUserIds), any(), any(), any()))
+            when(transactionRepository.sumByTypeAndUserId(eq(expectedUserIds), any(), any()))
                     .thenReturn(summaryPoints(currentIncome, currentExpenses));
             when(transactionRepository.sumBalance(eq(expectedUserIds)))
                     .thenReturn(totalBalance);
@@ -152,7 +152,7 @@ class DefaultStatsServiceTest {
             assertEquals(25.0, summary.growthPercentage(), 0.01);
 
             verify(householdService).getHouseholdMembersUserIds(userId);
-            verify(transactionRepository).sumByTypeAndUserId(eq(expectedUserIds), any(), any(), any());
+            verify(transactionRepository).sumByTypeAndUserId(eq(expectedUserIds), any(), any());
             verify(transactionRepository).sumBalance(eq(expectedUserIds));
             verify(transactionRepository).sumBalance(eq(expectedUserIds), any(), any());
         }
@@ -168,7 +168,7 @@ class DefaultStatsServiceTest {
             StatsQuery query = StatsQuery.builder().build();
 
             when(householdService.getHouseholdMembersUserIds(userId)).thenReturn(participantIds);
-            when(transactionRepository.sumByTypeAndUserId(eq(expectedUserIds), any(), any(), any()))
+            when(transactionRepository.sumByTypeAndUserId(eq(expectedUserIds), any(), any()))
                     .thenReturn(summaryPoints(6000.0, 2000.0));
             when(transactionRepository.sumBalance(eq(expectedUserIds)))
                     .thenReturn(30000.0);
@@ -181,7 +181,7 @@ class DefaultStatsServiceTest {
             assertEquals(0.0, summary.growthPercentage(), 0.001, "Growth should be 0 when prior and current balances are equal");
 
             verify(householdService).getHouseholdMembersUserIds(userId);
-            verify(transactionRepository).sumByTypeAndUserId(eq(expectedUserIds), any(), any(), any());
+            verify(transactionRepository).sumByTypeAndUserId(eq(expectedUserIds), any(), any());
             verify(transactionRepository).sumBalance(eq(expectedUserIds));
         }
 
@@ -196,7 +196,7 @@ class DefaultStatsServiceTest {
             StatsQuery query = StatsQuery.builder().build();
 
             when(householdService.getHouseholdMembersUserIds(userId)).thenReturn(participantIds);
-            when(transactionRepository.sumByTypeAndUserId(eq(expectedUserIds), any(), any(), any()))
+            when(transactionRepository.sumByTypeAndUserId(eq(expectedUserIds), any(), any()))
                     .thenReturn(summaryPoints(10000.0, 7000.0));
             when(transactionRepository.sumBalance(eq(expectedUserIds)))
                     .thenReturn(40000.0);
@@ -209,7 +209,7 @@ class DefaultStatsServiceTest {
             assertEquals(10000.0, summary.totalIncome(), 0.001);
 
             verify(householdService).getHouseholdMembersUserIds(userId);
-            verify(transactionRepository).sumByTypeAndUserId(eq(expectedUserIds), any(), any(), any());
+            verify(transactionRepository).sumByTypeAndUserId(eq(expectedUserIds), any(), any());
             verify(transactionRepository).sumBalance(eq(expectedUserIds));
             verify(transactionRepository).sumBalance(eq(expectedUserIds), any(), any());
         }

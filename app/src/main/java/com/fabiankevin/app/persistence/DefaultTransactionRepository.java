@@ -94,15 +94,8 @@ public class DefaultTransactionRepository implements TransactionRepository {
     }
 
     @Override
-    public List<SummaryPoint> sumByTypeAndUserId(Set<UUID> userIds, LocalDate from, LocalDate to, UUID accountId, UUID categoryId) {
-        return jpaTransactionRepository.sumByTypeAndDateRange(userIds, from, to, accountId, categoryId)
-                .map(SummaryPointProjection::toModel)
-                .toList();
-    }
-
-    @Override
-    public List<SummaryPoint> sumByTypeAndUserId(Set<UUID> userIds, LocalDate from, LocalDate to, UUID categoryId) {
-        return jpaTransactionRepository.sumByTypeAndDateRangeByCategory(userIds, from, to, categoryId)
+    public List<SummaryPoint> sumByTypeAndUserId(Set<UUID> userIds, LocalDate from, LocalDate to) {
+        return jpaTransactionRepository.sumByTypeAndDateRange(userIds, from, to)
                 .map(SummaryPointProjection::toModel)
                 .toList();
     }
