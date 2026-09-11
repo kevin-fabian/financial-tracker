@@ -10,7 +10,7 @@
 //import com.fabiankevin.app.web.controllers.dtos.AccountResponse;
 //import com.fabiankevin.app.web.controllers.dtos.AmountResponse;
 //import com.fabiankevin.app.web.controllers.dtos.CategoryResponse;
-//import com.fabiankevin.app.web.controllers.dtos.TransactionResponse;
+//import com.fabiankevin.app.web.controllers.dtos.transactions.TransactionResponse;
 //import org.junit.jupiter.api.BeforeEach;
 //import org.junit.jupiter.api.Test;
 //import org.junit.jupiter.api.extension.ExtendWith;

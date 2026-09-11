@@ -26,7 +26,7 @@ import com.fabiankevin.app.services.commands.PatchTransactionCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.services.queries.SummaryQuery;
 import com.fabiankevin.app.services.summaries.SummaryGenerator;
-import com.fabiankevin.app.web.controllers.dtos.TransactionResponse;
+import com.fabiankevin.app.web.controllers.dtos.transactions.TransactionResponse;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 
@@ -176,7 +176,7 @@ public class DefaultTransactionService implements TransactionService {
         Category newCategory = null;
         if (command.categoryId() != null) {
             newCategory = categoryRepository.findById(command.categoryId())
-                    .filter(c -> c.userId().equals(userId))
+                    .filter(c -> userId.equals(c.userId()) || c.system())
                     .orElseThrow(CategoryNotFoundException::new);
         }
 

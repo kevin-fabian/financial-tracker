@@ -1,6 +1,10 @@
-package com.fabiankevin.app.web.controllers.dtos;
+package com.fabiankevin.app.web.controllers.dtos.transactions;
 
 import com.fabiankevin.app.models.Transaction;
+import com.fabiankevin.app.web.controllers.dtos.AccountResponse;
+import com.fabiankevin.app.web.controllers.dtos.AmountResponse;
+import com.fabiankevin.app.web.controllers.dtos.CategoryResponse;
+import com.fabiankevin.app.web.controllers.dtos.UserResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 

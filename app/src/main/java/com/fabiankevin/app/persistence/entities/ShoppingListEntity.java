@@ -1,5 +1,6 @@
 package com.fabiankevin.app.persistence.entities;
 
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
@@ -80,6 +81,9 @@ public class ShoppingListEntity {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    @Column(name = "updated_by")
+    private UUID updatedBy;
+
     @OneToMany(mappedBy = "shoppingList", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ShoppingItemEntity> items = new HashSet<>();
 
@@ -104,6 +108,7 @@ public class ShoppingListEntity {
                 .completedAt(shoppingList.completedAt())
                 .createdAt(shoppingList.createdAt())
                 .updatedAt(shoppingList.updatedAt())
+                .updatedBy(shoppingList.updatedBy() != null ? shoppingList.updatedBy().id() : null)
                 .items(new HashSet<>())
                 .build();
         for (ShoppingItem item : shoppingList.items()) {
@@ -126,6 +131,7 @@ public class ShoppingListEntity {
                 .completedAt(this.completedAt)
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)
+                .updatedBy(this.updatedBy != null ? User.of(this.updatedBy) : null)
                 .items(this.items.stream().map(ShoppingItemEntity::toModel).collect(ArrayList::new, ArrayList::add, ArrayList::addAll))
                 .build();
     }

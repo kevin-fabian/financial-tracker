@@ -1,7 +1,11 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.exceptions.*;
+import com.fabiankevin.app.exceptions.CategoryNotFoundException;
+import com.fabiankevin.app.exceptions.EmptyShoppingListException;
+import com.fabiankevin.app.exceptions.ShoppingItemNotFoundException;
+import com.fabiankevin.app.exceptions.ShoppingListNotFoundException;
+import com.fabiankevin.app.exceptions.UnpurchasedItemsException;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
@@ -11,13 +15,23 @@ import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
-import com.fabiankevin.app.services.shopping_list.commands.*;
+import com.fabiankevin.app.services.shopping_list.commands.CompleteShoppingListCommand;
+import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingItemCommand;
+import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingListCommand;
+import com.fabiankevin.app.services.shopping_list.commands.DeleteShoppingItemCommand;
+import com.fabiankevin.app.services.shopping_list.commands.DeleteShoppingListCommand;
+import com.fabiankevin.app.services.shopping_list.commands.UpdateShoppingItemCommand;
+import com.fabiankevin.app.services.shopping_list.commands.UpdateShoppingListCommand;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -49,6 +63,7 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .budget(command.budget())
                 .createdAt(now)
                 .updatedAt(now)
+                .updatedBy(User.of(command.userId()))
                 .build();
 
         ShoppingList saved = shoppingListRepository.save(shoppingList);
@@ -79,6 +94,7 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .finalAmount(command.finalAmount())
                 .completedAt(now)
                 .updatedAt(now)
+                .updatedBy(User.of(command.userId()))
                 .build();
 
         ShoppingList saved = shoppingListRepository.save(completed);
@@ -108,6 +124,7 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .budget(command.budget() != null ? command.budget() : existing.budget())
                 .category(category)
                 .updatedAt(Instant.now())
+                .updatedBy(User.of(command.userId()))
                 .build();
 
         ShoppingList saved = shoppingListRepository.save(patched);
@@ -278,6 +295,10 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .map(item -> toItemSummary(item, usersById.get(item.addedBy())))
                 .toList();
 
+        User updatedBy = shoppingList.updatedBy() != null
+                ? usersById.get(shoppingList.updatedBy().id())
+                : null;
+
         return ShoppingListSummary.builder()
                 .id(shoppingList.id())
                 .name(shoppingList.name())
@@ -286,6 +307,7 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .status(shoppingList.status())
                 .items(items)
                 .user(user)
+                .updatedBy(updatedBy)
                 .budget(shoppingList.budget())
                 .finalAmount(shoppingList.finalAmount())
                 .completedAt(shoppingList.completedAt())

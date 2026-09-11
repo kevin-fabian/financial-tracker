@@ -25,6 +25,7 @@ import com.fabiankevin.app.services.commands.PatchTransactionCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.services.queries.SummaryQuery;
 import com.fabiankevin.app.services.summaries.SummaryGenerator;
+import com.fabiankevin.app.web.controllers.dtos.transactions.TransactionResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -514,7 +515,7 @@ class DefaultTransactionServiceTest {
 
         when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(tx));
 
-        com.fabiankevin.app.web.controllers.dtos.TransactionResponse response = transactionService.getTransactionById(transactionId, userId);
+        TransactionResponse response = transactionService.getTransactionById(transactionId, userId);
 
         assertEquals(transactionId, response.id());
         assertEquals("desc", response.description());

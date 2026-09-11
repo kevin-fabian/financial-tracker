@@ -1,12 +1,17 @@
 package com.fabiankevin.app.models.shopping_list;
 
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import lombok.Builder;
 import lombok.With;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 
 @With
 @Builder(toBuilder = true)
@@ -23,7 +28,8 @@ public record ShoppingList(
         Double finalAmount,
         Instant completedAt,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        User updatedBy) {
     public ShoppingList {
         Optional.ofNullable(name)
                 .filter(n -> !n.isBlank())

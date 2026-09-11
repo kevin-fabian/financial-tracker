@@ -8,7 +8,7 @@
 //import com.fabiankevin.app.services.commands.PatchTransactionCommand;
 //import com.fabiankevin.app.services.queries.PageQuery;
 //import com.fabiankevin.app.services.queries.SummaryQuery;
-//import com.fabiankevin.app.web.controllers.dtos.TransactionResponse;
+//import com.fabiankevin.app.web.controllers.dtos.transactions.TransactionResponse;
 //import lombok.RequiredArgsConstructor;
 //import org.springframework.cache.Cache;
 //import org.springframework.cache.CacheManager;

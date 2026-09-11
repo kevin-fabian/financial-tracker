@@ -16,9 +16,9 @@ import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
-import com.fabiankevin.app.web.controllers.dtos.CreateTransactionRequest;
-import com.fabiankevin.app.web.controllers.dtos.PatchTransactionRequest;
 import com.fabiankevin.app.web.controllers.dtos.household.HouseholdResponse;
+import com.fabiankevin.app.web.controllers.dtos.transactions.CreateTransactionRequest;
+import com.fabiankevin.app.web.controllers.dtos.transactions.PatchTransactionRequest;
 import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
 import com.fabiankevin.app.web.controllers.helper.TransactionServiceTestHelper;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +40,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Currency;
 import java.util.List;
@@ -1373,6 +1374,64 @@ class TransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.transactionDate").value("2026-03-15"))
                     .andExpect(jsonPath("$.category.id").value(newCategory.id().toString()))
                     .andExpect(jsonPath("$.category.name").value("TRANSPORT"));
+        }
+
+        @Test
+        void givenPatchToSystemCategory_thenReturnsUpdatedTransaction() throws Exception {
+            Category systemCategory = categoryRepository.save(
+                    Category.builder()
+                            .name("SYSTEM TRANSPORT")
+                            .type(TransactionType.EXPENSE)
+                            .userId(null)
+                            .active(true)
+                            .system(true)
+                            .icon("transport")
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build()
+            );
+
+            User mockUser = User.builder()
+                    .id(userId)
+                    .firstName("John")
+                    .lastName("Doe")
+                    .build();
+
+            when(userClient.getUsersByIds(any())).thenReturn(List.of(mockUser));
+
+            Transaction created = transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(100)
+                            .description("original")
+                            .transactionDate(LocalDate.of(2026, 1, 1))
+                            .categoryId(category.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+
+            PatchTransactionRequest request = PatchTransactionRequest.builder()
+                    .categoryId(systemCategory.id())
+                    .build();
+
+            mockMvc.perform(patch("/api/transactions/" + created.id())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(created.id().toString()))
+                    .andExpect(jsonPath("$.category.id").value(systemCategory.id().toString()))
+                    .andExpect(jsonPath("$.category.name").value("SYSTEM TRANSPORT"))
+                    .andExpect(jsonPath("$.category.system").value(true))
+                    .andExpect(jsonPath("$.updatedBy.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.updatedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$.updatedBy.lastName").value("Doe"));
         }
     }
 

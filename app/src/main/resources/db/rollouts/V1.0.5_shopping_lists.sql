@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS shopping_lists (
     completed_at TIMESTAMPTZ NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NULL,
+    updated_by UUID NULL,
     CONSTRAINT fk_shopping_lists_category_id FOREIGN KEY (category_id) REFERENCES categories (id)
 );
 

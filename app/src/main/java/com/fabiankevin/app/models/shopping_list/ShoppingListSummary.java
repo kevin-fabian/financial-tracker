@@ -20,6 +20,7 @@ public record ShoppingListSummary(
         ShoppingListStatus status,
         List<ShoppingItemSummary> items,
         User user,
+        User updatedBy,
         double budget,
         Double finalAmount,
         Instant completedAt,

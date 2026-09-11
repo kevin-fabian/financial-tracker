@@ -49,6 +49,10 @@ public record ShoppingListSummaryResponse(
                 exampleClasses = UserResponse.class)
         UserResponse user,
 
+        @Schema(description = "User who last updated the list",
+                exampleClasses = UserResponse.class)
+        UserResponse updatedBy,
+
         @Schema(description = "Creation timestamp", example = "2025-01-01T00:00:00Z")
         Instant createdAt,
 
@@ -57,6 +61,7 @@ public record ShoppingListSummaryResponse(
 ) {
     public static ShoppingListSummaryResponse from(ShoppingListSummary summary) {
         User user = summary.user();
+        User updatedBy = summary.updatedBy();
         Category category = summary.category();
         List<ShoppingItemResponse> items = summary.items().stream()
                 .map(ShoppingItemResponse::from)
@@ -72,6 +77,7 @@ public record ShoppingListSummaryResponse(
                 .items(items)
                 .category(CategoryResponse.from(category))
                 .user(UserResponse.from(user))
+                .updatedBy(UserResponse.from(updatedBy))
                 .createdAt(summary.createdAt())
                 .updatedAt(summary.updatedAt())
                 .build();
