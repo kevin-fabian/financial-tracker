@@ -6,6 +6,7 @@ import com.fabiankevin.app.models.enums.TransactionType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
@@ -28,7 +29,11 @@ public record CategorySummaryResponse(
         @Schema(description = "Percentage of total transactions for this category", example = "25.5")
         double percentage,
         @Schema(description = "Total number of transactions in this category", example = "10")
-        int totalTransactions
+        int totalTransactions,
+        @Schema(description = "Category creation timestamp", example = "2026-09-11T12:00:00Z")
+        Instant createdAt,
+        @Schema(description = "Category last-updated timestamp", example = "2026-09-11T12:00:00Z")
+        Instant updatedAt
 ) {
     public static CategorySummaryResponse from(final CategorySummary categorySummary) {
         Category category = categorySummary.category();
@@ -42,6 +47,8 @@ public record CategorySummaryResponse(
                 .totalAmount(categorySummary.totalAmount())
                 .percentage(categorySummary.percentage())
                 .totalTransactions(categorySummary.totalTransactions())
+                .createdAt(category.createdAt())
+                .updatedAt(category.updatedAt())
                 .build();
     }
 }

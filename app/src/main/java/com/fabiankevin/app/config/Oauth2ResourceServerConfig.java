@@ -32,14 +32,15 @@ public class Oauth2ResourceServerConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
+                                "/api/transactions", "/api/transactions/**",
                                 "/api/accounts", "/api/accounts/**",
                                 "/api/categories", "/api/categories/**",
                                 "/api/stats", "/api/stats*",
-                                "/api/parties", "/api/parties/**",
+                                "/api/households", "/api/households/**",
                                 "/api/budgets", "/api/budgets/**",
-                                "/api/shopping-lists/**"
+                                "/api/shopping-lists", "/api/shopping-lists/**"
                                 ).hasAnyAuthority(USER_ROLE)
-                        .requestMatchers("/api/recurring-transactions/process-due").hasAnyAuthority("zeny:operator")
+                        .requestMatchers("/api/recurring-transactions/process-due").hasAnyAuthority("laan:operator")
                         .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus**").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/users/**").hasAnyAuthority("user:provision")

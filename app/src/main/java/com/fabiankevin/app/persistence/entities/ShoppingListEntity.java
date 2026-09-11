@@ -3,14 +3,31 @@ package com.fabiankevin.app.persistence.entities;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
-import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 @Builder(toBuilder = true)
 @Data
@@ -43,7 +60,7 @@ public class ShoppingListEntity {
     @ElementCollection
     @CollectionTable(
             name = "shopping_lists_shared_users",
-            joinColumns = @JoinColumn(name = "shopping_item_id")
+            joinColumns = @JoinColumn(name = "shopping_list_id")
     )
     @Column(name = "shared_user_id")
     private List<UUID> sharedWithUserIds = new ArrayList<>();

@@ -461,6 +461,8 @@ class CategoryControllerIntegrationTest {
                     .andExpect(jsonPath("$.content[0].totalAmount").value(100.0))
                     .andExpect(jsonPath("$.content[0].totalTransactions").value(2))
                     .andExpect(jsonPath("$.content[0].percentage").value(50.0))
+                    .andExpect(jsonPath("$.content[0].createdAt").isNotEmpty())
+                    .andExpect(jsonPath("$.content[0].updatedAt").isNotEmpty())
                     .andExpect(jsonPath("$.content[1].id").value(savedCategory2.id().toString()))
                     .andExpect(jsonPath("$.content[1].name").value("RENT"))
                     .andExpect(jsonPath("$.content[1].type").value("EXPENSE"))
@@ -470,6 +472,8 @@ class CategoryControllerIntegrationTest {
                     .andExpect(jsonPath("$.content[1].totalAmount").value(100.0))
                     .andExpect(jsonPath("$.content[1].totalTransactions").value(1))
                     .andExpect(jsonPath("$.content[1].percentage").value(50.0))
+                    .andExpect(jsonPath("$.content[1].createdAt").isNotEmpty())
+                    .andExpect(jsonPath("$.content[1].updatedAt").isNotEmpty())
                     .andExpect(jsonPath("$.totalElements").value(2))
                     .andExpect(jsonPath("$.page").value(0))
                     .andExpect(jsonPath("$.size").value(10));
@@ -786,7 +790,9 @@ class CategoryControllerIntegrationTest {
                     .andExpect(jsonPath("$.name").value("GROCERIES"))
                     .andExpect(jsonPath("$.type").value("EXPENSE"))
                     .andExpect(jsonPath("$.active").value(true))
-                    .andExpect(jsonPath("$.system").value(false));
+                    .andExpect(jsonPath("$.system").value(false))
+                    .andExpect(jsonPath("$.createdAt").isNotEmpty())
+                    .andExpect(jsonPath("$.updatedAt").isNotEmpty());
         }
 
         @Test
@@ -819,7 +825,9 @@ class CategoryControllerIntegrationTest {
                     .andExpect(jsonPath("$.name").value("GROCERIES"))
                     .andExpect(jsonPath("$.icon").value("groceries"))
                     .andExpect(jsonPath("$.active").value(true))
-                    .andExpect(jsonPath("$.system").value(false));
+                    .andExpect(jsonPath("$.system").value(false))
+                    .andExpect(jsonPath("$.createdAt").isNotEmpty())
+                    .andExpect(jsonPath("$.updatedAt").isNotEmpty());
         }
 
         private static Stream<Arguments> invalidPatchCategoryRequestTestCases() {
