@@ -4,9 +4,11 @@ import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.entities.TransactionEntity;
+import com.fabiankevin.app.persistence.entities.projections.DailyStatsProjection;
 import com.fabiankevin.app.persistence.entities.projections.SummaryPointProjection;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import com.fabiankevin.app.services.queries.PageQuery;
+import com.fabiankevin.app.web.controllers.dtos.DailyStatsPoint;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -188,5 +190,12 @@ public class DefaultTransactionRepository implements TransactionRepository {
     @Override
     public long countByAccountId(UUID accountId) {
         return jpaTransactionRepository.countByAccountId(accountId);
+    }
+
+    @Override
+    public List<DailyStatsPoint> getSummaryByDateRangeAndUserIdGroupedByDayOfMonth(LocalDate from, LocalDate to, Set<UUID> userIds) {
+        return jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByDayOfMonth(from, to, userIds)
+                .map(DailyStatsProjection::toModel)
+                .toList();
     }
 }

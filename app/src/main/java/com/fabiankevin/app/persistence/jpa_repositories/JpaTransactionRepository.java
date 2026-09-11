@@ -2,6 +2,7 @@ package com.fabiankevin.app.persistence.jpa_repositories;
 
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.entities.TransactionEntity;
+import com.fabiankevin.app.persistence.entities.projections.DailyStatsProjection;
 import com.fabiankevin.app.persistence.entities.projections.SummaryPointProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -80,6 +81,21 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             @Param("to") LocalDate to,
             @Param("userIds") Set<UUID> userIds,
             @Param("type") TransactionType type);
+
+    @Query("""
+                SELECT DAY(t.transactionDate) AS label,
+                       COALESCE(SUM(CASE WHEN t.category.transactionType = TransactionType.EXPENSE THEN t.amount ELSE 0.0 END), 0.0) AS expenses,
+                       COALESCE(SUM(CASE WHEN t.category.transactionType = TransactionType.INCOME THEN t.amount ELSE 0.0 END), 0.0) AS income
+                FROM TransactionEntity t
+                WHERE t.transactionDate BETWEEN :from AND :to
+                  AND t.account.userId IN :userIds
+                GROUP BY DAY(t.transactionDate)
+                ORDER BY DAY(t.transactionDate)
+            """)
+    Streamable<DailyStatsProjection> getSummaryByDateRangeAndUserIdGroupedByDayOfMonth(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            @Param("userIds") Set<UUID> userIds);
 
     @Query("""
             SELECT t FROM TransactionEntity t

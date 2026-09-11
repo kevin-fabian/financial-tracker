@@ -5,6 +5,7 @@ import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.queries.PageQuery;
+import com.fabiankevin.app.web.controllers.dtos.DailyStatsPoint;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -36,4 +37,5 @@ public interface TransactionRepository {
     long countByCategoryIdAndUserId(UUID categoryId, UUID userId);
     long countByUserIdAndCreatedAtOnDate(UUID userId, LocalDate date);
     long countByAccountId(UUID accountId);
+    List<DailyStatsPoint> getSummaryByDateRangeAndUserIdGroupedByDayOfMonth(LocalDate from, LocalDate to, Set<UUID> userIds);
 }

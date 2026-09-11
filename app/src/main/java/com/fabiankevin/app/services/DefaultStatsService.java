@@ -4,6 +4,7 @@ import com.fabiankevin.app.models.StatsSummary;
 import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.TransactionRepository;
+import com.fabiankevin.app.web.controllers.dtos.DailyStatsPoint;
 import com.fabiankevin.app.web.controllers.dtos.StatsQuery;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -64,5 +65,11 @@ public class DefaultStatsService implements StatsService {
         Set<UUID> userIds = new HashSet<>(householdService.getHouseholdMembersUserIds(userId));
         userIds.add(userId);
         return userIds;
+    }
+
+    @Override
+    public List<DailyStatsPoint> getDailyStatsByDayOfMonth(UUID userId, LocalDate from, LocalDate to) {
+        Set<UUID> userIds = resolveUserIds(userId);
+        return transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDayOfMonth(from, to, userIds);
     }
 }

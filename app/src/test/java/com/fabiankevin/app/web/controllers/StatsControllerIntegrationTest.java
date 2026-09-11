@@ -194,4 +194,97 @@ class StatsControllerIntegrationTest {
                     .andExpect(jsonPath("$.totalIncome").value(0.0));
         }
     }
+
+    @Nested
+    class GetDailyStats {
+        @Test
+        void givenUserWithTransactionsOnDifferentDaysOfThenShouldReturnGroupedByDayOfMonth() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.getFirst().equals(userId))))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("Grace").lastName("Hopper").build()));
+
+            LocalDate today = LocalDate.now();
+            int dayOfMonth = today.getDayOfMonth();
+
+            // Transaction on day 5 of month
+            transactionHelper.createTransaction(userId, INCOME, 500.0, today.withDayOfMonth(5));
+            transactionHelper.createTransaction(userId, EXPENSE, 100.0, today.withDayOfMonth(5));
+
+            // Transaction on current day of month
+            transactionHelper.createTransaction(userId, INCOME, 300.0, today);
+            transactionHelper.createTransaction(userId, EXPENSE, 50.0, today);
+
+            mockMvc.perform(get("/api/stats/daily")
+                            .param("from", today.withDayOfMonth(1).toString())
+                            .param("to", today.withDayOfMonth(today.lengthOfMonth()).toString())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data").isArray())
+                    .andExpect(jsonPath("$.data.length()").value(2))
+                    .andExpect(jsonPath("$.data[?(@.label == '5')].totalIncome").value(500.0))
+                    .andExpect(jsonPath("$.data[?(@.label == '5')].totalExpenses").value(100.0))
+                    .andExpect(jsonPath("$.data[?(@.label == '" + dayOfMonth + "')].totalIncome").value(300.0))
+                    .andExpect(jsonPath("$.data[?(@.label == '" + dayOfMonth + "')].totalExpenses").value(50.0));
+        }
+
+        @Test
+        void givenUserWithNoTransactions_thenShouldReturnEmptyData() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.getFirst().equals(userId))))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("Alice").lastName("Smith").build()));
+
+            mockMvc.perform(get("/api/stats/daily")
+                            .param("from", LocalDate.now().withDayOfMonth(1).toString())
+                            .param("to", LocalDate.now().withDayOfMonth(28).toString())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data").isArray())
+                    .andExpect(jsonPath("$.data").isEmpty());
+        }
+
+        @Test
+        void givenUserWithTransactionsAcrossMultipleMonths_thenShouldAggregateByDayOfMonth() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.getFirst().equals(userId))))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("Bob").lastName("Jones").build()));
+
+            LocalDate now = LocalDate.now();
+
+            // Day 15 of two different months
+            transactionHelper.createTransaction(userId, INCOME, 1000.0, now.minusMonths(1).withDayOfMonth(15));
+            transactionHelper.createTransaction(userId, INCOME, 500.0, now.withDayOfMonth(15));
+            transactionHelper.createTransaction(userId, EXPENSE, 200.0, now.withDayOfMonth(15));
+
+            mockMvc.perform(get("/api/stats/daily")
+                            .param("from", now.minusMonths(1).withDayOfMonth(1).toString())
+                            .param("to", now.withDayOfMonth(now.lengthOfMonth()).toString())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data").isArray())
+                    .andExpect(jsonPath("$.data.length()").value(1))
+                    .andExpect(jsonPath("$.data[?(@.label == '15')].totalIncome").value(1500.0))
+                    .andExpect(jsonPath("$.data[?(@.label == '15')].totalExpenses").value(200.0));
+        }
+    }
 }

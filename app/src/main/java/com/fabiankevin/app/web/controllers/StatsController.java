@@ -2,6 +2,8 @@ package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.models.StatsSummary;
 import com.fabiankevin.app.services.StatsService;
+import com.fabiankevin.app.web.controllers.dtos.DailyStatsPoint;
+import com.fabiankevin.app.web.controllers.dtos.DailyStatsResponse;
 import com.fabiankevin.app.web.controllers.dtos.StatsQuery;
 import com.fabiankevin.app.web.controllers.dtos.StatsResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -58,5 +61,25 @@ public class StatsController {
                 .totalIncome(summary.totalIncome())
                 .growthPercentage(summary.growthPercentage())
                 .build();
+    }
+
+    @Operation(
+            summary = "Retrieve daily statistics grouped by day of month",
+            description = "Returns total income and expenses for each day of month (1-31) that has transactions",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - Daily statistics retrieved successfully",
+                            content = @Content(schema = @Schema(implementation = DailyStatsResponse.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+            }
+    )
+    @GetMapping("/daily")
+    public DailyStatsResponse getDailyStats(
+            @RequestParam(required = false) LocalDate from,
+            @RequestParam(required = false) LocalDate to,
+            JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        List<DailyStatsPoint> dailyStats = statsService.getDailyStatsByDayOfMonth(userId, from, to);
+        return new DailyStatsResponse(dailyStats);
     }
 }
