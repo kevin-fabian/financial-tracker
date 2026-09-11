@@ -317,5 +317,44 @@ class StatsControllerIntegrationTest {
                     .andExpect(jsonPath("$.data[?(@.label == '15')].totalIncome").value(1500.0))
                     .andExpect(jsonPath("$.data[?(@.label == '15')].totalExpenses").value(200.0));
         }
+
+        @Test
+        void givenUserWithTransactionsOnConsecutiveDays_thenShouldReturnDataOrderedByDayOfMonth() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.getFirst().equals(userId))))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("Hank").lastName("Pym").build()));
+
+            LocalDate today = LocalDate.now();
+            int startDay = 5;
+            int endDay = today.getDayOfMonth();
+
+            // Create transactions on consecutive days from day 5 to today
+            for (int day = startDay; day <= endDay; day++) {
+                transactionHelper.createTransaction(userId, INCOME, day * 10.0, today.withDayOfMonth(day));
+            }
+
+            mockMvc.perform(get("/api/stats/daily")
+                            .param("from", today.withDayOfMonth(startDay).toString())
+                            .param("to", today.toString())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data").isArray())
+                    .andExpect(jsonPath("$.data.length()").value(endDay - startDay + 1))
+                    // Verify ascending order by day of month
+                    .andExpect(jsonPath("$.data[0].label").value("5"))
+                    .andExpect(jsonPath("$.data[1].label").value("6"))
+                    .andExpect(jsonPath("$.data[2].label").value("7"))
+                    .andExpect(jsonPath("$.data[3].label").value("8"))
+                    .andExpect(jsonPath("$.data[4].label").value("9"))
+                    .andExpect(jsonPath("$.data[5].label").value("10"))
+                    .andExpect(jsonPath("$.data[6].label").value(String.valueOf(endDay)));
+        }
     }
 }
