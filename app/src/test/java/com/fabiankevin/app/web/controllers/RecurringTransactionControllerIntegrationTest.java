@@ -1309,7 +1309,7 @@ class RecurringTransactionControllerIntegrationTest {
         void givenValidClientCredentials_thenTriggerProcessDueReturnsAccepted() throws Exception {
             mockMvc.perform(post("/api/recurring-transactions/process-due")
                             .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("zeny:operator"))
+                                    .authorities(new SimpleGrantedAuthority("laan:operator"))
                                     .jwt(jwt -> jwt
                                             .audience(List.of("financial-tracker-test"))
                                             .claim("sub", UUID.randomUUID())
