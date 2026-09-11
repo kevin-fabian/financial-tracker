@@ -828,7 +828,7 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(jsonPath("$[0].items").isArray())
                     .andExpect(jsonPath("$[0].items[0].addedBy").exists())
                     .andExpect(jsonPath("$[0].items[0].addedBy.id").value(addedBy.toString()))
-                    .andExpect(jsonPath("$[0].items[0]. .firstName").value("Jane"))
+                    .andExpect(jsonPath("$[0].items[0].addedBy.firstName").value("Jane"))
                     .andExpect(jsonPath("$[0].items[0].addedBy.lastName").value("Doe"))
                     .andExpect(jsonPath("$[0].items[0].addedBy.initial").value("JD"))
                     .andExpect(jsonPath("$[0].createdAt").exists())
