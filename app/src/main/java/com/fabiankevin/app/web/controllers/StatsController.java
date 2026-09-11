@@ -7,6 +7,7 @@ import com.fabiankevin.app.web.controllers.dtos.DailyStatsResponse;
 import com.fabiankevin.app.web.controllers.dtos.StatsQuery;
 import com.fabiankevin.app.web.controllers.dtos.StatsResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -75,7 +76,9 @@ public class StatsController {
     )
     @GetMapping("/daily")
     public DailyStatsResponse getDailyStats(
+            @Parameter(description = "Start date for filtering daily statistics (inclusive, yyyy-MM-dd)", example = "2026-01-01")
             @RequestParam(required = false) LocalDate from,
+            @Parameter(description = "End date for filtering daily statistics (inclusive, yyyy-MM-dd)", example = "2026-01-31")
             @RequestParam(required = false) LocalDate to,
             JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());

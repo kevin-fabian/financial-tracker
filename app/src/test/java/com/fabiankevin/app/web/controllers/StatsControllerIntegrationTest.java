@@ -257,6 +257,37 @@ class StatsControllerIntegrationTest {
         }
 
         @Test
+        void givenUserWithTransactionsAndNoDateParametersProvided_thenShouldDefaultToLast7Days() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.getFirst().equals(userId))))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("Eve").lastName("Davis").build()));
+
+            LocalDate today = LocalDate.now();
+
+            // Transaction within last 7 days (should be included)
+            transactionHelper.createTransaction(userId, INCOME, 100.0, today.minusDays(3));
+            transactionHelper.createTransaction(userId, EXPENSE, 50.0, today.minusDays(3));
+
+            // Transaction outside last 7 days (should be excluded)
+            transactionHelper.createTransaction(userId, INCOME, 500.0, today.minusDays(10));
+
+            mockMvc.perform(get("/api/stats/daily")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data").isArray())
+                    .andExpect(jsonPath("$.data.length()").value(1))
+                    .andExpect(jsonPath("$.data[0].totalIncome").value(100.0))
+                    .andExpect(jsonPath("$.data[0].totalExpenses").value(50.0));
+        }
+
+        @Test
         void givenUserWithTransactionsAcrossMultipleMonths_thenShouldAggregateByDayOfMonth() throws Exception {
             UUID userId = UUID.randomUUID();
 

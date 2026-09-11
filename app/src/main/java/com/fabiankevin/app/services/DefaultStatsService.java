@@ -70,6 +70,9 @@ public class DefaultStatsService implements StatsService {
     @Override
     public List<DailyStatsPoint> getDailyStatsByDayOfMonth(UUID userId, LocalDate from, LocalDate to) {
         Set<UUID> userIds = resolveUserIds(userId);
-        return transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDayOfMonth(from, to, userIds);
+        LocalDate now = LocalDate.now();
+        LocalDate fromDate = Optional.ofNullable(from).orElse(now.minusDays(6));
+        LocalDate toDate = Optional.ofNullable(to).orElse(now);
+        return transactionRepository.getSummaryByDateRangeAndUserIdGroupedByDayOfMonth(fromDate, toDate, userIds);
     }
 }
