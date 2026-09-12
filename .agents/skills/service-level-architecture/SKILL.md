@@ -37,6 +37,7 @@ Use one of:
 
 ```text
 /analyze
+/revise
 /review
 /validate
 ```
@@ -62,6 +63,24 @@ Aggregations
     ↓
 Outputs
 ```
+
+### `/revise`
+
+Iterate on an existing architecture when requirements, decisions, or implementation discoveries change.
+
+```text
+Change Identified
+    ↓
+Impact Analysis
+    ↓
+Propagate to All Artifacts
+    ↓
+Re-evaluate Open Questions
+    ↓
+Cross-Artifact Consistency Check
+```
+
+Updates `architecture.md`, `data-model.md`, `data-flow.md`, and `open-questions.md` together. Preserves history, never silently resolves ambiguous decisions.
 
 ### `/review`
 
@@ -191,6 +210,7 @@ Contains:
 * Outputs
 * Events/external systems
 * End-to-end flows
+* Data Preview(Actual expected data in JSON format including the sub resources)
 
 ### open-questions.md
 
@@ -236,11 +256,10 @@ Rules:
   ```markdown
   **Decision**
   <!-- HUMAN: Add your decision here. -->
-  A. <Selected option>.
-
-  **Reason**
-  <Why this option was chosen.>
+  A. <Selected option>. <Reason why this option was chosen.>
   ```
+- When the human answers a question but the AI has a follow-up, append the follow-up as the next Q-number with the same format (Context, Options, AI Recommendation, Decision placeholder, Status). Keep it concise and easy to scan so the human can make the next decision without searching through the conversation.
+- Always check for existing or similar questions before adding a new one. Deduplicate to avoid redundancy — merge into the existing question if the topic overlaps.
 
 ---
 
