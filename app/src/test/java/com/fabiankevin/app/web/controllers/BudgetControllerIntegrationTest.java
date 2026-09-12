@@ -934,6 +934,38 @@ class BudgetControllerIntegrationTest {
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isNotFound());
         }
+
+        @Test
+        void givenBudgetWithSystemCategory_thenPatchAllocated() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category systemCategory = transactionHelper.createSystemCategory(EXPENSE, "GROCERIES");
+            BudgetSummary budgetSummary = createBudget(userId, systemCategory, 500.0);
+            Budget budget = budgetSummary.budget();
+
+            PatchBudgetRequest request = PatchBudgetRequest.builder()
+                    .categoryId(systemCategory.id())
+                    .allocated(1000.0)
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(patch("/api/budgets/" + budget.id())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(budget.id().toString()))
+                    .andExpect(jsonPath("$.category.id").value(systemCategory.id().toString()))
+                    .andExpect(jsonPath("$.category.name").value("GROCERIES"))
+                    .andExpect(jsonPath("$.allocated").value(1000.0));
+        }
     }
 
     @Nested

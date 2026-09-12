@@ -40,6 +40,11 @@ public class DefaultBudgetRepository implements BudgetRepository {
     }
 
     @Override
+    public boolean existsByCategoryIdAndUserIdAndIdNot(UUID categoryId, UUID userId, UUID id) {
+        return jpaBudgetRepository.existsByCategoryIdAndUserIdAndIdNot(categoryId, userId, id);
+    }
+
+    @Override
     public boolean existsByCategoryIdAndUserIdAndCreatedAtBetween(UUID categoryId, UUID userId, Instant startInclusive, Instant endExclusive) {
         return jpaBudgetRepository.existsByCategoryIdAndUserIdAndCreatedAtBetween(categoryId, userId, startInclusive, endExclusive);
     }

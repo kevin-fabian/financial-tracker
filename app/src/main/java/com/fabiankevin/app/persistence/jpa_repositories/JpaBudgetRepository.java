@@ -21,6 +21,8 @@ public interface JpaBudgetRepository extends JpaRepository<BudgetEntity, UUID> {
 
     boolean existsByCategoryIdAndUserId(UUID categoryId, UUID userId);
 
+    boolean existsByCategoryIdAndUserIdAndIdNot(UUID categoryId, UUID userId, UUID id);
+
     boolean existsByCategoryIdAndUserIdAndCreatedAtBetween(UUID categoryId, UUID userId, Instant startInclusive, Instant endExclusive);
 
     int deleteByIdAndUserId(UUID id, UUID userId);

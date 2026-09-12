@@ -128,7 +128,7 @@ public class DefaultBudgetService implements BudgetService {
 
         Optional.ofNullable(command.categoryId())
                 .ifPresent(categoryId -> {
-                    if (budgetRepository.existsByCategoryIdAndUserId(categoryId, userId)) {
+                    if (budgetRepository.existsByCategoryIdAndUserIdAndIdNot(categoryId, userId, id)) {
                         throw new BudgetAlreadyExistException("A budget already exists for this category");
                     }
                     builder.category(categoryRepository.findById(categoryId)

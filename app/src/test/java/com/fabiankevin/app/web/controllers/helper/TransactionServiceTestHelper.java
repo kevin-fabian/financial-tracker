@@ -16,6 +16,7 @@ import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Currency;
 import java.util.Optional;
@@ -87,5 +88,19 @@ public class TransactionServiceTestHelper {
 
     private Optional<Account> findAccount(UUID userId, String name, AccountType type) {
         return accountRepository.findByNameAndTypeAndUserId(name, type, userId);
+    }
+
+    public Category createSystemCategory(TransactionType type, String name) {
+        String icon = name.toLowerCase();
+        Category category = Category.builder()
+                .name(name)
+                .type(type)
+                .icon(icon)
+                .system(true)
+                .active(true)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+        return categoryRepository.save(category);
     }
 }
