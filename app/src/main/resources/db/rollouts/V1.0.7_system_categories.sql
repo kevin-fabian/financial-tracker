@@ -1,5 +1,10 @@
 INSERT INTO categories (id, name, icon, user_id, transaction_type, active, "system", created_at, updated_at)
 VALUES
+    -- Income categories
+    (gen_random_uuid(), 'Salary', 'attach_money', NULL, 'INCOME', TRUE, TRUE, NOW(), NOW()),
+    (gen_random_uuid(), 'Business', 'storefront', NULL, 'INCOME', TRUE, TRUE, NOW(), NOW()),
+    (gen_random_uuid(), 'Side Hustle', 'trending_up', NULL, 'INCOME', TRUE, TRUE, NOW(), NOW()),
+    -- Expense categories
     (gen_random_uuid(), 'Utilities & Bills', 'bolt', NULL, 'EXPENSE', TRUE, TRUE, NOW(), NOW()),
     (gen_random_uuid(), 'Transportation', 'directions_car', NULL, 'EXPENSE', TRUE, TRUE, NOW(), NOW()),
     (gen_random_uuid(), 'Food & Groceries', 'restaurant', NULL, 'EXPENSE', TRUE, TRUE, NOW(), NOW()),
