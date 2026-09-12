@@ -103,4 +103,14 @@ public class TransactionServiceTestHelper {
                 .build();
         return categoryRepository.save(category);
     }
+
+    public Account createAccount(UUID userId) {
+        return findAccount(userId, ACCOUNT_NAME, AccountType.CASH)
+                .orElseGet(() -> accountService.createAccount(CreateAccountCommand.builder()
+                        .name(ACCOUNT_NAME)
+                        .currency(Currency.getInstance("USD"))
+                        .type(AccountType.CASH)
+                        .userId(userId)
+                        .build()));
+    }
 }

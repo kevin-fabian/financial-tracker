@@ -37,6 +37,16 @@ public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUI
             """)
     Optional<CategorySummaryProjection> findByIdAndUserIdWithSummary(@Param("id") UUID id, @Param("userId") UUID userId);
 
+    @Query("""
+            SELECT COALESCE(SUM(t.amount), 0.0)
+            FROM CategoryEntity c
+            LEFT JOIN TransactionEntity t ON t.category.id = c.id
+                AND t.account.userId = :userId
+            WHERE (c.userId = :userId OR c.system = true)
+            AND c.transactionType = :type
+            """)
+    double findTotalAmountByType(@Param("type") TransactionType type, @Param("userId") UUID userId);
+
     boolean existsByNameAndTransactionTypeAndUserId(String name, TransactionType type, UUID userId);
     int deleteByIdAndUserId(UUID id, UUID userId);
 

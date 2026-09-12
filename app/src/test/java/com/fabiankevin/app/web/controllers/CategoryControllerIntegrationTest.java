@@ -20,6 +20,7 @@ import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchCategoryRequest;
+import com.fabiankevin.app.web.controllers.helper.TransactionServiceTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -101,6 +102,9 @@ class CategoryControllerIntegrationTest {
 
     @Autowired
     private JsonMapper jsonMapper;
+
+    @Autowired
+    private TransactionServiceTestHelper testHelper;
 
     private UUID userId;
 
@@ -944,6 +948,86 @@ class CategoryControllerIntegrationTest {
                     .andExpect(jsonPath("$.name").value("FOOD"))
                     .andExpect(jsonPath("$.icon").value("new_icon"))
                     .andExpect(jsonPath("$.type").value("EXPENSE"));
+        }
+
+        @Test
+        void givenSystemCategoryWithTransactions_thenReturnsCorrectAggregatedFieldsAfterPatch() throws Exception {
+            // Create a system category (shared across users, userId = null)
+            Category systemCategory = testHelper.createSystemCategory(TransactionType.EXPENSE, "Food");
+
+            // Create transactions for the current user linked to the system category
+            // (helper's createTransaction creates its own category, so we use addTransaction directly)
+            Account account = testHelper.createAccount(userId);
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(50)
+                            .transactionDate(LocalDate.now())
+                            .categoryId(systemCategory.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(30)
+                            .transactionDate(LocalDate.now())
+                            .categoryId(systemCategory.id())
+                            .accountId(account.id())
+                            .userId(userId)
+                            .build()
+            );
+
+            // Create an account for another user with transactions in the same system category
+            UUID otherUserId = UUID.randomUUID();
+            Account othersAccount = accountRepository.save(
+                    Account.builder()
+                            .name("OTHER_CASH")
+                            .type(AccountType.CASH)
+                            .user(User.of(otherUserId))
+                            .currency(Currency.getInstance("EUR"))
+                            .active(true)
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build()
+            );
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(100)
+                            .transactionDate(LocalDate.now())
+                            .categoryId(systemCategory.id())
+                            .accountId(othersAccount.id())
+                            .userId(otherUserId)
+                            .build()
+            );
+
+            // Patch the system category (updating icon)
+            PatchCategoryRequest request = PatchCategoryRequest.builder()
+                    .icon("restaurant")
+                    .build();
+
+            mockMvc.perform(patch("/api/categories/" + systemCategory.id())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value(systemCategory.id().toString()))
+                    .andExpect(jsonPath("$.name").value("Food"))
+                    .andExpect(jsonPath("$.icon").value("restaurant"))
+                    .andExpect(jsonPath("$.type").value("EXPENSE"))
+                    .andExpect(jsonPath("$.system").value(true))
+                    .andExpect(jsonPath("$.active").value(true))
+                    // Only the current user's transactions should be aggregated (50 + 30 = 80)
+                    .andExpect(jsonPath("$.totalAmount").value(80.0))
+                    .andExpect(jsonPath("$.totalTransactions").value(2))
+                    .andExpect(jsonPath("$.percentage").value(100.0))
+                    .andExpect(jsonPath("$.createdAt").isNotEmpty())
+                    .andExpect(jsonPath("$.updatedAt").isNotEmpty());
         }
     }
 

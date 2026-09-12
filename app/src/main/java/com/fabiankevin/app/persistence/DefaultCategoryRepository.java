@@ -34,11 +34,14 @@ public class DefaultCategoryRepository implements CategoryRepository {
         return jpaCategoryRepository.findByIdAndUserIdWithSummary(id, userId)
                 .map(projection -> {
                     CategoryEntity category = projection.category();
+                    double totalAmountForType = jpaCategoryRepository.findTotalAmountByType(
+                            category.getTransactionType(), userId);
+                    double percentage = getPercentage(projection, totalAmountForType);
                     return CategorySummary.builder()
                             .category(category.toModel())
                             .totalAmount(projection.amount())
                             .totalTransactions(projection.totalTransactions())
-                            .percentage(0.0)
+                            .percentage(percentage)
                             .build();
                 });
     }
