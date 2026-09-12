@@ -133,7 +133,7 @@ public class DefaultCategoryService implements CategoryService {
         Optional.ofNullable(command.icon())
                 .ifPresent(categoryBuilder::icon);
 
-        Category saved = categoryRepository.save(categoryBuilder.build());
+        categoryRepository.save(categoryBuilder.build());
         return categoryRepository.findByIdAndUserIdWithSummary(id, userId)
                 .orElseThrow(CategoryNotFoundException::new);
     }
