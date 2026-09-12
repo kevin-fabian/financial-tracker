@@ -11,9 +11,9 @@ import com.fabiankevin.app.services.queries.PageQuery;
 import java.util.UUID;
 
 public interface CategoryService {
-    Category getCategoryById(UUID id, UUID userId);
+    CategorySummary getCategoryById(UUID id, UUID userId);
     Category createCategory(CreateCategoryCommand command);
-    Category patchCategory(PatchCategoryCommand command);
+    CategorySummary patchCategory(PatchCategoryCommand command);
     void deleteCategoryById(UUID id, UUID userId);
     void disableCategory(UUID id, UUID userId);
     Page<Category> getCategoriesByPageQuery(PageQuery query, UUID userId, TransactionType type);

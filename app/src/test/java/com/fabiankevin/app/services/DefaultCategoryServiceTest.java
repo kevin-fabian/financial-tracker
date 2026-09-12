@@ -3,9 +3,12 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.exceptions.CategoryAlreadyExistException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.models.CategorySummary;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.CategoryRepository;
+import com.fabiankevin.app.persistence.entities.CategoryEntity;
+import com.fabiankevin.app.persistence.entities.projections.CategorySummaryProjection;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.PatchCategoryCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
@@ -187,34 +190,49 @@ class DefaultCategoryServiceTest {
     }
 
     @Test
-    void getCategoryById_givenExistingId_thenShouldReturnCategory() {
+    void getCategoryById_givenExistingId_thenShouldReturnCategorySummary() {
         UUID id = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
-        when(categoryRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(Category.builder()
+        Category category = Category.builder()
                 .id(id)
                 .name("FOOD")
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
-                .build()));
+                .build();
+        CategorySummaryProjection projection = CategorySummaryProjection.builder()
+                .category(CategoryEntity.from(category))
+                .amount(100.0)
+                .totalTransactions(5)
+                .build();
+        when(categoryRepository.findByIdAndUserIdWithSummary(id, userId)).thenReturn(Optional.of(
+                CategorySummary.builder()
+                        .category(category)
+                        .totalAmount(100.0)
+                        .totalTransactions(5)
+                        .percentage(0.0)
+                        .build()
+        ));
 
-        Category found = categoryService.getCategoryById(id, userId);
+        CategorySummary found = categoryService.getCategoryById(id, userId);
 
-        assertEquals("FOOD", found.name(), "name should match saved category");
-        assertEquals(TransactionType.EXPENSE, found.type(), "type should match saved category");
-        assertEquals(userId, found.userId(), "userIds should be preserved");
-        verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
+        assertEquals("FOOD", found.category().name(), "name should match saved category");
+        assertEquals(TransactionType.EXPENSE, found.category().type(), "type should match saved category");
+        assertEquals(userId, found.category().userId(), "userIds should be preserved");
+        assertEquals(100.0, found.totalAmount(), 0.001, "totalAmount should match");
+        assertEquals(5, found.totalTransactions(), "totalTransactions should match");
+        verify(categoryRepository, times(1)).findByIdAndUserIdWithSummary(id, userId);
     }
 
     @Test
     void getCategoryById_givenNonExistingId_thenShouldThrow() {
         UUID id = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
-        when(categoryRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.empty());
+        when(categoryRepository.findByIdAndUserIdWithSummary(id, userId)).thenReturn(Optional.empty());
 
         assertThrows(CategoryNotFoundException.class, () -> categoryService.getCategoryById(id, userId));
-        verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
+        verify(categoryRepository, times(1)).findByIdAndUserIdWithSummary(id, userId);
     }
 
     @Test
@@ -320,6 +338,10 @@ class DefaultCategoryServiceTest {
                 .updatedAt(Instant.now())
                 .build();
 
+        Category updatedCategory = existing.toBuilder()
+                .name("GROCERIES")
+                .build();
+
         PatchCategoryCommand command = PatchCategoryCommand.builder()
                 .id(id)
                 .name("GROCERIES")
@@ -329,12 +351,19 @@ class DefaultCategoryServiceTest {
 
         when(categoryRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(existing));
         when(categoryRepository.existsByNameAndTypeAndUserId("GROCERIES", TransactionType.EXPENSE, userId)).thenReturn(false);
-        when(categoryRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(categoryRepository.save(any())).thenReturn(updatedCategory);
+        CategorySummary summary = CategorySummary.builder()
+                .category(updatedCategory)
+                .totalAmount(0.0)
+                .totalTransactions(0)
+                .percentage(0.0)
+                .build();
+        when(categoryRepository.findByIdAndUserIdWithSummary(id, userId)).thenReturn(Optional.of(summary));
 
-        Category updated = categoryService.patchCategory(command);
+        CategorySummary result = categoryService.patchCategory(command);
 
-        assertEquals("GROCERIES", updated.name(), "name should be updated");
-        assertEquals(TransactionType.EXPENSE, updated.type(), "type should be preserved");
+        assertEquals("GROCERIES", result.category().name(), "name should be updated");
+        assertEquals(TransactionType.EXPENSE, result.category().type(), "type should be preserved");
         verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
         verify(categoryRepository, times(1)).save(any());
     }
@@ -385,12 +414,23 @@ class DefaultCategoryServiceTest {
 
         when(categoryRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(existing));
         when(categoryRepository.existsByNameAndTypeAndUserId("GROCERIES", TransactionType.EXPENSE, userId)).thenReturn(false);
-        when(categoryRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        Category updatedCategory = existing.toBuilder()
+                .name("GROCERIES")
+                .icon(newIcon)
+                .build();
+        when(categoryRepository.save(any())).thenReturn(updatedCategory);
+        CategorySummary summary = CategorySummary.builder()
+                .category(updatedCategory)
+                .totalAmount(0.0)
+                .totalTransactions(0)
+                .percentage(0.0)
+                .build();
+        when(categoryRepository.findByIdAndUserIdWithSummary(id, userId)).thenReturn(Optional.of(summary));
 
-        Category updated = categoryService.patchCategory(command);
+        CategorySummary updated = categoryService.patchCategory(command);
 
-        assertEquals("GROCERIES", updated.name());
-        assertEquals(newIcon, updated.icon(), "icon should be updated to new string");
+        assertEquals("GROCERIES", updated.category().name());
+        assertEquals(newIcon, updated.category().icon(), "icon should be updated to new string");
         verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
         verify(categoryRepository, times(1)).save(any());
     }
@@ -420,12 +460,22 @@ class DefaultCategoryServiceTest {
 
         when(categoryRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(existing));
         when(categoryRepository.existsByNameAndTypeAndUserId("GROCERIES", TransactionType.EXPENSE, userId)).thenReturn(false);
-        when(categoryRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        Category updatedCategory = existing.toBuilder()
+                .name("GROCERIES")
+                .build();
+        when(categoryRepository.save(any())).thenReturn(updatedCategory);
+        CategorySummary summary = CategorySummary.builder()
+                .category(updatedCategory)
+                .totalAmount(0.0)
+                .totalTransactions(0)
+                .percentage(0.0)
+                .build();
+        when(categoryRepository.findByIdAndUserIdWithSummary(id, userId)).thenReturn(Optional.of(summary));
 
-        Category updated = categoryService.patchCategory(command);
+        CategorySummary updated = categoryService.patchCategory(command);
 
-        assertEquals("GROCERIES", updated.name());
-        assertEquals(existingIcon, updated.icon(), "icon should be preserved when not provided");
+        assertEquals("GROCERIES", updated.category().name());
+        assertEquals(existingIcon, updated.category().icon(), "icon should be preserved when not provided");
         verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
         verify(categoryRepository, times(1)).save(any());
     }

@@ -22,6 +22,21 @@ public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUI
             """)
     Optional<CategoryEntity> findByIdAndUserId(@Param("id") UUID id, @Param("userId") UUID userId);
 
+    @Query("""
+            SELECT new com.fabiankevin.app.persistence.entities.projections.CategorySummaryProjection(
+                c,
+                COALESCE(SUM(t.amount), 0.0),
+                CAST(COALESCE(COUNT(t.id), 0) AS int)
+            )
+            FROM CategoryEntity c
+            LEFT JOIN TransactionEntity t ON t.category.id = c.id
+                AND t.account.userId = :userId
+            WHERE c.id = :id
+            AND (c.userId = :userId OR c.system = true)
+            GROUP BY c
+            """)
+    Optional<CategorySummaryProjection> findByIdAndUserIdWithSummary(@Param("id") UUID id, @Param("userId") UUID userId);
+
     boolean existsByNameAndTransactionTypeAndUserId(String name, TransactionType type, UUID userId);
     int deleteByIdAndUserId(UUID id, UUID userId);
 

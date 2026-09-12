@@ -30,6 +30,20 @@ public class DefaultCategoryRepository implements CategoryRepository {
     }
 
     @Override
+    public Optional<CategorySummary> findByIdAndUserIdWithSummary(UUID id, UUID userId) {
+        return jpaCategoryRepository.findByIdAndUserIdWithSummary(id, userId)
+                .map(projection -> {
+                    CategoryEntity category = projection.category();
+                    return CategorySummary.builder()
+                            .category(category.toModel())
+                            .totalAmount(projection.amount())
+                            .totalTransactions(projection.totalTransactions())
+                            .percentage(0.0)
+                            .build();
+                });
+    }
+
+    @Override
     public Optional<Category> findById(UUID id) {
         return jpaCategoryRepository.findById(id)
                 .map(CategoryEntity::toModel);

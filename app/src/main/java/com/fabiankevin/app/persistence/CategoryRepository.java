@@ -12,6 +12,7 @@ import java.util.UUID;
 
 public interface CategoryRepository {
     Optional<Category> findByIdAndUserId(UUID id, UUID userId);
+    Optional<CategorySummary> findByIdAndUserIdWithSummary(UUID id, UUID userId);
     Optional<Category> findById(UUID id);
     boolean existsByNameAndTypeAndUserId(String name, TransactionType type, UUID userId);
     Optional<Category> findInactiveByNameAndTypeAndUserId(String name, TransactionType type, UUID userId);

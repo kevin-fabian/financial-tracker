@@ -26,8 +26,8 @@ public class DefaultCategoryService implements CategoryService {
     private final TransactionRepository transactionRepository;
 
     @Override
-    public Category getCategoryById(UUID id, UUID userId) {
-        return categoryRepository.findByIdAndUserId(id, userId)
+    public CategorySummary getCategoryById(UUID id, UUID userId) {
+        return categoryRepository.findByIdAndUserIdWithSummary(id, userId)
                 .orElseThrow(CategoryNotFoundException::new);
     }
 
@@ -107,7 +107,7 @@ public class DefaultCategoryService implements CategoryService {
 
     @Transactional
     @Override
-    public Category patchCategory(PatchCategoryCommand command) {
+    public CategorySummary patchCategory(PatchCategoryCommand command) {
         UUID id = command.id();
         UUID userId = command.userId();
 
@@ -133,7 +133,9 @@ public class DefaultCategoryService implements CategoryService {
         Optional.ofNullable(command.icon())
                 .ifPresent(categoryBuilder::icon);
 
-        return categoryRepository.save(categoryBuilder.build());
+        Category saved = categoryRepository.save(categoryBuilder.build());
+        return categoryRepository.findByIdAndUserIdWithSummary(id, userId)
+                .orElseThrow(CategoryNotFoundException::new);
     }
 
     @Transactional

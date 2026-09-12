@@ -294,7 +294,10 @@ class CategoryControllerIntegrationTest {
                     .andExpect(jsonPath("$.name").value("FOOD"))
                     .andExpect(jsonPath("$.type").value("EXPENSE"))
                     .andExpect(jsonPath("$.active").value(true))
-                    .andExpect(jsonPath("$.system").value(false));
+                    .andExpect(jsonPath("$.system").value(false))
+                    .andExpect(jsonPath("$.totalAmount").value(0.0))
+                    .andExpect(jsonPath("$.totalTransactions").value(0))
+                    .andExpect(jsonPath("$.percentage").value(0.0));
         }
 
         @Test
@@ -325,7 +328,10 @@ class CategoryControllerIntegrationTest {
                     .andExpect(jsonPath("$.name").value("FOOD"))
                     .andExpect(jsonPath("$.icon").value("food"))
                     .andExpect(jsonPath("$.active").value(true))
-                    .andExpect(jsonPath("$.system").value(false));
+                    .andExpect(jsonPath("$.system").value(false))
+                    .andExpect(jsonPath("$.totalAmount").value(0.0))
+                    .andExpect(jsonPath("$.totalTransactions").value(0))
+                    .andExpect(jsonPath("$.percentage").value(0.0));
         }
 
         @Test
@@ -791,6 +797,9 @@ class CategoryControllerIntegrationTest {
                     .andExpect(jsonPath("$.type").value("EXPENSE"))
                     .andExpect(jsonPath("$.active").value(true))
                     .andExpect(jsonPath("$.system").value(false))
+                    .andExpect(jsonPath("$.totalAmount").value(0.0))
+                    .andExpect(jsonPath("$.totalTransactions").value(0))
+                    .andExpect(jsonPath("$.percentage").value(0.0))
                     .andExpect(jsonPath("$.createdAt").isNotEmpty())
                     .andExpect(jsonPath("$.updatedAt").isNotEmpty());
         }
@@ -826,6 +835,9 @@ class CategoryControllerIntegrationTest {
                     .andExpect(jsonPath("$.icon").value("groceries"))
                     .andExpect(jsonPath("$.active").value(true))
                     .andExpect(jsonPath("$.system").value(false))
+                    .andExpect(jsonPath("$.totalAmount").value(0.0))
+                    .andExpect(jsonPath("$.totalTransactions").value(0))
+                    .andExpect(jsonPath("$.percentage").value(0.0))
                     .andExpect(jsonPath("$.createdAt").isNotEmpty())
                     .andExpect(jsonPath("$.updatedAt").isNotEmpty());
         }

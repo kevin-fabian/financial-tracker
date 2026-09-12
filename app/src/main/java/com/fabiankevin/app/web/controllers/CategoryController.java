@@ -80,7 +80,7 @@ public class CategoryController {
             description = "Retrieves a transaction category by specified ID",
             responses = {
                     @ApiResponse(responseCode = "200", description = "OK - Resource is retrieved successfully",
-                            content = @Content(schema = @Schema(implementation = CategoryResponse.class))),
+                            content = @Content(schema = @Schema(implementation = CategorySummaryResponse.class))),
                     @ApiResponse(responseCode = "404", description = "Not Found - Resource not found",
                             content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
                     @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
@@ -88,10 +88,10 @@ public class CategoryController {
             }
     )
     @GetMapping("/{id}")
-    public CategoryResponse getCategory(@PathVariable UUID id, JwtAuthenticationToken jwtAuthenticationToken) {
+    public CategorySummaryResponse getCategory(@PathVariable UUID id, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        Category category = categoryService.getCategoryById(id, userId);
-        return CategoryResponse.from(category);
+        CategorySummary summary = categoryService.getCategoryById(id, userId);
+        return CategorySummaryResponse.from(summary);
     }
 
     @Operation(
@@ -123,7 +123,7 @@ public class CategoryController {
             description = "Updates provided fields of a category and returns the updated object",
             responses = {
                     @ApiResponse(responseCode = "200", description = "OK - Resource updated successfully",
-                            content = @Content(schema = @Schema(implementation = CategoryResponse.class))),
+                            content = @Content(schema = @Schema(implementation = CategorySummaryResponse.class))),
                     @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
                             content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
                     @ApiResponse(responseCode = "404", description = "Not Found - Resource not found",
@@ -133,10 +133,10 @@ public class CategoryController {
             }
     )
     @PatchMapping("/{categoryId}")
-    public CategoryResponse patchCategory(@PathVariable UUID categoryId, @RequestBody @Valid PatchCategoryRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
+    public CategorySummaryResponse patchCategory(@PathVariable UUID categoryId, @RequestBody @Valid PatchCategoryRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        Category updated = categoryService.patchCategory(request.toCommand(categoryId, userId));
-        return CategoryResponse.from(updated);
+        CategorySummary updated = categoryService.patchCategory(request.toCommand(categoryId, userId));
+        return CategorySummaryResponse.from(updated);
     }
 
     @Operation(
