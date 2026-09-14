@@ -44,7 +44,7 @@ public class InvitationController {
                 content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
         }
     )
-    @GetMapping("/invite")
+    @GetMapping("/invitations")
     public List<InvitationResponse> getInvitations(JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         return invitationService.getInvitationsByUserId(userId).stream()

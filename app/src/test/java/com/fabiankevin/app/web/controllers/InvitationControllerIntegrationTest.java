@@ -412,7 +412,7 @@ class InvitationControllerIntegrationTest {
                     .andExpect(status().isOk());
 
             // Invitee GETs invitations — should see the invitation as invitee (isInviter=false)
-            mockMvc.perform(get("/api/households/invite")
+            mockMvc.perform(get("/api/households/invitations")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -484,7 +484,7 @@ class InvitationControllerIntegrationTest {
                     .andExpect(status().isOk());
 
             // Leader GETs invitations — should see the invitation as inviter (isInviter=true)
-            mockMvc.perform(get("/api/households/invite")
+            mockMvc.perform(get("/api/households/invitations")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -505,7 +505,7 @@ class InvitationControllerIntegrationTest {
         void givenUserWithNoInvitations_thenShouldReturnEmptyList() throws Exception {
             UUID userId = UUID.randomUUID();
 
-            mockMvc.perform(get("/api/households/invite")
+            mockMvc.perform(get("/api/households/invitations")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
