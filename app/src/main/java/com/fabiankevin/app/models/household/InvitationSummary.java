@@ -15,7 +15,7 @@ public record InvitationSummary(
         User inviter,
         User invitee,
         InvitationStatus status,
-        Household household,
+        HouseholdSummary household,
         Instant createdAt,
         Instant expiresAt,
         boolean isInviter

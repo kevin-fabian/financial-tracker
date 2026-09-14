@@ -57,7 +57,7 @@ public class HouseholdServiceTestHelper {
                 .email(inviteeEmail)
                 .build();
 
-        MvcResult sendResult = mockMvc.perform(post("/api/households/{householdId}/invite", partyId)
+        MvcResult sendResult = mockMvc.perform(post("/api/households/{householdId}/invitations", partyId)
                         .with(jwt()
                                 .authorities(new SimpleGrantedAuthority("USER"))
                                 .jwt(jwt -> jwt
@@ -73,7 +73,7 @@ public class HouseholdServiceTestHelper {
                 sendResult.getResponse().getContentAsString(), InvitationResponse.class);
 
         // Step 2: Invitee accepts the invitation
-        MvcResult acceptResult = mockMvc.perform(post("/api/households/{householdId}/invite/{invitationId}/accept",
+        MvcResult acceptResult = mockMvc.perform(post("/api/households/{householdId}/invitations/{invitationId}/accept",
                         partyId, invitation.id())
                         .with(jwt()
                                 .authorities(new SimpleGrantedAuthority("USER"))
@@ -103,7 +103,7 @@ public class HouseholdServiceTestHelper {
                 .email(inviteeEmail)
                 .build();
 
-        MvcResult result = mockMvc.perform(post("/api/households/{householdId}/invite", householdId)
+        MvcResult result = mockMvc.perform(post("/api/households/{householdId}/invitations", householdId)
                         .with(jwt()
                                 .authorities(new SimpleGrantedAuthority("USER"))
                                 .jwt(jwt -> jwt

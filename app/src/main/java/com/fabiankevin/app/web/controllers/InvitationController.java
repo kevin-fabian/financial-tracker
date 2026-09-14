@@ -70,7 +70,7 @@ public class InvitationController {
                 content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
         }
     )
-    @PostMapping("/{householdId}/invite")
+    @PostMapping("/{householdId}/invitations")
     public ResponseEntity<InvitationResponse> sendInvitation(
         @PathVariable @NotNull @Schema(description = "ID of the household where the invitation is sent") UUID householdId,
         @Valid @RequestBody SendInvitationRequest request,
@@ -92,7 +92,7 @@ public class InvitationController {
                 content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
         }
     )
-    @PostMapping("/{householdId}/invite/{invitationId}/accept")
+    @PostMapping("/{householdId}/invitations/{invitationId}/accept")
     public ResponseEntity<InvitationResponse> acceptInvitation(
         @PathVariable @NotNull @Schema(description = "ID of the invitation to accept") UUID invitationId,
         JwtAuthenticationToken jwtAuthenticationToken) {
@@ -115,7 +115,7 @@ public class InvitationController {
                 content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
         }
     )
-    @PostMapping("/{householdId}/invite/{invitationId}/reject")
+    @PostMapping("/{householdId}/invitations/{invitationId}/reject")
     public ResponseEntity<InvitationResponse> rejectInvitation(
         @PathVariable @NotNull @Schema(description = "ID of the invitation to reject") UUID invitationId,
         JwtAuthenticationToken jwtAuthenticationToken) {

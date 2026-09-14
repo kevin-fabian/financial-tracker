@@ -15,6 +15,8 @@ import com.fabiankevin.app.models.enums.household.HouseholdMemberStatus;
 import com.fabiankevin.app.models.enums.household.InvitationStatus;
 import com.fabiankevin.app.models.household.Household;
 import com.fabiankevin.app.models.household.HouseholdMember;
+import com.fabiankevin.app.models.household.HouseholdMemberSummary;
+import com.fabiankevin.app.models.household.HouseholdSummary;
 import com.fabiankevin.app.models.household.Invitation;
 import com.fabiankevin.app.models.household.InvitationSummary;
 import com.fabiankevin.app.persistence.HouseholdRepository;
@@ -174,8 +176,19 @@ public class DefaultInvitationService implements InvitationService {
                 : householdRepository.findAllById(householdIds).stream()
                         .collect(Collectors.toMap(Household::id, Function.identity()));
 
+        // Collect all member user IDs from households to enrich with user details
+        List<UUID> memberUserIds = householdsById.values().stream()
+                .flatMap(h -> h.members().stream().map(HouseholdMember::userId))
+                .distinct()
+                .toList();
+
+        Map<UUID, User> memberUsersById = memberUserIds.isEmpty()
+                ? Map.of()
+                : userClient.getUsersByIds(memberUserIds).stream()
+                        .collect(Collectors.toMap(User::id, Function.identity()));
+
         return invitations.stream()
-                .map(invitation -> toSummary(invitation, usersById, householdsById, userId))
+                .map(invitation -> toSummary(invitation, usersById, householdsById, memberUsersById, userId))
                 .toList();
     }
 
@@ -206,17 +219,41 @@ public class DefaultInvitationService implements InvitationService {
         }
     }
 
-    private InvitationSummary toSummary(Invitation invitation, Map<UUID, User> usersById, Map<UUID, Household> householdsById, UUID currentUserId) {
+    private InvitationSummary toSummary(Invitation invitation, Map<UUID, User> usersById, Map<UUID, Household> householdsById, Map<UUID, User> memberUsersById, UUID currentUserId) {
         User inviter = usersById.get(invitation.inviterUserId());
         User invitee = usersById.get(invitation.inviteeUserId());
         Household household = householdsById.get(invitation.householdId());
+
+        // Enrich household members with user details
+        List<HouseholdMemberSummary> enrichedMembers = household.members().stream()
+                .map(member -> {
+                    User memberUser = memberUsersById.get(member.userId());
+                    return HouseholdMemberSummary.builder()
+                            .id(member.userId())
+                            .user(memberUser)
+                            .householdLeader(false)
+                            .status(member.status())
+                            .joinedAt(member.joinedAt())
+                            .build();
+                })
+                .toList();
+
+        HouseholdSummary householdSummary = HouseholdSummary.builder()
+                .id(household.id())
+                .name(household.name())
+                .leaderId(household.leaderId())
+                .members(enrichedMembers)
+                .active(household.active())
+                .createdAt(household.createdAt())
+                .updatedAt(household.updatedAt())
+                .build();
 
         return InvitationSummary.builder()
                 .id(invitation.id())
                 .inviter(inviter)
                 .invitee(invitee)
                 .status(invitation.status())
-                .household(household)
+                .household(householdSummary)
                 .createdAt(invitation.createdAt())
                 .expiresAt(invitation.expiresAt())
                 .isInviter(invitation.inviterUserId().equals(currentUserId))
@@ -231,6 +268,17 @@ public class DefaultInvitationService implements InvitationService {
         Map<UUID, Household> householdsById = household != null
                 ? Map.of(household.id(), household)
                 : Map.of();
-        return toSummary(invitation, usersById, householdsById, currentUserId);
+
+        // Collect member user IDs to enrich with user details
+        List<UUID> memberUserIds = household != null
+                ? household.members().stream().map(HouseholdMember::userId).distinct().toList()
+                : List.of();
+
+        Map<UUID, User> memberUsersById = memberUserIds.isEmpty()
+                ? Map.of()
+                : userClient.getUsersByIds(memberUserIds).stream()
+                        .collect(Collectors.toMap(User::id, Function.identity()));
+
+        return toSummary(invitation, usersById, householdsById, memberUsersById, currentUserId);
     }
 }
