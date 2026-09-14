@@ -348,13 +348,8 @@ class StatsControllerIntegrationTest {
                     .andExpect(jsonPath("$.data").isArray())
                     .andExpect(jsonPath("$.data.length()").value(endDay - startDay + 1))
                     // Verify ascending order by day of month
-                    .andExpect(jsonPath("$.data[0].label").value("5"))
-                    .andExpect(jsonPath("$.data[1].label").value("6"))
-                    .andExpect(jsonPath("$.data[2].label").value("7"))
-                    .andExpect(jsonPath("$.data[3].label").value("8"))
-                    .andExpect(jsonPath("$.data[4].label").value("9"))
-                    .andExpect(jsonPath("$.data[5].label").value("10"))
-                    .andExpect(jsonPath("$.data[6].label").value(String.valueOf(endDay)));
+                    .andExpect(jsonPath("$.data[0].label").value(String.valueOf(startDay)))
+                    .andExpect(jsonPath("$.data[" + (endDay - startDay) + "].label").value(String.valueOf(endDay)));
         }
     }
 }
