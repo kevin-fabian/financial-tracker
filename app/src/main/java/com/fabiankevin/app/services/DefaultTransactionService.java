@@ -1,7 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.events.EventPublisher;
+import com.fabiankevin.app.events.HouseholdEventPublisher;
 import com.fabiankevin.app.events.TransactionEvent;
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
@@ -50,7 +50,7 @@ public class DefaultTransactionService implements TransactionService {
     private final TransactionRepository transactionRepository;
     private final Map<SummaryType, SummaryGenerator> generators;
     private final HouseholdRepository householdRepository;
-    private final EventPublisher compositeEventPublisher;
+    private final HouseholdEventPublisher compositeHouseholdEventPublisher;
     private final int dailyTransactionLimit;
     private final UserClient userClient;
 
@@ -60,7 +60,7 @@ public class DefaultTransactionService implements TransactionService {
             TransactionRepository transactionRepository,
             List<SummaryGenerator> generators,
             HouseholdRepository householdRepository,
-            EventPublisher compositeEventPublisher,
+            HouseholdEventPublisher compositeHouseholdEventPublisher,
             int dailyTransactionLimit,
             UserClient userClient) {
         this.accountRepository = accountRepository;
@@ -72,7 +72,7 @@ public class DefaultTransactionService implements TransactionService {
                         Function.identity()
                 ));
         this.householdRepository = householdRepository;
-        this.compositeEventPublisher = compositeEventPublisher;
+        this.compositeHouseholdEventPublisher = compositeHouseholdEventPublisher;
         this.dailyTransactionLimit = dailyTransactionLimit;
         this.userClient = userClient;
     }
@@ -85,7 +85,7 @@ public class DefaultTransactionService implements TransactionService {
                 .orElseThrow(TransactionNotFoundException::new);
 
         householdRepository.findByUserId(userId).ifPresent(household ->
-            compositeEventPublisher.publish(household.id(), new TransactionEvent(
+            compositeHouseholdEventPublisher.publish(household.id(), new TransactionEvent(
                     userId,
                     EventAction.DELETED,
                     existing
@@ -141,7 +141,7 @@ public class DefaultTransactionService implements TransactionService {
         Transaction savedTransaction = transactionRepository.save(transaction);
 
         householdRepository.findByUserId(userId).ifPresent(household ->
-            compositeEventPublisher.publish(household.id(), new TransactionEvent(
+            compositeHouseholdEventPublisher.publish(household.id(), new TransactionEvent(
                     userId,
                     EventAction.ADDED,
                     savedTransaction
@@ -193,7 +193,7 @@ public class DefaultTransactionService implements TransactionService {
         Transaction saved = transactionRepository.save(builder.build());
 
         householdRepository.findByUserId(userId).ifPresent(household ->
-            compositeEventPublisher.publish(household.id(), new TransactionEvent(
+            compositeHouseholdEventPublisher.publish(household.id(), new TransactionEvent(
                     userId,
                     EventAction.UPDATED,
                     saved

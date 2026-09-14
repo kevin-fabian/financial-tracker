@@ -26,7 +26,7 @@ Layered hexagonal: `controllers -> services -> repositories -> jpa_repositories 
 
 **User provisioning** — `UserProvisioningService` coordinates onboarding (`DefaultUserProvisioningService` splits work into `UserAccountProvisioner` and `UserCategoryProvisioner`, with in-memory implementations available).
 
-**Event publishing** — `events/` package provides `EventPublisher` implementations (`TransactionEventPublisher`, `StatsEventPublisher`) composed via `CompositeTransactionEventPublisher`. `ItemEvent<T>` is the generic event record.
+**Event publishing** — `events/` package provides `HouseholdEventPublisher` implementations (`TransactionHouseholdEventPublisher`, `StatsEventPublisher`) composed via `CompositeTransactionEventPublisher`. `ItemEvent<T>` is the generic event record.
 
 **Downstream user enrichment** — `clients/` package provides `UserClient` (`DefaultUserClient`) for fetching user details (name, initials) from a downstream service.
 

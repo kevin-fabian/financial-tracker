@@ -1,7 +1,7 @@
 package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.events.CompositeEventPublisher;
+import com.fabiankevin.app.events.CompositeHouseholdEventPublisher;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.Transaction;
@@ -104,7 +104,7 @@ class DefaultTransactionRepositoryTest {
                     transactionRepository,
                     List.of(),
                     householdRepository,
-                    new CompositeEventPublisher(List.of()),
+                    new CompositeHouseholdEventPublisher(List.of()),
                     100,
                     userClient);
         }

@@ -1,9 +1,9 @@
 package com.fabiankevin.app.config;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.events.CompositeEventPublisher;
-import com.fabiankevin.app.events.EventPublisher;
-import com.fabiankevin.app.events.TransactionEventPublisher;
+import com.fabiankevin.app.events.CompositeHouseholdEventPublisher;
+import com.fabiankevin.app.events.HouseholdEventPublisher;
+import com.fabiankevin.app.events.TransactionHouseholdEventPublisher;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.HouseholdRepository;
@@ -40,9 +40,9 @@ public class AppConfig {
     }
 
     @Bean
-    public CompositeEventPublisher compositeEventPublisher(
-            TransactionEventPublisher transactionEventPublisher) {
-        return new CompositeEventPublisher(List.of(transactionEventPublisher));
+    public CompositeHouseholdEventPublisher compositeEventPublisher(
+            TransactionHouseholdEventPublisher transactionEventPublisher) {
+        return new CompositeHouseholdEventPublisher(List.of(transactionEventPublisher));
     }
 
     @Bean
@@ -52,7 +52,7 @@ public class AppConfig {
             TransactionRepository transactionRepository,
             List<SummaryGenerator> generators,
             HouseholdRepository householdRepository,
-            EventPublisher compositeEventPublisher,
+            HouseholdEventPublisher compositeHouseholdEventPublisher,
             @Value("${transaction.daily-limit:100}") int dailyTransactionLimit,
             UserClient userClient) {
         return new DefaultTransactionService(
@@ -61,7 +61,7 @@ public class AppConfig {
                 transactionRepository,
                 generators,
                 householdRepository,
-                compositeEventPublisher,
+                compositeHouseholdEventPublisher,
                 dailyTransactionLimit,
                 userClient);
     }

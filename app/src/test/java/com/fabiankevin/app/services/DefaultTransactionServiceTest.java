@@ -1,7 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.events.EventPublisher;
+import com.fabiankevin.app.events.HouseholdEventPublisher;
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.exceptions.DailyTransactionLimitExceededException;
@@ -63,7 +63,7 @@ class DefaultTransactionServiceTest {
     @Mock
     private HouseholdRepository householdRepository;
     @Mock
-    private EventPublisher eventPublisher;
+    private HouseholdEventPublisher householdEventPublisher;
     @Mock
     private UserClient userClient;
     private DefaultTransactionService transactionService;
@@ -78,7 +78,7 @@ class DefaultTransactionServiceTest {
                 transactionRepository,
                 summaryGenerators,
                 householdRepository,
-                eventPublisher,
+                householdEventPublisher,
                 100,
                 userClient
         );
@@ -265,7 +265,7 @@ class DefaultTransactionServiceTest {
            assertEquals("Food and drinks", transaction.description());
            verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, LocalDate.now());
            verify(householdRepository, times(1)).findByUserId(userId);
-           verify(eventPublisher, times(1)).publish(eq(sharedSpaceId), any());
+           verify(householdEventPublisher, times(1)).publish(eq(sharedSpaceId), any());
        }
 
        @Test
@@ -299,7 +299,7 @@ class DefaultTransactionServiceTest {
            assertEquals("Food and drinks", transaction.description());
            verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, LocalDate.now());
            verify(householdRepository, times(1)).findByUserId(userId);
-           verify(eventPublisher, never()).publish(any(), any());
+           verify(householdEventPublisher, never()).publish(any(), any());
        }
 
        @Test
@@ -418,7 +418,7 @@ class DefaultTransactionServiceTest {
             verify(transactionRepository, times(1)).findById(transactionId);
             verify(transactionRepository, times(1)).deleteByIdAndUserId(transactionId, userId);
             verify(householdRepository, times(1)).findByUserId(userId);
-            verify(eventPublisher, times(1)).publish(eq(partyId), any());
+            verify(householdEventPublisher, times(1)).publish(eq(partyId), any());
         }
 
         @Test
@@ -449,7 +449,7 @@ class DefaultTransactionServiceTest {
             verify(transactionRepository, times(1)).findById(transactionId);
             verify(transactionRepository, times(1)).deleteByIdAndUserId(transactionId, userId);
             verify(householdRepository, times(1)).findByUserId(userId);
-            verify(eventPublisher, never()).publish(any(), any());
+            verify(householdEventPublisher, never()).publish(any(), any());
         }
 
         @Test
@@ -462,7 +462,7 @@ class DefaultTransactionServiceTest {
             assertThrows(TransactionNotFoundException.class, () -> transactionService.deleteTransaction(transactionId, userId));
             verify(transactionRepository, times(1)).findById(transactionId);
             verify(transactionRepository, never()).deleteByIdAndUserId(any(), any());
-            verify(eventPublisher, never()).publish(any(), any());
+            verify(householdEventPublisher, never()).publish(any(), any());
         }
 
         @Test
@@ -490,7 +490,7 @@ class DefaultTransactionServiceTest {
             assertThrows(TransactionNotFoundException.class, () -> transactionService.deleteTransaction(transactionId, userId));
             verify(transactionRepository, times(1)).findById(transactionId);
             verify(transactionRepository, never()).deleteByIdAndUserId(any(), any());
-            verify(eventPublisher, never()).publish(any(), any());
+            verify(householdEventPublisher, never()).publish(any(), any());
         }
     }
 

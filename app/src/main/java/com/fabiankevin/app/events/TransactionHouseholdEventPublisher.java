@@ -8,7 +8,7 @@ import java.util.UUID;
 
 @RequiredArgsConstructor
 @Component
-public class TransactionEventPublisher implements EventPublisher {
+public class TransactionHouseholdEventPublisher implements HouseholdEventPublisher {
     private final SimpMessagingTemplate template;
 
     @Override
