@@ -158,7 +158,11 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .build();
 
         ShoppingList saved = shoppingListRepository.save(updated);
-        ShoppingItem savedItem = saved.items().get(saved.items().size() - 1);
+
+        ShoppingItem savedItem = saved.items().stream()
+                .filter(i -> i.createdAt().equals(item.createdAt()))
+                .findFirst()
+                .orElse(item);
 
         User user = userClient.getUsersByIds(List.of(savedItem.addedBy()))
                 .stream()

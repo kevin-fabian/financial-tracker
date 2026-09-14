@@ -45,6 +45,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -807,7 +808,7 @@ class ShoppingListControllerIntegrationTest {
             shoppingListRepository.save(list1);
             shoppingListRepository.save(list2);
 
-            when(userClient.getUsersByIds(List.of(addedBy, userId)))
+            when(userClient.getUsersByIds(anyList()))
                     .thenReturn(List.of(
                             User.builder().id(userId).firstName("John").lastName("Doe").build(),
                             User.builder().id(addedBy).firstName("Jane").lastName("Doe").build()));
@@ -848,13 +849,13 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(jsonPath("$[0].updatedBy.lastName").value("Doe"))
                     .andExpect(jsonPath("$[0].updatedBy.initial").value("JD"))
                     .andExpect(jsonPath("$[0].items").isArray())
-                    .andExpect(jsonPath("$[0].items[*].addedBy.id").value(containsInAnyOrder(addedBy.toString())))
-                    .andExpect(jsonPath("$[0].items[*].addedBy.firstName").value(containsInAnyOrder("Jane")))
-                    .andExpect(jsonPath("$[0].items[*].addedBy.lastName").value(containsInAnyOrder("Doe")))
-                    .andExpect(jsonPath("$[0].items[*].addedBy.initial").value(containsInAnyOrder("JD")))
+                    .andExpect(jsonPath("$[1].items").isArray())
+                    .andExpect(jsonPath("$[*].items[*].addedBy.id").value(containsInAnyOrder(addedBy.toString())))
+                    .andExpect(jsonPath("$[*].items[*].addedBy.firstName").value(containsInAnyOrder("Jane")))
+                    .andExpect(jsonPath("$[*].items[*].addedBy.lastName").value(containsInAnyOrder("Doe")))
+                    .andExpect(jsonPath("$[*].items[*].addedBy.initial").value(containsInAnyOrder("JD")))
                     .andExpect(jsonPath("$[0].createdAt").exists())
-                    .andExpect(jsonPath("$[0].updatedAt").exists())
-                    .andExpect(jsonPath("$[1].items").isArray());
+                    .andExpect(jsonPath("$[0].updatedAt").exists());
         }
 
         @Test
@@ -1005,6 +1006,74 @@ class ShoppingListControllerIntegrationTest {
                     .name("Groceries")
                     .status(ShoppingListStatus.ACTIVE)
                     .userId(userId)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            CreateShoppingItemRequest request = CreateShoppingItemRequest.builder()
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .notes("Whole milk")
+                    .priority(ItemPriority.HIGH)
+                    .build();
+
+            mockMvc.perform(post("/api/shopping-lists/{id}/items", shoppingListId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").isNotEmpty())
+                    .andExpect(jsonPath("$.name").value("Milk"))
+                    .andExpect(jsonPath("$.category").value("Dairy"))
+                    .andExpect(jsonPath("$.quantity").value(2.0))
+                    .andExpect(jsonPath("$.unit").value("liters"))
+                    .andExpect(jsonPath("$.price").value(3.5))
+                    .andExpect(jsonPath("$.purchased").value(false))
+                    .andExpect(jsonPath("$.priority").value("HIGH"))
+                    .andExpect(jsonPath("$.notes").value("Whole milk"))
+                    .andExpect(jsonPath("$.addedBy").exists())
+                    .andExpect(jsonPath("$.addedBy.id").isNotEmpty())
+                    .andExpect(jsonPath("$.addedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$.addedBy.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.addedBy.initial").value("JD"))
+                    .andExpect(jsonPath("$.createdAt").exists())
+                    .andExpect(jsonPath("$.updatedAt").exists());
+        }
+
+        @Test
+        void givenExistingListWithItems_thenReturnsCreatedWithNewItem() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            // Create a list that already has existing items
+            ShoppingItem existingItem = ShoppingItem.builder()
+                    .name("Bread")
+                    .category("Bakery")
+                    .quantity(1.0)
+                    .unit("loaf")
+                    .price(2.5)
+                    .priority(ItemPriority.MEDIUM)
+                    .addedBy(userId)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            var shoppingList = ShoppingList.builder()
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .items(new ArrayList<>(List.of(existingItem)))
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();

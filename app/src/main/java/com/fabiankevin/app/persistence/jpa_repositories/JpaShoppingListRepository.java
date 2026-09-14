@@ -16,11 +16,16 @@ public interface JpaShoppingListRepository extends JpaRepository<ShoppingListEnt
             SELECT DISTINCT sl FROM ShoppingListEntity sl
             LEFT JOIN FETCH sl.sharedWithUserIds su
             WHERE sl.userId = :userId OR su = :userId
-            ORDER BY sl.id ASC
+            ORDER BY sl.createdAt DESC
             """)
     List<ShoppingListEntity> findAllByUserId(@Param("userId") UUID userId);
 
     @EntityGraph(attributePaths = {"items", "category"})
-    @Query("SELECT sl FROM ShoppingListEntity sl WHERE sl.id = :id")
+    @Query("""
+            SELECT DISTINCT sl FROM ShoppingListEntity sl
+            LEFT JOIN FETCH sl.items i
+            WHERE sl.id = :id
+            ORDER BY i.createdAt ASC
+            """)
     Optional<ShoppingListEntity> findByIdWithDetails(@Param("id") UUID id);
 }
