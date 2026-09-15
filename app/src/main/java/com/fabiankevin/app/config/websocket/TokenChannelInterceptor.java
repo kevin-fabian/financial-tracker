@@ -34,10 +34,12 @@ public class TokenChannelInterceptor implements ChannelInterceptor {
                     try {
                         // Decode and validate the token
                         Jwt jwt = jwtDecoder.decode(token);
-                        
+
+                        String userId = jwt.getSubject();
+
                         // Authenticate the WebSocket Session
                         UsernamePasswordAuthenticationToken authentication = 
-                            new UsernamePasswordAuthenticationToken(jwt, null, null); // Add authorities if needed
+                            new UsernamePasswordAuthenticationToken(userId, null, null); // Add authorities if needed
                             
                         accessor.setUser(authentication);
                         SecurityContextHolder.getContext().setAuthentication(authentication);

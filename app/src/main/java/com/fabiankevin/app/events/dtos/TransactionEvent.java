@@ -1,12 +1,9 @@
-package com.fabiankevin.app.events;
+package com.fabiankevin.app.events.dtos;
 
 import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.models.enums.EventAction;
 
-import java.util.UUID;
-
 public record TransactionEvent(
-    UUID userId,
     EventAction action,
     Transaction data
 ) implements DomainEvent<Transaction> {

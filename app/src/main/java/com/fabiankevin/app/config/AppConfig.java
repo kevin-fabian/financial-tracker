@@ -1,9 +1,8 @@
 package com.fabiankevin.app.config;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.events.CompositeHouseholdEventPublisher;
-import com.fabiankevin.app.events.HouseholdEventPublisher;
-import com.fabiankevin.app.events.TransactionHouseholdEventPublisher;
+import com.fabiankevin.app.events.DefaultWebSocketEventPublisher;
+import com.fabiankevin.app.events.EventPublisher;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.HouseholdRepository;
@@ -16,22 +15,12 @@ import com.fabiankevin.app.services.summaries.SummaryGenerator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.List;
 
 @Configuration
 public class AppConfig {
-//
-//    @Bean
-//    public CategoryService categoryService(CacheManager cacheManager, DefaultCategoryService delegate) {
-//        return new CachedCategoryService(cacheManager, delegate);
-//    }
-//
-//    @Bean
-//    public TransactionService transactionService(CacheManager cacheManager,
-//                                                 DefaultTransactionService delegate) {
-//        return new CachedTransactionService(cacheManager, delegate);
-//    }
 
     @Bean
     public StatsService statsService(TransactionRepository transactionRepository,
@@ -40,9 +29,8 @@ public class AppConfig {
     }
 
     @Bean
-    public CompositeHouseholdEventPublisher compositeEventPublisher(
-            TransactionHouseholdEventPublisher transactionEventPublisher) {
-        return new CompositeHouseholdEventPublisher(List.of(transactionEventPublisher));
+    public DefaultWebSocketEventPublisher invitationEventPublisher(SimpMessagingTemplate template) {
+        return new DefaultWebSocketEventPublisher(template, "/events/invitations");
     }
 
     @Bean
@@ -52,7 +40,7 @@ public class AppConfig {
             TransactionRepository transactionRepository,
             List<SummaryGenerator> generators,
             HouseholdRepository householdRepository,
-            HouseholdEventPublisher compositeHouseholdEventPublisher,
+            EventPublisher transactionEventPublisher,
             @Value("${transaction.daily-limit:100}") int dailyTransactionLimit,
             UserClient userClient) {
         return new DefaultTransactionService(
@@ -61,7 +49,7 @@ public class AppConfig {
                 transactionRepository,
                 generators,
                 householdRepository,
-                compositeHouseholdEventPublisher,
+                transactionEventPublisher,
                 dailyTransactionLimit,
                 userClient);
     }
