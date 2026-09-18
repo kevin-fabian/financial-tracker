@@ -30,7 +30,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -338,23 +338,21 @@ public class DefaultShoppingListService implements ShoppingListService {
     }
 
     private ShoppingListSummary toSummary(ShoppingList shoppingList) {
-        Optional<User> userOpt = userClient.getUsersByIds(List.of(shoppingList.userId()))
-                .stream()
-                .findFirst();
-        Map<UUID, User> usersById = userOpt
-                .map(u -> Map.of(u.id(), u))
-                .orElseGet(Map::of);
-        return toSummary(shoppingList, usersById, userOpt.orElse(null));
+        Set<UUID> userIds = new java.util.HashSet<>();
+        shoppingList.items().forEach(item -> userIds.add(item.addedBy()));
+        userIds.add(shoppingList.userId());
+        Map<UUID, User> usersById = userClient.getUsersByIds(new ArrayList<>(userIds)).stream()
+                .collect(Collectors.toMap(User::id, Function.identity()));
+        return toSummary(shoppingList, usersById, usersById.get(shoppingList.userId()));
     }
 
     private ShoppingListSummary toSummary(ShoppingList shoppingList, Category category) {
-        Optional<User> userOpt = userClient.getUsersByIds(List.of(shoppingList.userId()))
-                .stream()
-                .findFirst();
-        Map<UUID, User> usersById = userOpt
-                .map(u -> Map.of(u.id(), u))
-                .orElseGet(Map::of);
+        Set<UUID> userIds = new java.util.HashSet<>();
+        shoppingList.items().forEach(item -> userIds.add(item.addedBy()));
+        userIds.add(shoppingList.userId());
+        Map<UUID, User> usersById = userClient.getUsersByIds(new ArrayList<>(userIds)).stream()
+                .collect(Collectors.toMap(User::id, Function.identity()));
         ShoppingList restored = shoppingList.toBuilder().category(category).build();
-        return toSummary(restored, usersById, userOpt.orElse(null));
+        return toSummary(restored, usersById, usersById.get(shoppingList.userId()));
     }
 }

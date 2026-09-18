@@ -362,7 +362,7 @@ class DefaultHouseholdServiceTest {
     class RemoveHouseholdMember {
 
         @Test
-        void givenHouseholdLeaderKicksHouseholdMember_thenHouseholdMemberIsKicked() {
+        void givenHouseholdLeaderRemovesHouseholdMember_thenHouseholdMemberIsRemoved() {
             UUID partyLeaderId = UUID.randomUUID();
             UUID participantId = UUID.randomUUID();
             UUID householdId = UUID.randomUUID();
@@ -405,7 +405,7 @@ class DefaultHouseholdServiceTest {
         }
 
         @Test
-        void givenHouseholdMemberKickThemselves_thenHouseholdMemberIsRemoved() {
+        void givenHouseholdMemberRemoveThemselves_thenHouseholdMemberIsRemoved() {
             UUID partyLeaderId = UUID.randomUUID();
             UUID participantId = UUID.randomUUID();
             UUID householdId = UUID.randomUUID();
@@ -447,7 +447,7 @@ class DefaultHouseholdServiceTest {
         }
 
         @Test
-        void givenHouseholdLeaderKickThemselves_thenThrows() {
+        void givenHouseholdLeaderRemoveThemselves_thenThrows() {
             UUID partyLeaderId = UUID.randomUUID();
             UUID householdId = UUID.randomUUID();
             Household household = Household.builder()
@@ -474,7 +474,7 @@ class DefaultHouseholdServiceTest {
         }
 
         @Test
-        void givenHouseholdMemberKicksLeader_thenThrows() {
+        void givenHouseholdMemberRemovesLeader_thenThrows() {
             UUID partyLeaderId = UUID.randomUUID();
             UUID memberId = UUID.randomUUID();
             UUID householdId = UUID.randomUUID();
