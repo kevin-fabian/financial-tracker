@@ -85,22 +85,35 @@ public class DefaultHouseholdService implements HouseholdService {
 
     @Transactional
     @Override
-    public void removeMember(UUID householdId, UUID memberId, UUID leaderId) {
+    public void removeMember(UUID householdId, UUID householdMemberId, UUID requestingUserId) {
         Household household = findHouseholdOrThrow(householdId);
 
-        boolean householdLeader = household.leaderId().equals(leaderId);
-        boolean isSelf = memberId.equals(leaderId);
+        boolean isHouseholdLeader = household.leaderId().equals(requestingUserId);
 
-        if (!householdLeader && !isSelf) {
+        // Find the member being removed and check if they are removing themselves
+        Optional<HouseholdMember> memberBeingRemoved = household.members().stream()
+                .filter(m -> m.id().equals(householdMemberId))
+                .findFirst();
+
+        boolean isMemberThemselves = memberBeingRemoved
+                .map(m -> m.userId().equals(requestingUserId))
+                .orElse(false);
+
+        if (!isHouseholdLeader && !isMemberThemselves) {
             throw new ForbiddenException("Only the owner or the participant themselves can remove a participant");
         }
+
+        // Get the userId of the member being removed to check if they are the owner
+        UUID memberId = memberBeingRemoved
+                .map(HouseholdMember::userId)
+                .orElse(householdMemberId);
 
         if (memberId.equals(household.leaderId())) {
             throw new CannotRemoveOwnerException();
         }
 
         List<HouseholdMember> updatedMembers = household.members().stream()
-                .filter(m -> !m.id().equals(memberId))
+                .filter(m -> !m.id().equals(householdMemberId))
                 .toList();
 
         Household updatedHousehold = household.toBuilder()

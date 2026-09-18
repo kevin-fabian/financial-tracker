@@ -11,7 +11,7 @@ import java.util.UUID;
 public interface HouseholdService {
     HouseholdSummary organize(OrganizeHouseholdCommand command);
 
-    void removeMember(UUID partyId, UUID memberId, UUID leaderId);
+    void removeMember(UUID householdId, UUID householdMemberId, UUID requestingUserId);
 
     List<HouseholdSummary> retrieveByUserId(UUID userId);
 

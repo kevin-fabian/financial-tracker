@@ -508,6 +508,80 @@ class HouseholdControllerIntegrationTest {
         }
 
         @Test
+        void givenMemberLeavesHousehold_thenShouldRemoveMember() throws Exception {
+            UUID leaderId = UUID.randomUUID();
+            UUID memberId = UUID.randomUUID();
+            String memberEmail = "bob@example.com";
+
+            // Mock user lookup for leader creating household
+            when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.size() == 1 && ids.get(0).equals(leaderId))))
+                    .thenReturn(List.of(User.builder().id(leaderId).firstName("Alice").lastName("Smith").build()));
+
+            HouseholdResponse householdResponse = householdServiceTestHelper.createHouseHold(leaderId);
+            UUID householdId = householdResponse.id();
+
+            // Mock user lookup for member email (invitation send)
+            when(userClient.getUserByEmail(memberEmail))
+                    .thenReturn(User.builder().id(memberId).firstName("Bob").lastName("Jones").build());
+
+            // Mock user lookup for both users (toSummaryWithUsers)
+            when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.contains(leaderId) && ids.contains(memberId))))
+                    .thenReturn(List.of(
+                            User.builder().id(leaderId).firstName("Alice").lastName("Smith").build(),
+                            User.builder().id(memberId).firstName("Bob").lastName("Jones").build()
+                    ));
+
+            // Invite and accept (uses helper internally)
+            householdServiceTestHelper.inviteAndAccept(householdId, leaderId, memberId, memberEmail);
+
+            // Verify 2 members before removal
+            String memberResponse = mockMvc.perform(get("/api/households")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", leaderId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
+            List<HouseholdResponse> list = jsonMapper.readValue(memberResponse, new TypeReference<>(){});
+            HouseholdResponse currentHousehold = list.getFirst();
+
+            int memberCount = currentHousehold.members().size();
+            assertEquals(2, memberCount, "Household should have 2 members before removal");
+            UUID memberToRemove = currentHousehold.members().stream().filter(householdMemberResponse ->
+                            !householdMemberResponse.householdLeader())
+                    .findFirst()
+                    .get()
+                    .id();
+
+            // Member leaves the household (self-removal)
+            mockMvc.perform(delete("/api/households/{householdId}/members/{householdMemberId}", householdId, memberToRemove)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", memberId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isNoContent());
+
+            // Verify member is removed
+            mockMvc.perform(get("/api/households")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", leaderId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].members.length()").value(1))
+                    .andExpect(jsonPath("$[0].members[0].user.id").value(leaderId.toString()));
+        }
+
+        @Test
         void givenNonExistentMemberId_thenShouldReturnNoContent() throws Exception {
             UUID userId = UUID.randomUUID();
             UUID nonExistentMemberId = UUID.randomUUID();
