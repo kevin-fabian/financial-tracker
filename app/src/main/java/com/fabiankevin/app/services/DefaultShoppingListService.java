@@ -30,6 +30,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -45,7 +46,7 @@ public class DefaultShoppingListService implements ShoppingListService {
     @Transactional
     @Override
     public ShoppingListSummary createShoppingList(CreateShoppingListCommand command) {
-        if(command.name() == null || command.name().isBlank()) {
+        if (command.name().isBlank()) {
             throw new IllegalArgumentException("Household name is required");
         }
 
@@ -111,17 +112,18 @@ public class DefaultShoppingListService implements ShoppingListService {
             throw new ShoppingListNotFoundException();
         }
 
-        UUID resolvedCategoryId = command.categoryId() != null
-                ? command.categoryId()
-                : shoppingListRepository.findCategoryById(command.shoppingListId()).map(Category::id).orElse(null);
-        Category category = resolvedCategoryId != null
-                ? categoryRepository.findByIdAndUserId(resolvedCategoryId, command.userId()).orElse(null)
-                : null;
+        UUID resolvedCategoryId = Optional.ofNullable(command.categoryId())
+                .orElse(shoppingListRepository.findCategoryById(command.shoppingListId())
+                        .map(Category::id)
+                        .orElse(null));
+        Category category = Optional.ofNullable(resolvedCategoryId)
+                .flatMap(id -> categoryRepository.findByIdAndUserId(id, command.userId()))
+                .orElse(null);
 
         ShoppingList patched = existing.toBuilder()
-                .name(command.name() != null ? command.name() : existing.name())
-                .description(command.description() != null ? command.description() : existing.description())
-                .budget(command.budget() != null ? command.budget() : existing.budget())
+                .name(Optional.ofNullable(command.name()).orElse(existing.name()))
+                .description(Optional.ofNullable(command.description()).orElse(existing.description()))
+                .budget(Optional.ofNullable(command.budget()).orElse(existing.budget()))
                 .category(category)
                 .updatedAt(Instant.now())
                 .updatedBy(User.of(command.userId()))
@@ -167,7 +169,7 @@ public class DefaultShoppingListService implements ShoppingListService {
         User user = userClient.getUsersByIds(List.of(savedItem.addedBy()))
                 .stream()
                 .findFirst()
-                .orElse(null);
+                .orElseGet(() -> null);
 
         return ShoppingItemSummary.builder()
                 .id(savedItem.id())
@@ -201,14 +203,14 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .orElseThrow(ShoppingItemNotFoundException::new);
 
         ShoppingItem patched = existingItem.toBuilder()
-                .name(command.name() != null ? command.name() : existingItem.name())
-                .category(command.category() != null ? command.category() : existingItem.category())
-                .quantity(command.quantity() != null ? command.quantity() : existingItem.quantity())
-                .unit(command.unit() != null ? command.unit() : existingItem.unit())
-                .price(command.price() != null ? command.price() : existingItem.price())
-                .notes(command.notes() != null ? command.notes() : existingItem.notes())
-                .priority(command.priority() != null ? command.priority() : existingItem.priority())
-                .purchased(command.purchased() != null ? command.purchased() : existingItem.purchased())
+                .name(Optional.ofNullable(command.name()).orElse(existingItem.name()))
+                .category(Optional.ofNullable(command.category()).orElse(existingItem.category()))
+                .quantity(Optional.ofNullable(command.quantity()).orElse(existingItem.quantity()))
+                .unit(Optional.ofNullable(command.unit()).orElse(existingItem.unit()))
+                .price(Optional.ofNullable(command.price()).orElse(existingItem.price()))
+                .notes(Optional.ofNullable(command.notes()).orElse(existingItem.notes()))
+                .priority(Optional.ofNullable(command.priority()).orElse(existingItem.priority()))
+                .purchased(Optional.ofNullable(command.purchased()).orElse(existingItem.purchased()))
                 .updatedAt(Instant.now())
                 .build();
 
@@ -230,7 +232,7 @@ public class DefaultShoppingListService implements ShoppingListService {
         User user = userClient.getUsersByIds(List.of(savedItem.addedBy()))
                 .stream()
                 .findFirst()
-                .orElse(null);
+                .orElseGet(() -> null);
 
         return toItemSummary(savedItem, user);
     }
@@ -299,9 +301,10 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .map(item -> toItemSummary(item, usersById.get(item.addedBy())))
                 .toList();
 
-        User updatedBy = shoppingList.updatedBy() != null
-                ? usersById.get(shoppingList.updatedBy().id())
-                : null;
+        User updatedBy = Optional.ofNullable(shoppingList.updatedBy())
+                .map(User::id)
+                .map(usersById::get)
+                .orElse(null);
 
         return ShoppingListSummary.builder()
                 .id(shoppingList.id())

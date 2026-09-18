@@ -13,9 +13,9 @@ public record OrganizeHouseholdRequest(
         @Schema(description = "Display name for the household", example = "Family 2026 Budget")
         @Size(max = 100, message = "Household name must not exceed 100 characters")
         String name) {
-    public OrganizeHouseholdCommand toCommand(UUID partyLeaderId) {
+    public OrganizeHouseholdCommand toCommand(UUID leaderId) {
         return OrganizeHouseholdCommand.builder()
-                .leaderId(partyLeaderId)
+                .leaderId(leaderId)
                 .householdName(name)
                 .build();
     }

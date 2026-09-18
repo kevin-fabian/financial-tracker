@@ -448,15 +448,16 @@ class DefaultHouseholdServiceTest {
 
         @Test
         void givenHouseholdLeaderRemoveThemselves_thenThrows() {
-            UUID partyLeaderId = UUID.randomUUID();
+            UUID leaderId = UUID.randomUUID();
             UUID householdId = UUID.randomUUID();
             Household household = Household.builder()
                     .id(householdId)
                     .name("Family Budget")
-                    .leaderId(partyLeaderId)
+                    .leaderId(leaderId)
                     .members(new ArrayList<>(List.of(
                             HouseholdMember.builder()
-                                    .userId(partyLeaderId)
+                                    .id(UUID.randomUUID())
+                                    .userId(leaderId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
@@ -469,28 +470,30 @@ class DefaultHouseholdServiceTest {
 
             when(householdRepository.findById(householdId)).thenReturn(Optional.of(household));
 
-            assertThrows(CannotRemoveOwnerException.class, () -> service.removeMember(householdId, partyLeaderId, partyLeaderId));
+            assertThrows(CannotRemoveOwnerException.class, () -> service.removeMember(householdId, leaderId, leaderId));
             verify(householdRepository, never()).save(any());
         }
 
         @Test
         void givenHouseholdMemberRemovesLeader_thenThrows() {
-            UUID partyLeaderId = UUID.randomUUID();
-            UUID memberId = UUID.randomUUID();
+            UUID leaderUserId = UUID.randomUUID();
+            UUID memberUserId = UUID.randomUUID();
             UUID householdId = UUID.randomUUID();
             Household household = Household.builder()
                     .id(householdId)
                     .name("Family Budget")
-                    .leaderId(partyLeaderId)
+                    .leaderId(leaderUserId)
                     .members(new ArrayList<>(List.of(
                             HouseholdMember.builder()
-                                    .userId(partyLeaderId)
+                                    .id(UUID.randomUUID())
+                                    .userId(leaderUserId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
                                     .build(),
                             HouseholdMember.builder()
-                                    .userId(memberId)
+                                    .id(UUID.randomUUID())
+                                    .userId(memberUserId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
@@ -503,7 +506,7 @@ class DefaultHouseholdServiceTest {
 
             when(householdRepository.findById(householdId)).thenReturn(Optional.of(household));
 
-            assertThrows(ForbiddenException.class, () -> service.removeMember(householdId, partyLeaderId, memberId));
+            assertThrows(ForbiddenException.class, () -> service.removeMember(householdId, leaderUserId, memberUserId));
             verify(householdRepository, never()).save(any());
         }
     }
