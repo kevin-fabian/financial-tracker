@@ -1043,6 +1043,14 @@ class TransactionControllerIntegrationTest {
 
         @Test
         void givenExistingId_thenReturnsTransaction() throws Exception {
+            User mockUser = User.builder()
+                    .id(userId)
+                    .firstName("John")
+                    .lastName("Doe")
+                    .build();
+
+            when(userClient.getUsersByIds(any())).thenReturn(List.of(mockUser));
+
             Transaction created = transactionService.addTransaction(
                     AddTransactionCommand.builder()
                             .amount(100)
@@ -1071,8 +1079,19 @@ class TransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.transactionDate").value("2026-01-01"))
                     .andExpect(jsonPath("$.account.id").value(account.id().toString()))
                     .andExpect(jsonPath("$.account.name").value("GCASH"))
+                    .andExpect(jsonPath("$.account.currency").value("PHP"))
+                    .andExpect(jsonPath("$.account.user.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.account.user.firstName").value("John"))
+                    .andExpect(jsonPath("$.account.user.lastName").value("Doe"))
                     .andExpect(jsonPath("$.category.id").value(category.id().toString()))
                     .andExpect(jsonPath("$.category.name").value("FOOD"))
+                    .andExpect(jsonPath("$.category.type").value("EXPENSE"))
+                    .andExpect(jsonPath("$.addedBy.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.addedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$.addedBy.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.updatedBy.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.updatedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$.updatedBy.lastName").value("Doe"))
                     .andExpect(jsonPath("$.createdAt").exists())
                     .andExpect(jsonPath("$.updatedAt").exists());
         }

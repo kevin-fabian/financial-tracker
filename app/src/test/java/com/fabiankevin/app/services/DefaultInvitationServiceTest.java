@@ -1,6 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
+import com.fabiankevin.app.events.EventPublisher;
 import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.exceptions.party.HouseholdMemberAlreadyExistsException;
 import com.fabiankevin.app.exceptions.party.InvitationAlreadyHandledException;
@@ -59,6 +60,9 @@ class DefaultInvitationServiceTest {
 
     @Mock
     private UserClient userClient;
+
+    @Mock
+    private EventPublisher invitationEventPublisher;
 
     @InjectMocks
     private DefaultInvitationService service;

@@ -2,7 +2,7 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.events.EventPublisher;
-import com.fabiankevin.app.events.dtos.TransactionEvent;
+import com.fabiankevin.app.events.dtos.TransactionEventPayload;
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.exceptions.DailyTransactionLimitExceededException;
@@ -85,7 +85,7 @@ public class DefaultTransactionService implements TransactionService {
                 .orElseThrow(TransactionNotFoundException::new);
 
         householdRepository.findByUserId(userId).ifPresent(household ->
-                transactionEventPublisher.publish(household.id(), new TransactionEvent(
+                transactionEventPublisher.publish(household.id(), new TransactionEventPayload(
                         EventAction.DELETED,
                         existing
                 ))
@@ -116,8 +116,12 @@ public class DefaultTransactionService implements TransactionService {
         if (command.amount() <= 0) {
             throw new InvalidAmountException("amount must be greater than zero");
         }
+        List<UUID> householdUserIdsOrCurrentUserId = Optional.ofNullable(householdRepository.findMembersUserIdsByUserId(userId))
+                .filter(list -> !list.isEmpty())
+                .orElse(List.of(userId));
+
         Account account = accountRepository.findById(command.accountId())
-                .filter(acc -> acc.user().id().equals(userId))
+                .filter(acc -> householdUserIdsOrCurrentUserId.contains(acc.user().id()))
                 .orElseThrow(AccountNotFoundException::new);
         Category category = categoryRepository.findById(command.categoryId())
                 .filter(cat -> userId.equals(cat.userId()) || cat.system())
@@ -139,14 +143,15 @@ public class DefaultTransactionService implements TransactionService {
 
         Transaction savedTransaction = transactionRepository.save(transaction);
 
+        Transaction enrichedTransaction = enrichWithUserData(List.of(savedTransaction)).getFirst();
         householdRepository.findByUserId(userId).ifPresent(household ->
-                transactionEventPublisher.publish(household.id(), new TransactionEvent(
+                transactionEventPublisher.publish(household.id(), new TransactionEventPayload(
                         EventAction.ADDED,
-                        savedTransaction
+                        enrichedTransaction
                 ))
         );
 
-        return enrichWithUserData(List.of(savedTransaction)).getFirst();
+        return enrichedTransaction;
     }
 
     @Transactional
@@ -191,7 +196,7 @@ public class DefaultTransactionService implements TransactionService {
         Transaction saved = transactionRepository.save(builder.build());
 
         householdRepository.findByUserId(userId).ifPresent(household ->
-                transactionEventPublisher.publish(household.id(), new TransactionEvent(
+                transactionEventPublisher.publish(household.id(), new TransactionEventPayload(
                         EventAction.UPDATED,
                         saved
                 ))

@@ -1,7 +1,7 @@
 package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.events.CompositeEventPublisher;
+import com.fabiankevin.app.events.TransactionEventPublisher;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.Transaction;
@@ -10,7 +10,6 @@ import com.fabiankevin.app.persistence.entities.AccountEntity;
 import com.fabiankevin.app.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
-import com.fabiankevin.app.persistence.jpa_repositories.JpaHouseholdRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import com.fabiankevin.app.services.DefaultTransactionService;
 import com.fabiankevin.app.services.TransactionService;
@@ -29,6 +28,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.util.Streamable;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
@@ -62,6 +62,8 @@ class DefaultTransactionRepositoryTest {
     private JpaAccountRepository jpaAccountRepository;
     @Autowired
     private TransactionService transactionService;
+    @MockitoBean
+    private HouseholdRepository householdRepository;
     private final UUID userId = UUID.randomUUID();
 
     @TestConfiguration
@@ -82,13 +84,13 @@ class DefaultTransactionRepositoryTest {
         }
 
         @Bean
-        public HouseholdRepository sharedSpaceRepository(JpaHouseholdRepository jpaHouseholdRepository) {
-            return new DefaultHouseholdRepository(jpaHouseholdRepository);
+        public UserClient userClient() {
+            return mock(UserClient.class);
         }
 
         @Bean
-        public UserClient userClient() {
-            return mock(UserClient.class);
+        public TransactionEventPublisher transactionEventPublisher() {
+            return mock(TransactionEventPublisher.class);
         }
 
         @Bean
@@ -97,21 +99,28 @@ class DefaultTransactionRepositoryTest {
                 CategoryRepository categoryRepository,
                 TransactionRepository transactionRepository,
                 HouseholdRepository householdRepository,
-                UserClient userClient) {
+                UserClient userClient,
+                TransactionEventPublisher transactionEventPublisher) {
             return new DefaultTransactionService(
                     accountRepository,
                     categoryRepository,
                     transactionRepository,
                     List.of(),
                     householdRepository,
-                    new CompositeEventPublisher(List.of()),
+                    transactionEventPublisher,
                     100,
                     userClient);
         }
     }
 
     @BeforeEach
-    void cleanUp() {
+    void setUp() {
+        when(householdRepository.findMembersUserIdsByUserId(any(UUID.class)))
+                .thenAnswer(invocation -> {
+                    UUID uid = invocation.getArgument(0);
+                    return List.of(uid);
+                });
+
         jpaTransactionRepository.deleteAll();
         jpaCategoryRepository.deleteAll();
         jpaAccountRepository.deleteAll();

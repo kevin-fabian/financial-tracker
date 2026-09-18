@@ -1,6 +1,8 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
+import com.fabiankevin.app.events.EventPublisher;
+import com.fabiankevin.app.events.dtos.InvitationEventPayload;
 import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.exceptions.party.HouseholdMemberAlreadyExistsException;
 import com.fabiankevin.app.exceptions.party.HouseholdNotFoundException;
@@ -10,6 +12,7 @@ import com.fabiankevin.app.exceptions.party.InvitationNotFoundException;
 import com.fabiankevin.app.exceptions.party.InviterCannotAcceptOwnInvitationException;
 import com.fabiankevin.app.exceptions.party.NotHouseholdLeaderException;
 import com.fabiankevin.app.models.User;
+import com.fabiankevin.app.models.enums.EventAction;
 import com.fabiankevin.app.models.enums.household.AccessLevel;
 import com.fabiankevin.app.models.enums.household.HouseholdMemberStatus;
 import com.fabiankevin.app.models.enums.household.InvitationStatus;
@@ -25,7 +28,7 @@ import com.fabiankevin.app.services.commands.household.invitations.AcceptInvitat
 import com.fabiankevin.app.services.commands.household.invitations.RejectInvitationCommand;
 import com.fabiankevin.app.services.commands.household.invitations.SendInvitationCommand;
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -39,11 +42,23 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class DefaultInvitationService implements InvitationService {
     private final InvitationRepository invitationRepository;
     private final HouseholdRepository householdRepository;
     private final UserClient userClient;
+    private final EventPublisher eventPublisher;
+
+    public DefaultInvitationService(
+            InvitationRepository invitationRepository,
+            HouseholdRepository householdRepository,
+            UserClient userClient,
+            @Qualifier("invitationEventPublisher")
+            EventPublisher eventPublisher) {
+        this.invitationRepository = invitationRepository;
+        this.householdRepository = householdRepository;
+        this.userClient = userClient;
+        this.eventPublisher = eventPublisher;
+    }
 
     @Transactional
     @Override
@@ -53,21 +68,22 @@ public class DefaultInvitationService implements InvitationService {
             throw new NotHouseholdLeaderException();
         }
 
-        User invitee = userClient.getUserByEmail(command.inviteeEmail());
+        User recipient = userClient.getUserByEmail(command.inviteeEmail());
 
-        if (isUserParticipant(household, invitee.id())) {
+        if (isUserParticipant(household, recipient.id())) {
             throw new HouseholdMemberAlreadyExistsException();
         }
 
-        if (householdRepository.findByUserId(invitee.id()).isPresent()) {
+        if (householdRepository.findByUserId(recipient.id()).isPresent()) {
             throw new HouseholdMemberAlreadyExistsException();
         }
 
-        Invitation invitation = invitationRepository.findPendingByHouseholdIdAndInviterAndInvitee(command.householdId(), command.inviterUserId(), invitee.id())
+        Invitation invitation = invitationRepository.findPendingByHouseholdIdAndInviterAndInvitee(
+                        command.householdId(), command.inviterUserId(), recipient.id())
                 .orElseGet(() -> {
                     Invitation newInvitation = Invitation.builder()
                             .inviterUserId(command.inviterUserId())
-                            .inviteeUserId(invitee.id())
+                            .inviteeUserId(recipient.id())
                             .proposedRole(AccessLevel.VIEW_ONLY)
                             .status(InvitationStatus.PENDING)
                             .createdAt(Instant.now())
@@ -75,7 +91,10 @@ public class DefaultInvitationService implements InvitationService {
                             .householdId(household.id())
                             .build();
 
-                    // TODO notify the recipient
+                    eventPublisher.publish(recipient.id(), new InvitationEventPayload(
+                            EventAction.INVITED,
+                            newInvitation
+                    ));
 
                     return invitationRepository.save(newInvitation);
                 });
@@ -164,7 +183,7 @@ public class DefaultInvitationService implements InvitationService {
         Map<UUID, User> usersById = userIds.isEmpty()
                 ? Map.of()
                 : userClient.getUsersByIds(userIds).stream()
-                        .collect(Collectors.toMap(User::id, Function.identity()));
+                .collect(Collectors.toMap(User::id, Function.identity()));
 
         List<UUID> householdIds = invitations.stream()
                 .map(Invitation::householdId)
@@ -174,7 +193,7 @@ public class DefaultInvitationService implements InvitationService {
         Map<UUID, Household> householdsById = householdIds.isEmpty()
                 ? Map.of()
                 : householdRepository.findAllById(householdIds).stream()
-                        .collect(Collectors.toMap(Household::id, Function.identity()));
+                .collect(Collectors.toMap(Household::id, Function.identity()));
 
         // Collect all member user IDs from households to enrich with user details
         List<UUID> memberUserIds = householdsById.values().stream()
@@ -185,7 +204,7 @@ public class DefaultInvitationService implements InvitationService {
         Map<UUID, User> memberUsersById = memberUserIds.isEmpty()
                 ? Map.of()
                 : userClient.getUsersByIds(memberUserIds).stream()
-                        .collect(Collectors.toMap(User::id, Function.identity()));
+                .collect(Collectors.toMap(User::id, Function.identity()));
 
         return invitations.stream()
                 .map(invitation -> toSummary(invitation, usersById, householdsById, memberUsersById, userId))
@@ -277,7 +296,7 @@ public class DefaultInvitationService implements InvitationService {
         Map<UUID, User> memberUsersById = memberUserIds.isEmpty()
                 ? Map.of()
                 : userClient.getUsersByIds(memberUserIds).stream()
-                        .collect(Collectors.toMap(User::id, Function.identity()));
+                .collect(Collectors.toMap(User::id, Function.identity()));
 
         return toSummary(invitation, usersById, householdsById, memberUsersById, currentUserId);
     }

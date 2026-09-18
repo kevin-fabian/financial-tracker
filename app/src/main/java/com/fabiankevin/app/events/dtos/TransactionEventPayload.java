@@ -3,10 +3,10 @@ package com.fabiankevin.app.events.dtos;
 import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.models.enums.EventAction;
 
-public record TransactionEvent(
+public record TransactionEventPayload(
     EventAction action,
     Transaction data
-) implements DomainEvent<Transaction> {
+) implements EventPayload<Transaction> {
     @Override
     public Transaction payload() {
         return data;
