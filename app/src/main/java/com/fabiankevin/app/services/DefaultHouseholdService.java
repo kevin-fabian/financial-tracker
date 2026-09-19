@@ -1,6 +1,8 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
+import com.fabiankevin.app.events.EventPublisher;
+import com.fabiankevin.app.events.dtos.HouseholdEventPayload;
 import com.fabiankevin.app.exceptions.party.CannotRemoveOwnerException;
 import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.exceptions.party.HouseholdAlreadyExistsException;
@@ -8,6 +10,7 @@ import com.fabiankevin.app.exceptions.party.HouseholdNotFoundException;
 import com.fabiankevin.app.exceptions.party.NotHouseholdLeaderException;
 import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.User;
+import com.fabiankevin.app.models.enums.EventAction;
 import com.fabiankevin.app.models.enums.household.AccessLevel;
 import com.fabiankevin.app.models.enums.household.HouseholdMemberStatus;
 import com.fabiankevin.app.models.enums.household.InvitationStatus;
@@ -42,6 +45,7 @@ public class DefaultHouseholdService implements HouseholdService {
     private final InvitationRepository invitationRepository;
     private final TransactionRepository transactionRepository;
     private final UserClient userClient;
+    private final EventPublisher householdEventPublisher;
 
     private static final String DEFAULT_HOUSEHOLD_NAME = "New Household";
     private static final int MAX_HOUSEHOLD_NAME_LENGTH = 100;
@@ -121,7 +125,12 @@ public class DefaultHouseholdService implements HouseholdService {
                 .updatedAt(Instant.now())
                 .build();
 
-        householdRepository.save(updatedHousehold);
+        Household saved = householdRepository.save(updatedHousehold);
+        HouseholdSummary summary = toSummary(saved, Map.of(), Map.of());
+        householdEventPublisher.publish(household.id(), new HouseholdEventPayload(
+                EventAction.LEAVE_HOUSEHOLD,
+                summary
+        ));
     }
 
     @Override

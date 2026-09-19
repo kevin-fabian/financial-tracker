@@ -1,7 +1,7 @@
 package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.events.TransactionEventPublisher;
+import com.fabiankevin.app.events.DefaultHouseholdEventPublisher;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.Transaction;
@@ -92,8 +92,8 @@ class DefaultTransactionRepositoryTest {
         }
 
         @Bean
-        public TransactionEventPublisher transactionEventPublisher() {
-            return mock(TransactionEventPublisher.class);
+        public DefaultHouseholdEventPublisher transactionEventPublisher() {
+            return mock(DefaultHouseholdEventPublisher.class);
         }
 
         @Bean
@@ -103,14 +103,14 @@ class DefaultTransactionRepositoryTest {
                 TransactionRepository transactionRepository,
                 HouseholdRepository householdRepository,
                 UserClient userClient,
-                TransactionEventPublisher transactionEventPublisher) {
+                DefaultHouseholdEventPublisher defaultHouseholdEventPublisher) {
             return new DefaultTransactionService(
                     accountRepository,
                     categoryRepository,
                     transactionRepository,
                     List.of(),
                     householdRepository,
-                    transactionEventPublisher,
+                    defaultHouseholdEventPublisher,
                     100,
                     userClient);
         }

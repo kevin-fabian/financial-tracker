@@ -1,6 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
+import com.fabiankevin.app.events.EventPublisher;
 import com.fabiankevin.app.exceptions.party.CannotRemoveOwnerException;
 import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.exceptions.party.HouseholdAlreadyExistsException;
@@ -8,6 +9,7 @@ import com.fabiankevin.app.exceptions.party.HouseholdNotFoundException;
 import com.fabiankevin.app.exceptions.party.NotHouseholdLeaderException;
 import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.User;
+import com.fabiankevin.app.models.enums.EventAction;
 import com.fabiankevin.app.models.enums.household.AccessLevel;
 import com.fabiankevin.app.models.enums.household.HouseholdMemberStatus;
 import com.fabiankevin.app.models.enums.household.InvitationStatus;
@@ -60,6 +62,9 @@ class DefaultHouseholdServiceTest {
 
     @Mock
     private UserClient userClient;
+
+    @Mock
+    private EventPublisher householdEventPublisher;
 
     @InjectMocks
     private DefaultHouseholdService service;
@@ -508,6 +513,101 @@ class DefaultHouseholdServiceTest {
 
             assertThrows(ForbiddenException.class, () -> service.removeMember(householdId, leaderUserId, memberUserId));
             verify(householdRepository, never()).save(any());
+        }
+
+        @Test
+        void givenHouseholdLeaderRemovesHouseholdMember_thenPublishesLeaveHouseholdEvent() {
+            UUID partyLeaderId = UUID.randomUUID();
+            UUID participantId = UUID.randomUUID();
+            UUID householdId = UUID.randomUUID();
+            Household household = Household.builder()
+                    .id(householdId)
+                    .name("Family Budget")
+                    .leaderId(partyLeaderId)
+                    .members(new ArrayList<>(List.of(
+                            HouseholdMember.builder()
+                                    .id(partyLeaderId)
+                                    .userId(partyLeaderId)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
+                                    .status(HouseholdMemberStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build(),
+                            HouseholdMember.builder()
+                                    .id(participantId)
+                                    .userId(participantId)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
+                                    .status(HouseholdMemberStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build()
+                    )))
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(householdRepository.findById(householdId)).thenReturn(Optional.of(household));
+            when(householdRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+            service.removeMember(householdId, participantId, partyLeaderId);
+
+            ArgumentCaptor<UUID> targetIdCaptor = ArgumentCaptor.forClass(UUID.class);
+            ArgumentCaptor<com.fabiankevin.app.events.dtos.HouseholdEventPayload> payloadCaptor =
+                    ArgumentCaptor.forClass(com.fabiankevin.app.events.dtos.HouseholdEventPayload.class);
+            verify(householdEventPublisher, times(1)).publish(targetIdCaptor.capture(), payloadCaptor.capture());
+
+            UUID publishedTargetId = targetIdCaptor.getValue();
+            com.fabiankevin.app.events.dtos.HouseholdEventPayload publishedPayload = payloadCaptor.getValue();
+
+            assertEquals(householdId, publishedTargetId);
+            assertEquals(EventAction.LEAVE_HOUSEHOLD, publishedPayload.action());
+            assertNotNull(publishedPayload.payload());
+            assertEquals(householdId, publishedPayload.payload().id());
+            assertEquals("Family Budget", publishedPayload.payload().name());
+        }
+
+        @Test
+        void givenHouseholdMemberRemovesThemselves_thenPublishesLeaveHouseholdEvent() {
+            UUID partyLeaderId = UUID.randomUUID();
+            UUID participantId = UUID.randomUUID();
+            UUID householdId = UUID.randomUUID();
+            Household household = Household.builder()
+                    .id(householdId)
+                    .name("Family Budget")
+                    .leaderId(partyLeaderId)
+                    .members(new ArrayList<>(List.of(
+                            HouseholdMember.builder()
+                                    .id(partyLeaderId)
+                                    .userId(partyLeaderId)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
+                                    .status(HouseholdMemberStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build(),
+                            HouseholdMember.builder()
+                                    .id(participantId)
+                                    .userId(participantId)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
+                                    .status(HouseholdMemberStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build()
+                    )))
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(householdRepository.findById(householdId)).thenReturn(Optional.of(household));
+            when(householdRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+            service.removeMember(householdId, participantId, participantId);
+
+            ArgumentCaptor<UUID> targetIdCaptor = ArgumentCaptor.forClass(UUID.class);
+            ArgumentCaptor<com.fabiankevin.app.events.dtos.HouseholdEventPayload> payloadCaptor =
+                    ArgumentCaptor.forClass(com.fabiankevin.app.events.dtos.HouseholdEventPayload.class);
+            verify(householdEventPublisher, times(1)).publish(targetIdCaptor.capture(), payloadCaptor.capture());
+
+            com.fabiankevin.app.events.dtos.HouseholdEventPayload publishedPayload = payloadCaptor.getValue();
+            assertEquals(EventAction.LEAVE_HOUSEHOLD, publishedPayload.action());
+            assertEquals(householdId, publishedPayload.payload().id());
         }
     }
 
