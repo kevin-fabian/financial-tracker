@@ -5,6 +5,12 @@ public enum EventAction {
     UPDATED,
     DELETED,
 
+    ITEM_ADDED,
+    ITEM_UPDATED,
+    ITEM_REMOVED,
+
+    SHOPPING_LIST_COMPLETED,
+
     INVITED,
     ACCEPTED,
 

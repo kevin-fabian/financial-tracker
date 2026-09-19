@@ -1,15 +1,15 @@
 package com.fabiankevin.app.events.dtos;
 
 import com.fabiankevin.app.models.enums.EventAction;
-import com.fabiankevin.app.models.shopping_list.ShoppingList;
+import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
 
 public record ShoppingListEventPayload(
         EventAction action,
-        ShoppingList data
-) implements EventPayload<ShoppingList> {
+        ShoppingListSummary data
+) implements EventPayload<ShoppingListSummary> {
 
     @Override
-    public ShoppingList payload() {
+    public ShoppingListSummary payload() {
         return data;
     }
 }

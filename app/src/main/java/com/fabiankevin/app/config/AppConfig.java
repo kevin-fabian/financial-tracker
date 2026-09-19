@@ -34,11 +34,6 @@ public class AppConfig {
     }
 
     @Bean
-    public DefautlUserEventPublisher invitationEventPublisher() {
-        return new DefautlUserEventPublisher(template, "/queue/household-invitations");
-    }
-
-    @Bean
     public DefaultHouseholdEventPublisher householdEventPublisher() {
         return new DefaultHouseholdEventPublisher(template, "/topic/households/%s");
     }
@@ -47,6 +42,17 @@ public class AppConfig {
     public DefaultHouseholdEventPublisher transactionEventPublisher() {
         return new DefaultHouseholdEventPublisher(template, "/topic/households/%s/transactions");
     }
+
+    @Bean
+    public DefautlUserEventPublisher invitationEventPublisher() {
+        return new DefautlUserEventPublisher(template, "/queue/household-invitations");
+    }
+
+    @Bean
+    public DefautlUserEventPublisher shoppingListEventPublisher() {
+        return new DefautlUserEventPublisher(template, "/queue/shopping-lists");
+    }
+
 
     @Bean
     public DefaultTransactionService defaultTransactionService(
