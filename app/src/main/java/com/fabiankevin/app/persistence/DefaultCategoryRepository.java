@@ -104,7 +104,7 @@ public class DefaultCategoryRepository implements CategoryRepository {
     }
 
     @Override
-    public com.fabiankevin.app.models.Page<CategorySummary> findAllByPageQueryWithSummary(PageQuery query, UUID userId, TransactionType type) {
+    public com.fabiankevin.app.models.Page<CategorySummary> findAllByPageQueryWithSummary(PageQuery query, UUID userId, TransactionType type, List<UUID> userIds) {
         var now = LocalDate.now();
         var monthStart = now.withDayOfMonth(1);
         var monthEnd = now.withDayOfMonth(now.lengthOfMonth());
@@ -114,7 +114,7 @@ public class DefaultCategoryRepository implements CategoryRepository {
                 query.size(),
                 Sort.by(Sort.Direction.fromString(query.direction()), query.sort())
         );
-        var entityPage = jpaCategoryRepository.findAllByUserIdAndTransactionTypeWithSummary(userId, type, monthStart, monthEnd, pageable);
+        var entityPage = jpaCategoryRepository.findAllByUserIdAndTransactionTypeWithSummary(userIds, userId, type, monthStart, monthEnd, pageable);
 
         // Calculate percentages for each category
         double expenseTotalAmount = entityPage.getContent().stream()

@@ -67,12 +67,13 @@ public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUI
             LEFT JOIN TransactionEntity t ON t.category.id = c.id
                 AND t.transactionDate >= :monthStart
                 AND t.transactionDate <= :monthEnd
-                AND t.account.userId = :userId
+                AND t.account.userId IN :userIds
             WHERE (c.userId = :userId OR c.system = true)
             AND (:type IS NULL OR c.transactionType = :type)
             GROUP BY c
             """)
     Page<CategorySummaryProjection> findAllByUserIdAndTransactionTypeWithSummary(
+            @Param("userIds") List<UUID> userIds,
             @Param("userId") UUID userId,
             @Param("type") TransactionType type,
             @Param("monthStart") LocalDate monthStart,

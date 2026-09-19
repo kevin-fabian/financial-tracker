@@ -12,6 +12,7 @@ import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import com.fabiankevin.app.services.DefaultTransactionService;
+import com.fabiankevin.app.services.HouseholdService;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
@@ -64,6 +65,8 @@ class DefaultTransactionRepositoryTest {
     private TransactionService transactionService;
     @MockitoBean
     private HouseholdRepository householdRepository;
+    @MockitoBean
+    private HouseholdService householdService;
     private final UUID userId = UUID.randomUUID();
 
     @TestConfiguration

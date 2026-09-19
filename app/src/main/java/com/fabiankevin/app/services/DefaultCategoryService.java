@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -24,6 +25,7 @@ import java.util.UUID;
 public class DefaultCategoryService implements CategoryService {
     private final CategoryRepository categoryRepository;
     private final TransactionRepository transactionRepository;
+    private final HouseholdService householdService;
 
     @Override
     public CategorySummary getCategoryById(UUID id, UUID userId) {
@@ -102,7 +104,8 @@ public class DefaultCategoryService implements CategoryService {
 
     @Override
     public Page<CategorySummary> getCategorySummariesByPageQuery(PageQuery query, UUID userId, TransactionType type) {
-        return categoryRepository.findAllByPageQueryWithSummary(query, userId, type);
+        List<UUID> userIds = householdService.getHouseholdMembersUserIds(userId);
+        return categoryRepository.findAllByPageQueryWithSummary(query, userId, type, userIds);
     }
 
     @Transactional

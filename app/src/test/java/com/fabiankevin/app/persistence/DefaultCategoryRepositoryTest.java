@@ -29,7 +29,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
@@ -510,7 +514,7 @@ class DefaultCategoryRepositoryTest {
             jpaTransactionRepository.saveAndFlush(rentTx);
 
             Page<CategorySummary> page = categoryRepository.findAllByPageQueryWithSummary(
-                    new PageQuery(0, 10, "name", "ASC"), userId, TransactionType.EXPENSE);
+                    new PageQuery(0, 10, "name", "ASC"), userId, TransactionType.EXPENSE, List.of(userId));
 
             Assertions.assertThat(page.content()).hasSize(2);
 
@@ -582,7 +586,7 @@ class DefaultCategoryRepositoryTest {
             jpaTransactionRepository.saveAndFlush(freelanceTx);
 
             Page<CategorySummary> page = categoryRepository.findAllByPageQueryWithSummary(
-                    new PageQuery(0, 10, "name", "ASC"), userId, TransactionType.INCOME);
+                    new PageQuery(0, 10, "name", "ASC"), userId, TransactionType.INCOME, List.of(userId));
 
             Assertions.assertThat(page.content()).hasSize(2);
 
@@ -654,7 +658,7 @@ class DefaultCategoryRepositoryTest {
             jpaTransactionRepository.saveAndFlush(salaryTx);
 
             Page<CategorySummary> page = categoryRepository.findAllByPageQueryWithSummary(
-                    new PageQuery(0, 10, "name", "ASC"), userId, TransactionType.EXPENSE);
+                    new PageQuery(0, 10, "name", "ASC"), userId, TransactionType.EXPENSE, List.of(userId));
 
             Assertions.assertThat(page.content()).hasSize(1);
             Assertions.assertThat(page.content().get(0).category().name()).isEqualTo("FOOD");
@@ -684,7 +688,7 @@ class DefaultCategoryRepositoryTest {
             jpaCategoryRepository.flush();
 
             Page<CategorySummary> page = categoryRepository.findAllByPageQueryWithSummary(
-                    new PageQuery(0, 10, "name", "ASC"), userId, TransactionType.EXPENSE);
+                    new PageQuery(0, 10, "name", "ASC"), userId, TransactionType.EXPENSE, List.of(userId));
 
             Assertions.assertThat(page.content()).hasSize(2);
 
@@ -758,7 +762,7 @@ class DefaultCategoryRepositoryTest {
             jpaTransactionRepository.saveAndFlush(otherUserIdTx);
 
             Page<CategorySummary> page = categoryRepository.findAllByPageQueryWithSummary(
-                    new PageQuery(0, 10, "name", "ASC"), currentUserId, TransactionType.EXPENSE);
+                    new PageQuery(0, 10, "name", "ASC"), currentUserId, TransactionType.EXPENSE, List.of(currentUserId));
 
             Assertions.assertThat(page.content()).hasSize(1);
 

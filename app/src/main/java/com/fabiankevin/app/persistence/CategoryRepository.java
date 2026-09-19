@@ -20,7 +20,7 @@ public interface CategoryRepository {
     Category save(Category category);
     int deleteByIdAndUserId(UUID id, UUID userId);
     Page<Category> findAllByPageQuery(PageQuery query, UUID userId, TransactionType type);
-    Page<CategorySummary> findAllByPageQueryWithSummary(PageQuery query, UUID userId, TransactionType type);
+    Page<CategorySummary> findAllByPageQueryWithSummary(PageQuery query, UUID userId, TransactionType type, List<UUID> userIds);
     List<Category> findAllByNamesIn(List<String> names);
 
     long deleteAllByUserId(UUID userId);
