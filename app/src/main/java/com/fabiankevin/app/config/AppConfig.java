@@ -53,7 +53,6 @@ public class AppConfig {
         return new DefautlUserEventPublisher(template, "/queue/shopping-lists");
     }
 
-
     @Bean
     public DefaultTransactionService defaultTransactionService(
             AccountRepository accountRepository,

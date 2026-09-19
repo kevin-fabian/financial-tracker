@@ -3,10 +3,13 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.events.EventPublisher;
 import com.fabiankevin.app.events.dtos.ShoppingListEventPayload;
+import com.fabiankevin.app.exceptions.EmptyShoppingListException;
 import com.fabiankevin.app.exceptions.InvalidNotesException;
 import com.fabiankevin.app.exceptions.ShoppingListNotFoundException;
+import com.fabiankevin.app.exceptions.UnpurchasedItemsException;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
+import com.fabiankevin.app.models.enums.EventAction;
 import com.fabiankevin.app.models.enums.ItemPriority;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.enums.TransactionType;
@@ -16,8 +19,10 @@ import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
+import com.fabiankevin.app.services.shopping_list.commands.CompleteShoppingListCommand;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingItemCommand;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingListCommand;
+import com.fabiankevin.app.services.shopping_list.commands.DeleteShoppingListCommand;
 import com.fabiankevin.app.services.shopping_list.commands.UpdateShoppingListCommand;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -38,8 +43,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.eq;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -355,6 +362,336 @@ class DefaultShoppingListServiceTest {
                     () -> shoppingListService.addShoppingItem(command));
 
             verify(shoppingListRepository, never()).save(any());
+        }
+    }
+
+    @Nested
+    class DeleteShoppingList {
+        @Test
+        void givenExistingList_thenDeletesAndPublishesEvent() {
+            UUID shoppingListId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            ShoppingList existing = ShoppingList.builder()
+                    .id(shoppingListId)
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .items(new ArrayList<>())
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            DeleteShoppingListCommand command = DeleteShoppingListCommand.builder()
+                    .shoppingListId(shoppingListId)
+                    .userId(userId)
+                    .build();
+
+            when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
+
+            shoppingListService.deleteShoppingList(command);
+
+            ArgumentCaptor<UUID> idCaptor = ArgumentCaptor.forClass(UUID.class);
+            verify(shoppingListRepository, times(1)).deleteById(idCaptor.capture());
+            assertEquals(shoppingListId, idCaptor.getValue(), "repository should receive the correct id");
+            verify(shoppingListEventPublisher, times(1)).publish(eq(userId), any(ShoppingListEventPayload.class));
+        }
+
+        @Test
+        void givenListNotFound_thenThrowsAndDoesNotDelete() {
+            UUID shoppingListId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+
+            DeleteShoppingListCommand command = DeleteShoppingListCommand.builder()
+                    .shoppingListId(shoppingListId)
+                    .userId(userId)
+                    .build();
+
+            when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.empty());
+
+            assertThrows(ShoppingListNotFoundException.class,
+                    () -> shoppingListService.deleteShoppingList(command));
+
+            verify(shoppingListRepository, never()).deleteById(any());
+            verify(shoppingListEventPublisher, never()).publish(any(), any());
+        }
+
+        @Test
+        void givenWrongUser_thenThrowsAndDoesNotDelete() {
+            UUID shoppingListId = UUID.randomUUID();
+            UUID ownerUserId = UUID.randomUUID();
+            UUID wrongUserId = UUID.randomUUID();
+
+            ShoppingList existing = ShoppingList.builder()
+                    .id(shoppingListId)
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(ownerUserId)
+                    .items(new ArrayList<>())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            DeleteShoppingListCommand command = DeleteShoppingListCommand.builder()
+                    .shoppingListId(shoppingListId)
+                    .userId(wrongUserId)
+                    .build();
+
+            when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
+
+            assertThrows(ShoppingListNotFoundException.class,
+                    () -> shoppingListService.deleteShoppingList(command));
+
+            verify(shoppingListRepository, never()).deleteById(any());
+            verify(shoppingListEventPublisher, never()).publish(any(), any());
+        }
+    }
+
+    @Nested
+    class CompleteShoppingList {
+        @Test
+        void givenAllItemsPurchased_thenCompletesAndReturnsSummary() {
+            UUID shoppingListId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+            UUID addedBy = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            ShoppingItem item1 = ShoppingItem.builder()
+                    .id(UUID.randomUUID())
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .purchased(true)
+                    .priority(ItemPriority.HIGH)
+                    .addedBy(addedBy)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingItem item2 = ShoppingItem.builder()
+                    .id(UUID.randomUUID())
+                    .name("Bread")
+                    .category("Bakery")
+                    .quantity(1.0)
+                    .unit("loaf")
+                    .price(2.5)
+                    .purchased(true)
+                    .priority(ItemPriority.HIGH)
+                    .addedBy(addedBy)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingList existing = ShoppingList.builder()
+                    .id(shoppingListId)
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .items(List.of(item1, item2))
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            CompleteShoppingListCommand command = CompleteShoppingListCommand.builder()
+                    .shoppingListId(shoppingListId)
+                    .finalAmount(6.0)
+                    .userId(userId)
+                    .build();
+
+            when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
+            when(shoppingListRepository.save(any())).thenAnswer(invocation -> {
+                ShoppingList s = invocation.getArgument(0);
+                return s;
+            });
+            when(userClient.getUsersByIds(any())).thenReturn(List.of(
+                    User.builder().id(userId).firstName("John").lastName("Doe").build(),
+                    User.builder().id(addedBy).firstName("Jane").lastName("Smith").build()
+            ));
+
+            ShoppingListSummary completed = shoppingListService.completeShoppingList(command);
+
+            // identity & ownership
+            assertEquals(shoppingListId, completed.id(), "id should be preserved");
+            assertEquals(userId, completed.user().id(), "user should be enriched from UserClient");
+
+            // completion fields
+            assertEquals(ShoppingListStatus.COMPLETED, completed.status(), "status should be COMPLETED");
+            assertEquals(6.0, completed.finalAmount(), "finalAmount should match command");
+            assertNotNull(completed.completedAt(), "completedAt should be set");
+            assertNotNull(completed.updatedAt(), "updatedAt should be updated");
+
+            // items preserved
+            assertEquals(2, completed.items().size(), "items should be preserved");
+            assertTrue(completed.items().stream().allMatch(ShoppingItemSummary::purchased),
+                    "all items should remain purchased");
+
+            // user enrichment
+            assertNotNull(completed.user(), "user should be enriched");
+            assertEquals("John Doe", completed.user().fullName(), "user fullName should be enriched");
+            assertEquals("JD", completed.user().initial(), "user initial should be enriched");
+            assertNotNull(completed.updatedBy(), "updatedBy should be set");
+            assertEquals(userId, completed.updatedBy().id(), "updatedBy should be the userId");
+
+            ArgumentCaptor<ShoppingList> captor = ArgumentCaptor.forClass(ShoppingList.class);
+            verify(shoppingListRepository, times(1)).save(captor.capture());
+            ShoppingList savedList = captor.getValue();
+            assertEquals(ShoppingListStatus.COMPLETED, savedList.status(), "saved status should be COMPLETED");
+            assertEquals(6.0, savedList.finalAmount(), "saved finalAmount should match command");
+            assertNotNull(savedList.completedAt(), "saved completedAt should be set");
+
+            verify(userClient, times(1)).getUsersByIds(any());
+            verify(shoppingListEventPublisher, times(1)).publish(
+                    eq(userId),
+                    argThat(payload ->
+                            payload instanceof ShoppingListEventPayload p
+                                    && p.action() == EventAction.SHOPPING_LIST_COMPLETED)
+            );
+        }
+
+        @Test
+        void givenListNotFound_thenThrowsAndDoesNotComplete() {
+            UUID shoppingListId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+
+            CompleteShoppingListCommand command = CompleteShoppingListCommand.builder()
+                    .shoppingListId(shoppingListId)
+                    .finalAmount(10.0)
+                    .userId(userId)
+                    .build();
+
+            when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.empty());
+
+            assertThrows(ShoppingListNotFoundException.class,
+                    () -> shoppingListService.completeShoppingList(command));
+
+            verify(shoppingListRepository, never()).save(any());
+            verify(shoppingListEventPublisher, never()).publish(any(), any());
+        }
+
+        @Test
+        void givenWrongUser_thenThrowsAndDoesNotComplete() {
+            UUID shoppingListId = UUID.randomUUID();
+            UUID ownerUserId = UUID.randomUUID();
+            UUID wrongUserId = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            ShoppingList existing = ShoppingList.builder()
+                    .id(shoppingListId)
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(ownerUserId)
+                    .items(new ArrayList<>())
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            CompleteShoppingListCommand command = CompleteShoppingListCommand.builder()
+                    .shoppingListId(shoppingListId)
+                    .finalAmount(10.0)
+                    .userId(wrongUserId)
+                    .build();
+
+            when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
+
+            assertThrows(ShoppingListNotFoundException.class,
+                    () -> shoppingListService.completeShoppingList(command));
+
+            verify(shoppingListRepository, never()).save(any());
+            verify(shoppingListEventPublisher, never()).publish(any(), any());
+        }
+
+        @Test
+        void givenEmptyItems_thenThrowsAndDoesNotComplete() {
+            UUID shoppingListId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            ShoppingList existing = ShoppingList.builder()
+                    .id(shoppingListId)
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .items(new ArrayList<>())
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            CompleteShoppingListCommand command = CompleteShoppingListCommand.builder()
+                    .shoppingListId(shoppingListId)
+                    .finalAmount(10.0)
+                    .userId(userId)
+                    .build();
+
+            when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
+
+            assertThrows(EmptyShoppingListException.class,
+                    () -> shoppingListService.completeShoppingList(command));
+
+            verify(shoppingListRepository, never()).save(any());
+            verify(shoppingListEventPublisher, never()).publish(any(), any());
+        }
+
+        @Test
+        void givenUnpurchasedItems_thenThrowsAndDoesNotComplete() {
+            UUID shoppingListId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+            UUID addedBy = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            ShoppingItem item1 = ShoppingItem.builder()
+                    .id(UUID.randomUUID())
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .purchased(true)
+                    .priority(ItemPriority.HIGH)
+                    .addedBy(addedBy)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingItem item2 = ShoppingItem.builder()
+                    .id(UUID.randomUUID())
+                    .name("Bread")
+                    .category("Bakery")
+                    .quantity(1.0)
+                    .unit("loaf")
+                    .price(2.5)
+                    .purchased(false)
+                    .priority(ItemPriority.HIGH)
+                    .addedBy(addedBy)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingList existing = ShoppingList.builder()
+                    .id(shoppingListId)
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .items(List.of(item1, item2))
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            CompleteShoppingListCommand command = CompleteShoppingListCommand.builder()
+                    .shoppingListId(shoppingListId)
+                    .finalAmount(10.0)
+                    .userId(userId)
+                    .build();
+
+            when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
+
+            assertThrows(UnpurchasedItemsException.class,
+                    () -> shoppingListService.completeShoppingList(command));
+
+            verify(shoppingListRepository, never()).save(any());
+            verify(shoppingListEventPublisher, never()).publish(any(), any());
         }
     }
 }

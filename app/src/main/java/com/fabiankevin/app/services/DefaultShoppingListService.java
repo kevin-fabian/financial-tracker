@@ -305,6 +305,11 @@ public class DefaultShoppingListService implements ShoppingListService {
         }
 
         shoppingListRepository.deleteById(command.shoppingListId());
+
+        shoppingListEventPublisher.publish(existing.userId(), new ShoppingListEventPayload(
+                EventAction.DELETED,
+                toSummary(existing)
+        ));
     }
 
     @Transactional
