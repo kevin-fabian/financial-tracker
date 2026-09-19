@@ -23,6 +23,7 @@ import com.fabiankevin.app.persistence.ShoppingListRepository;
 import com.fabiankevin.app.services.shopping_list.commands.CompleteShoppingListCommand;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingItemCommand;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingListCommand;
+import com.fabiankevin.app.services.shopping_list.commands.DeleteShoppingItemCommand;
 import com.fabiankevin.app.services.shopping_list.commands.DeleteShoppingListCommand;
 import com.fabiankevin.app.services.shopping_list.commands.UpdateShoppingItemCommand;
 import com.fabiankevin.app.services.shopping_list.commands.UpdateShoppingListCommand;
@@ -903,6 +904,204 @@ class DefaultShoppingListServiceTest {
 
             assertThrows(ShoppingItemNotFoundException.class,
                     () -> shoppingListService.updateShoppingItem(command));
+
+            verify(shoppingListRepository, never()).save(any());
+            verify(shoppingListEventPublisher, never()).publish(any(), any());
+        }
+    }
+
+    @Nested
+    class DeleteShoppingItem {
+        @Test
+        void givenExistingItem_thenDeletesAndPublishesEvent() {
+            UUID shoppingListId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+            UUID itemId = UUID.randomUUID();
+            UUID addedBy = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            ShoppingItem item1 = ShoppingItem.builder()
+                    .id(itemId)
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .purchased(false)
+                    .priority(ItemPriority.HIGH)
+                    .addedBy(addedBy)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingItem item2 = ShoppingItem.builder()
+                    .id(UUID.randomUUID())
+                    .name("Bread")
+                    .category("Bakery")
+                    .quantity(1.0)
+                    .unit("loaf")
+                    .price(2.5)
+                    .purchased(true)
+                    .priority(ItemPriority.MEDIUM)
+                    .addedBy(addedBy)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingList existing = ShoppingList.builder()
+                    .id(shoppingListId)
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .items(new ArrayList<>(List.of(item1, item2)))
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            DeleteShoppingItemCommand command = DeleteShoppingItemCommand.builder()
+                    .shoppingListId(shoppingListId)
+                    .itemId(itemId)
+                    .userId(userId)
+                    .build();
+
+            when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
+            when(shoppingListRepository.save(any())).thenAnswer(invocation -> {
+                ShoppingList s = invocation.getArgument(0);
+                return s;
+            });
+            when(userClient.getUsersByIds(any())).thenReturn(List.of(
+                    User.builder().id(userId).firstName("John").lastName("Doe").build(),
+                    User.builder().id(addedBy).firstName("Jane").lastName("Smith").build()
+            ));
+
+            shoppingListService.deleteShoppingItem(command);
+
+            // verify repository save with updated items
+            ArgumentCaptor<ShoppingList> captor = ArgumentCaptor.forClass(ShoppingList.class);
+            verify(shoppingListRepository, times(1)).save(captor.capture());
+            ShoppingList savedList = captor.getValue();
+            assertEquals(1, savedList.items().size(), "list should contain remaining item");
+            assertEquals("Bread", savedList.items().getFirst().name(), "remaining item should be Bread");
+
+            // verify event published with ITEM_REMOVED action
+            verify(shoppingListEventPublisher, times(1)).publish(
+                    eq(userId),
+                    argThat(payload ->
+                            payload instanceof ShoppingListEventPayload p
+                                    && p.action() == EventAction.ITEM_REMOVED)
+            );
+        }
+
+        @Test
+        void givenListNotFound_thenThrowsAndDoesNotDelete() {
+            UUID shoppingListId = UUID.randomUUID();
+            UUID itemId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+
+            DeleteShoppingItemCommand command = DeleteShoppingItemCommand.builder()
+                    .shoppingListId(shoppingListId)
+                    .itemId(itemId)
+                    .userId(userId)
+                    .build();
+
+            when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.empty());
+
+            assertThrows(ShoppingListNotFoundException.class,
+                    () -> shoppingListService.deleteShoppingItem(command));
+
+            verify(shoppingListRepository, never()).save(any());
+            verify(shoppingListEventPublisher, never()).publish(any(), any());
+        }
+
+        @Test
+        void givenWrongUser_thenThrowsAndDoesNotDelete() {
+            UUID shoppingListId = UUID.randomUUID();
+            UUID itemId = UUID.randomUUID();
+            UUID ownerUserId = UUID.randomUUID();
+            UUID wrongUserId = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            ShoppingItem existingItem = ShoppingItem.builder()
+                    .id(itemId)
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .purchased(false)
+                    .priority(ItemPriority.HIGH)
+                    .addedBy(ownerUserId)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingList existing = ShoppingList.builder()
+                    .id(shoppingListId)
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(ownerUserId)
+                    .items(List.of(existingItem))
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            DeleteShoppingItemCommand command = DeleteShoppingItemCommand.builder()
+                    .shoppingListId(shoppingListId)
+                    .itemId(itemId)
+                    .userId(wrongUserId)
+                    .build();
+
+            when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
+
+            assertThrows(ShoppingListNotFoundException.class,
+                    () -> shoppingListService.deleteShoppingItem(command));
+
+            verify(shoppingListRepository, never()).save(any());
+            verify(shoppingListEventPublisher, never()).publish(any(), any());
+        }
+
+        @Test
+        void givenItemNotFound_thenThrowsAndDoesNotDelete() {
+            UUID shoppingListId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+            UUID wrongItemId = UUID.randomUUID();
+            UUID addedBy = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            ShoppingItem existingItem = ShoppingItem.builder()
+                    .id(UUID.randomUUID())
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .purchased(false)
+                    .priority(ItemPriority.HIGH)
+                    .addedBy(addedBy)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingList existing = ShoppingList.builder()
+                    .id(shoppingListId)
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .items(new ArrayList<>(List.of(existingItem)))
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            DeleteShoppingItemCommand command = DeleteShoppingItemCommand.builder()
+                    .shoppingListId(shoppingListId)
+                    .itemId(wrongItemId)
+                    .userId(userId)
+                    .build();
+
+            when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
+
+            assertThrows(ShoppingItemNotFoundException.class,
+                    () -> shoppingListService.deleteShoppingItem(command));
 
             verify(shoppingListRepository, never()).save(any());
             verify(shoppingListEventPublisher, never()).publish(any(), any());
