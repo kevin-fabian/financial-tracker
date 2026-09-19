@@ -85,10 +85,9 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             UUID generatedId = UUID.randomUUID();
-            when(shoppingListRepository.save(any())).thenAnswer(invocation -> {
-                ShoppingList s = invocation.getArgument(0);
-                return s.toBuilder().id(generatedId).build();
-            });
+            when(shoppingListRepository.save(any())).thenAnswer(invocation ->
+                    ((ShoppingList) invocation.getArgument(0)).toBuilder().id(generatedId).build()
+            );
             when(userClient.getUsersByIds(List.of(userId)))
                     .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
             when(categoryRepository.findByIdAndUserId(any(), any()))
@@ -181,10 +180,9 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
-            when(shoppingListRepository.save(any())).thenAnswer(invocation -> {
-                ShoppingList s = invocation.getArgument(0);
-                return s.toBuilder().category(category).build();
-            });
+            when(shoppingListRepository.save(any())).thenAnswer(invocation ->
+                    ((ShoppingList) invocation.getArgument(0)).toBuilder().category(category).build()
+            );
             when(userClient.getUsersByIds(List.of(userId)))
                     .thenReturn(List.of(User.builder().id(userId).firstName("Jane").lastName("Smith").build()));
             when(categoryRepository.findByIdAndUserId(eq(categoryId), eq(userId)))
@@ -505,10 +503,7 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
-            when(shoppingListRepository.save(any())).thenAnswer(invocation -> {
-                ShoppingList s = invocation.getArgument(0);
-                return s;
-            });
+            when(shoppingListRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(any())).thenReturn(List.of(
                     User.builder().id(userId).firstName("John").lastName("Doe").build(),
                     User.builder().id(addedBy).firstName("Jane").lastName("Smith").build()
@@ -743,10 +738,7 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
-            when(shoppingListRepository.save(any())).thenAnswer(invocation -> {
-                ShoppingList s = invocation.getArgument(0);
-                return s;
-            });
+            when(shoppingListRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(any())).thenReturn(List.of(
                     User.builder().id(addedBy).firstName("Jane").lastName("Smith").build(),
                     User.builder().id(userId).firstName("John").lastName("Doe").build()
@@ -965,10 +957,7 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
-            when(shoppingListRepository.save(any())).thenAnswer(invocation -> {
-                ShoppingList s = invocation.getArgument(0);
-                return s;
-            });
+            when(shoppingListRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(any())).thenReturn(List.of(
                     User.builder().id(userId).firstName("John").lastName("Doe").build(),
                     User.builder().id(addedBy).firstName("Jane").lastName("Smith").build()
