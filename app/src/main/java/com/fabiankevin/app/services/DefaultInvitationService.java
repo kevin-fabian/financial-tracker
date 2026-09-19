@@ -150,7 +150,18 @@ public class DefaultInvitationService implements InvitationService {
 
         householdRepository.save(updatedSpace);
 
-        return toSummary(updatedInvitation, command.acceptingUserId());
+        InvitationSummary summary = toSummary(updatedInvitation, command.acceptingUserId());
+        household.members().stream()
+                .filter(member -> member.userId() != command.acceptingUserId())
+                .toList()
+                .forEach(householdMember -> {
+                    eventPublisher.publish(householdMember.userId(), new InvitationEventPayload(
+                            EventAction.INVITED,
+                            summary
+                    ));
+                });
+
+        return summary;
     }
 
     @Transactional

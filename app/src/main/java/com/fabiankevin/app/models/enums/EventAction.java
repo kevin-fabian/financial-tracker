@@ -5,5 +5,8 @@ public enum EventAction {
     UPDATED,
     DELETED,
 
-    INVITED
+    INVITED,
+    ACCEPTED,
+
+    LEAVE_HOUSEHOLD
 }

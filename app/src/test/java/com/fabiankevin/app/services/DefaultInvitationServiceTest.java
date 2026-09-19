@@ -2,6 +2,7 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.events.EventPublisher;
+import com.fabiankevin.app.events.dtos.InvitationEventPayload;
 import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.exceptions.party.HouseholdMemberAlreadyExistsException;
 import com.fabiankevin.app.exceptions.party.InvitationAlreadyHandledException;
@@ -10,6 +11,7 @@ import com.fabiankevin.app.exceptions.party.InvitationNotFoundException;
 import com.fabiankevin.app.exceptions.party.InviterCannotAcceptOwnInvitationException;
 import com.fabiankevin.app.exceptions.party.NotHouseholdLeaderException;
 import com.fabiankevin.app.models.User;
+import com.fabiankevin.app.models.enums.EventAction;
 import com.fabiankevin.app.models.enums.household.AccessLevel;
 import com.fabiankevin.app.models.enums.household.HouseholdMemberStatus;
 import com.fabiankevin.app.models.enums.household.InvitationStatus;
@@ -43,6 +45,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -319,7 +323,7 @@ class DefaultInvitationServiceTest {
             when(invitationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
             when(spaceRepository.findById(partyId)).thenReturn(Optional.of(space));
             when(spaceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-            when(userClient.getUsersByIds(List.of(inviterUserId, inviteeUserId)))
+            lenient().when(userClient.getUsersByIds(List.of(inviterUserId, inviteeUserId)))
                     .thenReturn(List.of(
                             User.builder().id(inviterUserId).firstName("John").lastName("Doe").build(),
                             User.builder().id(inviteeUserId).firstName("Jane").lastName("Smith").build()
@@ -466,6 +470,72 @@ class DefaultInvitationServiceTest {
             assertThrows(ForbiddenException.class, () -> service.acceptInvitation(command));
             verify(invitationRepository, never()).save(any());
             verify(spaceRepository, never()).save(any());
+        }
+
+        @Test
+        void givenAcceptanceWithExistingMembersAndLeader_thenPublishesEventsToAll() {
+            UUID leaderUserId = UUID.randomUUID();
+            UUID existingMemberUserId = UUID.randomUUID();
+            UUID inviteeUserId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
+            UUID invitationId = UUID.randomUUID();
+            Invitation invitation = Invitation.builder()
+                    .id(invitationId)
+                    .inviterUserId(leaderUserId)
+                    .inviteeUserId(inviteeUserId)
+                    .proposedRole(AccessLevel.VIEW_ONLY)
+                    .status(InvitationStatus.PENDING)
+                    .createdAt(Instant.now())
+                    .expiresAt(Instant.now().plusSeconds(604800))
+                    .householdId(partyId)
+                    .build();
+            Household space = Household.builder()
+                    .id(partyId)
+                    .name("Family Budget")
+                    .leaderId(leaderUserId)
+                    .members(new ArrayList<>(List.of(
+                            HouseholdMember.builder()
+                                    .userId(leaderUserId)
+                                    .accessLevel(VIEW_ONLY)
+                                    .status(HouseholdMemberStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build(),
+                            HouseholdMember.builder()
+                                    .userId(existingMemberUserId)
+                                    .accessLevel(VIEW_ONLY)
+                                    .status(HouseholdMemberStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build()
+                    )))
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
+            when(invitationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(spaceRepository.findById(partyId)).thenReturn(Optional.of(space));
+            when(spaceRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(userClient.getUsersByIds(anyList()))
+                    .thenReturn(List.of(
+                            User.builder().id(leaderUserId).firstName("Alice").lastName("Leader").build(),
+                            User.builder().id(existingMemberUserId).firstName("Bob").lastName("Member").build(),
+                            User.builder().id(inviteeUserId).firstName("Jane").lastName("Invitee").build()
+                    ));
+
+            AcceptInvitationCommand command = new AcceptInvitationCommand(invitationId, inviteeUserId);
+
+            InvitationSummary result = service.acceptInvitation(command);
+
+            assertNotNull(result);
+            assertEquals(InvitationStatus.ACCEPTED, result.status());
+            ArgumentCaptor<InvitationEventPayload> payloadCaptor = ArgumentCaptor.forClass(InvitationEventPayload.class);
+            verify(invitationEventPublisher).publish(eq(leaderUserId), payloadCaptor.capture());
+            verify(invitationEventPublisher).publish(eq(existingMemberUserId), payloadCaptor.capture());
+            verify(invitationEventPublisher, never()).publish(eq(inviteeUserId), any());
+            List<InvitationEventPayload> payloads = payloadCaptor.getAllValues();
+            assertEquals(2, payloads.size());
+            assertTrue(payloads.stream().allMatch(p -> p.action() == EventAction.INVITED));
         }
     }
 
