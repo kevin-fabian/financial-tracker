@@ -1,6 +1,8 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
+import com.fabiankevin.app.events.EventPublisher;
+import com.fabiankevin.app.events.dtos.ShoppingListEventPayload;
 import com.fabiankevin.app.exceptions.InvalidNotesException;
 import com.fabiankevin.app.exceptions.ShoppingListNotFoundException;
 import com.fabiankevin.app.models.Category;
@@ -30,9 +32,17 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultShoppingListServiceTest {
@@ -44,6 +54,9 @@ class DefaultShoppingListServiceTest {
 
     @Mock
     private CategoryRepository categoryRepository;
+
+    @Mock
+    private EventPublisher shoppingListEventPublisher;
 
     @InjectMocks
     private DefaultShoppingListService shoppingListService;
@@ -101,6 +114,7 @@ class DefaultShoppingListServiceTest {
             verify(shoppingListRepository, times(1)).save(captor.capture());
             assertEquals(ShoppingListStatus.ACTIVE, captor.getValue().status());
             verify(userClient, times(1)).getUsersByIds(List.of(userId));
+            verify(shoppingListEventPublisher, times(1)).publish(eq(userId), any());
         }
 
         @Test
@@ -178,6 +192,7 @@ class DefaultShoppingListServiceTest {
             verify(shoppingListRepository, times(1)).save(captor.capture());
             assertEquals(1, captor.getValue().items().size(), "list should contain the added item");
             assertEquals("Milk", captor.getValue().items().getFirst().name());
+            verify(shoppingListEventPublisher, times(1)).publish(eq(addedBy), any(ShoppingListEventPayload.class));
         }
 
         @Test

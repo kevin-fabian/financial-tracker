@@ -1,6 +1,8 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
+import com.fabiankevin.app.events.EventPublisher;
+import com.fabiankevin.app.events.dtos.ShoppingListEventPayload;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.exceptions.EmptyShoppingListException;
 import com.fabiankevin.app.exceptions.ShoppingItemNotFoundException;
@@ -8,6 +10,7 @@ import com.fabiankevin.app.exceptions.ShoppingListNotFoundException;
 import com.fabiankevin.app.exceptions.UnpurchasedItemsException;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
+import com.fabiankevin.app.models.enums.EventAction;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
 import com.fabiankevin.app.models.shopping_list.ShoppingItemSummary;
@@ -36,12 +39,13 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@Service
 @RequiredArgsConstructor
+@Service
 public class DefaultShoppingListService implements ShoppingListService {
     private final ShoppingListRepository shoppingListRepository;
     private final CategoryRepository categoryRepository;
     private final UserClient userClient;
+    private final EventPublisher shoppingListEventPublisher;
 
     @Transactional
     @Override
@@ -68,7 +72,12 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .build();
 
         ShoppingList saved = shoppingListRepository.save(shoppingList);
-        return toSummary(saved, category);
+        ShoppingListSummary summary = toSummary(saved);
+        shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
+                EventAction.ADDED,
+                summary
+        ));
+        return summary;
     }
 
     @Transactional
@@ -99,7 +108,12 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .build();
 
         ShoppingList saved = shoppingListRepository.save(completed);
-        return toSummary(saved);
+        ShoppingListSummary summary = toSummary(saved);
+        shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
+                EventAction.SHOPPING_LIST_COMPLETED,
+                summary
+        ));
+        return summary;
     }
 
     @Transactional
@@ -130,7 +144,12 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .build();
 
         ShoppingList saved = shoppingListRepository.save(patched);
-        return toSummary(saved, category);
+        ShoppingListSummary summary = toSummary(saved, category);
+        shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
+                EventAction.UPDATED,
+                summary
+        ));
+        return summary;
     }
 
     @Transactional
@@ -171,7 +190,7 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .findFirst()
                 .orElseGet(() -> null);
 
-        return ShoppingItemSummary.builder()
+        ShoppingItemSummary result = ShoppingItemSummary.builder()
                 .id(savedItem.id())
                 .name(savedItem.name())
                 .category(savedItem.category())
@@ -185,6 +204,12 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .createdAt(savedItem.createdAt())
                 .updatedAt(savedItem.updatedAt())
                 .build();
+
+        shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
+                EventAction.ITEM_ADDED,
+                toSummary(saved)
+        ));
+        return result;
     }
 
     @Transactional
@@ -232,9 +257,15 @@ public class DefaultShoppingListService implements ShoppingListService {
         User user = userClient.getUsersByIds(List.of(savedItem.addedBy()))
                 .stream()
                 .findFirst()
-                .orElseGet(() -> null);
+                .orElse(null);
 
-        return toItemSummary(savedItem, user);
+        ShoppingItemSummary result = toItemSummary(savedItem, user);
+
+        shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
+                EventAction.ITEM_UPDATED,
+                toSummary(saved)
+        ));
+        return result;
     }
 
     @Transactional
@@ -255,7 +286,12 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .updatedAt(Instant.now())
                 .build();
 
-        shoppingListRepository.save(updated);
+        ShoppingList saved = shoppingListRepository.save(updated);
+
+        shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
+                EventAction.ITEM_REMOVED,
+                toSummary(saved)
+        ));
     }
 
     @Transactional
