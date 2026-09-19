@@ -4,7 +4,6 @@ import com.fabiankevin.app.events.dtos.EventPayload;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.scheduling.annotation.Async;
 
 import java.util.UUID;
@@ -18,8 +17,6 @@ public class DefaultWebSocketEventPublisher implements EventPublisher {
     @Async
     @Override
     public void publish(UUID targetId, EventPayload<?> event) {
-        template.send(destination, MessageBuilder
-                .withPayload(event)
-                .build());
+        template.convertAndSendToUser(targetId.toString(), destination,event);
     }
 }

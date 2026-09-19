@@ -14,6 +14,6 @@ public class TransactionEventPublisher implements EventPublisher {
 
     @Override
     public void publish(UUID targetId, EventPayload<?> event) {
-        template.convertAndSend(String.format("/ws/households/%s/transactions", targetId), event);
+        template.convertAndSend(String.format("/topic/households/%s/transactions", targetId), event);
     }
 }

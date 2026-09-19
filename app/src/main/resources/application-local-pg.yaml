@@ -12,7 +12,7 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:
       hibernate:
-        show_sql: true
+        show_sql: false
     hibernate:
       ddl-auto: none
   security:
@@ -24,10 +24,10 @@ spring:
 
 logging:
   level:
-    org.zalando.logbook: TRACE
-    com.fabiankevin.app: DEBUG
-    org.springframework.security: TRACE
-    org.springframework.security.oauth2.server.resource: TRACE
+    org.zalando.logbook: INFO
+    com.fabiankevin.app: INFO
+    org.springframework.security: INFO
+    org.springframework.security.oauth2.server.resource: INFO
 
 management:
   tracing:

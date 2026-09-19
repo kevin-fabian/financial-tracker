@@ -1,15 +1,15 @@
 package com.fabiankevin.app.events.dtos;
 
 import com.fabiankevin.app.models.enums.EventAction;
-import com.fabiankevin.app.models.household.Invitation;
+import com.fabiankevin.app.models.household.InvitationSummary;
 
 public record InvitationEventPayload(
         EventAction action,
-        Invitation data
-) implements EventPayload<Invitation> {
+        InvitationSummary data
+) implements EventPayload<InvitationSummary> {
 
     @Override
-    public Invitation payload() {
+    public InvitationSummary payload() {
         return data;
     }
 }

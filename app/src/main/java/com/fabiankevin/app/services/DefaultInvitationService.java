@@ -28,6 +28,7 @@ import com.fabiankevin.app.services.commands.household.invitations.AcceptInvitat
 import com.fabiankevin.app.services.commands.household.invitations.RejectInvitationCommand;
 import com.fabiankevin.app.services.commands.household.invitations.SendInvitationCommand;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
@@ -41,6 +42,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class DefaultInvitationService implements InvitationService {
     private final InvitationRepository invitationRepository;
@@ -91,15 +93,16 @@ public class DefaultInvitationService implements InvitationService {
                             .householdId(household.id())
                             .build();
 
-                    eventPublisher.publish(recipient.id(), new InvitationEventPayload(
-                            EventAction.INVITED,
-                            newInvitation
-                    ));
-
                     return invitationRepository.save(newInvitation);
                 });
 
-        return toSummary(invitation, command.inviterUserId());
+        InvitationSummary summary = toSummary(invitation, command.inviterUserId());
+        eventPublisher.publish(recipient.id(), new InvitationEventPayload(
+                EventAction.INVITED,
+                summary
+        ));
+
+        return summary;
     }
 
     @Transactional

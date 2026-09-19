@@ -1,6 +1,7 @@
 package com.fabiankevin.app.config.websocket;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -13,8 +14,10 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.List;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class TokenChannelInterceptor implements ChannelInterceptor {
@@ -28,7 +31,7 @@ public class TokenChannelInterceptor implements ChannelInterceptor {
             List<String> authorization = accessor.getNativeHeader("Authorization");
             
             if (authorization != null && !authorization.isEmpty()) {
-                String bearerToken = authorization.get(0);
+                String bearerToken = authorization.getFirst();
                 if (bearerToken.startsWith("Bearer ")) {
                     String token = bearerToken.substring(7);
                     try {
@@ -39,7 +42,7 @@ public class TokenChannelInterceptor implements ChannelInterceptor {
 
                         // Authenticate the WebSocket Session
                         UsernamePasswordAuthenticationToken authentication = 
-                            new UsernamePasswordAuthenticationToken(userId, null, null); // Add authorities if needed
+                            new UsernamePasswordAuthenticationToken(userId, null,  Collections.emptyList());
                             
                         accessor.setUser(authentication);
                         SecurityContextHolder.getContext().setAuthentication(authentication);

@@ -30,7 +30,7 @@ public class AppConfig {
 
     @Bean
     public DefaultWebSocketEventPublisher invitationEventPublisher(SimpMessagingTemplate template) {
-        return new DefaultWebSocketEventPublisher(template, "/events/invitations");
+        return new DefaultWebSocketEventPublisher(template, "/queue/household-invitations");
     }
 
     @Bean
