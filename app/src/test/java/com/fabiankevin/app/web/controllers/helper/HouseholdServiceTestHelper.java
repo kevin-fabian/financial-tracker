@@ -51,18 +51,18 @@ public class HouseholdServiceTestHelper {
         return jsonMapper.readValue(mvcResult.getResponse().getContentAsString(), HouseholdResponse.class);
     }
 
-    public InvitationResponse inviteAndAccept(UUID partyId, UUID partyLeaderId, UUID inviteeId, String inviteeEmail) throws Exception {
+    public InvitationResponse inviteAndAccept(UUID householdId, UUID leaderId, UUID inviteeId, String inviteeEmail) throws Exception {
         // Step 1: Party leader sends invitation
         SendInvitationRequest sendRequest = SendInvitationRequest.builder()
                 .email(inviteeEmail)
                 .build();
 
-        MvcResult sendResult = mockMvc.perform(post("/api/households/{householdId}/invitations", partyId)
+        MvcResult sendResult = mockMvc.perform(post("/api/households/{householdId}/invitations", householdId)
                         .with(jwt()
                                 .authorities(new SimpleGrantedAuthority("USER"))
                                 .jwt(jwt -> jwt
                                         .audience(List.of("financial-tracker-test"))
-                                        .claim("sub", partyLeaderId)
+                                        .claim("sub", leaderId)
                                         .claim("scope", List.of())))
                         .contentType("application/json")
                         .content(jsonMapper.writeValueAsString(sendRequest)))
@@ -74,7 +74,7 @@ public class HouseholdServiceTestHelper {
 
         // Step 2: Invitee accepts the invitation
         MvcResult acceptResult = mockMvc.perform(post("/api/households/{householdId}/invitations/{invitationId}/accept",
-                        partyId, invitation.id())
+                        householdId, invitation.id())
                         .with(jwt()
                                 .authorities(new SimpleGrantedAuthority("USER"))
                                 .jwt(jwt -> jwt

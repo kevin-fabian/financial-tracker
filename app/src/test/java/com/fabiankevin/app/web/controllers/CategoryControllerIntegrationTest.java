@@ -20,6 +20,7 @@ import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchCategoryRequest;
+import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
 import com.fabiankevin.app.web.controllers.helper.TransactionServiceTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -46,6 +47,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -105,6 +108,9 @@ class CategoryControllerIntegrationTest {
 
     @Autowired
     private TransactionServiceTestHelper testHelper;
+
+    @Autowired
+    private HouseholdServiceTestHelper householdTestHelper;
 
     private UUID userId;
 
@@ -764,6 +770,97 @@ class CategoryControllerIntegrationTest {
                     .andExpect(jsonPath("$.content[0].totalAmount").value(50.0))
                     .andExpect(jsonPath("$.content[0].totalTransactions").value(1))
                     .andExpect(jsonPath("$.content[0].percentage").value(100.0))
+                    .andExpect(jsonPath("$.totalElements").value(1));
+        }
+
+        @Test
+        void givenHouseholdMemberWithNoTransactionsButLeaderHasSystemCategoryTransactions_thenReturnsLeaderTransactionsInSystemCategory() throws Exception {
+            UUID leaderId = UUID.randomUUID();
+            UUID memberId = UUID.randomUUID();
+            String memberEmail = "member+" + UUID.randomUUID() + "@test.com";
+            User member = User.builder().id(memberId).firstName("Member").lastName("User").build();
+
+            // Mock userClient for invitation flow
+            when(userClient.getUserByEmail(memberEmail))
+                    .thenReturn(member);
+            when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.size() == 2)))
+                    .thenReturn(List.of(
+                            User.builder().id(leaderId).firstName("Leader").lastName("User").build(),
+                            member
+                    ));
+
+            // Create household with leader
+            UUID householdId = householdTestHelper.createHouseHold(leaderId).id();
+
+            // Join member to leader's household via invitation
+            householdTestHelper.inviteAndAccept(
+                    householdId,
+                    leaderId,
+                    memberId,
+                    memberEmail
+            );
+
+            // Create a system category (shared across all users)
+            var systemCategory = categoryRepository.save(
+                    Category.builder()
+                            .name("Food")
+                            .type(TransactionType.EXPENSE)
+                            .userId(null)
+                            .active(true)
+                            .system(true)
+                            .icon("food")
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build()
+            );
+
+            // Create transactions for the household leader in the system category
+            UUID leaderAccount = accountService.createAccount(
+                    CreateAccountCommand.builder()
+                            .name("Leader Cash")
+                            .type(AccountType.CASH)
+                            .userId(leaderId)
+                            .currency(Currency.getInstance("USD"))
+                            .build()
+            ).id();
+
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(100)
+                            .transactionDate(LocalDate.now())
+                            .categoryId(systemCategory.id())
+                            .accountId(leaderAccount)
+                            .userId(leaderId)
+                            .build()
+            );
+            transactionService.addTransaction(
+                    AddTransactionCommand.builder()
+                            .amount(50)
+                            .transactionDate(LocalDate.now())
+                            .categoryId(systemCategory.id())
+                            .accountId(leaderAccount)
+                            .userId(leaderId)
+                            .build()
+            );
+
+            // The household member has no transactions of their own
+            // Query categories as the household member
+            mockMvc.perform(get("/api/categories?page=0&size=10&sort=name&direction=ASC&type=EXPENSE")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", memberId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content").isArray())
+                    .andExpect(jsonPath("$.content.length()").value(1))
+                    .andExpect(jsonPath("$.content[0].id").value(systemCategory.id().toString()))
+                    .andExpect(jsonPath("$.content[0].name").value("Food"))
+                    // System category should include leader's transactions aggregated
+                    .andExpect(jsonPath("$.content[0].totalAmount").value(150.0))
+                    .andExpect(jsonPath("$.content[0].totalTransactions").value(2))
                     .andExpect(jsonPath("$.totalElements").value(1));
         }
     }
