@@ -14,5 +14,6 @@ public enum EventAction {
     INVITED,
     ACCEPTED,
 
-    LEAVE_HOUSEHOLD
+    HOUSEHOLD_MEMBER_LEAVE,
+    HOUSEHOLD_MEMBER_ADDED
 }

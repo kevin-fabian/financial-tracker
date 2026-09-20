@@ -8,7 +8,6 @@ import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.exceptions.party.HouseholdAlreadyExistsException;
 import com.fabiankevin.app.exceptions.party.HouseholdNotFoundException;
 import com.fabiankevin.app.exceptions.party.NotHouseholdLeaderException;
-import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.EventAction;
 import com.fabiankevin.app.models.enums.household.AccessLevel;
@@ -16,12 +15,10 @@ import com.fabiankevin.app.models.enums.household.HouseholdMemberStatus;
 import com.fabiankevin.app.models.enums.household.InvitationStatus;
 import com.fabiankevin.app.models.household.Household;
 import com.fabiankevin.app.models.household.HouseholdMember;
-import com.fabiankevin.app.models.household.HouseholdMemberSummary;
 import com.fabiankevin.app.models.household.HouseholdSummary;
 import com.fabiankevin.app.models.household.Invitation;
 import com.fabiankevin.app.persistence.HouseholdRepository;
 import com.fabiankevin.app.persistence.InvitationRepository;
-import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.household.OrganizeHouseholdCommand;
 import com.fabiankevin.app.services.commands.household.PatchHouseholdCommand;
 import jakarta.transaction.Transactional;
@@ -30,7 +27,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -43,7 +39,6 @@ import java.util.stream.Collectors;
 public class DefaultHouseholdService implements HouseholdService {
     private final HouseholdRepository householdRepository;
     private final InvitationRepository invitationRepository;
-    private final TransactionRepository transactionRepository;
     private final UserClient userClient;
     private final EventPublisher householdEventPublisher;
 
@@ -126,9 +121,9 @@ public class DefaultHouseholdService implements HouseholdService {
                 .build();
 
         Household saved = householdRepository.save(updatedHousehold);
-        HouseholdSummary summary = toSummary(saved, Map.of(), Map.of());
+        HouseholdSummary summary = saved.toSummary(Map.of());
         householdEventPublisher.publish(household.id(), new HouseholdEventPayload(
-                EventAction.LEAVE_HOUSEHOLD,
+                EventAction.HOUSEHOLD_MEMBER_LEAVE,
                 summary
         ));
     }
@@ -177,6 +172,20 @@ public class DefaultHouseholdService implements HouseholdService {
         return householdRepository.save(builder.build());
     }
 
+    private HouseholdSummary toSummaryWithUsers(Household household) {
+        List<UUID> householdMemberIds = household.members().stream()
+                .map(HouseholdMember::userId)
+                .distinct()
+                .toList();
+
+        Map<UUID, User> usersById = householdMemberIds.isEmpty()
+                ? Map.of()
+                : userClient.getUsersByIds(householdMemberIds).stream()
+                .collect(Collectors.toMap(User::id, Function.identity()));
+
+        return household.toSummary(usersById);
+    }
+
     private void cancelActiveIncomingInvitations(UUID userId) {
         invitationRepository.findByInviteeUserId(userId).stream()
                 .map(invitation -> Invitation.builder()
@@ -195,50 +204,5 @@ public class DefaultHouseholdService implements HouseholdService {
     private Household findHouseholdOrThrow(UUID householdId) {
         return householdRepository.findById(householdId)
                 .orElseThrow(HouseholdNotFoundException::new);
-    }
-
-    private HouseholdSummary toSummaryWithUsers(Household household) {
-        List<UUID> householdMemberIds = household.members().stream()
-                .map(HouseholdMember::userId)
-                .distinct()
-                .toList();
-
-        Map<UUID, User> usersById = householdMemberIds.isEmpty()
-                ? Map.of()
-                : userClient.getUsersByIds(householdMemberIds).stream()
-                .collect(Collectors.toMap(User::id, Function.identity()));
-
-        Map<UUID, Double> dailyAverageByUserId = householdMemberIds.isEmpty()
-                ? Map.of()
-                : transactionRepository.getDailyAveragePastWeek(new HashSet<>(householdMemberIds)).stream()
-                .collect(Collectors.toMap(sp -> UUID.fromString(sp.label()), SummaryPoint::total));
-
-        return toSummary(household, usersById, dailyAverageByUserId);
-    }
-
-    private HouseholdSummary toSummary(Household household, Map<UUID, User> usersById, Map<UUID, Double> dailyAverageByUserId) {
-        List<HouseholdMemberSummary> householdMemberSummaries = household.members().stream()
-                .map(householdMember -> {
-                    User user = usersById.get(householdMember.userId());
-                    boolean leader = household.leaderId().equals(householdMember.userId());
-                    return HouseholdMemberSummary.builder()
-                            .id(householdMember.id())
-                            .user(user)
-                            .householdLeader(leader)
-                            .status(householdMember.status())
-                            .joinedAt(householdMember.joinedAt())
-                            .build();
-                })
-                .toList();
-
-        return HouseholdSummary.builder()
-                .id(household.id())
-                .name(household.name())
-                .leaderId(household.leaderId())
-                .members(householdMemberSummaries)
-                .active(household.active())
-                .createdAt(household.createdAt())
-                .updatedAt(household.updatedAt())
-                .build();
     }
 }

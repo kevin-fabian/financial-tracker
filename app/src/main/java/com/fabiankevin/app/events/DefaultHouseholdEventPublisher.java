@@ -2,11 +2,13 @@ package com.fabiankevin.app.events;
 
 import com.fabiankevin.app.events.dtos.EventPayload;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 
 import java.util.UUID;
 
+@Slf4j
 @RequiredArgsConstructor
 public class DefaultHouseholdEventPublisher implements EventPublisher {
     private final SimpMessagingTemplate template;
@@ -15,6 +17,8 @@ public class DefaultHouseholdEventPublisher implements EventPublisher {
     @Async
     @Override
     public void publish(UUID targetId, EventPayload<?> event) {
-        template.convertAndSend(String.format(destination, targetId), event);
+        String resolvedDestination = String.format(destination, targetId);
+        log.debug("Destination: {}, event:{}", resolvedDestination, event);
+        template.convertAndSend(resolvedDestination, event);
     }
 }

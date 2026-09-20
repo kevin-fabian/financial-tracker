@@ -57,7 +57,7 @@ public class HouseholdServiceTestHelper {
                 .email(inviteeEmail)
                 .build();
 
-        MvcResult sendResult = mockMvc.perform(post("/api/households/{householdId}/invitations", householdId)
+        MvcResult sendResult = mockMvc.perform(post("/api/households/{householdId}/invite", householdId)
                         .with(jwt()
                                 .authorities(new SimpleGrantedAuthority("USER"))
                                 .jwt(jwt -> jwt
@@ -103,7 +103,7 @@ public class HouseholdServiceTestHelper {
                 .email(inviteeEmail)
                 .build();
 
-        MvcResult result = mockMvc.perform(post("/api/households/{householdId}/invitations", householdId)
+        MvcResult result = mockMvc.perform(post("/api/households/{householdId}/invite", householdId)
                         .with(jwt()
                                 .authorities(new SimpleGrantedAuthority("USER"))
                                 .jwt(jwt -> jwt

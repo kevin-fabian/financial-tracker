@@ -7,8 +7,6 @@ import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.exceptions.party.HouseholdAlreadyExistsException;
 import com.fabiankevin.app.exceptions.party.HouseholdNotFoundException;
 import com.fabiankevin.app.exceptions.party.NotHouseholdLeaderException;
-import com.fabiankevin.app.models.SummaryPoint;
-import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.EventAction;
 import com.fabiankevin.app.models.enums.household.AccessLevel;
 import com.fabiankevin.app.models.enums.household.HouseholdMemberStatus;
@@ -35,7 +33,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -277,93 +274,6 @@ class DefaultHouseholdServiceTest {
     }
 
     @Nested
-    class RetrieveByUserId {
-
-        @Test
-        void givenHouseholdWithMembers_thenMapsHouseholdMemberSummariesWithDailyAverage() {
-            UUID userId = UUID.randomUUID();
-            UUID partyLeaderId = UUID.randomUUID();
-            UUID memberId = UUID.randomUUID();
-            UUID householdId = UUID.randomUUID();
-            Household household = Household.builder()
-                    .id(householdId)
-                    .name("Family Budget")
-                    .leaderId(partyLeaderId)
-                    .members(new ArrayList<>(List.of(
-                            HouseholdMember.builder()
-                                    .userId(partyLeaderId)
-                                    .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(HouseholdMemberStatus.ACTIVE)
-                                    .joinedAt(Instant.now())
-                                    .build(),
-                            HouseholdMember.builder()
-                                    .userId(memberId)
-                                    .accessLevel(AccessLevel.VIEW_ONLY)
-                                    .status(HouseholdMemberStatus.ACTIVE)
-                                    .joinedAt(Instant.now())
-                                    .build()
-                    )))
-                    .active(true)
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
-                    .build();
-
-            when(householdRepository.retrieveByUserId(userId)).thenReturn(List.of(household));
-            when(userClient.getUsersByIds(any())).thenReturn(List.of(
-                    User.builder().id(partyLeaderId).firstName("Ada").lastName("Lovelace").build(),
-                    User.builder().id(memberId).firstName("Alan").lastName("Turing").build()
-            ));
-            when(transactionRepository.getDailyAveragePastWeek(any())).thenReturn(List.of(
-                    new SummaryPoint(partyLeaderId.toString(), 3.5),
-                    new SummaryPoint(memberId.toString(), 1.0)
-            ));
-
-            List<HouseholdSummary> result = service.retrieveByUserId(userId);
-
-            assertNotNull(result);
-            assertEquals(1, result.size());
-            HouseholdSummary summary = result.getFirst();
-            assertEquals(householdId, summary.id());
-            assertEquals(2, summary.members().size());
-
-            HouseholdMemberSummary leaderSummary = summary.members().stream()
-                    .filter(HouseholdMemberSummary::householdLeader)
-                    .findFirst()
-                    .orElseThrow();
-            assertEquals(partyLeaderId, leaderSummary.user().id());
-            assertEquals("Ada Lovelace", leaderSummary.user().fullName());
-            assertEquals("AL", leaderSummary.user().initial());
-
-            HouseholdMemberSummary memberSummary = summary.members().stream()
-                    .filter(s -> !s.householdLeader())
-                    .findFirst()
-                    .orElseThrow();
-            assertEquals(memberId, memberSummary.user().id());
-            assertEquals("Alan Turing", memberSummary.user().fullName());
-            assertEquals("AT", memberSummary.user().initial());
-
-            verify(householdRepository).retrieveByUserId(userId);
-            verify(userClient).getUsersByIds(List.of(partyLeaderId, memberId));
-            verify(transactionRepository).getDailyAveragePastWeek(Set.of(partyLeaderId, memberId));
-        }
-
-        @Test
-        void givenNoHouseholds_thenReturnsEmptyList() {
-            UUID userId = UUID.randomUUID();
-
-            when(householdRepository.retrieveByUserId(userId)).thenReturn(List.of());
-
-            List<HouseholdSummary> result = service.retrieveByUserId(userId);
-
-            assertNotNull(result);
-            assertTrue(result.isEmpty());
-
-            verify(householdRepository).retrieveByUserId(userId);
-            verify(transactionRepository, never()).getDailyAveragePastWeek(any());
-        }
-    }
-
-    @Nested
     class RemoveHouseholdMember {
 
         @Test
@@ -559,7 +469,7 @@ class DefaultHouseholdServiceTest {
             com.fabiankevin.app.events.dtos.HouseholdEventPayload publishedPayload = payloadCaptor.getValue();
 
             assertEquals(householdId, publishedTargetId);
-            assertEquals(EventAction.LEAVE_HOUSEHOLD, publishedPayload.action());
+            assertEquals(EventAction.HOUSEHOLD_MEMBER_LEAVE, publishedPayload.action());
             assertNotNull(publishedPayload.payload());
             assertEquals(householdId, publishedPayload.payload().id());
             assertEquals("Family Budget", publishedPayload.payload().name());
@@ -606,7 +516,7 @@ class DefaultHouseholdServiceTest {
             verify(householdEventPublisher, times(1)).publish(targetIdCaptor.capture(), payloadCaptor.capture());
 
             com.fabiankevin.app.events.dtos.HouseholdEventPayload publishedPayload = payloadCaptor.getValue();
-            assertEquals(EventAction.LEAVE_HOUSEHOLD, publishedPayload.action());
+            assertEquals(EventAction.HOUSEHOLD_MEMBER_LEAVE, publishedPayload.action());
             assertEquals(householdId, publishedPayload.payload().id());
         }
     }

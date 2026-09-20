@@ -70,7 +70,7 @@ public class InvitationController {
                 content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
         }
     )
-    @PostMapping("/{householdId}/invitations")
+    @PostMapping("/{householdId}/invite")
     public ResponseEntity<InvitationResponse> sendInvitation(
         @PathVariable @NotNull @Schema(description = "ID of the household where the invitation is sent") UUID householdId,
         @Valid @RequestBody SendInvitationRequest request,

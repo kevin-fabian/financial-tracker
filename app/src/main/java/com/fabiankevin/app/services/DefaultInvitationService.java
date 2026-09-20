@@ -2,6 +2,7 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.events.EventPublisher;
+import com.fabiankevin.app.events.dtos.HouseholdEventPayload;
 import com.fabiankevin.app.events.dtos.InvitationEventPayload;
 import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.exceptions.party.HouseholdMemberAlreadyExistsException;
@@ -143,23 +144,18 @@ public class DefaultInvitationService implements InvitationService {
         List<HouseholdMember> updatedParticipants = new ArrayList<>(household.members());
         updatedParticipants.add(participant);
 
-        Household updatedSpace = household.toBuilder()
+        Household updatedHousehold = household.toBuilder()
                 .members(updatedParticipants)
                 .updatedAt(Instant.now())
                 .build();
 
-        householdRepository.save(updatedSpace);
+        Household savedHousehold = householdRepository.save(updatedHousehold);
 
         InvitationSummary summary = toSummary(updatedInvitation, command.acceptingUserId());
-        household.members().stream()
-                .filter(member -> member.userId() != command.acceptingUserId())
-                .toList()
-                .forEach(householdMember -> {
-                    eventPublisher.publish(householdMember.userId(), new InvitationEventPayload(
-                            EventAction.INVITED,
-                            summary
+        eventPublisher.publish(savedHousehold.id(), new HouseholdEventPayload(
+                            EventAction.HOUSEHOLD_MEMBER_ADDED,
+                            savedHousehold.toSummary(Map.of())
                     ));
-                });
 
         return summary;
     }

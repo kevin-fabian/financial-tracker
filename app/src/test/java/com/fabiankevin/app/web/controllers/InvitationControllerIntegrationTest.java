@@ -4,7 +4,6 @@ import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.household.HouseholdSummary;
 import com.fabiankevin.app.services.HouseholdService;
-import com.fabiankevin.app.services.InvitationService;
 import com.fabiankevin.app.services.commands.household.OrganizeHouseholdCommand;
 import com.fabiankevin.app.web.controllers.dtos.SendInvitationRequest;
 import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
@@ -57,9 +56,6 @@ class InvitationControllerIntegrationTest {
     private HouseholdService householdService;
 
     @Autowired
-    private InvitationService invitationService;
-
-    @Autowired
     private JsonMapper jsonMapper;
 
     @Autowired
@@ -101,7 +97,7 @@ class InvitationControllerIntegrationTest {
                     .email(inviteeEmail)
                     .build();
 
-            mockMvc.perform(post("/api/households/{householdId}/invitations", householdSummary.id())
+            mockMvc.perform(post("/api/households/{householdId}/invite", householdSummary.id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -152,7 +148,7 @@ class InvitationControllerIntegrationTest {
                     .email("alice@example.com")
                     .build();
 
-            mockMvc.perform(post("/api/households/{householdId}/invitations", householdSummary.id())
+            mockMvc.perform(post("/api/households/{householdId}/invite", householdSummary.id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -183,7 +179,7 @@ class InvitationControllerIntegrationTest {
             assertNotNull(householdSummary.id());
 
             // Other user creates their own household
-            when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.size() == 1 && ids.get(0).equals(otherUserId))))
+            when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.size() == 1 && ids.getFirst().equals(otherUserId))))
                     .thenReturn(List.of(User.builder().id(otherUserId).firstName("Bob").lastName("Jones").build()));
 
             householdService.organize(
@@ -201,7 +197,7 @@ class InvitationControllerIntegrationTest {
                     .email("bob@example.com")
                     .build();
 
-            mockMvc.perform(post("/api/households/{householdId}/invitations", householdSummary.id())
+            mockMvc.perform(post("/api/households/{householdId}/invite", householdSummary.id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -235,7 +231,7 @@ class InvitationControllerIntegrationTest {
                     .email("not-an-email")
                     .build();
 
-            mockMvc.perform(post("/api/households/{householdId}/invitations", householdSummary.id())
+            mockMvc.perform(post("/api/households/{householdId}/invite", householdSummary.id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -269,7 +265,7 @@ class InvitationControllerIntegrationTest {
                     .email(null)
                     .build();
 
-            mockMvc.perform(post("/api/households/{householdId}/invitations", householdSummary.id())
+            mockMvc.perform(post("/api/households/{householdId}/invite", householdSummary.id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -291,7 +287,7 @@ class InvitationControllerIntegrationTest {
                     .email("jane@example.com")
                     .build();
 
-            mockMvc.perform(post("/api/households/{householdId}/invitations", nonExistentHouseholdId)
+            mockMvc.perform(post("/api/households/{householdId}/invite", nonExistentHouseholdId)
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -312,7 +308,7 @@ class InvitationControllerIntegrationTest {
             String householdName = "Family Budget";
 
             // Leader creates household
-            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.get(0).equals(leaderId))))
+            when(userClient.getUsersByIds(argThat(ids -> ids.size() == 1 && ids.getFirst().equals(leaderId))))
                     .thenReturn(List.of(User.builder().id(leaderId).firstName("Alice").lastName("Smith").build()));
 
             HouseholdSummary householdSummary = householdService.organize(
@@ -331,7 +327,7 @@ class InvitationControllerIntegrationTest {
                     .build();
 
             // First invitation
-            String firstResponse = mockMvc.perform(post("/api/households/{householdId}/invitations", householdSummary.id())
+            String firstResponse = mockMvc.perform(post("/api/households/{householdId}/invite", householdSummary.id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -344,10 +340,10 @@ class InvitationControllerIntegrationTest {
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString();
 
-            UUID firstInvitationId = UUID.fromString(jsonMapper.readTree(firstResponse).get("id").asText());
+            UUID firstInvitationId = UUID.fromString(jsonMapper.readTree(firstResponse).get("id").asString());
 
             // Second invitation to same user for same household
-            mockMvc.perform(post("/api/households/{householdId}/invitations", householdSummary.id())
+            mockMvc.perform(post("/api/households/{householdId}/invite", householdSummary.id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -403,7 +399,7 @@ class InvitationControllerIntegrationTest {
                     .email(inviteeEmail)
                     .build();
 
-            mockMvc.perform(post("/api/households/{householdId}/invitations", householdSummary.id())
+            mockMvc.perform(post("/api/households/{householdId}/invite", householdSummary.id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -490,7 +486,7 @@ class InvitationControllerIntegrationTest {
                     .email(inviteeEmail)
                     .build();
 
-            mockMvc.perform(post("/api/households/{householdId}/invitations", householdSummary.id())
+            mockMvc.perform(post("/api/households/{householdId}/invite", householdSummary.id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -573,7 +569,6 @@ class InvitationControllerIntegrationTest {
             UUID leaderId = UUID.randomUUID();
             UUID inviteeId = UUID.randomUUID();
             String inviteeEmail = "jane@example.com";
-            String householdName = "Family Budget";
 
             UUID householdId = helper.createHouseHold(leaderId).id();
             UUID invitationId = helper.sendInvitation(householdId, leaderId, inviteeId, inviteeEmail);
