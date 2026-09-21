@@ -75,6 +75,7 @@ public class DefaultShoppingListService implements ShoppingListService {
         ShoppingListSummary summary = toSummary(saved);
         shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
                 EventAction.ADDED,
+                command.userId().toString(),
                 summary
         ));
         return summary;
@@ -111,6 +112,7 @@ public class DefaultShoppingListService implements ShoppingListService {
         ShoppingListSummary summary = toSummary(saved);
         shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
                 EventAction.SHOPPING_LIST_COMPLETED,
+                command.userId().toString(),
                 summary
         ));
         return summary;
@@ -147,6 +149,7 @@ public class DefaultShoppingListService implements ShoppingListService {
         ShoppingListSummary summary = toSummary(saved, category);
         shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
                 EventAction.UPDATED,
+                saved.userId().toString(),
                 summary
         ));
         return summary;
@@ -207,6 +210,7 @@ public class DefaultShoppingListService implements ShoppingListService {
 
         shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
                 EventAction.ITEM_ADDED,
+                saved.userId().toString(),
                 toSummary(saved)
         ));
         return result;
@@ -263,6 +267,7 @@ public class DefaultShoppingListService implements ShoppingListService {
 
         shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
                 EventAction.ITEM_UPDATED,
+                saved.userId().toString(),
                 toSummary(saved)
         ));
         return result;
@@ -290,6 +295,7 @@ public class DefaultShoppingListService implements ShoppingListService {
 
         shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
                 EventAction.ITEM_REMOVED,
+                saved.userId().toString(),
                 toSummary(saved)
         ));
     }
@@ -308,6 +314,7 @@ public class DefaultShoppingListService implements ShoppingListService {
 
         shoppingListEventPublisher.publish(existing.userId(), new ShoppingListEventPayload(
                 EventAction.DELETED,
+                existing.userId().toString(),
                 toSummary(existing)
         ));
     }

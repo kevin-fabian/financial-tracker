@@ -5,6 +5,7 @@ import com.fabiankevin.app.models.household.InvitationSummary;
 
 public record InvitationEventPayload(
         EventAction action,
+        String userId,
         InvitationSummary data
 ) implements EventPayload<InvitationSummary> {
 

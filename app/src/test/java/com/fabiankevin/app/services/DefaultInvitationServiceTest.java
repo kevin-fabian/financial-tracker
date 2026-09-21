@@ -535,7 +535,7 @@ class DefaultInvitationServiceTest {
             verify(invitationEventPublisher, never()).publish(eq(inviteeUserId), any());
             List<InvitationEventPayload> payloads = payloadCaptor.getAllValues();
             assertEquals(2, payloads.size());
-            assertTrue(payloads.stream().allMatch(p -> p.action() == EventAction.INVITED));
+            assertTrue(payloads.stream().allMatch(p -> p.action() == EventAction.INVITATION_RECEIVED));
         }
     }
 

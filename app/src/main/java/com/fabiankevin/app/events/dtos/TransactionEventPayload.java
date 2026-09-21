@@ -5,6 +5,7 @@ import com.fabiankevin.app.models.enums.EventAction;
 
 public record TransactionEventPayload(
     EventAction action,
+    String userId,
     Transaction data
 ) implements EventPayload<Transaction> {
     @Override

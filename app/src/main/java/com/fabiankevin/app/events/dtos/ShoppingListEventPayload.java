@@ -5,6 +5,7 @@ import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
 
 public record ShoppingListEventPayload(
         EventAction action,
+        String userId,
         ShoppingListSummary data
 ) implements EventPayload<ShoppingListSummary> {
 

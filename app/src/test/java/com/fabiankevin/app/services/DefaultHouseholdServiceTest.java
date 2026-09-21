@@ -469,7 +469,7 @@ class DefaultHouseholdServiceTest {
             com.fabiankevin.app.events.dtos.HouseholdEventPayload publishedPayload = payloadCaptor.getValue();
 
             assertEquals(householdId, publishedTargetId);
-            assertEquals(EventAction.HOUSEHOLD_MEMBER_LEAVE, publishedPayload.action());
+            assertEquals(EventAction.HOUSEHOLD_MEMBER_LEFT, publishedPayload.action());
             assertNotNull(publishedPayload.payload());
             assertEquals(householdId, publishedPayload.payload().id());
             assertEquals("Family Budget", publishedPayload.payload().name());
@@ -516,7 +516,7 @@ class DefaultHouseholdServiceTest {
             verify(householdEventPublisher, times(1)).publish(targetIdCaptor.capture(), payloadCaptor.capture());
 
             com.fabiankevin.app.events.dtos.HouseholdEventPayload publishedPayload = payloadCaptor.getValue();
-            assertEquals(EventAction.HOUSEHOLD_MEMBER_LEAVE, publishedPayload.action());
+            assertEquals(EventAction.HOUSEHOLD_MEMBER_LEFT, publishedPayload.action());
             assertEquals(householdId, publishedPayload.payload().id());
         }
     }

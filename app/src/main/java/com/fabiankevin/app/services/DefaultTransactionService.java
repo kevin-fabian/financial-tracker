@@ -87,6 +87,7 @@ public class DefaultTransactionService implements TransactionService {
         householdRepository.findByUserId(userId).ifPresent(household ->
                 transactionEventPublisher.publish(household.id(), new TransactionEventPayload(
                         EventAction.DELETED,
+                        userId.toString(),
                         existing
                 ))
         );
@@ -147,6 +148,7 @@ public class DefaultTransactionService implements TransactionService {
         householdRepository.findByUserId(userId).ifPresent(household ->
                 transactionEventPublisher.publish(household.id(), new TransactionEventPayload(
                         EventAction.ADDED,
+                        userId.toString(),
                         enrichedTransaction
                 ))
         );
@@ -198,6 +200,7 @@ public class DefaultTransactionService implements TransactionService {
         householdRepository.findByUserId(userId).ifPresent(household ->
                 transactionEventPublisher.publish(household.id(), new TransactionEventPayload(
                         EventAction.UPDATED,
+                        userId.toString(),
                         saved
                 ))
         );

@@ -123,7 +123,8 @@ public class DefaultHouseholdService implements HouseholdService {
         Household saved = householdRepository.save(updatedHousehold);
         HouseholdSummary summary = saved.toSummary(Map.of());
         householdEventPublisher.publish(household.id(), new HouseholdEventPayload(
-                EventAction.HOUSEHOLD_MEMBER_LEAVE,
+                EventAction.HOUSEHOLD_MEMBER_LEFT,
+                requestingUserId.toString(),
                 summary
         ));
     }

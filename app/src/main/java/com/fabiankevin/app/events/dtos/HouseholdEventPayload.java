@@ -5,6 +5,7 @@ import com.fabiankevin.app.models.household.HouseholdSummary;
 
 public record HouseholdEventPayload(
         EventAction action,
+        String userId,
         HouseholdSummary data
 ) implements EventPayload<HouseholdSummary> {
 

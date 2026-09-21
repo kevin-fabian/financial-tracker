@@ -18,7 +18,6 @@ public class DefaultHouseholdEventPublisher implements EventPublisher {
     @Override
     public void publish(UUID targetId, EventPayload<?> event) {
         String resolvedDestination = String.format(destination, targetId);
-        log.debug("Destination: {}, event:{}", resolvedDestination, event);
-        template.convertAndSend(resolvedDestination, event);
-    }
+        log.debug("Publishing household event to: {}, destination: {},  event: {}", targetId, resolvedDestination, event);
+        template.convertAndSend(resolvedDestination, event);    }
 }

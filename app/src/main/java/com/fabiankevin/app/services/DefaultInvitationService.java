@@ -50,17 +50,21 @@ public class DefaultInvitationService implements InvitationService {
     private final HouseholdRepository householdRepository;
     private final UserClient userClient;
     private final EventPublisher eventPublisher;
+    private final EventPublisher householdEventPublisher;
 
     public DefaultInvitationService(
             InvitationRepository invitationRepository,
             HouseholdRepository householdRepository,
             UserClient userClient,
             @Qualifier("invitationEventPublisher")
-            EventPublisher eventPublisher) {
+            EventPublisher eventPublisher,
+            @Qualifier("householdEventPublisher")
+            EventPublisher householdEventPublisher) {
         this.invitationRepository = invitationRepository;
         this.householdRepository = householdRepository;
         this.userClient = userClient;
         this.eventPublisher = eventPublisher;
+        this.householdEventPublisher = householdEventPublisher;
     }
 
     @Transactional
@@ -99,7 +103,8 @@ public class DefaultInvitationService implements InvitationService {
 
         InvitationSummary summary = toSummary(invitation, command.inviterUserId());
         eventPublisher.publish(recipient.id(), new InvitationEventPayload(
-                EventAction.INVITED,
+                EventAction.INVITATION_RECEIVED,
+                command.inviterUserId().toString(),
                 summary
         ));
 
@@ -152,10 +157,11 @@ public class DefaultInvitationService implements InvitationService {
         Household savedHousehold = householdRepository.save(updatedHousehold);
 
         InvitationSummary summary = toSummary(updatedInvitation, command.acceptingUserId());
-        eventPublisher.publish(savedHousehold.id(), new HouseholdEventPayload(
-                            EventAction.HOUSEHOLD_MEMBER_ADDED,
-                            savedHousehold.toSummary(Map.of())
-                    ));
+        householdEventPublisher.publish(savedHousehold.id(), new HouseholdEventPayload(
+                EventAction.HOUSEHOLD_MEMBER_JOINED,
+                command.acceptingUserId().toString(),
+                savedHousehold.toSummary(Map.of())
+        ));
 
         return summary;
     }
