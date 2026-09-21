@@ -2,6 +2,7 @@ package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.events.EventPublisher;
+import com.fabiankevin.app.events.dtos.TransactionEventPayload;
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
 import com.fabiankevin.app.exceptions.DailyTransactionLimitExceededException;
@@ -13,6 +14,7 @@ import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.SummarySeries;
 import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.models.User;
+import com.fabiankevin.app.models.enums.EventAction;
 import com.fabiankevin.app.models.enums.SummaryType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.household.Household;
@@ -44,6 +46,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -265,7 +268,10 @@ class DefaultTransactionServiceTest {
            assertEquals("Food and drinks", transaction.description());
            verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, LocalDate.now());
            verify(householdRepository, times(1)).findByUserId(userId);
-           verify(eventPublisher, times(1)).publish(eq(sharedSpaceId), any());
+           verify(eventPublisher, times(1)).publish(eq(sharedSpaceId), argThat(payload ->
+                   payload instanceof TransactionEventPayload p
+                           && p.action() == EventAction.TRANSACTION_ADDED
+           ));
        }
 
        @Test
@@ -333,7 +339,7 @@ class DefaultTransactionServiceTest {
 
         Transaction existing = Transaction.builder()
                 .id(transactionId)
-                .account(Account.builder().id(UUID.randomUUID()).user(User.of(userId)).name("GCASH").currency(java.util.Currency.getInstance("PHP")).build())
+                .account(Account.builder().id(UUID.randomUUID()).user(User.of(userId)).name("GCASH").currency(Currency.getInstance("PHP")).build())
                 .category(Category.builder().id(UUID.randomUUID()).type(TransactionType.EXPENSE).userId(userId).name("FOOD").build())
                 .type(TransactionType.EXPENSE)
                 .amount(100)
@@ -354,9 +360,12 @@ class DefaultTransactionServiceTest {
                 .build();
 
         when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(existing));
-        when(accountRepository.findById(newAccountId)).thenReturn(Optional.of(Account.builder().id(newAccountId).user(User.of(userId)).name("NEW").currency(java.util.Currency.getInstance("PHP")).build()));
+        when(accountRepository.findById(newAccountId)).thenReturn(Optional.of(Account.builder().id(newAccountId).user(User.of(userId)).name("NEW").currency(Currency.getInstance("PHP")).build()));
         when(categoryRepository.findById(newCategoryId)).thenReturn(Optional.of(Category.builder().id(newCategoryId).type(TransactionType.EXPENSE).userId(userId).name("NEWCAT").build()));
         when(transactionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        Household household = mock(Household.class);
+        when(household.id()).thenReturn(UUID.randomUUID());
+        when(householdRepository.findByUserId(userId)).thenReturn(Optional.of(household));
 
         Transaction updated = transactionService.patchTransaction(command);
 
@@ -365,6 +374,11 @@ class DefaultTransactionServiceTest {
         verify(accountRepository, times(1)).findById(newAccountId);
         verify(categoryRepository, times(1)).findById(newCategoryId);
         verify(transactionRepository, times(1)).save(any());
+        verify(householdRepository, times(1)).findByUserId(userId);
+        verify(eventPublisher, times(1)).publish(eq(household.id()), argThat(payload ->
+                payload instanceof TransactionEventPayload p
+                        && p.action() == EventAction.TRANSACTION_UPDATED
+        ));
     }
 
     @Test
@@ -395,7 +409,7 @@ class DefaultTransactionServiceTest {
 
             Transaction existing = Transaction.builder()
                     .id(transactionId)
-                    .account(Account.builder().id(UUID.randomUUID()).user(User.of(userId)).name("GCASH").currency(java.util.Currency.getInstance("PHP")).build())
+                    .account(Account.builder().id(UUID.randomUUID()).user(User.of(userId)).name("GCASH").currency(Currency.getInstance("PHP")).build())
                     .category(Category.builder().id(UUID.randomUUID()).type(TransactionType.EXPENSE).userId(userId).name("FOOD").build())
                     .type(TransactionType.EXPENSE)
                     .amount(100)
@@ -418,7 +432,10 @@ class DefaultTransactionServiceTest {
             verify(transactionRepository, times(1)).findById(transactionId);
             verify(transactionRepository, times(1)).deleteByIdAndUserId(transactionId, userId);
             verify(householdRepository, times(1)).findByUserId(userId);
-            verify(eventPublisher, times(1)).publish(eq(partyId), any());
+            verify(eventPublisher, times(1)).publish(eq(partyId), argThat(payload ->
+                    payload instanceof TransactionEventPayload p
+                            && p.action() == EventAction.TRANSACTION_DELETED
+            ));
         }
 
         @Test
@@ -428,7 +445,7 @@ class DefaultTransactionServiceTest {
 
             Transaction existing = Transaction.builder()
                     .id(transactionId)
-                    .account(Account.builder().id(UUID.randomUUID()).user(User.of(userId)).name("GCASH").currency(java.util.Currency.getInstance("PHP")).build())
+                    .account(Account.builder().id(UUID.randomUUID()).user(User.of(userId)).name("GCASH").currency(Currency.getInstance("PHP")).build())
                     .category(Category.builder().id(UUID.randomUUID()).type(TransactionType.EXPENSE).userId(userId).name("FOOD").build())
                     .type(TransactionType.EXPENSE)
                     .amount(100)
@@ -473,7 +490,7 @@ class DefaultTransactionServiceTest {
 
             Transaction otherTransaction = Transaction.builder()
                     .id(transactionId)
-                    .account(Account.builder().id(UUID.randomUUID()).user(User.of(otherUserId)).name("GCASH").currency(java.util.Currency.getInstance("PHP")).build())
+                    .account(Account.builder().id(UUID.randomUUID()).user(User.of(otherUserId)).name("GCASH").currency(Currency.getInstance("PHP")).build())
                     .category(Category.builder().id(UUID.randomUUID()).type(TransactionType.EXPENSE).userId(otherUserId).name("FOOD").build())
                     .type(TransactionType.EXPENSE)
                     .amount(100)
@@ -501,14 +518,14 @@ class DefaultTransactionServiceTest {
 
         Transaction tx = Transaction.builder()
                 .id(transactionId)
-                .account(Account.builder().id(UUID.randomUUID()).user(User.of(userId)).name("ACCT").currency(java.util.Currency.getInstance("PHP")).build())
+                .account(Account.builder().id(UUID.randomUUID()).user(User.of(userId)).name("ACCT").currency(Currency.getInstance("PHP")).build())
                 .category(Category.builder().id(UUID.randomUUID()).type(TransactionType.EXPENSE).userId(userId).name("CAT").build())
                 .type(TransactionType.EXPENSE)
                 .amount(100)
                 .description("desc")
                 .transactionDate(LocalDate.now())
-                .createdAt(java.time.Instant.now())
-                .updatedAt(java.time.Instant.now())
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
                 .addedBy(User.of(userId))
                 .updatedBy(User.of(userId))
                 .build();
@@ -551,8 +568,8 @@ class DefaultTransactionServiceTest {
 
         assertEquals(SummaryType.CATEGORY, result.type());
         assertEquals(2, result.points().size());
-        assertEquals("FOOD", result.points().get(0).label());
-        assertEquals(500.0, result.points().get(0).total());
+        assertEquals("FOOD", result.points().getFirst().label());
+        assertEquals(500.0, result.points().getFirst().total());
         verify(categorySummaryGenerator, times(1)).generate(query);
     }
 
@@ -633,7 +650,7 @@ class DefaultTransactionServiceTest {
 
         Transaction tx = Transaction.builder()
                 .id(transactionId)
-                .account(Account.builder().id(UUID.randomUUID()).user(User.of(userId)).name("ACCT").currency(java.util.Currency.getInstance("PHP")).build())
+                .account(Account.builder().id(UUID.randomUUID()).user(User.of(userId)).name("ACCT").currency(Currency.getInstance("PHP")).build())
                 .category(Category.builder().id(UUID.randomUUID()).type(TransactionType.INCOME).userId(userId).name("SALARY").build())
                 .type(TransactionType.INCOME)
                 .amount(5000)
@@ -660,7 +677,7 @@ class DefaultTransactionServiceTest {
         Page<Transaction> result = transactionService.getTransactionsByPageQuery(query, userId, type);
 
         assertEquals(1, result.content().size());
-        assertEquals(transactionId, result.content().get(0).id());
+        assertEquals(transactionId, result.content().getFirst().id());
         verify(transactionRepository, times(1)).getTransactionsByPageAndUserIdAndType(query, Set.of(userId), type);
     }
 }
