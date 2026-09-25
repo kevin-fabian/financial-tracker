@@ -124,7 +124,12 @@ class DefaultShoppingListServiceTest {
             verify(shoppingListRepository, times(1)).save(captor.capture());
             assertEquals(ShoppingListStatus.ACTIVE, captor.getValue().status());
             verify(userClient, times(1)).getUsersByIds(List.of(userId));
-            verify(shoppingListEventPublisher, times(1)).publish(eq(userId), any());
+            verify(shoppingListEventPublisher, times(1)).publish(
+                    eq(userId),
+                    argThat(payload ->
+                            payload instanceof ShoppingListEventPayload p
+                                    && p.action() == EventAction.SHOPPING_LIST_CREATED)
+            );
         }
 
         @Test
@@ -228,7 +233,12 @@ class DefaultShoppingListServiceTest {
             assertEquals(category, savedList.category(), "saved category should be updated");
 
             verify(userClient, times(1)).getUsersByIds(List.of(userId));
-            verify(shoppingListEventPublisher, times(1)).publish(eq(userId), any(ShoppingListEventPayload.class));
+            verify(shoppingListEventPublisher, times(1)).publish(
+                    eq(userId),
+                    argThat(payload ->
+                            payload instanceof ShoppingListEventPayload p
+                                    && p.action() == EventAction.SHOPPING_LIST_UPDATED)
+            );
         }
 
         @Test
@@ -396,7 +406,12 @@ class DefaultShoppingListServiceTest {
             ArgumentCaptor<UUID> idCaptor = ArgumentCaptor.forClass(UUID.class);
             verify(shoppingListRepository, times(1)).deleteById(idCaptor.capture());
             assertEquals(shoppingListId, idCaptor.getValue(), "repository should receive the correct id");
-            verify(shoppingListEventPublisher, times(1)).publish(eq(userId), any(ShoppingListEventPayload.class));
+            verify(shoppingListEventPublisher, times(1)).publish(
+                    eq(userId),
+                    argThat(payload ->
+                            payload instanceof ShoppingListEventPayload p
+                                    && p.action() == EventAction.SHOPPING_LIST_DELETED)
+            );
         }
 
         @Test
