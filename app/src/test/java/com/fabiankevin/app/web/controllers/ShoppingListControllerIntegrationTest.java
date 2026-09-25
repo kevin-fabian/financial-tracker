@@ -1286,8 +1286,11 @@ class ShoppingListControllerIntegrationTest {
             UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
             UUID itemId = shoppingListRepository.findById(shoppingListId).get().items().getFirst().id();
 
-            when(userClient.getUsersByIds(List.of(addedBy)))
-                    .thenReturn(List.of(User.builder().id(addedBy).firstName("Jane").lastName("Doe").build()));
+            when(userClient.getUsersByIds(anyList()))
+                    .thenReturn(List.of(
+                            User.builder().id(addedBy).firstName("Jane").lastName("Doe").build(),
+                            User.builder().id(userId).firstName("John").lastName("Doe").build()
+                    ));
 
             PatchShoppingItemRequest request = PatchShoppingItemRequest.builder()
                     .price(4.0)
@@ -1535,6 +1538,9 @@ class ShoppingListControllerIntegrationTest {
             UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
             UUID itemId = shoppingListRepository.findById(shoppingListId).get().items().getFirst().id();
 
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
             mockMvc.perform(delete("/api/shopping-lists/{id}/items/{itemId}", shoppingListId, itemId)
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -1659,6 +1665,9 @@ class ShoppingListControllerIntegrationTest {
                     .updatedAt(Instant.now())
                     .build();
             UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
+
+            when(userClient.getUsersByIds(anyList()))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
 
             mockMvc.perform(delete("/api/shopping-lists/{id}", shoppingListId)
                             .with(jwt()
