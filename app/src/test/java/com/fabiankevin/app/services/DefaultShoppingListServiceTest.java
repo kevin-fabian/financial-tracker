@@ -326,6 +326,89 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
+        void givenListWithExistingItems_thenAddsNewItemAndPublishesOnlyNewItem() {
+            UUID shoppingListId = UUID.randomUUID();
+            UUID addedBy = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            ShoppingItem existingItem = ShoppingItem.builder()
+                    .id(UUID.randomUUID())
+                    .name("Bread")
+                    .category("Bakery")
+                    .quantity(1.0)
+                    .unit("loaf")
+                    .price(2.5)
+                    .purchased(false)
+                    .priority(ItemPriority.MEDIUM)
+                    .addedBy(addedBy)
+                    .createdAt(now.minusSeconds(300))
+                    .updatedAt(now.minusSeconds(300))
+                    .build();
+            List<ShoppingItem> items = new ArrayList<>();
+            items.add(existingItem);
+
+            ShoppingList existing = ShoppingList.builder()
+                    .id(shoppingListId)
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(addedBy)
+                    .items(items)
+                    .createdAt(now.minusSeconds(600))
+                    .updatedAt(now.minusSeconds(300))
+                    .build();
+
+            CreateShoppingItemCommand command = CreateShoppingItemCommand.builder()
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .notes("Whole milk")
+                    .addedBy(addedBy)
+                    .shoppingListId(shoppingListId)
+                    .priority(ItemPriority.HIGH)
+                    .build();
+
+            when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
+            when(shoppingListRepository.save(any())).thenAnswer(invocation -> {
+                ShoppingList s = invocation.getArgument(0);
+                return s.toBuilder().items(new ArrayList<>(s.items())).build();
+            });
+            when(userClient.getUsersByIds(List.of(addedBy)))
+                    .thenReturn(List.of(User.builder().id(addedBy).firstName("John").lastName("Doe").build()));
+
+            ShoppingItemSummary added = shoppingListService.addShoppingItem(command);
+
+            // item fields
+            assertEquals("Milk", added.name(), "name should match command");
+            assertEquals("Dairy", added.category(), "category should match command");
+            assertEquals(2.0, added.quantity(), "quantity should match command");
+            assertEquals("liters", added.unit(), "unit should match command");
+            assertEquals(3.5, added.price(), "price should match command");
+            assertFalse(added.purchased(), "purchased should default to false");
+            assertEquals(ItemPriority.HIGH, added.priority(), "priority should match command");
+            assertEquals("Whole milk", added.notes(), "notes should match command");
+            assertNotNull(added.addedBy(), "addedBy user should be enriched");
+            assertEquals("John", added.addedBy().firstName(), "addedBy first name should be enriched");
+            assertEquals("Doe", added.addedBy().lastName(), "addedBy last name should be enriched");
+            assertNotNull(added.createdAt(), "createdAt should not be null");
+            assertNotNull(added.updatedAt(), "updatedAt should not be null");
+
+            ArgumentCaptor<ShoppingList> captor = ArgumentCaptor.forClass(ShoppingList.class);
+            verify(shoppingListRepository, times(1)).save(captor.capture());
+            ShoppingList savedList = captor.getValue();
+            assertEquals(2, savedList.items().size(), "list should contain both existing and new item");
+
+            // Verify event payload contains only the newly added item
+            ArgumentCaptor<ShoppingListEventPayload> payloadCaptor = ArgumentCaptor.forClass(ShoppingListEventPayload.class);
+            verify(shoppingListEventPublisher, times(1)).publish(eq(addedBy), payloadCaptor.capture());
+            ShoppingListEventPayload publishedPayload = payloadCaptor.getValue();
+            assertEquals(EventAction.ITEM_ADDED, publishedPayload.action(), "action should be ITEM_ADDED");
+            assertEquals(1, publishedPayload.data().items().size(), "published data should contain only the new item");
+            assertEquals("Milk", publishedPayload.data().items().getFirst().name(), "published item should be the newly added one");
+        }
+
+        @Test
         void givenNotesExceedsMaxLength_thenThrowsAndDoesNotSave() {
             UUID shoppingListId = UUID.randomUUID();
             ShoppingList existing = ShoppingList.builder()

@@ -191,7 +191,7 @@ public class DefaultShoppingListService implements ShoppingListService {
         User user = userClient.getUsersByIds(List.of(savedItem.addedBy()))
                 .stream()
                 .findFirst()
-                .orElseGet(() -> null);
+                .orElse(null);
 
         ShoppingItemSummary result = ShoppingItemSummary.builder()
                 .id(savedItem.id())
@@ -211,7 +211,9 @@ public class DefaultShoppingListService implements ShoppingListService {
         shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
                 EventAction.ITEM_ADDED,
                 saved.userId().toString(),
-                toSummary(saved)
+                toSummary(saved.toBuilder()
+                        .items(List.of(savedItem))
+                        .build())
         ));
         return result;
     }

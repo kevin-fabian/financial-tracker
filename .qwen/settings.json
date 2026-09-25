@@ -26,7 +26,8 @@
       "Bash(mv *)",
       "Bash(sed *)",
       "Bash(mcp__intellij__lint_files *)",
-      "Bash(mvn *)"
+      "Bash(mvn *)",
+      "Bash(/users/kevinl.fabian/workspace/springboot/million_dollars_project/financial-tracker/mvnw *)"
     ]
   },
   "$version": 4
