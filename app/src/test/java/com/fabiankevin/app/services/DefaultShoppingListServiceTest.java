@@ -124,8 +124,44 @@ class DefaultShoppingListServiceTest {
             verify(shoppingListRepository, times(1)).save(captor.capture());
             assertEquals(ShoppingListStatus.ACTIVE, captor.getValue().status());
             verify(userClient, times(1)).getUsersByIds(List.of(userId));
-            verify(shoppingListEventPublisher, times(1)).publish(
-                    eq(userId),
+            verify(shoppingListEventPublisher, never()).publish(any(), any());
+        }
+
+        @Test
+        void givenCommandWithSharedUserIds_thenPublishesEventToAllSharedUsers() {
+            UUID userId = UUID.randomUUID();
+            UUID sharedUserId1 = UUID.randomUUID();
+            UUID sharedUserId2 = UUID.randomUUID();
+            CreateShoppingListCommand command = CreateShoppingListCommand.builder()
+                    .name("Groceries")
+                    .description("Weekly groceries")
+                    .userId(userId)
+                    .budget(200.0)
+                    .sharedWithUserIds(List.of(sharedUserId1, sharedUserId2))
+                    .build();
+
+            UUID generatedId = UUID.randomUUID();
+            when(shoppingListRepository.save(any())).thenAnswer(invocation ->
+                    ((ShoppingList) invocation.getArgument(0)).toBuilder().id(generatedId).build()
+            );
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+            when(categoryRepository.findByIdAndUserId(any(), any()))
+                    .thenReturn(Optional.of(Category.builder()
+                                    .id(command.categoryId())
+                                    .name("Groceries")
+                                    .type(TransactionType.EXPENSE)
+                                    .build()));
+
+            ShoppingListSummary created = shoppingListService.createShoppingList(command);
+
+            // identity & ownership
+            assertEquals(generatedId, created.id(), "id should be generated");
+            assertEquals(userId, created.user().id(), "user should be enriched from UserClient");
+
+            // Event publisher should receive events for all shared users
+            verify(shoppingListEventPublisher, times(2)).publish(
+                    argThat(id -> id.equals(sharedUserId1) || id.equals(sharedUserId2)),
                     argThat(payload ->
                             payload instanceof ShoppingListEventPayload p
                                     && p.action() == EventAction.SHOPPING_LIST_CREATED)
@@ -233,8 +269,64 @@ class DefaultShoppingListServiceTest {
             assertEquals(category, savedList.category(), "saved category should be updated");
 
             verify(userClient, times(1)).getUsersByIds(List.of(userId));
-            verify(shoppingListEventPublisher, times(1)).publish(
-                    eq(userId),
+            verify(shoppingListEventPublisher, never()).publish(any(), any());
+        }
+
+        @Test
+        void givenUpdateWithSharedUserIds_thenPublishesEventToAllSharedUsers() {
+            UUID userId = UUID.randomUUID();
+            UUID shoppingListId = UUID.randomUUID();
+            UUID categoryId = UUID.randomUUID();
+            UUID sharedUserId1 = UUID.randomUUID();
+            UUID sharedUserId2 = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            Category category = Category.builder()
+                    .id(categoryId)
+                    .name("Updated Category")
+                    .type(TransactionType.EXPENSE)
+                    .build();
+
+            ShoppingList existing = ShoppingList.builder()
+                    .id(shoppingListId)
+                    .name("Old Name")
+                    .description("Old description")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .sharedWithUserIds(List.of(sharedUserId1, sharedUserId2))
+                    .budget(100.0)
+                    .category(category)
+                    .items(new ArrayList<>())
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            UpdateShoppingListCommand command = UpdateShoppingListCommand.builder()
+                    .shoppingListId(shoppingListId)
+                    .userId(userId)
+                    .name("New Name")
+                    .description("New description")
+                    .budget(500.0)
+                    .categoryId(categoryId)
+                    .build();
+
+            when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
+            when(shoppingListRepository.save(any())).thenAnswer(invocation ->
+                    ((ShoppingList) invocation.getArgument(0)).toBuilder().category(category).build()
+            );
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("Jane").lastName("Smith").build()));
+            when(categoryRepository.findByIdAndUserId(eq(categoryId), eq(userId)))
+                    .thenReturn(Optional.of(category));
+
+            ShoppingListSummary updated = shoppingListService.updateShoppingList(command);
+
+            assertEquals(shoppingListId, updated.id(), "id should be preserved");
+            assertEquals("New Name", updated.name(), "name should be updated");
+
+            // Event publisher should receive events for all shared users
+            verify(shoppingListEventPublisher, times(2)).publish(
+                    argThat(id -> id.equals(sharedUserId1) || id.equals(sharedUserId2)),
                     argThat(payload ->
                             payload instanceof ShoppingListEventPayload p
                                     && p.action() == EventAction.SHOPPING_LIST_UPDATED)
@@ -489,8 +581,44 @@ class DefaultShoppingListServiceTest {
             ArgumentCaptor<UUID> idCaptor = ArgumentCaptor.forClass(UUID.class);
             verify(shoppingListRepository, times(1)).deleteById(idCaptor.capture());
             assertEquals(shoppingListId, idCaptor.getValue(), "repository should receive the correct id");
-            verify(shoppingListEventPublisher, times(1)).publish(
-                    eq(userId),
+            verify(shoppingListEventPublisher, never()).publish(any(), any());
+        }
+
+        @Test
+        void givenDeleteWithSharedUserIds_thenPublishesEventToAllSharedUsers() {
+            UUID shoppingListId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+            UUID sharedUserId1 = UUID.randomUUID();
+            UUID sharedUserId2 = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            ShoppingList existing = ShoppingList.builder()
+                    .id(shoppingListId)
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .sharedWithUserIds(List.of(sharedUserId1, sharedUserId2))
+                    .items(new ArrayList<>())
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            DeleteShoppingListCommand command = DeleteShoppingListCommand.builder()
+                    .shoppingListId(shoppingListId)
+                    .userId(userId)
+                    .build();
+
+            when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
+
+            shoppingListService.deleteShoppingList(command);
+
+            ArgumentCaptor<UUID> idCaptor = ArgumentCaptor.forClass(UUID.class);
+            verify(shoppingListRepository, times(1)).deleteById(idCaptor.capture());
+            assertEquals(shoppingListId, idCaptor.getValue(), "repository should receive the correct id");
+
+            // Event publisher should receive events for all shared users
+            verify(shoppingListEventPublisher, times(2)).publish(
+                    argThat(id -> id.equals(sharedUserId1) || id.equals(sharedUserId2)),
                     argThat(payload ->
                             payload instanceof ShoppingListEventPayload p
                                     && p.action() == EventAction.SHOPPING_LIST_DELETED)
@@ -639,8 +767,78 @@ class DefaultShoppingListServiceTest {
             assertNotNull(savedList.completedAt(), "saved completedAt should be set");
 
             verify(userClient, times(1)).getUsersByIds(any());
-            verify(shoppingListEventPublisher, times(1)).publish(
-                    eq(userId),
+            verify(shoppingListEventPublisher, never()).publish(any(), any());
+        }
+
+        @Test
+        void givenAllItemsPurchasedWithSharedUserIds_thenPublishesEventToAllSharedUsers() {
+            UUID shoppingListId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+            UUID sharedUserId1 = UUID.randomUUID();
+            UUID sharedUserId2 = UUID.randomUUID();
+            UUID addedBy = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            ShoppingItem item1 = ShoppingItem.builder()
+                    .id(UUID.randomUUID())
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .purchased(true)
+                    .priority(ItemPriority.HIGH)
+                    .addedBy(addedBy)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingItem item2 = ShoppingItem.builder()
+                    .id(UUID.randomUUID())
+                    .name("Bread")
+                    .category("Bakery")
+                    .quantity(1.0)
+                    .unit("loaf")
+                    .price(2.5)
+                    .purchased(true)
+                    .priority(ItemPriority.HIGH)
+                    .addedBy(addedBy)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingList existing = ShoppingList.builder()
+                    .id(shoppingListId)
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .sharedWithUserIds(List.of(sharedUserId1, sharedUserId2))
+                    .items(List.of(item1, item2))
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            CompleteShoppingListCommand command = CompleteShoppingListCommand.builder()
+                    .shoppingListId(shoppingListId)
+                    .finalAmount(6.0)
+                    .userId(userId)
+                    .build();
+
+            when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
+            when(shoppingListRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(userClient.getUsersByIds(any())).thenReturn(List.of(
+                    User.builder().id(userId).firstName("John").lastName("Doe").build(),
+                    User.builder().id(addedBy).firstName("Jane").lastName("Smith").build()
+            ));
+
+            ShoppingListSummary completed = shoppingListService.completeShoppingList(command);
+
+            assertEquals(shoppingListId, completed.id(), "id should be preserved");
+            assertEquals(ShoppingListStatus.COMPLETED, completed.status(), "status should be COMPLETED");
+
+            // Event publisher should receive events for all shared users
+            verify(shoppingListEventPublisher, times(2)).publish(
+                    argThat(id -> id.equals(sharedUserId1) || id.equals(sharedUserId2)),
                     argThat(payload ->
                             payload instanceof ShoppingListEventPayload p
                                     && p.action() == EventAction.SHOPPING_LIST_COMPLETED)

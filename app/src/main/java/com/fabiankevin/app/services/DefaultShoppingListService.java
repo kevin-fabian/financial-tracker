@@ -73,11 +73,7 @@ public class DefaultShoppingListService implements ShoppingListService {
 
         ShoppingList saved = shoppingListRepository.save(shoppingList);
         ShoppingListSummary summary = toSummary(saved);
-        shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
-                EventAction.SHOPPING_LIST_CREATED,
-                command.userId().toString(),
-                summary
-        ));
+        publishEvent(saved, EventAction.SHOPPING_LIST_CREATED, command.userId().toString(), summary);
         return summary;
     }
 
@@ -110,11 +106,7 @@ public class DefaultShoppingListService implements ShoppingListService {
 
         ShoppingList saved = shoppingListRepository.save(completed);
         ShoppingListSummary summary = toSummary(saved);
-        shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
-                EventAction.SHOPPING_LIST_COMPLETED,
-                command.userId().toString(),
-                summary
-        ));
+        publishEvent(saved, EventAction.SHOPPING_LIST_COMPLETED, command.userId().toString(), summary);
         return summary;
     }
 
@@ -147,11 +139,7 @@ public class DefaultShoppingListService implements ShoppingListService {
 
         ShoppingList saved = shoppingListRepository.save(patched);
         ShoppingListSummary summary = toSummary(saved, category);
-        shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
-                EventAction.SHOPPING_LIST_UPDATED,
-                saved.userId().toString(),
-                summary
-        ));
+        publishEvent(saved, EventAction.SHOPPING_LIST_UPDATED, saved.userId().toString(), summary);
         return summary;
     }
 
@@ -323,11 +311,7 @@ public class DefaultShoppingListService implements ShoppingListService {
 
         shoppingListRepository.deleteById(command.shoppingListId());
 
-        shoppingListEventPublisher.publish(existing.userId(), new ShoppingListEventPayload(
-                EventAction.SHOPPING_LIST_DELETED,
-                existing.userId().toString(),
-                toSummary(existing)
-        ));
+        publishEvent(existing, EventAction.SHOPPING_LIST_DELETED, existing.userId().toString(), toSummary(existing));
     }
 
     @Transactional
@@ -416,5 +400,14 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .collect(Collectors.toMap(User::id, Function.identity()));
         ShoppingList restored = shoppingList.toBuilder().category(category).build();
         return toSummary(restored, usersById, usersById.get(shoppingList.userId()));
+    }
+
+    private void publishEvent(ShoppingList shoppingList, EventAction action, String actorId, ShoppingListSummary summary) {
+        List<UUID> sharedWithUserIds = shoppingList.sharedWithUserIds();
+        if (sharedWithUserIds != null && !sharedWithUserIds.isEmpty()) {
+            sharedWithUserIds.forEach(targetId ->
+                    shoppingListEventPublisher.publish(targetId, new ShoppingListEventPayload(action, actorId, summary))
+            );
+        }
     }
 }
