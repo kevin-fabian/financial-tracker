@@ -110,6 +110,7 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             Pageable pageable);
 
     int deleteByIdAndAccountUserId(UUID id, UUID userId);
+    int deleteByIdAndAddedBy(UUID id, UUID userId);
 
     @Query("""
             SELECT STR(t.category.transactionType) as label, COALESCE(SUM(t.amount), 0.0) as total

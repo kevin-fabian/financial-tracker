@@ -68,6 +68,11 @@ public class DefaultTransactionRepository implements TransactionRepository {
     }
 
     @Override
+    public int deleteByIdAndAddedBy(UUID transactionId, UUID userId) {
+        return jpaTransactionRepository.deleteByIdAndAddedBy(transactionId, userId);
+    }
+
+    @Override
     public List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByCategory(LocalDate from, LocalDate to, Set<UUID> userIds, TransactionType type) {
         return jpaTransactionRepository.getSummaryByDateRangeAndUserIdGroupedByCategory(from, to, userIds, type)
                 .map(SummaryPointProjection::toModel)

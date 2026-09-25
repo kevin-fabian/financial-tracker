@@ -27,11 +27,7 @@ import com.fabiankevin.app.services.commands.household.invitations.RejectInvitat
 import com.fabiankevin.app.services.commands.household.invitations.SendInvitationCommand;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -49,31 +45,26 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
 class DefaultInvitationServiceTest {
+    private final HouseholdRepository householdRepository = mock(HouseholdRepository.class);
+    private final InvitationRepository invitationRepository = mock(InvitationRepository.class);
+    private final UserClient userClient = mock(UserClient.class);
+    private final EventPublisher invitationEventPublisher = mock(EventPublisher.class);
+    private final EventPublisher householdEventPublisher = mock(EventPublisher.class);
 
-    @Mock
-    private HouseholdRepository householdRepository;
-
-    @Mock
-    private InvitationRepository invitationRepository;
-
-    @Mock
-    private UserClient userClient;
-
-    @Mock
-    private EventPublisher invitationEventPublisher;
-
-    @Mock
-    private EventPublisher householdEventPublisher;
-
-    @InjectMocks
-    private DefaultInvitationService service;
+    private final InvitationService service = new DefaultInvitationService(
+            invitationRepository,
+            householdRepository,
+            userClient,
+            invitationEventPublisher,
+            householdEventPublisher
+    );
 
     @Nested
     class SendInvitation {
@@ -487,7 +478,7 @@ class DefaultInvitationServiceTest {
             UUID leaderUserId = UUID.randomUUID();
             UUID existingMemberUserId = UUID.randomUUID();
             UUID inviteeUserId = UUID.randomUUID();
-            UUID partyId = UUID.randomUUID();
+            UUID householdId = UUID.randomUUID();
             UUID invitationId = UUID.randomUUID();
             Invitation invitation = Invitation.builder()
                     .id(invitationId)
@@ -497,10 +488,10 @@ class DefaultInvitationServiceTest {
                     .status(InvitationStatus.PENDING)
                     .createdAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(604800))
-                    .householdId(partyId)
+                    .householdId(householdId)
                     .build();
-            Household space = Household.builder()
-                    .id(partyId)
+            Household household = Household.builder()
+                    .id(householdId)
                     .name("Family Budget")
                     .leaderId(leaderUserId)
                     .members(new ArrayList<>(List.of(
@@ -524,7 +515,7 @@ class DefaultInvitationServiceTest {
 
             when(invitationRepository.findById(invitationId)).thenReturn(Optional.of(invitation));
             when(invitationRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-            when(householdRepository.findById(partyId)).thenReturn(Optional.of(space));
+            when(householdRepository.findById(householdId)).thenReturn(Optional.of(household));
             when(householdRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(anyList()))
                     .thenReturn(List.of(
@@ -540,7 +531,7 @@ class DefaultInvitationServiceTest {
             assertNotNull(result);
             assertEquals(InvitationStatus.ACCEPTED, result.status());
             ArgumentCaptor<HouseholdEventPayload> payloadCaptor = ArgumentCaptor.forClass(HouseholdEventPayload.class);
-            verify(householdEventPublisher).publish(eq(partyId), payloadCaptor.capture());
+            verify(householdEventPublisher).publish(any(), payloadCaptor.capture());
             HouseholdEventPayload payload = payloadCaptor.getValue();
             assertEquals(EventAction.HOUSEHOLD_MEMBER_JOINED, payload.action());
             assertEquals(inviteeUserId.toString(), payload.userId());

@@ -22,6 +22,8 @@ public interface TransactionRepository {
     // Delete a transaction by id only when it belongs to the specified id.
     // Returns the number of rows deleted (0 if none). Implementation should be idempotent (no exception if not found).
     int deleteByIdAndUserId(UUID transactionId, UUID userId);
+    // Delete a transaction by id when it was added by the specified user.
+    int deleteByIdAndAddedBy(UUID transactionId, UUID userId);
     List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByCategory(LocalDate from, LocalDate to, Set<UUID> userIds, TransactionType type);
     List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByMonth(LocalDate from, LocalDate to, Set<UUID> userIds, TransactionType type);
     List<SummaryPoint> getSummaryByDateRangeAndUserIdGroupedByYear(LocalDate from, LocalDate to, Set<UUID> userIds, TransactionType type);

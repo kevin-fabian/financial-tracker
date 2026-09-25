@@ -81,7 +81,7 @@ public class DefaultTransactionService implements TransactionService {
     @Override
     public void deleteTransaction(UUID transactionId, UUID userId) {
         Transaction existing = transactionRepository.findById(transactionId)
-                .filter(t -> t.account().user().id().equals(userId))
+                .filter(t -> t.account().user().id().equals(userId) || t.addedBy().id().equals(userId))
                 .orElseThrow(TransactionNotFoundException::new);
 
         householdRepository.findByUserId(userId).ifPresent(household ->
@@ -92,7 +92,11 @@ public class DefaultTransactionService implements TransactionService {
                 ))
         );
 
-        transactionRepository.deleteByIdAndUserId(transactionId, userId);
+        if (existing.account().user().id().equals(userId)) {
+            transactionRepository.deleteByIdAndUserId(transactionId, userId);
+        } else {
+            transactionRepository.deleteByIdAndAddedBy(transactionId, userId);
+        }
     }
 
     @Override

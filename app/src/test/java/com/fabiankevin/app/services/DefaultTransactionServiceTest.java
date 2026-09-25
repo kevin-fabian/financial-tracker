@@ -402,7 +402,7 @@ class DefaultTransactionServiceTest {
     @Nested
     class DeleteTransaction {
         @Test
-        void givenExistingTransactionAndUserHasParty_thenShouldDeleteAndPublishEvent() {
+        void givenExistingTransactionAndUserHasHousehold_thenShouldDeleteAndPublishEvent() {
             UUID userId = UUID.randomUUID();
             UUID transactionId = UUID.randomUUID();
             UUID partyId = UUID.randomUUID();
@@ -431,6 +431,7 @@ class DefaultTransactionServiceTest {
 
             verify(transactionRepository, times(1)).findById(transactionId);
             verify(transactionRepository, times(1)).deleteByIdAndUserId(transactionId, userId);
+            verify(transactionRepository, never()).deleteByIdAndAddedBy(any(), any());
             verify(householdRepository, times(1)).findByUserId(userId);
             verify(eventPublisher, times(1)).publish(eq(partyId), argThat(payload ->
                     payload instanceof TransactionEventPayload p
@@ -465,6 +466,7 @@ class DefaultTransactionServiceTest {
 
             verify(transactionRepository, times(1)).findById(transactionId);
             verify(transactionRepository, times(1)).deleteByIdAndUserId(transactionId, userId);
+            verify(transactionRepository, never()).deleteByIdAndAddedBy(any(), any());
             verify(householdRepository, times(1)).findByUserId(userId);
             verify(eventPublisher, never()).publish(any(), any());
         }
@@ -480,6 +482,44 @@ class DefaultTransactionServiceTest {
             verify(transactionRepository, times(1)).findById(transactionId);
             verify(transactionRepository, never()).deleteByIdAndUserId(any(), any());
             verify(eventPublisher, never()).publish(any(), any());
+        }
+
+        @Test
+        void givenTransactionAddedByUserButAccountBelongsToAnotherUser_thenShouldDeleteAndPublishEvent() {
+            UUID userId = UUID.randomUUID();
+            UUID otherUserId = UUID.randomUUID();
+            UUID transactionId = UUID.randomUUID();
+            UUID partyId = UUID.randomUUID();
+
+            Transaction transaction = Transaction.builder()
+                    .id(transactionId)
+                    .account(Account.builder().id(UUID.randomUUID()).user(User.of(otherUserId)).name("GCASH").currency(Currency.getInstance("PHP")).build())
+                    .category(Category.builder().id(UUID.randomUUID()).type(TransactionType.EXPENSE).userId(userId).name("FOOD").build())
+                    .type(TransactionType.EXPENSE)
+                    .amount(100)
+                    .description("deleted")
+                    .transactionDate(LocalDate.now())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .addedBy(User.of(userId))
+                    .updatedBy(User.of(userId))
+                    .build();
+
+            when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(transaction));
+            when(transactionRepository.deleteByIdAndAddedBy(transactionId, userId)).thenReturn(1);
+            Household household = mock(Household.class);
+            when(household.id()).thenReturn(partyId);
+            when(householdRepository.findByUserId(userId)).thenReturn(Optional.of(household));
+
+            transactionService.deleteTransaction(transactionId, userId);
+
+            verify(transactionRepository, times(1)).findById(transactionId);
+            verify(transactionRepository, times(1)).deleteByIdAndAddedBy(transactionId, userId);
+            verify(householdRepository, times(1)).findByUserId(userId);
+            verify(eventPublisher, times(1)).publish(eq(partyId), argThat(payload ->
+                    payload instanceof TransactionEventPayload p
+                            && p.action() == EventAction.TRANSACTION_DELETED
+            ));
         }
 
         @Test
@@ -507,6 +547,7 @@ class DefaultTransactionServiceTest {
             assertThrows(TransactionNotFoundException.class, () -> transactionService.deleteTransaction(transactionId, userId));
             verify(transactionRepository, times(1)).findById(transactionId);
             verify(transactionRepository, never()).deleteByIdAndUserId(any(), any());
+            verify(transactionRepository, never()).deleteByIdAndAddedBy(any(), any());
             verify(eventPublisher, never()).publish(any(), any());
         }
     }
