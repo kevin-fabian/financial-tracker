@@ -196,13 +196,8 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .updatedAt(savedItem.updatedAt())
                 .build();
 
-        shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
-                EventAction.ITEM_ADDED,
-                saved.userId().toString(),
-                toSummary(saved.toBuilder()
-                        .items(List.of(savedItem))
-                        .build())
-        ));
+        publishEvent(saved, EventAction.ITEM_ADDED, saved.userId().toString(),
+                toSummary(saved.toBuilder().items(List.of(savedItem)).build()));
         return result;
     }
 
@@ -255,13 +250,8 @@ public class DefaultShoppingListService implements ShoppingListService {
 
         ShoppingItemSummary result = toItemSummary(savedItem, user);
 
-        shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
-                EventAction.ITEM_UPDATED,
-                saved.userId().toString(),
-                toSummary(saved.toBuilder()
-                        .items(List.of(savedItem))
-                        .build())
-        ));
+        publishEvent(saved, EventAction.ITEM_UPDATED, saved.userId().toString(),
+                toSummary(saved.toBuilder().items(List.of(savedItem)).build()));
         return result;
     }
 
@@ -290,13 +280,8 @@ public class DefaultShoppingListService implements ShoppingListService {
 
         ShoppingList saved = shoppingListRepository.save(updated);
 
-        shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
-                EventAction.ITEM_REMOVED,
-                saved.userId().toString(),
-                toSummary(saved.toBuilder()
-                        .items(List.of(removedItem))
-                        .build())
-        ));
+        publishEvent(saved, EventAction.ITEM_REMOVED, saved.userId().toString(),
+                toSummary(saved.toBuilder().items(List.of(removedItem)).build()));
     }
 
     @Transactional

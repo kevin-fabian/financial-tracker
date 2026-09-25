@@ -50,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -414,7 +415,60 @@ class DefaultShoppingListServiceTest {
             verify(shoppingListRepository, times(1)).save(captor.capture());
             assertEquals(1, captor.getValue().items().size(), "list should contain the added item");
             assertEquals("Milk", captor.getValue().items().getFirst().name());
-            verify(shoppingListEventPublisher, times(1)).publish(eq(addedBy), any(ShoppingListEventPayload.class));
+            verify(shoppingListEventPublisher, never()).publish(any(), any());
+        }
+
+        @Test
+        void givenExistingListWithSharedUserIds_thenAddsItemAndPublishesToAllSharedUsers() {
+            UUID shoppingListId = UUID.randomUUID();
+            UUID addedBy = UUID.randomUUID();
+            UUID sharedUserId1 = UUID.randomUUID();
+            UUID sharedUserId2 = UUID.randomUUID();
+            ShoppingList existing = ShoppingList.builder()
+                    .id(shoppingListId)
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(addedBy)
+                    .sharedWithUserIds(List.of(sharedUserId1, sharedUserId2))
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            CreateShoppingItemCommand command = CreateShoppingItemCommand.builder()
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .notes("Whole milk")
+                    .addedBy(addedBy)
+                    .shoppingListId(shoppingListId)
+                    .priority(ItemPriority.HIGH)
+                    .build();
+
+            when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
+            when(shoppingListRepository.save(any())).thenAnswer(invocation -> {
+                ShoppingList s = invocation.getArgument(0);
+                List<ShoppingItem> items = new ArrayList<>(s.items());
+                ShoppingItem last = items.getLast();
+                items.set(items.size() - 1, last.toBuilder().id(UUID.randomUUID()).build());
+                return s.toBuilder().items(items).build();
+            });
+            when(userClient.getUsersByIds(List.of(addedBy)))
+                    .thenReturn(List.of(User.builder().id(addedBy).firstName("John").lastName("Doe").build()));
+
+            ShoppingItemSummary added = shoppingListService.addShoppingItem(command);
+
+            assertNotNull(added.id(), "id should be generated");
+            assertEquals("Milk", added.name(), "name should match command");
+
+            // Event publisher should receive events for all shared users
+            verify(shoppingListEventPublisher, times(2)).publish(
+                    argThat(id -> id.equals(sharedUserId1) || id.equals(sharedUserId2)),
+                    argThat(payload ->
+                            payload instanceof ShoppingListEventPayload p
+                                    && p.action() == EventAction.ITEM_ADDED)
+            );
         }
 
         @Test
@@ -491,13 +545,7 @@ class DefaultShoppingListServiceTest {
             ShoppingList savedList = captor.getValue();
             assertEquals(2, savedList.items().size(), "list should contain both existing and new item");
 
-            // Verify event payload contains only the newly added item
-            ArgumentCaptor<ShoppingListEventPayload> payloadCaptor = ArgumentCaptor.forClass(ShoppingListEventPayload.class);
-            verify(shoppingListEventPublisher, times(1)).publish(eq(addedBy), payloadCaptor.capture());
-            ShoppingListEventPayload publishedPayload = payloadCaptor.getValue();
-            assertEquals(EventAction.ITEM_ADDED, publishedPayload.action(), "action should be ITEM_ADDED");
-            assertEquals(1, publishedPayload.data().items().size(), "published data should contain only the new item");
-            assertEquals("Milk", publishedPayload.data().items().getFirst().name(), "published item should be the newly added one");
+            verify(shoppingListEventPublisher, never()).publish(any(), any());
         }
 
         @Test
@@ -554,7 +602,7 @@ class DefaultShoppingListServiceTest {
     @Nested
     class DeleteShoppingList {
         @Test
-        void givenExistingList_thenDeletesAndPublishesEvent() {
+        void givenExistingListWithSharedUserIds_thenDeletesAndPublishesEvent() {
             UUID shoppingListId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
             Instant now = Instant.now();
@@ -1071,12 +1119,7 @@ class DefaultShoppingListServiceTest {
             assertTrue(savedItem.purchased(), "saved purchased should be true");
 
             verify(userClient, times(1)).getUsersByIds(List.of(addedBy));
-            verify(shoppingListEventPublisher, times(1)).publish(
-                    eq(userId),
-                    argThat(payload ->
-                            payload instanceof ShoppingListEventPayload p
-                                    && p.action() == EventAction.ITEM_UPDATED)
-            );
+            verify(shoppingListEventPublisher, never()).publish(any(), any());
         }
 
         @Test
@@ -1148,14 +1191,87 @@ class DefaultShoppingListServiceTest {
             assertTrue(updated.purchased(), "purchased should be updated to true");
             assertEquals("Milk", updated.name(), "name should be unchanged");
 
-            // Verify event payload contains only the updated item
-            ArgumentCaptor<ShoppingListEventPayload> payloadCaptor = ArgumentCaptor.forClass(ShoppingListEventPayload.class);
-            verify(shoppingListEventPublisher, times(1)).publish(eq(userId), payloadCaptor.capture());
-            ShoppingListEventPayload publishedPayload = payloadCaptor.getValue();
-            assertEquals(EventAction.ITEM_UPDATED, publishedPayload.action(), "action should be ITEM_UPDATED");
-            assertEquals(1, publishedPayload.data().items().size(), "published data should contain only the updated item");
-            assertEquals("Milk", publishedPayload.data().items().getFirst().name(), "published item should be the updated one");
-            assertTrue(publishedPayload.data().items().getFirst().purchased(), "published item should reflect the update");
+            // No event published when sharedWithUserIds is empty
+            verify(shoppingListEventPublisher, never()).publish(any(), any());
+        }
+
+        @Test
+        void givenExistingListWithSharedUserIds_thenUpdatesItemAndPublishesToAllSharedUsers() {
+            // Given
+            UUID shoppingListId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+            UUID itemId = UUID.randomUUID();
+            UUID addedBy = UUID.randomUUID();
+            UUID otherItemId = UUID.randomUUID();
+            Instant now = Instant.now();
+            List<UUID> sharedUserIds = List.of(UUID.randomUUID(), UUID.randomUUID());
+
+            ShoppingItem existingItem = ShoppingItem.builder()
+                    .id(itemId)
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .purchased(false)
+                    .priority(ItemPriority.HIGH)
+                    .notes("Whole milk")
+                    .addedBy(addedBy)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingItem otherItem = ShoppingItem.builder()
+                    .id(otherItemId)
+                    .name("Bread")
+                    .category("Bakery")
+                    .quantity(1.0)
+                    .unit("loaf")
+                    .price(2.5)
+                    .purchased(true)
+                    .priority(ItemPriority.MEDIUM)
+                    .addedBy(addedBy)
+                    .createdAt(now.minusSeconds(300))
+                    .updatedAt(now.minusSeconds(300))
+                    .build();
+
+            ShoppingList existing = ShoppingList.builder()
+                    .id(shoppingListId)
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .items(List.of(existingItem, otherItem))
+                    .sharedWithUserIds(sharedUserIds)
+                    .createdAt(now.minusSeconds(600))
+                    .updatedAt(now)
+                    .build();
+
+            UpdateShoppingItemCommand command = UpdateShoppingItemCommand.builder()
+                    .shoppingListId(shoppingListId)
+                    .itemId(itemId)
+                    .userId(userId)
+                    .purchased(true)
+                    .build();
+
+            when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
+            when(shoppingListRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(userClient.getUsersByIds(any())).thenReturn(List.of(
+                    User.builder().id(addedBy).firstName("Jane").lastName("Smith").build(),
+                    User.builder().id(userId).firstName("John").lastName("Doe").build()
+            ));
+
+            ShoppingItemSummary updated = shoppingListService.updateShoppingItem(command);
+
+            // Verify returned item
+            assertEquals(itemId, updated.id(), "id should be preserved");
+            assertTrue(updated.purchased(), "purchased should be updated to true");
+            assertEquals("Milk", updated.name(), "name should be unchanged");
+
+            // Event published to all shared users
+            verify(shoppingListEventPublisher, times(2)).publish(any(), any());
+            verify(shoppingListEventPublisher, atLeastOnce()).publish(argThat(targetId ->
+                            targetId.equals(sharedUserIds.getFirst()) || targetId.equals(sharedUserIds.get(1))
+            ), any());
         }
 
         @Test
@@ -1285,6 +1401,7 @@ class DefaultShoppingListServiceTest {
             UUID userId = UUID.randomUUID();
             UUID itemId = UUID.randomUUID();
             UUID addedBy = UUID.randomUUID();
+            UUID otherUserId = UUID.randomUUID();
             Instant now = Instant.now();
 
             ShoppingItem item1 = ShoppingItem.builder()
@@ -1320,6 +1437,7 @@ class DefaultShoppingListServiceTest {
                     .name("Groceries")
                     .status(ShoppingListStatus.ACTIVE)
                     .userId(userId)
+                    .sharedWithUserIds(List.of(otherUserId))
                     .items(new ArrayList<>(List.of(item1, item2)))
                     .createdAt(now)
                     .updatedAt(now)
@@ -1349,7 +1467,7 @@ class DefaultShoppingListServiceTest {
 
             // verify event published with ITEM_REMOVED action
             verify(shoppingListEventPublisher, times(1)).publish(
-                    eq(userId),
+                    eq(otherUserId),
                     argThat(payload ->
                             payload instanceof ShoppingListEventPayload p
                                     && p.action() == EventAction.ITEM_REMOVED)
@@ -1425,14 +1543,87 @@ class DefaultShoppingListServiceTest {
             assertEquals(1, savedList.items().size(), "list should contain remaining item");
             assertEquals("Bread", savedList.items().getFirst().name(), "remaining item should be Bread");
 
-            // Verify event payload contains only the deleted item
-            ArgumentCaptor<ShoppingListEventPayload> payloadCaptor = ArgumentCaptor.forClass(ShoppingListEventPayload.class);
-            verify(shoppingListEventPublisher, times(1)).publish(eq(userId), payloadCaptor.capture());
-            ShoppingListEventPayload publishedPayload = payloadCaptor.getValue();
-            assertEquals(EventAction.ITEM_REMOVED, publishedPayload.action(), "action should be ITEM_REMOVED");
-            assertEquals(1, publishedPayload.data().items().size(), "published data should contain only the deleted item");
-            assertEquals("Milk", publishedPayload.data().items().getFirst().name(), "published item should be the deleted one");
-            assertEquals(itemId, publishedPayload.data().items().getFirst().id(), "published item id should match deleted item");
+            // No event published when sharedWithUserIds is empty
+            verify(shoppingListEventPublisher, never()).publish(any(), any());
+        }
+
+        @Test
+        void givenExistingListWithSharedUserIds_thenDeletesItemAndPublishesToAllSharedUsers() {
+            // Given
+            UUID shoppingListId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+            UUID itemId = UUID.randomUUID();
+            UUID otherItemId = UUID.randomUUID();
+            UUID addedBy = UUID.randomUUID();
+            Instant now = Instant.now();
+            List<UUID> sharedUserIds = List.of(UUID.randomUUID(), UUID.randomUUID());
+
+            ShoppingItem item1 = ShoppingItem.builder()
+                    .id(itemId)
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .purchased(false)
+                    .priority(ItemPriority.HIGH)
+                    .addedBy(addedBy)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingItem item2 = ShoppingItem.builder()
+                    .id(otherItemId)
+                    .name("Bread")
+                    .category("Bakery")
+                    .quantity(1.0)
+                    .unit("loaf")
+                    .price(2.5)
+                    .purchased(true)
+                    .priority(ItemPriority.MEDIUM)
+                    .addedBy(addedBy)
+                    .createdAt(now.minusSeconds(300))
+                    .updatedAt(now.minusSeconds(300))
+                    .build();
+
+            ShoppingList existing = ShoppingList.builder()
+                    .id(shoppingListId)
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .items(new ArrayList<>(List.of(item1, item2)))
+                    .sharedWithUserIds(sharedUserIds)
+                    .createdAt(now.minusSeconds(600))
+                    .updatedAt(now)
+                    .build();
+
+            DeleteShoppingItemCommand command = DeleteShoppingItemCommand.builder()
+                    .shoppingListId(shoppingListId)
+                    .itemId(itemId)
+                    .userId(userId)
+                    .build();
+
+            when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
+            when(shoppingListRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(userClient.getUsersByIds(any())).thenReturn(List.of(
+                    User.builder().id(userId).firstName("John").lastName("Doe").build(),
+                    User.builder().id(addedBy).firstName("Jane").lastName("Smith").build()
+            ));
+
+            shoppingListService.deleteShoppingItem(command);
+
+            // Verify repository save with remaining items
+            ArgumentCaptor<ShoppingList> captor = ArgumentCaptor.forClass(ShoppingList.class);
+            verify(shoppingListRepository, times(1)).save(captor.capture());
+            ShoppingList savedList = captor.getValue();
+            assertEquals(1, savedList.items().size(), "list should contain remaining item");
+            assertEquals("Bread", savedList.items().getFirst().name(), "remaining item should be Bread");
+
+            // Event published to all shared users
+            verify(shoppingListEventPublisher, times(2)).publish(any(), any());
+            verify(shoppingListEventPublisher, atLeastOnce()).publish(argThat(targetId ->
+                            targetId.equals(sharedUserIds.getFirst()) || targetId.equals(sharedUserIds.get(1))
+            ), any());
         }
 
         @Test
