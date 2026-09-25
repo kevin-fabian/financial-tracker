@@ -270,7 +270,9 @@ public class DefaultShoppingListService implements ShoppingListService {
         shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
                 EventAction.ITEM_UPDATED,
                 saved.userId().toString(),
-                toSummary(saved)
+                toSummary(saved.toBuilder()
+                        .items(List.of(savedItem))
+                        .build())
         ));
         return result;
     }
@@ -285,6 +287,11 @@ public class DefaultShoppingListService implements ShoppingListService {
             throw new ShoppingListNotFoundException();
         }
 
+        ShoppingItem removedItem = existing.items().stream()
+                .filter(item -> item.id().equals(command.itemId()))
+                .findFirst()
+                .orElseThrow(ShoppingItemNotFoundException::new);
+
         if (!existing.removeItem(command.itemId())) {
             throw new ShoppingItemNotFoundException();
         }
@@ -298,7 +305,9 @@ public class DefaultShoppingListService implements ShoppingListService {
         shoppingListEventPublisher.publish(saved.userId(), new ShoppingListEventPayload(
                 EventAction.ITEM_REMOVED,
                 saved.userId().toString(),
-                toSummary(saved)
+                toSummary(saved.toBuilder()
+                        .items(List.of(removedItem))
+                        .build())
         ));
     }
 
