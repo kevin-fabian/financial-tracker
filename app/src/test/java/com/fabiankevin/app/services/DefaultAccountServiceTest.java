@@ -239,9 +239,19 @@ class DefaultAccountServiceTest {
                             .name("A1")
                             .user(User.of(userId))
                             .currency(Currency.getInstance("PHP"))
-                            .type(E_WALLET).createdAt(Instant.now())
-                            .updatedAt(Instant.now()).build(),
-                    Account.builder().id(UUID.randomUUID()).name("A2").user(User.of(userId)).currency(Currency.getInstance("PHP")).type(E_WALLET).createdAt(Instant.now()).updatedAt(Instant.now()).build()
+                            .type(E_WALLET)
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build(),
+                    Account.builder()
+                            .id(UUID.randomUUID())
+                            .name("A2")
+                            .user(User.of(userId))
+                            .currency(Currency.getInstance("PHP"))
+                            .type(E_WALLET)
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build()
             );
 
             Page<Account> page = new Page<>(accounts, 0, 10, accounts.size(), 1, true, true);
