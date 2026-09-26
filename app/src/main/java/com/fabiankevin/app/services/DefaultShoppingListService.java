@@ -83,7 +83,7 @@ public class DefaultShoppingListService implements ShoppingListService {
         ShoppingList existing = shoppingListRepository.findById(command.shoppingListId())
                 .orElseThrow(ShoppingListNotFoundException::new);
 
-        if (!existing.userId().equals(command.userId())) {
+        if (isUnauthorized(existing, command.userId())) {
             throw new ShoppingListNotFoundException();
         }
 
@@ -197,7 +197,7 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .build();
 
         publishEvent(saved, EventAction.ITEM_ADDED, saved.userId().toString(),
-                toSummary(saved.toBuilder().items(List.of(savedItem)).build()));
+                toSummary(saved));
         return result;
     }
 
@@ -207,7 +207,7 @@ public class DefaultShoppingListService implements ShoppingListService {
         ShoppingList existing = shoppingListRepository.findById(command.shoppingListId())
                 .orElseThrow(ShoppingListNotFoundException::new);
 
-        if (!existing.userId().equals(command.userId())) {
+        if (isUnauthorized(existing, command.userId())) {
             throw new ShoppingListNotFoundException();
         }
 
@@ -251,7 +251,7 @@ public class DefaultShoppingListService implements ShoppingListService {
         ShoppingItemSummary result = toItemSummary(savedItem, user);
 
         publishEvent(saved, EventAction.ITEM_UPDATED, saved.userId().toString(),
-                toSummary(saved.toBuilder().items(List.of(savedItem)).build()));
+                toSummary(saved));
         return result;
     }
 
@@ -265,11 +265,6 @@ public class DefaultShoppingListService implements ShoppingListService {
             throw new ShoppingListNotFoundException();
         }
 
-        ShoppingItem removedItem = existing.items().stream()
-                .filter(item -> item.id().equals(command.itemId()))
-                .findFirst()
-                .orElseThrow(ShoppingItemNotFoundException::new);
-
         if (!existing.removeItem(command.itemId())) {
             throw new ShoppingItemNotFoundException();
         }
@@ -281,7 +276,7 @@ public class DefaultShoppingListService implements ShoppingListService {
         ShoppingList saved = shoppingListRepository.save(updated);
 
         publishEvent(saved, EventAction.ITEM_REMOVED, saved.userId().toString(),
-                toSummary(saved.toBuilder().items(List.of(removedItem)).build()));
+                toSummary(saved));
     }
 
     @Transactional
@@ -394,5 +389,13 @@ public class DefaultShoppingListService implements ShoppingListService {
                     shoppingListEventPublisher.publish(targetId, new ShoppingListEventPayload(action, actorId, summary))
             );
         }
+    }
+
+    private boolean isUnauthorized(ShoppingList shoppingList, UUID userId) {
+        if (shoppingList.userId().equals(userId)) {
+            return false;
+        }
+        List<UUID> sharedWithUserIds = shoppingList.sharedWithUserIds();
+        return sharedWithUserIds == null || !sharedWithUserIds.contains(userId);
     }
 }
