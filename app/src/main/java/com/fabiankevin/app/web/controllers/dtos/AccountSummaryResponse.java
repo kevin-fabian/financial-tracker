@@ -6,7 +6,6 @@ import com.fabiankevin.app.models.enums.AccountType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
-import java.util.Optional;
 import java.util.UUID;
 
 @Builder(toBuilder = true)
@@ -39,9 +38,7 @@ public record AccountSummaryResponse(
                 .active(account.active())
                 .totalBalance(accountSummary.totalBalance())
                 .totalTransactions(accountSummary.totalTransactions())
-                .user(Optional.ofNullable(accountSummary.user())
-                        .map(UserResponse::from)
-                        .orElse(null))
+                .user(UserResponse.from(account.user()))
                 .build();
     }
 }

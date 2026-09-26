@@ -76,11 +76,6 @@ class DefaultAccountServiceTest {
                                     .build())
                             .totalBalance(1500.50)
                             .totalTransactions(42)
-                            .user(User.builder()
-                                    .id(userId)
-                                    .firstName("John")
-                                    .lastName("Doe")
-                                    .build())
                             .build()));
 
             AccountSummary created = accountService.createAccount(command);
@@ -96,8 +91,6 @@ class DefaultAccountServiceTest {
             assertEquals("Doe", created.account().user().lastName());
             assertEquals(1500.50, created.totalBalance());
             assertEquals(42, created.totalTransactions());
-            assertEquals("John", created.user().firstName());
-            assertEquals("Doe", created.user().lastName());
             verify(accountRepository, times(1)).save(any());
         }
 
@@ -202,11 +195,6 @@ class DefaultAccountServiceTest {
                                     .build())
                             .totalBalance(1500.50)
                             .totalTransactions(42)
-                            .user(User.builder()
-                                    .id(userId)
-                                    .firstName("John")
-                                    .lastName("Doe")
-                                    .build())
                             .build()));
             when(userClient.getUsersByIds(List.of(userId)))
                     .thenReturn(List.of(User.builder()
@@ -222,8 +210,8 @@ class DefaultAccountServiceTest {
             assertEquals("GCASH", found.account().name(), "name should match");
             assertEquals(1500.50, found.totalBalance(), "totalBalance should match");
             assertEquals(42, found.totalTransactions(), "totalTransactions should match");
-            assertEquals("John", found.user().firstName(), "enriched firstName should match");
-            assertEquals("Doe", found.user().lastName(), "enriched lastName should match");
+            assertEquals("John", found.account().user().firstName(), "enriched firstName should match");
+            assertEquals("Doe", found.account().user().lastName(), "enriched lastName should match");
             verify(accountRepository, times(1)).findSummaryByIdAndUserId(id, userId);
         }
 
@@ -384,11 +372,6 @@ class DefaultAccountServiceTest {
                                     .build())
                             .totalBalance(9876.54)
                             .totalTransactions(128)
-                            .user(User.builder()
-                                    .id(userId)
-                                    .firstName("Jane")
-                                    .lastName("Smith")
-                                    .build())
                             .build()));
 
             AccountSummary updated = accountService.patchAccount(command);
@@ -404,8 +387,6 @@ class DefaultAccountServiceTest {
             assertEquals("Smith", updated.account().user().lastName());
             assertEquals(9876.54, updated.totalBalance());
             assertEquals(128, updated.totalTransactions());
-            assertEquals("Jane", updated.user().firstName());
-            assertEquals("Smith", updated.user().lastName());
             verify(accountRepository, times(1)).findById(id);
             verify(accountRepository, times(1)).save(any());
         }

@@ -6,6 +6,5 @@ import lombok.Builder;
 public record AccountSummary(
         Account account,
         double totalBalance,
-        int totalTransactions,
-        User user) {
+        int totalTransactions) {
 }

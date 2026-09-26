@@ -65,7 +65,7 @@ public record AccountResponse(
                 .active(summary.account().active())
                 .createdAt(summary.account().createdAt())
                 .updatedAt(summary.account().updatedAt())
-                .user(UserResponse.from(summary.user()))
+                .user(UserResponse.from(summary.account().user()))
                 .build();
     }
 }

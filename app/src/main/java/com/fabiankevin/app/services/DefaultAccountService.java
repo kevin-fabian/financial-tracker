@@ -164,10 +164,12 @@ public class DefaultAccountService implements AccountService {
                     User user = usersById.get(userId);
                     return Optional.ofNullable(user)
                             .map(u -> summary.toBuilder()
-                                    .user(User.builder()
-                                            .id(userId)
-                                            .firstName(u.firstName())
-                                            .lastName(u.lastName())
+                                    .account(summary.account().toBuilder()
+                                            .user(User.builder()
+                                                    .id(userId)
+                                                    .firstName(u.firstName())
+                                                    .lastName(u.lastName())
+                                                    .build())
                                             .build())
                                     .build())
                             .orElse(summary);
