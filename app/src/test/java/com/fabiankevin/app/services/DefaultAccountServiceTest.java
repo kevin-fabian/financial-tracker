@@ -234,7 +234,13 @@ class DefaultAccountServiceTest {
         void givenUserId_thenShouldReturnPagedAccounts() {
             UUID userId = UUID.randomUUID();
             var accounts = List.of(
-                    Account.builder().id(UUID.randomUUID()).name("A1").user(User.of(userId)).currency(Currency.getInstance("PHP")).type(E_WALLET).createdAt(Instant.now()).updatedAt(Instant.now()).build(),
+                    Account.builder()
+                            .id(UUID.randomUUID())
+                            .name("A1")
+                            .user(User.of(userId))
+                            .currency(Currency.getInstance("PHP"))
+                            .type(E_WALLET).createdAt(Instant.now())
+                            .updatedAt(Instant.now()).build(),
                     Account.builder().id(UUID.randomUUID()).name("A2").user(User.of(userId)).currency(Currency.getInstance("PHP")).type(E_WALLET).createdAt(Instant.now()).updatedAt(Instant.now()).build()
             );
 
