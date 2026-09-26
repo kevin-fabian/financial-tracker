@@ -10,12 +10,9 @@ import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.PatchAccountCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.Currency;
@@ -24,385 +21,422 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static com.fabiankevin.app.models.enums.AccountType.E_WALLET;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
 class DefaultAccountServiceTest {
-    @Mock
-    private AccountRepository accountRepository;
+    private final AccountRepository accountRepository = mock(AccountRepository.class);
+    private final UserClient userClient = mock(UserClient.class);
+    private final TransactionRepository transactionRepository = mock(TransactionRepository.class);
+    private final HouseholdService householdService = mock(HouseholdService.class);
+    private final AccountService accountService = new DefaultAccountService(accountRepository, transactionRepository, userClient, householdService);
 
-    @Mock
-    private UserClient userClient;
+    @Nested
+    class CreateAccount {
 
-    @Mock
-    private TransactionRepository transactionRepository;
+        @Test
+        void givenNewAccount_thenShouldSaveAccount() {
+            UUID userId = UUID.randomUUID();
+            CreateAccountCommand command = CreateAccountCommand.builder()
+                    .name("GCASH")
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .userId(userId)
+                    .build();
 
-    @InjectMocks
-    private DefaultAccountService accountService;
+            when(accountRepository.findByNameAndTypeAndUserId(command.name(), command.type(), command.userId()))
+                    .thenReturn(Optional.empty());
+            when(accountRepository.save(any())).thenAnswer(invocation -> {
+                Account a = invocation.getArgument(0);
+                return a.toBuilder().id(UUID.randomUUID()).build();
+            });
 
-    @Test
-    void createAccount_givenNewAccount_thenShouldSaveAccount() {
-        UUID userId = UUID.randomUUID();
-        CreateAccountCommand command = CreateAccountCommand.builder()
-                .name("GCASH")
-                .currency(Currency.getInstance("PHP"))
-                .type(E_WALLET)
-                .userId(userId)
-                .build();
+            Account created = accountService.createAccount(command);
 
-        when(accountRepository.findByNameAndTypeAndUserId(command.name(), command.type(), command.userId()))
-                .thenReturn(Optional.empty());
-        when(accountRepository.save(any())).thenAnswer(invocation -> {
-            Account a = invocation.getArgument(0);
-            return a.toBuilder().id(UUID.randomUUID()).build();
-        });
+            assertEquals("GCASH", created.name(), "name should match command");
+            assertEquals(userId, created.user().id(), "user id should match command");
+            assertTrue(created.active(), "account should be active by default");
+            verify(accountRepository, times(1)).save(any());
+        }
 
-        Account created = accountService.createAccount(command);
+        @Test
+        void givenInactiveAccountWithSameNameAndType_thenShouldReactivate() {
+            UUID userId = UUID.randomUUID();
+            UUID existingId = UUID.randomUUID();
+            CreateAccountCommand command = CreateAccountCommand.builder()
+                    .name("GCASH")
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .userId(userId)
+                    .build();
 
-        assertEquals("GCASH", created.name());
-        assertEquals(userId, created.user().id());
-        assertTrue(created.active());
-        verify(accountRepository, times(1)).save(any());
+            Account inactive = Account.builder()
+                    .id(existingId)
+                    .name("GCASH")
+                    .user(User.of(userId))
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .active(false)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(accountRepository.findByNameAndTypeAndUserId(command.name(), command.type(), command.userId()))
+                    .thenReturn(Optional.of(inactive));
+            when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+            Account created = accountService.createAccount(command);
+
+            assertEquals(existingId, created.id(), "should reuse existing account id");
+            assertTrue(created.active(), "account should be reactivated");
+            ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
+            verify(accountRepository).save(captor.capture());
+            assertTrue(captor.getValue().active(), "account should be reactivated");
+        }
+
+        @Test
+        void givenActiveAccountWithSameNameAndType_thenShouldThrow() {
+            UUID userId = UUID.randomUUID();
+            CreateAccountCommand command = CreateAccountCommand.builder()
+                    .name("GCASH")
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .userId(userId)
+                    .build();
+
+            Account active = Account.builder()
+                    .id(UUID.randomUUID())
+                    .name("GCASH")
+                    .user(User.of(userId))
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(accountRepository.findByNameAndTypeAndUserId(command.name(), command.type(), command.userId()))
+                    .thenReturn(Optional.of(active));
+
+            assertThrows(com.fabiankevin.app.exceptions.AccountAlreadyExistException.class,
+                    () -> accountService.createAccount(command),
+                    "should throw when active duplicate exists");
+            verify(accountRepository, never()).save(any());
+        }
     }
 
-    @Test
-    void createAccount_givenInactiveAccountWithSameNameAndType_thenShouldReactivate() {
-        UUID userId = UUID.randomUUID();
-        UUID existingId = UUID.randomUUID();
-        CreateAccountCommand command = CreateAccountCommand.builder()
-                .name("GCASH")
-                .currency(Currency.getInstance("PHP"))
-                .type(E_WALLET)
-                .userId(userId)
-                .build();
+    @Nested
+    class GetAccountById {
 
-        Account inactive = Account.builder()
-                .id(existingId)
-                .name("GCASH")
-                .user(User.of(userId))
-                .currency(Currency.getInstance("PHP"))
-                .type(E_WALLET)
-                .active(false)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
+        @Test
+        void givenExistingAndMatchingUser_thenShouldReturn() {
+            UUID id = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+            when(accountRepository.findById(id)).thenReturn(Optional.of(Account.builder()
+                    .id(id)
+                    .name("GCASH")
+                    .user(User.of(userId))
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build()));
 
-        when(accountRepository.findByNameAndTypeAndUserId(command.name(), command.type(), command.userId()))
-                .thenReturn(Optional.of(inactive));
-        when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            Account found = accountService.getAccountById(id, userId);
 
-        Account created = accountService.createAccount(command);
+            assertEquals(id, found.id(), "id should match");
+            assertEquals(userId, found.user().id(), "user id should match");
+            verify(accountRepository, times(1)).findById(id);
+        }
 
-        assertEquals(existingId, created.id());
-        assertTrue(created.active());
-        verify(accountRepository, times(1)).save(any());
-        ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
-        verify(accountRepository).save(captor.capture());
-        assertTrue(captor.getValue().active(), "account should be reactivated");
+        @Test
+        void givenExistingButDifferentUser_thenShouldThrow() {
+            UUID id = UUID.randomUUID();
+            when(accountRepository.findById(id)).thenReturn(Optional.of(Account.builder()
+                    .id(id)
+                    .name("GCASH")
+                    .user(User.of(UUID.randomUUID()))
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build()));
+
+            UUID otherUser = UUID.randomUUID();
+            assertThrows(AccountNotFoundException.class,
+                    () -> accountService.getAccountById(id, otherUser),
+                    "should throw when user does not own account");
+            verify(accountRepository, times(1)).findById(id);
+        }
+
+        @Test
+        void givenNonExisting_thenShouldThrow() {
+            UUID id = UUID.randomUUID();
+            when(accountRepository.findById(id)).thenReturn(Optional.empty());
+
+            UUID otherUser = UUID.randomUUID();
+            assertThrows(AccountNotFoundException.class,
+                    () -> accountService.getAccountById(id, otherUser),
+                    "should throw when account does not exist");
+            verify(accountRepository, times(1)).findById(id);
+        }
     }
 
-    @Test
-    void createAccount_givenActiveAccountWithSameNameAndType_thenShouldThrow() {
-        UUID userId = UUID.randomUUID();
-        CreateAccountCommand command = CreateAccountCommand.builder()
-                .name("GCASH")
-                .currency(Currency.getInstance("PHP"))
-                .type(E_WALLET)
-                .userId(userId)
-                .build();
+    @Nested
+    class DeleteAccountById {
 
-        Account active = Account.builder()
-                .id(UUID.randomUUID())
-                .name("GCASH")
-                .user(User.of(userId))
-                .currency(Currency.getInstance("PHP"))
-                .type(E_WALLET)
-                .active(true)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
+        @Test
+        void givenExistingAndMatchingUser_thenShouldDelete() {
+            UUID id = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+            when(accountRepository.findById(id)).thenReturn(Optional.of(Account.builder()
+                    .id(id)
+                    .name("GCASH")
+                    .user(User.of(userId))
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build()));
 
-        when(accountRepository.findByNameAndTypeAndUserId(command.name(), command.type(), command.userId()))
-                .thenReturn(Optional.of(active));
+            accountService.deleteAccountById(id, userId);
 
-        assertThrows(com.fabiankevin.app.exceptions.AccountAlreadyExistException.class,
-                () -> accountService.createAccount(command));
-        verify(accountRepository, never()).save(any());
+            verify(accountRepository, times(1)).findById(id);
+            verify(accountRepository, times(1)).deleteById(id);
+        }
+
+        @Test
+        void givenNonExisting_thenShouldThrow() {
+            UUID id = UUID.randomUUID();
+            when(accountRepository.findById(id)).thenReturn(Optional.empty());
+
+            UUID otherUser = UUID.randomUUID();
+            assertThrows(AccountNotFoundException.class,
+                    () -> accountService.deleteAccountById(id, otherUser),
+                    "should throw when account does not exist");
+            verify(accountRepository, times(1)).findById(id);
+            verify(accountRepository, never()).deleteById(any());
+        }
     }
 
-    @Test
-    void getAccountById_givenExistingAndMatchingUser_thenShouldReturn() {
-        UUID id = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-        when(accountRepository.findById(id)).thenReturn(Optional.of(Account.builder()
-                .id(id)
-                .name("GCASH")
-                .user(User.of(userId))
-                .currency(Currency.getInstance("PHP"))
-                .type(E_WALLET)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build()));
+    @Nested
+    class GetAccountsByPageAndUserId {
 
-        Account found = accountService.getAccountById(id, userId);
+        @Test
+        void givenUserId_thenShouldReturnPagedAccounts() {
+            UUID userId = UUID.randomUUID();
+            var accounts = List.of(
+                    Account.builder().id(UUID.randomUUID()).name("A1").user(User.of(userId)).currency(Currency.getInstance("PHP")).type(E_WALLET).createdAt(Instant.now()).updatedAt(Instant.now()).build(),
+                    Account.builder().id(UUID.randomUUID()).name("A2").user(User.of(userId)).currency(Currency.getInstance("PHP")).type(E_WALLET).createdAt(Instant.now()).updatedAt(Instant.now()).build()
+            );
 
-        assertEquals(id, found.id());
-        assertEquals(userId, found.user().id());
-        verify(accountRepository, times(1)).findById(id);
+            Page<Account> page = new Page<>(accounts, 0, 10, accounts.size(), 1, true, true);
+            PageQuery query = new PageQuery(0, 10, "name", "ASC");
+
+            when(accountRepository.getAccountsByPageAndUserId(query, userId)).thenReturn(page);
+
+            Page<Account> result = accountService.getAccountsByPageAndUserId(query, userId);
+
+            assertEquals(page, result, "paged result should match repository response");
+            verify(accountRepository, times(1)).getAccountsByPageAndUserId(query, userId);
+        }
     }
 
-    @Test
-    void getAccountById_givenExistingButDifferentUser_thenShouldThrow() {
-        UUID id = UUID.randomUUID();
-        when(accountRepository.findById(id)).thenReturn(Optional.of(Account.builder()
-                .id(id)
-                .name("GCASH")
-                .user(User.of(UUID.randomUUID()))
-                .currency(Currency.getInstance("PHP"))
-                .type(E_WALLET)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build()));
+    @Nested
+    class PatchAccount {
 
-        UUID otherUser = UUID.randomUUID();
-        assertThrows(AccountNotFoundException.class, () -> accountService.getAccountById(id, otherUser));
-        verify(accountRepository, times(1)).findById(id);
+        @Test
+        void givenExistingAccount_thenShouldUpdateFields() {
+            UUID id = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+
+            Account existing = Account.builder()
+                    .id(id)
+                    .name("GCASH")
+                    .user(User.of(userId))
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            PatchAccountCommand command = PatchAccountCommand.builder()
+                    .id(id)
+                    .name("GCASH_MAIN")
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .userId(userId)
+                    .build();
+
+            when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
+            when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+            Account updated = accountService.patchAccount(command);
+
+            assertEquals("GCASH_MAIN", updated.name(), "name should be updated");
+            verify(accountRepository, times(1)).findById(id);
+            verify(accountRepository, times(1)).save(any());
+        }
+
+        @Test
+        void givenNonExistingId_thenShouldThrow() {
+            UUID id = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+
+            PatchAccountCommand command = PatchAccountCommand.builder()
+                    .id(id)
+                    .name("GCASH_MAIN")
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .userId(userId)
+                    .build();
+
+            when(accountRepository.findById(id)).thenReturn(Optional.empty());
+
+            assertThrows(AccountNotFoundException.class,
+                    () -> accountService.patchAccount(command),
+                    "should throw when account does not exist");
+            verify(accountRepository, times(1)).findById(id);
+            verify(accountRepository, never()).save(any());
+        }
     }
 
-    @Test
-    void getAccountById_givenNonExisting_thenShouldThrow() {
-        UUID id = UUID.randomUUID();
-        when(accountRepository.findById(id)).thenReturn(Optional.empty());
+    @Nested
+    class DisableAccount {
 
-        UUID otherUser = UUID.randomUUID();
-        assertThrows(AccountNotFoundException.class, () -> accountService.getAccountById(id, otherUser));
-        verify(accountRepository, times(1)).findById(id);
+        @Test
+        void givenExistingAndMatchingUser_thenShouldDisableAccount() {
+            UUID id = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+
+            Account existing = Account.builder()
+                    .id(id)
+                    .name("GCASH")
+                    .user(User.of(userId))
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(transactionRepository.countByAccountId(existing.id())).thenReturn(2L);
+            when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
+            when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+            accountService.disableAccount(id, userId);
+
+            ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
+            verify(accountRepository).save(captor.capture());
+            assertFalse(captor.getValue().active(), "account should be disabled");
+        }
+
+        @Test
+        void givenNonExisting_thenShouldThrow() {
+            UUID id = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+
+            when(accountRepository.findById(id)).thenReturn(Optional.empty());
+
+            assertThrows(AccountNotFoundException.class,
+                    () -> accountService.disableAccount(id, userId),
+                    "should throw when account does not exist");
+            verify(accountRepository, times(1)).findById(id);
+            verify(accountRepository, never()).save(any());
+        }
+
+        @Test
+        void givenDifferentUser_thenShouldThrow() {
+            UUID id = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+            UUID otherUserId = UUID.randomUUID();
+
+            Account existing = Account.builder()
+                    .id(id)
+                    .name("GCASH")
+                    .user(User.of(otherUserId))
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
+
+            assertThrows(AccountNotFoundException.class,
+                    () -> accountService.disableAccount(id, userId),
+                    "should throw when user does not own account");
+            verify(accountRepository, times(1)).findById(id);
+            verify(accountRepository, never()).save(any());
+        }
+
+        @Test
+        void givenAlreadyDisabled_thenShouldStillSucceedIdempotent() {
+            UUID id = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+
+            Account existing = Account.builder()
+                    .id(id)
+                    .name("GCASH")
+                    .user(User.of(userId))
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .active(false)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(transactionRepository.countByAccountId(existing.id())).thenReturn(2L);
+            when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
+            when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+            accountService.disableAccount(id, userId);
+
+            ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
+            verify(accountRepository).save(captor.capture());
+            assertFalse(captor.getValue().active(), "account should remain disabled");
+        }
     }
 
-    @Test
-    void deleteAccountById_givenExistingAndMatchingUser_thenShouldDelete() {
-        UUID id = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-        when(accountRepository.findById(id)).thenReturn(Optional.of(Account.builder()
-                .id(id)
-                .name("GCASH")
-                .user(User.of(userId))
-                .currency(Currency.getInstance("PHP"))
-                .type(E_WALLET)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build()));
+    @Nested
+    class DeleteAllByUserId {
 
-        accountService.deleteAccountById(id, userId);
+        @Test
+        void givenAccounts_shouldDeleteAll() {
+            UUID userId = UUID.randomUUID();
 
-        verify(accountRepository, times(1)).findById(id);
-        verify(accountRepository, times(1)).deleteById(id);
-    }
+            accountService.deleteAllByUserId(userId);
 
-    @Test
-    void deleteAccountById_givenNonExisting_thenShouldThrow() {
-        UUID id = UUID.randomUUID();
-        when(accountRepository.findById(id)).thenReturn(Optional.empty());
+            verify(accountRepository, times(1)).deleteAllByUserId(userId);
+        }
 
-        UUID otherUser = UUID.randomUUID();
-        assertThrows(AccountNotFoundException.class, () -> accountService.deleteAccountById(id, otherUser));
-        verify(accountRepository, times(1)).findById(id);
-        verify(accountRepository, never()).deleteById(any());
-    }
+        @Test
+        void givenNoAccounts_shouldStillSucceed() {
+            UUID userId = UUID.randomUUID();
 
-    @Test
-    void getAccountsByPageAndUserId_givenUserId_thenShouldReturnPagedAccounts() {
-        UUID userId = UUID.randomUUID();
-        var accounts = List.of(
-                Account.builder().id(UUID.randomUUID()).name("A1").user(User.of(userId)).currency(Currency.getInstance("PHP")).type(E_WALLET).createdAt(Instant.now()).updatedAt(Instant.now()).build(),
-                Account.builder().id(UUID.randomUUID()).name("A2").user(User.of(userId)).currency(Currency.getInstance("PHP")).type(E_WALLET).createdAt(Instant.now()).updatedAt(Instant.now()).build()
-        );
+            accountService.deleteAllByUserId(userId);
 
-        Page<Account> page = new Page<>(accounts, 0, 10, accounts.size(), 1, true, true);
+            verify(accountRepository, times(1)).deleteAllByUserId(userId);
+        }
 
-        PageQuery query = new PageQuery(0, 10, "name", "ASC");
+        @Test
+        void isTransactional_shouldRollbackOnException() {
+            UUID userId = UUID.randomUUID();
+            when(accountRepository.deleteAllByUserId(userId)).thenThrow(new RuntimeException("database error"));
 
-        when(accountRepository.getAccountsByPageAndUserId(query, userId)).thenReturn(page);
-
-        Page<Account> result = accountService.getAccountsByPageAndUserId(query, userId);
-
-        assertEquals(page, result);
-        verify(accountRepository, times(1)).getAccountsByPageAndUserId(query, userId);
-    }
-
-    @Test
-    void patchAccount_givenExistingAccount_thenShouldUpdateFields() {
-        UUID id = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-
-        Account existing = Account.builder()
-                .id(id)
-                .name("GCASH")
-                .user(User.of(userId))
-                .currency(Currency.getInstance("PHP"))
-                .type(E_WALLET)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-
-        PatchAccountCommand command = PatchAccountCommand.builder()
-                .id(id)
-                .name("GCASH_MAIN")
-                .currency(Currency.getInstance("PHP"))
-                .type(E_WALLET)
-                .userId(userId)
-                .build();
-
-        when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
-        when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        Account updated = accountService.patchAccount(command);
-
-        assertEquals("GCASH_MAIN", updated.name());
-        verify(accountRepository, times(1)).findById(id);
-        verify(accountRepository, times(1)).save(any());
-    }
-
-    @Test
-    void patchAccount_givenNonExistingId_thenShouldThrow() {
-        UUID id = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-
-        PatchAccountCommand command = PatchAccountCommand.builder()
-                .id(id)
-                .name("GCASH_MAIN")
-                .currency(Currency.getInstance("PHP"))
-                .type(E_WALLET)
-                .userId(userId)
-                .build();
-
-        when(accountRepository.findById(id)).thenReturn(Optional.empty());
-
-        assertThrows(AccountNotFoundException.class, () -> accountService.patchAccount(command));
-        verify(accountRepository, times(1)).findById(id);
-        verify(accountRepository, never()).save(any());
-    }
-
-    @Test
-    void disableAccount_givenExistingAndMatchingUser_thenShouldDisableAccount() {
-        UUID id = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-
-        Account existing = Account.builder()
-                .id(id)
-                .name("GCASH")
-                .user(User.of(userId))
-                .currency(Currency.getInstance("PHP"))
-                .type(E_WALLET)
-                .active(true)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-
-        when(transactionRepository.countByAccountId(existing.id())).thenReturn(2L);
-        when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
-        when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        accountService.disableAccount(id, userId);
-
-        verify(accountRepository, times(1)).findById(id);
-        verify(accountRepository, times(1)).save(any());
-        ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
-        verify(accountRepository).save(captor.capture());
-        assertFalse(captor.getValue().active(), "account should be disabled");
-    }
-
-    @Test
-    void disableAccount_givenNonExisting_thenShouldThrow() {
-        UUID id = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-
-        when(accountRepository.findById(id)).thenReturn(Optional.empty());
-
-        assertThrows(AccountNotFoundException.class, () -> accountService.disableAccount(id, userId));
-        verify(accountRepository, times(1)).findById(id);
-        verify(accountRepository, never()).save(any());
-    }
-
-    @Test
-    void disableAccount_givenDifferentUser_thenShouldThrow() {
-        UUID id = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-        UUID otherUserId = UUID.randomUUID();
-
-        Account existing = Account.builder()
-                .id(id)
-                .name("GCASH")
-                .user(User.of(otherUserId))
-                .currency(Currency.getInstance("PHP"))
-                .type(E_WALLET)
-                .active(true)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-
-        when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
-
-        assertThrows(AccountNotFoundException.class, () -> accountService.disableAccount(id, userId));
-        verify(accountRepository, times(1)).findById(id);
-        verify(accountRepository, never()).save(any());
-    }
-
-    @Test
-    void disableAccount_givenAlreadyDisabled_thenShouldStillSucceedIdempotent() {
-        UUID id = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-
-        Account existing = Account.builder()
-                .id(id)
-                .name("GCASH")
-                .user(User.of(userId))
-                .currency(Currency.getInstance("PHP"))
-                .type(E_WALLET)
-                .active(false)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-
-        when(transactionRepository.countByAccountId(existing.id())).thenReturn(2L);
-        when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
-        when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        accountService.disableAccount(id, userId);
-
-        verify(accountRepository, times(1)).findById(id);
-        verify(accountRepository, times(1)).save(any());
-        ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
-        verify(accountRepository).save(captor.capture());
-        assertFalse(captor.getValue().active(), "account should remain disabled");
-    }
-
-    @Test
-    void deleteAllByUserId_givenAccounts_shouldDeleteAll() {
-        UUID userId = UUID.randomUUID();
-
-        accountService.deleteAllByUserId(userId);
-
-        verify(accountRepository, times(1)).deleteAllByUserId(userId);
-    }
-
-    @Test
-    void deleteAllByUserId_givenNoAccounts_shouldStillSucceed() {
-        UUID userId = UUID.randomUUID();
-
-        accountService.deleteAllByUserId(userId);
-
-        verify(accountRepository, times(1)).deleteAllByUserId(userId);
-    }
-
-    @Test
-    void deleteAllByUserId_isTransactional_shouldRollbackOnException() {
-        UUID userId = UUID.randomUUID();
-        when(accountRepository.deleteAllByUserId(userId)).thenThrow(new RuntimeException("database error"));
-
-        assertThrows(RuntimeException.class, () -> accountService.deleteAllByUserId(userId));
-        verify(accountRepository, times(1)).deleteAllByUserId(userId);
+            assertThrows(RuntimeException.class,
+                    () -> accountService.deleteAllByUserId(userId),
+                    "should propagate transaction rollback");
+            verify(accountRepository, times(1)).deleteAllByUserId(userId);
+        }
     }
 }
