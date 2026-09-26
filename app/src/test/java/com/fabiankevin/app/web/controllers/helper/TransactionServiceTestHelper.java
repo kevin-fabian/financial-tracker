@@ -83,7 +83,7 @@ public class TransactionServiceTestHelper {
                         .currency(Currency.getInstance("USD"))
                         .type(AccountType.CASH)
                         .userId(userId)
-                        .build()));
+                        .build()).account());
     }
 
     private Optional<Account> findAccount(UUID userId, String name, AccountType type) {
@@ -111,6 +111,6 @@ public class TransactionServiceTestHelper {
                         .currency(Currency.getInstance("USD"))
                         .type(AccountType.CASH)
                         .userId(userId)
-                        .build()));
+                        .build()).account());
     }
 }

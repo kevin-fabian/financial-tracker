@@ -1,7 +1,7 @@
 package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.AccountSummary;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
@@ -239,7 +239,7 @@ class AccountControllerIntegrationTest {
 
         @Test
         void givenExistingId_thenReturnsAccount() throws Exception {
-            Account account = accountService.createAccount(
+            AccountSummary accountSummary = accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")
                             .userId(userId)
@@ -248,7 +248,7 @@ class AccountControllerIntegrationTest {
                             .build()
             );
 
-            mockMvc.perform(get("/api/accounts/" + account.id())
+            mockMvc.perform(get("/api/accounts/" + accountSummary.account().id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -257,10 +257,10 @@ class AccountControllerIntegrationTest {
                                             .claim("scope", List.of())
                                     )))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.id").value(account.id().toString()))
-                    .andExpect(jsonPath("$.name").value("GCASH"))
-                    .andExpect(jsonPath("$.currency").value("PHP"))
-                    .andExpect(jsonPath("$.type").value("E_WALLET"));
+                    .andExpect(jsonPath("$.id").value(accountSummary.account().id().toString()))
+                    .andExpect(jsonPath("$.name").value(accountSummary.account().name()))
+                    .andExpect(jsonPath("$.currency").value(accountSummary.account().currency().getCurrencyCode()))
+                    .andExpect(jsonPath("$.type").value(accountSummary.account().type().name()));
         }
 
         @Test
@@ -289,7 +289,7 @@ class AccountControllerIntegrationTest {
         @Test
         void givenAccountBelongsToOtherUser_thenReturnNotFound() throws Exception {
             UUID otherUserId = UUID.randomUUID();
-            Account account = accountService.createAccount(
+            AccountSummary accountSummary = accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")
                             .userId(otherUserId)
@@ -298,7 +298,7 @@ class AccountControllerIntegrationTest {
                             .build()
             );
 
-            mockMvc.perform(get("/api/accounts/" + account.id())
+            mockMvc.perform(get("/api/accounts/" + accountSummary.account().id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -314,7 +314,7 @@ class AccountControllerIntegrationTest {
     class PatchAccount {
         @Test
         void givenFullPatchRequest_thenReturnsUpdatedAccount() throws Exception {
-            Account account = accountService.createAccount(
+            AccountSummary accountSummary = accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")
                             .userId(userId)
@@ -332,7 +332,7 @@ class AccountControllerIntegrationTest {
             when(userClient.getUsersByIds(List.of(userId)))
                     .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
 
-            mockMvc.perform(patch("/api/accounts/" + account.id())
+            mockMvc.perform(patch("/api/accounts/" + accountSummary.account().id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -343,7 +343,7 @@ class AccountControllerIntegrationTest {
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.id").value(account.id().toString()))
+                    .andExpect(jsonPath("$.id").value(accountSummary.account().id().toString()))
                     .andExpect(jsonPath("$.name").value("GCASH_MAIN"))
                     .andExpect(jsonPath("$.currency").value("USD"))
                     .andExpect(jsonPath("$.type").value("CREDIT_CARD"))
@@ -357,7 +357,7 @@ class AccountControllerIntegrationTest {
 
         @Test
         void givenPatchAccountWithTransactions_thenReturnsUpdatedAccountWithAggregatedData() throws Exception {
-            Account account = accountService.createAccount(
+            AccountSummary accountSummary = accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")
                             .userId(userId)
@@ -387,7 +387,7 @@ class AccountControllerIntegrationTest {
                             .amount(5000.0)
                             .transactionDate(LocalDate.now())
                             .categoryId(incomeCategory.id())
-                            .accountId(account.id())
+                            .accountId(accountSummary.account().id())
                             .userId(userId)
                             .build()
             );
@@ -397,7 +397,7 @@ class AccountControllerIntegrationTest {
                             .amount(1500.0)
                             .transactionDate(LocalDate.now())
                             .categoryId(expenseCategory.id())
-                            .accountId(account.id())
+                            .accountId(accountSummary.account().id())
                             .userId(userId)
                             .build()
             );
@@ -407,7 +407,7 @@ class AccountControllerIntegrationTest {
                             .amount(500)
                             .transactionDate(LocalDate.now())
                             .categoryId(expenseCategory.id())
-                            .accountId(account.id())
+                            .accountId(accountSummary.account().id())
                             .userId(userId)
                             .build()
             );
@@ -419,7 +419,7 @@ class AccountControllerIntegrationTest {
             when(userClient.getUsersByIds(List.of(userId)))
                     .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
 
-            mockMvc.perform(patch("/api/accounts/" + account.id())
+            mockMvc.perform(patch("/api/accounts/" + accountSummary.account().id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -430,7 +430,7 @@ class AccountControllerIntegrationTest {
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.id").value(account.id().toString()))
+                    .andExpect(jsonPath("$.id").value(accountSummary.account().id().toString()))
                     .andExpect(jsonPath("$.name").value("GCASH_MAIN"))
                     .andExpect(jsonPath("$.currency").value("PHP"))
                     .andExpect(jsonPath("$.type").value("E_WALLET"))
@@ -445,7 +445,7 @@ class AccountControllerIntegrationTest {
         @ParameterizedTest
         @MethodSource("invalidPatchAccountRequestTestCases")
         void givenInvalidPatchAccountRequest_thenReturnsBadRequest(String name, String currency, AccountType type) throws Exception {
-            Account account = accountService.createAccount(
+            AccountSummary accountSummary = accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")
                             .userId(userId)
@@ -460,7 +460,7 @@ class AccountControllerIntegrationTest {
                     .type(type)
                     .build();
 
-            mockMvc.perform(patch("/api/accounts/" + account.id())
+            mockMvc.perform(patch("/api/accounts/" + accountSummary.account().id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -517,7 +517,7 @@ class AccountControllerIntegrationTest {
 
         @Test
         void givenPartialPatch_thenOnlyUpdatesProvidedFields() throws Exception {
-            Account account = accountService.createAccount(
+            AccountSummary accountSummary = accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")
                             .userId(userId)
@@ -530,7 +530,7 @@ class AccountControllerIntegrationTest {
                     .currency("USD")
                     .build();
 
-            mockMvc.perform(patch("/api/accounts/" + account.id())
+            mockMvc.perform(patch("/api/accounts/" + accountSummary.account().id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -552,7 +552,7 @@ class AccountControllerIntegrationTest {
 
         @Test
         void givenAccountWithNoTransactions_thenHardDeletes() throws Exception {
-            Account account = accountService.createAccount(
+            AccountSummary accountSummary = accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("BDO")
                             .userId(userId)
@@ -561,7 +561,7 @@ class AccountControllerIntegrationTest {
                             .build()
             );
 
-            mockMvc.perform(post("/api/accounts/" + account.id() + "/disable")
+            mockMvc.perform(post("/api/accounts/" + accountSummary.account().id() + "/disable")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -572,7 +572,7 @@ class AccountControllerIntegrationTest {
                     .andExpect(status().isOk());
 
             // Verify account was hard-deleted (no transactions → hard delete)
-            mockMvc.perform(get("/api/accounts/" + account.id())
+            mockMvc.perform(get("/api/accounts/" + accountSummary.account().id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -585,7 +585,7 @@ class AccountControllerIntegrationTest {
 
         @Test
         void givenAccountWithTransactions_thenSoftDeletes() throws Exception {
-            Account account = accountService.createAccount(
+            AccountSummary accountSummary = accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")
                             .userId(userId)
@@ -607,12 +607,12 @@ class AccountControllerIntegrationTest {
                             .amount(5000.0)
                             .transactionDate(LocalDate.now())
                             .categoryId(incomeCategory.id())
-                            .accountId(account.id())
+                            .accountId(accountSummary.account().id())
                             .userId(userId)
                             .build()
             );
 
-            mockMvc.perform(post("/api/accounts/" + account.id() + "/disable")
+            mockMvc.perform(post("/api/accounts/" + accountSummary.account().id() + "/disable")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -623,7 +623,7 @@ class AccountControllerIntegrationTest {
                     .andExpect(status().isOk());
 
             // Verify account was soft-deleted (has transactions → active=false)
-            mockMvc.perform(get("/api/accounts/" + account.id())
+            mockMvc.perform(get("/api/accounts/" + accountSummary.account().id())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -807,7 +807,7 @@ class AccountControllerIntegrationTest {
 
         @Test
         void givenAccountWithIncomeAndExpenseTransactions_thenReturnsCorrectBalance() throws Exception {
-            Account account = accountService.createAccount(
+            AccountSummary accountSummary = accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")
                             .userId(userId)
@@ -837,7 +837,7 @@ class AccountControllerIntegrationTest {
                             .amount(1000.0)
                             .transactionDate(LocalDate.now())
                             .categoryId(incomeCategory.id())
-                            .accountId(account.id())
+                            .accountId(accountSummary.account().id())
                             .userId(userId)
                             .build()
             );
@@ -847,7 +847,7 @@ class AccountControllerIntegrationTest {
                             .amount(200)
                             .transactionDate(LocalDate.now())
                             .categoryId(expenseCategory.id())
-                            .accountId(account.id())
+                            .accountId(accountSummary.account().id())
                             .userId(userId)
                             .build()
             );
@@ -857,7 +857,7 @@ class AccountControllerIntegrationTest {
                             .amount(300)
                             .transactionDate(LocalDate.now())
                             .categoryId(expenseCategory.id())
-                            .accountId(account.id())
+                            .accountId(accountSummary.account().id())
                             .userId(userId)
                             .build()
             );
@@ -880,7 +880,7 @@ class AccountControllerIntegrationTest {
 
         @Test
         void givenTransactionsFromLastMonthAndCurrentMonth_thenOnlyCurrentMonthTransactionsReflectOnAccountBalance() throws Exception {
-            Account account = accountService.createAccount(
+            AccountSummary accountSummary = accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")
                             .userId(userId)
@@ -912,7 +912,7 @@ class AccountControllerIntegrationTest {
                             .amount(500)
                             .transactionDate(lastMonthDate)
                             .categoryId(incomeCategory.id())
-                            .accountId(account.id())
+                            .accountId(accountSummary.account().id())
                             .userId(userId)
                             .build()
             );
@@ -921,7 +921,7 @@ class AccountControllerIntegrationTest {
                             .amount(100)
                             .transactionDate(lastMonthDate)
                             .categoryId(expenseCategory.id())
-                            .accountId(account.id())
+                            .accountId(accountSummary.account().id())
                             .userId(userId)
                             .build()
             );
@@ -933,7 +933,7 @@ class AccountControllerIntegrationTest {
                             .amount(1000)
                             .transactionDate(currentMonthDate)
                             .categoryId(incomeCategory.id())
-                            .accountId(account.id())
+                            .accountId(accountSummary.account().id())
                             .userId(userId)
                             .build()
             );
@@ -942,7 +942,7 @@ class AccountControllerIntegrationTest {
                             .amount(200)
                             .transactionDate(currentMonthDate)
                             .categoryId(expenseCategory.id())
-                            .accountId(account.id())
+                            .accountId(accountSummary.account().id())
                             .userId(userId)
                             .build()
             );

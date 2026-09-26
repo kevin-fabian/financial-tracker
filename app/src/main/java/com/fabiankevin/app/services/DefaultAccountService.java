@@ -34,23 +34,19 @@ public class DefaultAccountService implements AccountService {
     private final HouseholdService householdService;
 
     @Override
-    public Account getAccountById(UUID id, UUID userId) {
-        Account account = accountRepository.findById(id)
-                .filter(a -> a.user().id().equals(userId))
+    public AccountSummary getAccountById(UUID id, UUID userId) {
+        AccountSummary summary = accountRepository.findSummaryByIdAndUserId(id, userId)
                 .orElseThrow(AccountNotFoundException::new);
-        Account.AccountBuilder builder = account.toBuilder();
-        userClient.getUsersByIds(List.of(userId)).stream().findFirst()
-                .ifPresent(builder::user);
-
-        return builder.build();
+        return enrichWithUserData(List.of(summary)).getFirst();
     }
 
     @Transactional
     @Override
-    public Account createAccount(CreateAccountCommand command) {
-        return accountRepository.findByNameAndTypeAndUserId(command.name(), command.type(), command.userId())
+    public AccountSummary createAccount(CreateAccountCommand command) {
+        Account account = accountRepository.findByNameAndTypeAndUserId(command.name(), command.type(), command.userId())
                 .map(this::reactivateAccount)
                 .orElseGet(() -> createNewAccount(command));
+        return getAccountById(account.id(), command.userId());
     }
 
     private Account createNewAccount(CreateAccountCommand command) {
@@ -79,7 +75,7 @@ public class DefaultAccountService implements AccountService {
 
     @Transactional
     @Override
-    public Account patchAccount(PatchAccountCommand command) {
+    public AccountSummary patchAccount(PatchAccountCommand command) {
         UUID id = command.id();
         UUID userId = command.userId();
 
@@ -102,28 +98,8 @@ public class DefaultAccountService implements AccountService {
         Optional.ofNullable(newType)
                 .ifPresent(builder::type);
 
-        return accountRepository.save(builder.build());
-    }
-
-    @Transactional
-    @Override
-    public AccountSummary createAccountSummary(CreateAccountCommand command) {
-        Account account = createAccount(command);
-        return getAccountSummaryById(account.id(), command.userId());
-    }
-
-    @Transactional
-    @Override
-    public AccountSummary patchAccountSummary(PatchAccountCommand command) {
-        Account account = patchAccount(command);
-        return getAccountSummaryById(account.id(), command.userId());
-    }
-
-    private AccountSummary getAccountSummaryById(UUID accountId, UUID userId) {
-        AccountSummary summary = accountRepository.findSummaryByIdAndUserId(accountId, userId)
-                .orElseThrow(AccountNotFoundException::new);
-
-        return enrichWithUserData(List.of(summary)).getFirst();
+        Account updated = accountRepository.save(builder.build());
+        return getAccountById(updated.id(), userId);
     }
 
     @Transactional
@@ -152,11 +128,6 @@ public class DefaultAccountService implements AccountService {
                         },
                         () -> { throw new AccountNotFoundException(); }
                 );
-    }
-
-    @Override
-    public Page<Account> getAccountsByPageAndUserId(PageQuery query, UUID userId) {
-        return accountRepository.getAccountsByPageAndUserId(query, userId);
     }
 
     @Override

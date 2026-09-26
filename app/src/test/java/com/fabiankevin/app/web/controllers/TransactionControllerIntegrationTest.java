@@ -129,7 +129,7 @@ class TransactionControllerIntegrationTest {
                         .currency(Currency.getInstance("PHP"))
                         .type(E_WALLET)
                         .build()
-        );
+        ).account();
 
         category = categoryService.createCategory(
                 CreateCategoryCommand.builder()
@@ -372,7 +372,7 @@ class TransactionControllerIntegrationTest {
                             .currency(Currency.getInstance("PHP"))
                             .type(E_WALLET)
                             .build()
-            );
+            ).account();
 
             CreateTransactionRequest request = CreateTransactionRequest.builder()
                     .amount(100)
@@ -939,7 +939,7 @@ class TransactionControllerIntegrationTest {
                             .currency(Currency.getInstance("PHP"))
                             .type(E_WALLET)
                             .build()
-            );
+            ).account();
 
             Account inviteeAccount = accountService.createAccount(
                     CreateAccountCommand.builder()
@@ -948,7 +948,7 @@ class TransactionControllerIntegrationTest {
                             .currency(Currency.getInstance("PHP"))
                             .type(E_WALLET)
                             .build()
-            );
+            ).account();
 
             // Create categories for both users
             Category leaderCategory = categoryService.createCategory(

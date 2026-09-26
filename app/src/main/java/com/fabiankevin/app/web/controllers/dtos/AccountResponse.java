@@ -1,6 +1,7 @@
 package com.fabiankevin.app.web.controllers.dtos;
 
 import com.fabiankevin.app.models.Account;
+import com.fabiankevin.app.models.AccountSummary;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.AccountType;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -52,6 +53,19 @@ public record AccountResponse(
                 .createdAt(account.createdAt())
                 .updatedAt(account.updatedAt())
                 .user(UserResponse.from(user))
+                .build();
+    }
+
+    public static AccountResponse from(final AccountSummary summary) {
+        return AccountResponse.builder()
+                .id(summary.account().id())
+                .name(summary.account().name())
+                .currency(summary.account().currency().getCurrencyCode())
+                .type(summary.account().type())
+                .active(summary.account().active())
+                .createdAt(summary.account().createdAt())
+                .updatedAt(summary.account().updatedAt())
+                .user(UserResponse.from(summary.user()))
                 .build();
     }
 }

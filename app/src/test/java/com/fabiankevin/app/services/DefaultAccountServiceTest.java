@@ -3,13 +3,12 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.models.Account;
-import com.fabiankevin.app.models.Page;
+import com.fabiankevin.app.models.AccountSummary;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.PatchAccountCommand;
-import com.fabiankevin.app.services.queries.PageQuery;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -43,11 +42,12 @@ class DefaultAccountServiceTest {
     class CreateAccount {
 
         @Test
-        void givenNewAccount_thenShouldSaveAccount() {
+        void givenNewAccount_thenShouldReturnFullSummary() {
             UUID userId = UUID.randomUUID();
+            UUID generatedId = UUID.randomUUID();
             CreateAccountCommand command = CreateAccountCommand.builder()
-                    .name("GCASH")
-                    .currency(Currency.getInstance("PHP"))
+                    .name("BDO")
+                    .currency(Currency.getInstance("USD"))
                     .type(E_WALLET)
                     .userId(userId)
                     .build();
@@ -56,14 +56,48 @@ class DefaultAccountServiceTest {
                     .thenReturn(Optional.empty());
             when(accountRepository.save(any())).thenAnswer(invocation -> {
                 Account a = invocation.getArgument(0);
-                return a.toBuilder().id(UUID.randomUUID()).build();
+                return a.toBuilder().id(generatedId).build();
             });
+            when(accountRepository.findSummaryByIdAndUserId(generatedId, userId))
+                    .thenReturn(Optional.of(AccountSummary.builder()
+                            .account(Account.builder()
+                                    .id(generatedId)
+                                    .name("BDO")
+                                    .currency(Currency.getInstance("USD"))
+                                    .type(E_WALLET)
+                                    .active(true)
+                                    .createdAt(Instant.parse("2025-01-01T00:00:00Z"))
+                                    .updatedAt(Instant.parse("2025-01-01T00:00:00Z"))
+                                    .user(User.builder()
+                                            .id(userId)
+                                            .firstName("John")
+                                            .lastName("Doe")
+                                            .build())
+                                    .build())
+                            .totalBalance(1500.50)
+                            .totalTransactions(42)
+                            .user(User.builder()
+                                    .id(userId)
+                                    .firstName("John")
+                                    .lastName("Doe")
+                                    .build())
+                            .build()));
 
-            Account created = accountService.createAccount(command);
+            AccountSummary created = accountService.createAccount(command);
 
-            assertEquals("GCASH", created.name(), "name should match command");
-            assertEquals(userId, created.user().id(), "user id should match command");
-            assertTrue(created.active(), "account should be active by default");
+            assertEquals("BDO", created.account().name());
+            assertEquals(Currency.getInstance("USD"), created.account().currency());
+            assertEquals(E_WALLET, created.account().type());
+            assertTrue(created.account().active());
+            assertEquals(Instant.parse("2025-01-01T00:00:00Z"), created.account().createdAt());
+            assertEquals(Instant.parse("2025-01-01T00:00:00Z"), created.account().updatedAt());
+            assertEquals(userId, created.account().user().id());
+            assertEquals("John", created.account().user().firstName());
+            assertEquals("Doe", created.account().user().lastName());
+            assertEquals(1500.50, created.totalBalance());
+            assertEquals(42, created.totalTransactions());
+            assertEquals("John", created.user().firstName());
+            assertEquals("Doe", created.user().lastName());
             verify(accountRepository, times(1)).save(any());
         }
 
@@ -92,11 +126,24 @@ class DefaultAccountServiceTest {
             when(accountRepository.findByNameAndTypeAndUserId(command.name(), command.type(), command.userId()))
                     .thenReturn(Optional.of(inactive));
             when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(accountRepository.findSummaryByIdAndUserId(existingId, userId))
+                    .thenReturn(Optional.of(AccountSummary.builder()
+                            .account(Account.builder()
+                                    .id(existingId)
+                                    .name("GCASH")
+                                    .user(User.of(userId))
+                                    .currency(Currency.getInstance("PHP"))
+                                    .type(E_WALLET)
+                                    .active(true)
+                                    .build())
+                            .totalBalance(0.0)
+                            .totalTransactions(0)
+                            .build()));
 
-            Account created = accountService.createAccount(command);
+            AccountSummary created = accountService.createAccount(command);
 
-            assertEquals(existingId, created.id(), "should reuse existing account id");
-            assertTrue(created.active(), "account should be reactivated");
+            assertEquals(existingId, created.account().id(), "should reuse existing account id");
+            assertTrue(created.account().active(), "account should be reactivated");
             ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
             verify(accountRepository).save(captor.capture());
             assertTrue(captor.getValue().active(), "account should be reactivated");
@@ -137,56 +184,73 @@ class DefaultAccountServiceTest {
     class GetAccountById {
 
         @Test
-        void givenExistingAndMatchingUser_thenShouldReturn() {
+        void givenExistingAndMatchingUser_thenShouldReturnSummary() {
             UUID id = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
-            when(accountRepository.findById(id)).thenReturn(Optional.of(Account.builder()
-                    .id(id)
-                    .name("GCASH")
-                    .user(User.of(userId))
-                    .currency(Currency.getInstance("PHP"))
-                    .type(E_WALLET)
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
-                    .build()));
 
-            Account found = accountService.getAccountById(id, userId);
+            when(accountRepository.findSummaryByIdAndUserId(id, userId))
+                    .thenReturn(Optional.of(AccountSummary.builder()
+                            .account(Account.builder()
+                                    .id(id)
+                                    .name("GCASH")
+                                    .user(User.of(userId))
+                                    .currency(Currency.getInstance("PHP"))
+                                    .type(E_WALLET)
+                                    .active(true)
+                                    .createdAt(Instant.parse("2025-01-01T00:00:00Z"))
+                                    .updatedAt(Instant.parse("2025-01-01T00:00:00Z"))
+                                    .build())
+                            .totalBalance(1500.50)
+                            .totalTransactions(42)
+                            .user(User.builder()
+                                    .id(userId)
+                                    .firstName("John")
+                                    .lastName("Doe")
+                                    .build())
+                            .build()));
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder()
+                            .id(userId)
+                            .firstName("John")
+                            .lastName("Doe")
+                            .build()));
 
-            assertEquals(id, found.id(), "id should match");
-            assertEquals(userId, found.user().id(), "user id should match");
-            verify(accountRepository, times(1)).findById(id);
+            AccountSummary found = accountService.getAccountById(id, userId);
+
+            assertEquals(id, found.account().id(), "id should match");
+            assertEquals(userId, found.account().user().id(), "user id should match");
+            assertEquals("GCASH", found.account().name(), "name should match");
+            assertEquals(1500.50, found.totalBalance(), "totalBalance should match");
+            assertEquals(42, found.totalTransactions(), "totalTransactions should match");
+            assertEquals("John", found.user().firstName(), "enriched firstName should match");
+            assertEquals("Doe", found.user().lastName(), "enriched lastName should match");
+            verify(accountRepository, times(1)).findSummaryByIdAndUserId(id, userId);
         }
 
         @Test
         void givenExistingButDifferentUser_thenShouldThrow() {
             UUID id = UUID.randomUUID();
-            when(accountRepository.findById(id)).thenReturn(Optional.of(Account.builder()
-                    .id(id)
-                    .name("GCASH")
-                    .user(User.of(UUID.randomUUID()))
-                    .currency(Currency.getInstance("PHP"))
-                    .type(E_WALLET)
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
-                    .build()));
+            when(accountRepository.findSummaryByIdAndUserId(id, UUID.randomUUID()))
+                    .thenReturn(Optional.empty());
 
             UUID otherUser = UUID.randomUUID();
             assertThrows(AccountNotFoundException.class,
                     () -> accountService.getAccountById(id, otherUser),
                     "should throw when user does not own account");
-            verify(accountRepository, times(1)).findById(id);
+            verify(accountRepository, times(1)).findSummaryByIdAndUserId(id, otherUser);
         }
 
         @Test
         void givenNonExisting_thenShouldThrow() {
             UUID id = UUID.randomUUID();
-            when(accountRepository.findById(id)).thenReturn(Optional.empty());
+            when(accountRepository.findSummaryByIdAndUserId(id, UUID.randomUUID()))
+                    .thenReturn(Optional.empty());
 
             UUID otherUser = UUID.randomUUID();
             assertThrows(AccountNotFoundException.class,
                     () -> accountService.getAccountById(id, otherUser),
                     "should throw when account does not exist");
-            verify(accountRepository, times(1)).findById(id);
+            verify(accountRepository, times(1)).findSummaryByIdAndUserId(id, otherUser);
         }
     }
 
@@ -228,45 +292,6 @@ class DefaultAccountServiceTest {
     }
 
     @Nested
-    class GetAccountsByPageAndUserId {
-
-        @Test
-        void givenUserId_thenShouldReturnPagedAccounts() {
-            UUID userId = UUID.randomUUID();
-            var accounts = List.of(
-                    Account.builder()
-                            .id(UUID.randomUUID())
-                            .name("A1")
-                            .user(User.of(userId))
-                            .currency(Currency.getInstance("PHP"))
-                            .type(E_WALLET)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
-                            .build(),
-                    Account.builder()
-                            .id(UUID.randomUUID())
-                            .name("A2")
-                            .user(User.of(userId))
-                            .currency(Currency.getInstance("PHP"))
-                            .type(E_WALLET)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
-                            .build()
-            );
-
-            Page<Account> page = new Page<>(accounts, 0, 10, accounts.size(), 1, true, true);
-            PageQuery query = new PageQuery(0, 10, "name", "ASC");
-
-            when(accountRepository.getAccountsByPageAndUserId(query, userId)).thenReturn(page);
-
-            Page<Account> result = accountService.getAccountsByPageAndUserId(query, userId);
-
-            assertEquals(page, result, "paged result should match repository response");
-            verify(accountRepository, times(1)).getAccountsByPageAndUserId(query, userId);
-        }
-    }
-
-    @Nested
     class PatchAccount {
 
         @Test
@@ -294,10 +319,93 @@ class DefaultAccountServiceTest {
 
             when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
             when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(accountRepository.findSummaryByIdAndUserId(id, userId))
+                    .thenReturn(Optional.of(AccountSummary.builder()
+                            .account(Account.builder()
+                                    .id(id)
+                                    .name("GCASH_MAIN")
+                                    .user(User.of(userId))
+                                    .currency(Currency.getInstance("PHP"))
+                                    .type(E_WALLET)
+                                    .active(true)
+                                    .build())
+                            .totalBalance(0.0)
+                            .totalTransactions(0)
+                            .build()));
 
-            Account updated = accountService.patchAccount(command);
+            AccountSummary updated = accountService.patchAccount(command);
 
-            assertEquals("GCASH_MAIN", updated.name(), "name should be updated");
+            assertEquals("GCASH_MAIN", updated.account().name(), "name should be updated");
+            verify(accountRepository, times(1)).findById(id);
+            verify(accountRepository, times(1)).save(any());
+        }
+
+        @Test
+        void givenExistingAccountWithUserDetails_thenShouldReturnFullSummary() {
+            UUID id = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+
+            Account existing = Account.builder()
+                    .id(id)
+                    .name("GCASH")
+                    .user(User.of(userId))
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .active(true)
+                    .createdAt(Instant.parse("2024-06-01T10:00:00Z"))
+                    .updatedAt(Instant.parse("2024-06-01T10:00:00Z"))
+                    .build();
+
+            PatchAccountCommand command = PatchAccountCommand.builder()
+                    .id(id)
+                    .name("GCASH_PREMIUM")
+                    .currency(Currency.getInstance("EUR"))
+                    .type(com.fabiankevin.app.models.enums.AccountType.BANK_ACCOUNT)
+                    .userId(userId)
+                    .build();
+
+            when(accountRepository.findById(id)).thenReturn(Optional.of(existing));
+            when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(accountRepository.findSummaryByIdAndUserId(id, userId))
+                    .thenReturn(Optional.of(AccountSummary.builder()
+                            .account(Account.builder()
+                                    .id(id)
+                                    .name("GCASH_PREMIUM")
+                                    .currency(Currency.getInstance("EUR"))
+                                    .type(com.fabiankevin.app.models.enums.AccountType.BANK_ACCOUNT)
+                                    .active(true)
+                                    .createdAt(Instant.parse("2024-06-01T10:00:00Z"))
+                                    .updatedAt(Instant.parse("2024-06-01T10:00:00Z"))
+                                    .user(User.builder()
+                                            .id(userId)
+                                            .firstName("Jane")
+                                            .lastName("Smith")
+                                            .build())
+                                    .build())
+                            .totalBalance(9876.54)
+                            .totalTransactions(128)
+                            .user(User.builder()
+                                    .id(userId)
+                                    .firstName("Jane")
+                                    .lastName("Smith")
+                                    .build())
+                            .build()));
+
+            AccountSummary updated = accountService.patchAccount(command);
+
+            assertEquals("GCASH_PREMIUM", updated.account().name());
+            assertEquals(Currency.getInstance("EUR"), updated.account().currency());
+            assertEquals(com.fabiankevin.app.models.enums.AccountType.BANK_ACCOUNT, updated.account().type());
+            assertTrue(updated.account().active());
+            assertEquals(Instant.parse("2024-06-01T10:00:00Z"), updated.account().createdAt());
+            assertEquals(Instant.parse("2024-06-01T10:00:00Z"), updated.account().updatedAt());
+            assertEquals(userId, updated.account().user().id());
+            assertEquals("Jane", updated.account().user().firstName());
+            assertEquals("Smith", updated.account().user().lastName());
+            assertEquals(9876.54, updated.totalBalance());
+            assertEquals(128, updated.totalTransactions());
+            assertEquals("Jane", updated.user().firstName());
+            assertEquals("Smith", updated.user().lastName());
             verify(accountRepository, times(1)).findById(id);
             verify(accountRepository, times(1)).save(any());
         }

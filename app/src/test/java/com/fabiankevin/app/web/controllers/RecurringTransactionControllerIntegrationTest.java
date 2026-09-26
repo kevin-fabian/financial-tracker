@@ -1449,6 +1449,6 @@ class RecurringTransactionControllerIntegrationTest {
                 .currency(Currency.getInstance("USD"))
                 .type(AccountType.CASH)
                 .userId(userId)
-                .build());
+                .build()).account();
     }
 }

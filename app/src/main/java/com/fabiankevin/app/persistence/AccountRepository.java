@@ -18,8 +18,6 @@ public interface AccountRepository {
 
     void deleteById(UUID id);
 
-    Page<Account> getAccountsByPageAndUserId(PageQuery query, UUID userId);
-
     Page<AccountSummary> findAllByPageQueryWithSummary(PageQuery query, List<UUID> userIds, LocalDate monthStart, LocalDate monthEnd);
 
     Optional<AccountSummary> findSummaryByIdAndUserId(UUID accountId, UUID userId);

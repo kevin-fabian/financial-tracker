@@ -1,6 +1,5 @@
 package com.fabiankevin.app.web.controllers;
 
-import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.AccountSummary;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.services.AccountService;
@@ -58,8 +57,8 @@ public class  AccountController {
     @GetMapping("/{id}")
     public AccountResponse getAccount(@PathVariable UUID id, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        Account account = accountService.getAccountById(id, userId);
-        return AccountResponse.from(account);
+        AccountSummary summary = accountService.getAccountById(id, userId);
+        return AccountResponse.from(summary);
     }
 
     @Operation(
@@ -117,7 +116,7 @@ public class  AccountController {
     @PostMapping
     public ResponseEntity<AccountSummaryResponse> createAccount(@Valid @RequestBody CreateAccountRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        AccountSummary created = accountService.createAccountSummary(request.toCommand(userId));
+        AccountSummary created = accountService.createAccount(request.toCommand(userId));
         AccountSummaryResponse response = AccountSummaryResponse.from(created);
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
@@ -143,7 +142,7 @@ public class  AccountController {
     @PatchMapping("/{accountId}")
     public AccountSummaryResponse patchAccount(@PathVariable UUID accountId, @Valid @RequestBody PatchAccountRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        AccountSummary updated = accountService.patchAccountSummary(request.toCommand(accountId, userId));
+        AccountSummary updated = accountService.patchAccount(request.toCommand(accountId, userId));
         return AccountSummaryResponse.from(updated);
     }
 

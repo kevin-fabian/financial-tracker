@@ -649,7 +649,7 @@ class CategoryControllerIntegrationTest {
                             .userId(userId)
                             .currency(Currency.getInstance("PHP"))
                             .build()
-            ).id();
+            ).account().id();
 
             // Create a transaction for the current user linked to the system category (via service)
            transactionService.addTransaction(
@@ -671,7 +671,7 @@ class CategoryControllerIntegrationTest {
                             .userId(otherUserId)
                             .currency(Currency.getInstance("USD"))
                             .build()
-            );
+            ).account();
             transactionService.addTransaction(AddTransactionCommand.builder()
                             .accountId(othersAccount.id())
                             .categoryId(systemCategory.id())
@@ -717,7 +717,7 @@ class CategoryControllerIntegrationTest {
                             .userId(userId)
                             .currency(Currency.getInstance("USD"))
                             .build()
-            );
+            ).account();
 
             // Create 2 transactions from last month — these should NOT appear in the aggregate
             LocalDate lastMonthDate = LocalDate.now().minusMonths(1).withDayOfMonth(15);
@@ -822,7 +822,7 @@ class CategoryControllerIntegrationTest {
                             .userId(leaderId)
                             .currency(Currency.getInstance("USD"))
                             .build()
-            ).id();
+            ).account().id();
 
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
@@ -1179,7 +1179,7 @@ class CategoryControllerIntegrationTest {
                             .userId(userId)
                             .currency(Currency.getInstance("USD"))
                             .build()
-            );
+            ).account();
 
             // Create a transaction linked to this category
             transactionService.addTransaction(

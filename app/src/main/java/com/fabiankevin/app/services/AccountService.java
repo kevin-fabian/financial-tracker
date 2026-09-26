@@ -1,6 +1,5 @@
 package com.fabiankevin.app.services;
 
-import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.AccountSummary;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
@@ -11,14 +10,11 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 public interface AccountService {
-    Account getAccountById(UUID id, UUID userId);
-    Account createAccount(CreateAccountCommand command);
-    Account patchAccount(PatchAccountCommand command);
-    AccountSummary createAccountSummary(CreateAccountCommand command);
-    AccountSummary patchAccountSummary(PatchAccountCommand command);
+    AccountSummary getAccountById(UUID id, UUID userId);
+    AccountSummary createAccount(CreateAccountCommand command);
+    AccountSummary patchAccount(PatchAccountCommand command);
     void deleteAccountById(UUID id, UUID userId);
     void disableAccount(UUID id, UUID userId);
-    Page<Account> getAccountsByPageAndUserId(PageQuery query, UUID userId);
     Page<AccountSummary> getAccountSummariesByPageQuery(PageQuery query, UUID userId, LocalDate monthStart, LocalDate monthEnd);
     void deleteAllByUserId(UUID userId);
 }

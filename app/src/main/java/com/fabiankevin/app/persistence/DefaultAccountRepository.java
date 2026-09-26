@@ -41,28 +41,6 @@ public class DefaultAccountRepository implements AccountRepository {
     }
 
     @Override
-    public Page<Account> getAccountsByPageAndUserId(PageQuery query, UUID userId) {
-        var pageable = PageRequest.of(
-                query.page(),
-                query.size(),
-                Sort.by(Sort.Direction.fromString(query.direction()), query.sort())
-        );
-
-        var page = jpaAccountRepository.findAllByUserId(userId, pageable)
-                .map(AccountEntity::toModel);
-
-        return new Page<>(
-                page.getContent(),
-                page.getNumber(),
-                page.getSize(),
-                page.getTotalElements(),
-                page.getTotalPages(),
-                page.isLast(),
-                page.isFirst()
-        );
-    }
-
-    @Override
     public Page<AccountSummary> findAllByPageQueryWithSummary(PageQuery query, List<UUID> userIds, LocalDate monthStart, LocalDate monthEnd) {
         var pageable = PageRequest.of(
                 query.page(),

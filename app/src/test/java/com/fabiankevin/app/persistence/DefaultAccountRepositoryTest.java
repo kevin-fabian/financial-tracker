@@ -21,7 +21,6 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
@@ -121,34 +120,6 @@ class DefaultAccountRepositoryTest {
         Assertions.assertThat(found).as("account should be deleted and retrieval should return empty optional").isEmpty();
 
         verify(jpaAccountRepository, times(1)).deleteById(saved.id());
-    }
-
-    @Test
-    void getAccountsByPageAndUserId_givenMultipleAccounts_thenShouldReturnPagedResults() {
-        UUID userId = UUID.randomUUID();
-
-        // create and save 5 accounts for the same user
-        for (int i = 0; i < 5; i++) {
-            Account a = Account.builder()
-                    .name("Account " + i)
-                    .user(User.of(userId))
-                    .currency(java.util.Currency.getInstance("PHP"))
-                    .type(com.fabiankevin.app.models.enums.AccountType.E_WALLET)
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
-                    .build();
-            accountRepository.save(a);
-        }
-
-        PageQuery query = new PageQuery(0, 3, "name", "ASC");
-        Page<Account> page = accountRepository.getAccountsByPageAndUserId(query, userId);
-
-        Assertions.assertThat(page.content()).as("page should contain 3 elements").hasSize(3);
-        Assertions.assertThat(page.totalElements()).isEqualTo(5);
-        Assertions.assertThat(page.page()).isZero();
-        Assertions.assertThat(page.size()).isEqualTo(3);
-
-        verify(jpaAccountRepository, times(1)).findAllByUserId(userId, PageRequest.of(0, 3, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.fromString("ASC"), "name")));
     }
 
     @Nested
