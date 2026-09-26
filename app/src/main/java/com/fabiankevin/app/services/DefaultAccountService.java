@@ -37,7 +37,7 @@ public class DefaultAccountService implements AccountService {
     public AccountSummary getAccountById(UUID id, UUID userId) {
         AccountSummary summary = accountRepository.findSummaryByIdAndUserId(id, userId)
                 .orElseThrow(AccountNotFoundException::new);
-        return enrichWithUserData(List.of(summary)).getFirst();
+        return enrichWithUserData(List.of(summary), userId).getFirst();
     }
 
     @Transactional
@@ -135,7 +135,7 @@ public class DefaultAccountService implements AccountService {
         List<UUID> userIds = householdService.getHouseholdMembersUserIds(userId);
         Page<AccountSummary> summaries = accountRepository.findAllByPageQueryWithSummary(query, userIds, monthStart, monthEnd);
         return Page.<AccountSummary>builder()
-                .content(enrichWithUserData(summaries.content()))
+                .content(enrichWithUserData(summaries.content(), userId))
                 .page(summaries.page())
                 .size(summaries.size())
                 .totalElements(summaries.totalElements())
@@ -145,7 +145,7 @@ public class DefaultAccountService implements AccountService {
                 .build();
     }
 
-    private List<AccountSummary> enrichWithUserData(List<AccountSummary> summaries) {
+    private List<AccountSummary> enrichWithUserData(List<AccountSummary> summaries, UUID jwtUserId) {
         List<UUID> userIds = summaries.stream()
                 .map(accountSummary -> accountSummary.account().user().id())
                 .distinct()
@@ -163,18 +163,29 @@ public class DefaultAccountService implements AccountService {
                     UUID userId = summary.account().user().id();
                     User user = usersById.get(userId);
                     return Optional.ofNullable(user)
-                            .map(u -> summary.toBuilder()
-                                    .account(summary.account().toBuilder()
-                                            .user(User.builder()
-                                                    .id(userId)
-                                                    .firstName(u.firstName())
-                                                    .lastName(u.lastName())
-                                                    .build())
-                                            .build())
-                                    .build())
+                            .map(u -> {
+                                String displayName = accountNameWithOwner(userId, jwtUserId, u.firstName(), summary.account().name());
+                                return summary.toBuilder()
+                                        .account(summary.account().toBuilder()
+                                                .name(displayName)
+                                                .user(User.builder()
+                                                        .id(userId)
+                                                        .firstName(u.firstName())
+                                                        .lastName(u.lastName())
+                                                        .build())
+                                                .build())
+                                        .build();
+                            })
                             .orElse(summary);
                 })
                 .toList();
+    }
+
+    private String accountNameWithOwner(UUID accountUserId, UUID jwtUserId, String ownerFirstName, String accountName) {
+        if (accountUserId.equals(jwtUserId)) {
+            return accountName;
+        }
+        return ownerFirstName + " - " + accountName;
     }
 
     @Transactional

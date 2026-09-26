@@ -82,7 +82,7 @@ public class  AccountController {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
 
         YearMonth yearMonth = Optional.ofNullable(month)
-                .map(m -> YearMonth.parse(m))
+                .map(YearMonth::parse)
                 .orElseGet(YearMonth::now);
         LocalDate monthStart = yearMonth.atDay(1);
         LocalDate monthEnd = yearMonth.atEndOfMonth();

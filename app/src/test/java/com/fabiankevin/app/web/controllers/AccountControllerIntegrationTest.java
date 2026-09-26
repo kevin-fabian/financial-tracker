@@ -737,7 +737,7 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        void givenUserWithPartyMembers_thenReturnsConsolidatedAccounts() throws Exception {
+        void givenUserWithHouseholdMembers_thenReturnTheirCombinedListAccounts() throws Exception {
             UUID leaderId = UUID.randomUUID();
             UUID inviteeId = UUID.randomUUID();
 
@@ -785,9 +785,7 @@ class AccountControllerIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isArray())
                     .andExpect(jsonPath("$.content.length()").value(2))
-                    // Both accounts present — order may vary when names are identical
-                    .andExpect(jsonPath("$.content[0].name").value("CASH"))
-                    .andExpect(jsonPath("$.content[1].name").value("CASH"))
+                    .andExpect(jsonPath("$.content[*].name").value(containsInAnyOrder("Bob - CASH", "CASH")))
                     .andExpect(jsonPath("$.content[*].user.id").value(
                             containsInAnyOrder(
                                     inviteeId.toString(),
