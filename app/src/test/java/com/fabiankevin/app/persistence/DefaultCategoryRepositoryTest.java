@@ -60,6 +60,7 @@ class DefaultCategoryRepositoryTest {
                 .name("FOOD")
                 .type(TransactionType.EXPENSE)
                 .userId(UUID.randomUUID())
+                .localId("cat-001")
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -68,7 +69,8 @@ class DefaultCategoryRepositoryTest {
                 .name("FOOD")
                 .type(TransactionType.EXPENSE)
                 .userId(UUID.randomUUID())
-                .icon("attach_money")
+                .icon("restaurant")
+                .localId("cat-002")
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -88,6 +90,7 @@ class DefaultCategoryRepositoryTest {
             assertNotNull(found.id(), "category id should have been generated");
             assertEquals(category.name(), found.name(), "category name should match");
             assertEquals(category.type(), found.type(), "category type should match");
+            assertEquals(category.localId(), found.localId(), "localId should match");
             assertNotNull(category.createdAt(), "createdAt should have been generated");
             assertNotNull(category.updatedAt(), "updatedAt should have been generated");
             assertNull(category.icon(), "icon should be null when not provided");
@@ -102,6 +105,7 @@ class DefaultCategoryRepositoryTest {
                     .type(TransactionType.EXPENSE)
                     .userId(category.userId())
                     .icon("restaurant")
+                    .localId("restaurant-local")
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -113,6 +117,8 @@ class DefaultCategoryRepositoryTest {
 
             assertNotNull(found.icon(), "icon should be persisted as string column");
             assertEquals("restaurant", found.icon());
+            assertNotNull(found.localId(), "localId should be persisted");
+            assertEquals("restaurant-local", found.localId());
         }
 
         @Test
@@ -142,6 +148,39 @@ class DefaultCategoryRepositoryTest {
                     .as("category names should be `FOOD`")
                     .extracting("name")
                     .containsExactlyInAnyOrder("FOOD", "FOOD", "FOOD");
+        }
+
+        @Test
+        void givenCategoryWithLocalId_shouldPersistAndRetrieveViaSave() {
+            Category categoryWithLocalId = Category.builder()
+                    .name("TRANSPORT")
+                    .type(TransactionType.EXPENSE)
+                    .userId(UUID.randomUUID())
+                    .localId("transport-001")
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            Category saved = categoryRepository.save(categoryWithLocalId);
+            Category retrieved = categoryRepository.findById(saved.id()).orElseThrow();
+
+            assertEquals("transport-001", retrieved.localId(), "localId should be persisted and retrieved");
+        }
+
+        @Test
+        void givenCategoryWithNullLocalId_shouldPersistAndRetrieve() {
+            Category categoryWithoutLocalId = Category.builder()
+                    .name("MISC")
+                    .type(TransactionType.EXPENSE)
+                    .userId(UUID.randomUUID())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            Category saved = categoryRepository.save(categoryWithoutLocalId);
+            Category retrieved = categoryRepository.findById(saved.id()).orElseThrow();
+
+            assertNull(retrieved.localId(), "null localId should be persisted and retrieved as null");
         }
     }
 
@@ -180,6 +219,7 @@ class DefaultCategoryRepositoryTest {
                     .usingRecursiveComparison()
                     .ignoringFields("id")
                     .isEqualTo(saved);
+            assertEquals(category.localId(), found.localId(), "localId should be retrieved");
         }
     }
 
@@ -470,6 +510,7 @@ class DefaultCategoryRepositoryTest {
                     .name("FOOD")
                     .transactionType(TransactionType.EXPENSE)
                     .userId(userId)
+                    .localId("food-local")
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -477,6 +518,7 @@ class DefaultCategoryRepositoryTest {
                     .name("RENT")
                     .transactionType(TransactionType.EXPENSE)
                     .userId(userId)
+                    .localId("rent-local")
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -523,12 +565,14 @@ class DefaultCategoryRepositoryTest {
             Assertions.assertThat(foodSummary.totalAmount()).isEqualTo(300.0);
             Assertions.assertThat(foodSummary.totalTransactions()).isEqualTo(1);
             Assertions.assertThat(foodSummary.percentage()).isCloseTo(30.0, Assertions.within(0.01));
+            assertEquals("food-local", foodSummary.localId(), "FOOD summary localId should match");
 
             var rentSummary = page.content().stream()
                     .filter(summary -> "RENT".equals(summary.category().name())).findFirst().orElseThrow();
             Assertions.assertThat(rentSummary.totalAmount()).isEqualTo(700.0);
             Assertions.assertThat(rentSummary.totalTransactions()).isEqualTo(1);
             Assertions.assertThat(rentSummary.percentage()).isCloseTo(70.0, Assertions.within(0.01));
+            assertEquals("rent-local", rentSummary.localId(), "RENT summary localId should match");
 
             Assertions.assertThat(page.totalElements()).isEqualTo(2);
             Assertions.assertThat(page.totalPages()).isEqualTo(1);
@@ -542,6 +586,7 @@ class DefaultCategoryRepositoryTest {
                     .name("SALARY")
                     .transactionType(TransactionType.INCOME)
                     .userId(userId)
+                    .localId("salary-local")
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -549,6 +594,7 @@ class DefaultCategoryRepositoryTest {
                     .name("FREELANCE")
                     .transactionType(TransactionType.INCOME)
                     .userId(userId)
+                    .localId("freelance-local")
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -595,12 +641,14 @@ class DefaultCategoryRepositoryTest {
             Assertions.assertThat(salarySummary.totalAmount()).isEqualTo(5000.0);
             Assertions.assertThat(salarySummary.totalTransactions()).isEqualTo(1);
             Assertions.assertThat(salarySummary.percentage()).isCloseTo(62.5, Assertions.within(0.01));
+            assertEquals("salary-local", salarySummary.localId(), "SALARY summary localId should match");
 
             var freelanceSummary = page.content().stream()
                     .filter(summary -> "FREELANCE".equals(summary.category().name())).findFirst().orElseThrow();
             Assertions.assertThat(freelanceSummary.totalAmount()).isEqualTo(3000.0);
             Assertions.assertThat(freelanceSummary.totalTransactions()).isEqualTo(1);
             Assertions.assertThat(freelanceSummary.percentage()).isCloseTo(37.5, Assertions.within(0.01));
+            assertEquals("freelance-local", freelanceSummary.localId(), "FREELANCE summary localId should match");
 
             Assertions.assertThat(page.totalElements()).isEqualTo(2);
             Assertions.assertThat(page.totalPages()).isEqualTo(1);
@@ -827,6 +875,54 @@ class DefaultCategoryRepositoryTest {
 
             Assertions.assertThat(result).isEmpty();
             verify(jpaCategoryRepository, times(1)).findAllByNameIn(List.of("NONEXISTENT", "ALSO_MISSING"));
+        }
+    }
+
+    @Nested
+    class LocalIdPersistence {
+        @Autowired
+        private JpaTransactionRepository jpaTransactionRepository;
+        @Autowired
+        private JpaAccountRepository jpaAccountRepository;
+
+        @Test
+        void givenCategoriesWithLocalId_shouldPersistLocalIdInSummary() {
+            UUID userId = UUID.randomUUID();
+
+            CategoryEntity food = CategoryEntity.builder()
+                    .name("FOOD")
+                    .transactionType(TransactionType.EXPENSE)
+                    .userId(userId)
+                    .localId("food-summary-local")
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            jpaCategoryRepository.saveAndFlush(food);
+
+            var account = AccountEntity.builder()
+                    .userId(userId)
+                    .name("CASH")
+                    .currency("PHP")
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            account = jpaAccountRepository.saveAndFlush(account);
+
+            jpaTransactionRepository.saveAndFlush(TransactionEntity.builder()
+                    .account(account)
+                    .category(food)
+                    .amount(100.0)
+                    .transactionDate(LocalDate.now())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build());
+
+            Page<CategorySummary> page = categoryRepository.findAllByPageQueryWithSummary(
+                    new PageQuery(0, 10, "name", "ASC"), userId, TransactionType.EXPENSE, List.of(userId));
+
+            Assertions.assertThat(page.content()).hasSize(1);
+            assertEquals("food-summary-local", page.content().get(0).localId(),
+                    "summary localId should match the category's localId");
         }
     }
 

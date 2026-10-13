@@ -54,6 +54,7 @@ public class DefaultAccountRepository implements AccountRepository {
                         .account(projection.account().toModel())
                         .totalBalance(projection.totalBalance())
                         .totalTransactions(projection.totalTransactions())
+                        .localId(projection.account().getLocalId())
                         .build())
                 .collect(Collectors.toList());
 
@@ -75,6 +76,7 @@ public class DefaultAccountRepository implements AccountRepository {
                         .account(projection.account().toModel())
                         .totalBalance(projection.totalBalance())
                         .totalTransactions(projection.totalTransactions())
+                        .localId(projection.account().getLocalId())
                         .build());
     }
 

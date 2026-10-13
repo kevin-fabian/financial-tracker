@@ -7,5 +7,6 @@ public record CategorySummary(
         Category category,
         double totalAmount,
         double percentage,
-        int totalTransactions) {
+        int totalTransactions,
+        String localId) {
 }

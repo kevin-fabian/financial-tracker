@@ -19,8 +19,8 @@ public record Category(
         boolean active,
         boolean system,
         Instant createdAt,
-        Instant updatedAt
-) {
+        Instant updatedAt,
+        String localId) {
     public Category {
         Optional.ofNullable(name)
                 .filter(n -> !n.isBlank())

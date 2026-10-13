@@ -20,7 +20,8 @@ public record Account(
         boolean active,
         Instant createdAt,
         Instant updatedAt,
-        User user) {
+        User user,
+        String localId) {
     public Account {
         Objects.requireNonNull(user, "User object is required");
         Objects.requireNonNull(user.id(), "User ID is required");

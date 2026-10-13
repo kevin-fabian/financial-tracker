@@ -1,5 +1,5 @@
 
---- Categories table:
+--- Accounts table
 -- Enable UUID generation (pgcrypto)
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     currency VARCHAR(3) NOT NULL,
     type VARCHAR(32) NOT NULL DEFAULT 'OTHER',
     active BOOLEAN NOT NULL DEFAULT TRUE,
+    local_id VARCHAR(128) NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uk_accounts_name_user_id UNIQUE (name, user_id),
@@ -26,6 +27,7 @@ CREATE TABLE IF NOT EXISTS categories (
     transaction_type VARCHAR(10) NOT NULL CHECK (transaction_type IN ('INCOME', 'EXPENSE')),
     active BOOLEAN NOT NULL DEFAULT TRUE,
     "system" BOOLEAN NOT NULL DEFAULT FALSE,
+    local_id VARCHAR(128) NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uk_categories_name_user_id UNIQUE (name, user_id, transaction_type)

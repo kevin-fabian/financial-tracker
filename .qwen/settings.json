@@ -31,5 +31,10 @@
       "Bash(bash *)"
     ]
   },
-  "$version": 4
+  "$version": 4,
+  "memory": {
+    "enableManagedAutoDream": false,
+    "autoSkillConfirm": true,
+    "enableAutoSkill": false
+  }
 }

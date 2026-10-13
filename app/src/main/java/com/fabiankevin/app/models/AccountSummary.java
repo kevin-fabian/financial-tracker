@@ -6,5 +6,6 @@ import lombok.Builder;
 public record AccountSummary(
         Account account,
         double totalBalance,
-        int totalTransactions) {
+        int totalTransactions,
+        String localId) {
 }
