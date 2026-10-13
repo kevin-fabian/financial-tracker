@@ -179,10 +179,9 @@ class DefaultAccountRepositoryTest {
         private JpaCategoryRepository jpaCategoryRepository;
 
         @Test
-        void findAllByPageQueryWithSummary_givenMultipleNewAccounts_shouldReturnPagedSummaries() {
+        void givenMultipleNewAccounts_shouldReturnPagedSummaries() {
             UUID userId = UUID.randomUUID();
 
-            // create accounts
             Account acc1 = Account.builder()
                     .name("Account 1")
                     .user(User.of(userId))
@@ -217,7 +216,6 @@ class DefaultAccountRepositoryTest {
             acc2 = accountRepository.save(acc2);
             acc3 = accountRepository.save(acc3);
 
-            // create categories: EXPENSE for acc1, INCOME for acc2, EXPENSE for acc3
             java.time.LocalDate today = LocalDate.now();
             CategoryEntity expenseCategory1 = jpaCategoryRepository.save(CategoryEntity.builder()
                     .name("Expense 1").transactionType(TransactionType.EXPENSE).userId(userId)
@@ -232,11 +230,6 @@ class DefaultAccountRepositoryTest {
                     .createdAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC))
                     .updatedAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC)).build());
 
-            // transactions with categories:
-            // acc1: 2x EXPENSE 50 => totalBalance = -100
-            // acc2: 1x INCOME 200 => totalBalance = +200
-            // acc3: 1x EXPENSE 300 => totalBalance = -300
-            // net total = -200 (absolute sum for percentage = 600)
             jpaTransactionRepository.save(TransactionEntity.builder()
                     .amount(50)
                     .transactionDate(today)
@@ -297,7 +290,7 @@ class DefaultAccountRepositoryTest {
         }
 
         @Test
-        void findAllByPageQueryWithSummary_givenSingleAccountWithTransactions_shouldReturnCorrectTotals() {
+        void givenSingleAccountWithTransactions_shouldReturnCorrectTotals() {
             UUID userId = UUID.randomUUID();
 
             Account account = Account.builder()
@@ -311,14 +304,12 @@ class DefaultAccountRepositoryTest {
                     .build();
             account = accountRepository.save(account);
 
-            // create EXPENSE category
             java.time.LocalDate today = java.time.LocalDate.now();
             CategoryEntity expenseCategory = jpaCategoryRepository.save(CategoryEntity.builder()
                     .name("Expense").transactionType(TransactionType.EXPENSE).userId(userId)
                     .createdAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC))
                     .updatedAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC)).build());
 
-            // 2 EXPENSE transactions: 100 + 50 => totalBalance = -150
             jpaTransactionRepository.save(TransactionEntity.builder()
                     .amount(100)
                     .transactionDate(today)
@@ -346,7 +337,7 @@ class DefaultAccountRepositoryTest {
         }
 
         @Test
-        void findAllByPageQueryWithSummary_givenNoAccounts_shouldReturnEmptyPage() {
+        void givenNoAccounts_shouldReturnEmptyPage() {
             UUID userId = UUID.randomUUID();
 
             PageQuery query = new PageQuery(0, 10, "name", "ASC");

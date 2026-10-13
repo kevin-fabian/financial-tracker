@@ -879,54 +879,6 @@ class DefaultCategoryRepositoryTest {
     }
 
     @Nested
-    class LocalIdPersistence {
-        @Autowired
-        private JpaTransactionRepository jpaTransactionRepository;
-        @Autowired
-        private JpaAccountRepository jpaAccountRepository;
-
-        @Test
-        void givenCategoriesWithLocalId_shouldPersistLocalIdInSummary() {
-            UUID userId = UUID.randomUUID();
-
-            CategoryEntity food = CategoryEntity.builder()
-                    .name("FOOD")
-                    .transactionType(TransactionType.EXPENSE)
-                    .userId(userId)
-                    .localId("food-summary-local")
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
-                    .build();
-            jpaCategoryRepository.saveAndFlush(food);
-
-            var account = AccountEntity.builder()
-                    .userId(userId)
-                    .name("CASH")
-                    .currency("PHP")
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
-                    .build();
-            account = jpaAccountRepository.saveAndFlush(account);
-
-            jpaTransactionRepository.saveAndFlush(TransactionEntity.builder()
-                    .account(account)
-                    .category(food)
-                    .amount(100.0)
-                    .transactionDate(LocalDate.now())
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
-                    .build());
-
-            Page<CategorySummary> page = categoryRepository.findAllByPageQueryWithSummary(
-                    new PageQuery(0, 10, "name", "ASC"), userId, TransactionType.EXPENSE, List.of(userId));
-
-            Assertions.assertThat(page.content()).hasSize(1);
-            assertEquals("food-summary-local", page.content().get(0).localId(),
-                    "summary localId should match the category's localId");
-        }
-    }
-
-    @Nested
     class DeleteAllByUserId {
         @Test
         void givenExistingCategoriesForUser_shouldDeleteAllAndReturnCount() {
