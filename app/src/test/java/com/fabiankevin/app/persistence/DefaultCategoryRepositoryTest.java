@@ -80,6 +80,65 @@ class DefaultCategoryRepositoryTest {
     }
 
     @Nested
+    class SaveAll {
+        @Test
+        void givenMultipleNewCategories_shouldPersistAllAndReturnWithIds() {
+            UUID userId = UUID.randomUUID();
+
+            List<Category> categories = List.of(
+                    Category.builder()
+                            .name("FOOD")
+                            .type(TransactionType.EXPENSE)
+                            .userId(userId)
+                            .localId("food-local")
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build(),
+                    Category.builder()
+                            .name("TRANSPORT")
+                            .type(TransactionType.EXPENSE)
+                            .userId(userId)
+                            .localId("transport-local")
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build()
+            );
+
+            List<Category> saved = categoryRepository.saveAll(categories);
+
+            Assertions.assertThat(saved).as("should return exactly 2 categories").hasSize(2);
+            Assertions.assertThat(saved).allSatisfy(c -> Assertions.assertThat(c.id()).isNotNull());
+            assertEquals("food-local", saved.get(0).localId(), "first category localId should match");
+            assertEquals("transport-local", saved.get(1).localId(), "second category localId should match");
+
+            verify(jpaCategoryRepository, times(1)).saveAll(any());
+        }
+
+        @Test
+        void givenSingleCategory_shouldPersistAndReturnWithId() {
+            UUID userId = UUID.randomUUID();
+
+            List<Category> categories = List.of(
+                    Category.builder()
+                            .name("SALARY")
+                            .type(TransactionType.INCOME)
+                            .userId(userId)
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build()
+            );
+
+            List<Category> saved = categoryRepository.saveAll(categories);
+
+            Assertions.assertThat(saved).as("should return exactly 1 category").hasSize(1);
+            Assertions.assertThat(saved.getFirst().id()).isNotNull();
+            assertNull(saved.getFirst().localId(), "null localId should be preserved");
+
+            verify(jpaCategoryRepository, times(1)).saveAll(any());
+        }
+    }
+
+    @Nested
     class Save {
         @Test
         void givenValidCategory_shouldPersistAndRetrieve() {

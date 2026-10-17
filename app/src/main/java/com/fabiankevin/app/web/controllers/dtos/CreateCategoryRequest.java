@@ -21,7 +21,10 @@ public record CreateCategoryRequest(
         @Schema(description = "Transaction type of the category", example = "EXPENSE")
         TransactionType type,
         @Schema(description = "Icon for the category", example = "attach_money")
-        String icon
+        String icon,
+        @Size(max = 128, message = "Local ID must not exceed 128 characters")
+        @Schema(description = "Client-facing identifier that may differ from the internal UUID", example = "FOOD_001")
+        String localId
 ) {
     public CreateCategoryCommand toCommand(UUID userId) {
         return CreateCategoryCommand.builder()
@@ -29,6 +32,7 @@ public record CreateCategoryRequest(
                 .type(this.type)
                 .icon(this.icon)
                 .userId(userId)
+                .localId(this.localId)
                 .build();
     }
 }

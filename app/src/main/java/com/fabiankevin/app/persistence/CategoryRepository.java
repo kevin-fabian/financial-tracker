@@ -18,6 +18,7 @@ public interface CategoryRepository {
     Optional<Category> findInactiveByNameAndTypeAndUserId(String name, TransactionType type, UUID userId);
     Optional<Category> findByNameAndTypeAndUserId(String name, TransactionType type, UUID userId);
     Category save(Category category);
+    List<Category> saveAll(List<Category> categories);
     int deleteByIdAndUserId(UUID id, UUID userId);
     Page<Category> findAllByPageQuery(PageQuery query, UUID userId, TransactionType type);
     Page<CategorySummary> findAllByPageQueryWithSummary(PageQuery query, UUID userId, TransactionType type, List<UUID> userIds);

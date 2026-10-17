@@ -77,6 +77,17 @@ public class DefaultCategoryRepository implements CategoryRepository {
     }
 
     @Override
+    public List<Category> saveAll(List<Category> categories) {
+        List<CategoryEntity> entities = categories.stream()
+                .map(CategoryEntity::from)
+                .collect(Collectors.toList());
+        List<CategoryEntity> saved = jpaCategoryRepository.saveAll(entities);
+        return saved.stream()
+                .map(CategoryEntity::toModel)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public int deleteByIdAndUserId(UUID id, UUID userId) {
         return jpaCategoryRepository.deleteByIdAndUserId(id, userId);
     }
