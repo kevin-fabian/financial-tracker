@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Currency;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -43,11 +44,35 @@ public class DefaultAccountService implements AccountService {
     @Transactional
     @Override
     public void createBatchAccounts(List<CreateAccountCommand> commands, UUID userId) {
-        for (CreateAccountCommand command : commands) {
-            Account account = accountRepository.findByNameAndTypeAndUserId(command.name(), command.type(), userId)
-                    .map(this::reactivateAccount)
-                    .orElseGet(() -> createNewAccount(command));
-        }
+        List<Account> existing = accountRepository.findByNameAndTypeAndUserIdBatch(commands, userId);
+        Map<String, Account> existingByKey = existing.stream()
+                .collect(Collectors.toMap(
+                        a -> a.name() + ":" + a.type().name(),
+                        a -> a
+                ));
+
+        List<Account> toSave = commands.stream()
+                .map(command -> {
+                    String key = command.name() + ":" + command.type().name();
+                    return Optional.ofNullable(existingByKey.get(key))
+                            .map(accountCommand -> accountCommand.toBuilder()
+                                    .active(true)
+                                    .updatedAt(Instant.now())
+                                    .build())
+                            .orElseGet(() -> Account.builder()
+                                    .name(command.name())
+                                    .active(true)
+                                    .user(User.of(command.userId()))
+                                    .currency(command.currency())
+                                    .type(command.type())
+                                    .localId(command.localId())
+                                    .createdAt(Instant.now())
+                                    .updatedAt(Instant.now())
+                                    .build());
+                })
+                .collect(Collectors.toList());
+
+        accountRepository.saveAll(toSave);
     }
 
     @Transactional

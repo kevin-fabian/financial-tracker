@@ -549,7 +549,7 @@ class DefaultAccountServiceTest {
     class CreateBatchAccounts {
 
         @Test
-        void givenMultipleNewAccounts_shouldCreateAll() {
+        void givenMultipleNewAccounts_shouldCreateAllWithSaveAll() {
             UUID userId = UUID.randomUUID();
             UUID id1 = UUID.randomUUID();
             UUID id2 = UUID.randomUUID();
@@ -568,24 +568,27 @@ class DefaultAccountServiceTest {
                     .userId(userId)
                     .build();
 
-            when(accountRepository.findByNameAndTypeAndUserId(cmd1.name(), cmd1.type(), userId))
-                    .thenReturn(Optional.empty());
-            when(accountRepository.findByNameAndTypeAndUserId(cmd2.name(), cmd2.type(), userId))
-                    .thenReturn(Optional.empty());
-            when(accountRepository.save(any())).thenAnswer(invocation -> {
-                Account a = invocation.getArgument(0);
-                if ("GCASH".equals(a.name())) return a.toBuilder().id(id1).build();
-                if ("BDO".equals(a.name())) return a.toBuilder().id(id2).build();
-                return invocation.getArgument(0);
+            when(accountRepository.findByNameAndTypeAndUserIdBatch(List.of(cmd1, cmd2), userId))
+                    .thenReturn(List.of());
+            ArgumentCaptor<List<Account>> saveCaptor = ArgumentCaptor.forClass(List.class);
+            when(accountRepository.saveAll(saveCaptor.capture())).thenAnswer(invocation -> {
+                List<Account> accounts = invocation.getArgument(0);
+                return accounts.stream().map(account -> {
+                    if ("GCASH".equals(account.name())) return account.toBuilder().id(id1).build();
+                    if ("BDO".equals(account.name())) return account.toBuilder().id(id2).build();
+                    return account;
+                }).toList();
             });
 
             accountService.createBatchAccounts(List.of(cmd1, cmd2), userId);
 
-            verify(accountRepository, times(2)).save(any());
+            verify(accountRepository, times(1)).findByNameAndTypeAndUserIdBatch(List.of(cmd1, cmd2), userId);
+            List<Account> saved = saveCaptor.getValue();
+            assertEquals(2, saved.size(), "should save exactly 2 accounts");
         }
 
         @Test
-        void givenBatchWithExistingInactiveAccount_shouldReactivate() {
+        void givenBatchWithExistingInactiveAccount_shouldReactivateWithSaveAll() {
             UUID userId = UUID.randomUUID();
             UUID existingId = UUID.randomUUID();
 
@@ -607,19 +610,26 @@ class DefaultAccountServiceTest {
                     .userId(userId)
                     .build();
 
-            when(accountRepository.findByNameAndTypeAndUserId(cmd.name(), cmd.type(), userId))
-                    .thenReturn(Optional.of(inactive));
-            when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(accountRepository.findByNameAndTypeAndUserIdBatch(List.of(cmd), userId))
+                    .thenReturn(List.of(inactive));
+            ArgumentCaptor<List<Account>> saveCaptor = ArgumentCaptor.forClass(List.class);
+            when(accountRepository.saveAll(saveCaptor.capture())).thenAnswer(invocation -> {
+                List<Account> accounts = invocation.getArgument(0);
+                return accounts.stream()
+                        .map(a -> a.toBuilder().active(true).build())
+                        .toList();
+            });
 
             accountService.createBatchAccounts(List.of(cmd), userId);
 
-            ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
-            verify(accountRepository).save(captor.capture());
-            assertTrue(captor.getValue().active(), "account should be reactivated");
+            verify(accountRepository, times(1)).findByNameAndTypeAndUserIdBatch(List.of(cmd), userId);
+            List<Account> saved = saveCaptor.getValue();
+            assertEquals(1, saved.size(), "should save exactly 1 account");
+            assertTrue(saved.getFirst().active(), "account should be reactivated");
         }
 
         @Test
-        void givenBatchWithNewAndReactivated_shouldCreateAndReactivate() {
+        void givenBatchWithNewAndReactivated_shouldCreateAndReactivateWithSaveAll() {
             UUID userId = UUID.randomUUID();
             UUID existingId = UUID.randomUUID();
             UUID newId = UUID.randomUUID();
@@ -649,20 +659,25 @@ class DefaultAccountServiceTest {
                     .userId(userId)
                     .build();
 
-            when(accountRepository.findByNameAndTypeAndUserId(cmd1.name(), cmd1.type(), userId))
-                    .thenReturn(Optional.of(inactive));
-            when(accountRepository.findByNameAndTypeAndUserId(cmd2.name(), cmd2.type(), userId))
-                    .thenReturn(Optional.empty());
-            when(accountRepository.save(any())).thenAnswer(invocation -> {
-                Account a = invocation.getArgument(0);
-                if ("GCASH".equals(a.name())) return a.toBuilder().id(existingId).active(true).build();
-                if ("BDO".equals(a.name())) return a.toBuilder().id(newId).build();
-                return invocation.getArgument(0);
+            when(accountRepository.findByNameAndTypeAndUserIdBatch(List.of(cmd1, cmd2), userId))
+                    .thenReturn(List.of(inactive));
+            ArgumentCaptor<List<Account>> saveCaptor = ArgumentCaptor.forClass(List.class);
+            when(accountRepository.saveAll(saveCaptor.capture())).thenAnswer(invocation -> {
+                List<Account> accounts = invocation.getArgument(0);
+                return accounts.stream().map(a -> {
+                    if ("GCASH".equals(a.name())) return a.toBuilder().id(existingId).active(true).build();
+                    if ("BDO".equals(a.name())) return a.toBuilder().id(newId).build();
+                    return a;
+                }).toList();
             });
 
             accountService.createBatchAccounts(List.of(cmd1, cmd2), userId);
 
-            verify(accountRepository, times(2)).save(any());
+            verify(accountRepository, times(1)).findByNameAndTypeAndUserIdBatch(List.of(cmd1, cmd2), userId);
+            List<Account> saved = saveCaptor.getValue();
+            assertEquals(2, saved.size(), "should save exactly 2 accounts");
+            Account reactivated = saved.stream().filter(a -> "GCASH".equals(a.name())).findFirst().orElseThrow();
+            assertTrue(reactivated.active(), "reactivated account should be active");
         }
     }
 }

@@ -11,6 +11,7 @@ import com.fabiankevin.app.persistence.entities.TransactionEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
+import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -129,6 +130,71 @@ class DefaultAccountRepositoryTest {
             Account retrieved = accountRepository.findById(saved.id()).orElseThrow();
 
             assertNull(retrieved.localId(), "null localId should be persisted and retrieved as null");
+        }
+    }
+
+    @Nested
+    class SaveAll {
+        @Test
+        void givenMultipleNewAccounts_shouldPersistAllAndReturnWithIds() {
+            UUID userId = UUID.randomUUID();
+
+            List<Account> accounts = List.of(
+                    Account.builder()
+                            .name("Account A")
+                            .user(User.of(userId))
+                            .currency(java.util.Currency.getInstance("PHP"))
+                            .type(AccountType.BANK_ACCOUNT)
+                            .active(true)
+                            .localId("a-local")
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build(),
+                    Account.builder()
+                            .name("Account B")
+                            .user(User.of(userId))
+                            .currency(java.util.Currency.getInstance("USD"))
+                            .type(AccountType.E_WALLET)
+                            .active(true)
+                            .localId("b-local")
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build()
+            );
+
+            List<Account> saved = accountRepository.saveAll(accounts);
+
+            Assertions.assertThat(saved).as("should return exactly 2 accounts").hasSize(2);
+            Assertions.assertThat(saved).allSatisfy(a -> Assertions.assertThat(a.id()).isNotNull());
+            assertEquals("a-local", saved.get(0).localId(), "first account localId should match");
+            assertEquals("b-local", saved.get(1).localId(), "second account localId should match");
+
+            verify(jpaAccountRepository, times(1)).saveAll(any());
+        }
+
+        @Test
+        void givenSingleAccount_shouldPersistAndReturnWithId() {
+            UUID userId = UUID.randomUUID();
+
+            List<Account> accounts = List.of(
+                    Account.builder()
+                            .name("Solo")
+                            .user(User.of(userId))
+                            .currency(java.util.Currency.getInstance("EUR"))
+                            .type(AccountType.CASH)
+                            .active(true)
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build()
+            );
+
+            List<Account> saved = accountRepository.saveAll(accounts);
+
+            Assertions.assertThat(saved).as("should return exactly 1 account").hasSize(1);
+            Assertions.assertThat(saved.getFirst().id()).isNotNull();
+            assertNull(saved.getFirst().localId(), "null localId should be preserved");
+
+            verify(jpaAccountRepository, times(1)).saveAll(any());
         }
     }
 
@@ -387,6 +453,120 @@ class DefaultAccountRepositoryTest {
             Assertions.assertThat(deleted).as("should return 0 when no accounts exist for user").isZero();
 
             verify(jpaAccountRepository, times(1)).deleteAllByUserId(nonExistingUserId);
+        }
+    }
+
+    @Nested
+    class FindByNameAndTypeAndUserIdBatch {
+        @Test
+        void givenMultipleNamesAndTypes_shouldReturnMatchingAccounts() {
+            UUID userId = UUID.randomUUID();
+
+            Account acc1 = Account.builder()
+                    .name("GCASH")
+                    .user(User.of(userId))
+                    .currency(java.util.Currency.getInstance("PHP"))
+                    .type(AccountType.E_WALLET)
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            Account acc2 = Account.builder()
+                    .name("BDO")
+                    .user(User.of(userId))
+                    .currency(java.util.Currency.getInstance("PHP"))
+                    .type(AccountType.BANK_ACCOUNT)
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            Account acc3 = Account.builder()
+                    .name("PAYMAYA")
+                    .user(User.of(userId))
+                    .currency(java.util.Currency.getInstance("PHP"))
+                    .type(AccountType.E_WALLET)
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            accountRepository.save(acc1);
+            accountRepository.save(acc2);
+            accountRepository.save(acc3);
+
+            List<CreateAccountCommand> commands = List.of(
+                    CreateAccountCommand.builder().name("GCASH").type(AccountType.E_WALLET).build(),
+                    CreateAccountCommand.builder().name("BDO").type(AccountType.BANK_ACCOUNT).build()
+            );
+
+            List<Account> found = accountRepository.findByNameAndTypeAndUserIdBatch(commands, userId);
+
+            Assertions.assertThat(found).as("should return 2 matching accounts").hasSize(2);
+            Map<String, Account> byName = found.stream()
+                    .collect(Collectors.toMap(Account::name, a -> a));
+            Assertions.assertThat(byName).containsKeys("GCASH", "BDO");
+            assertEquals(AccountType.E_WALLET, byName.get("GCASH").type(), "GCASH should be E_WALLET");
+            assertEquals(AccountType.BANK_ACCOUNT, byName.get("BDO").type(), "BDO should be BANK_ACCOUNT");
+        }
+
+        @Test
+        void givenPartialMatch_shouldReturnOnlyMatchingAccounts() {
+            UUID userId = UUID.randomUUID();
+
+            Account acc1 = Account.builder()
+                    .name("GCASH")
+                    .user(User.of(userId))
+                    .currency(java.util.Currency.getInstance("PHP"))
+                    .type(AccountType.E_WALLET)
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            Account acc2 = Account.builder()
+                    .name("BDO")
+                    .user(User.of(userId))
+                    .currency(java.util.Currency.getInstance("PHP"))
+                    .type(AccountType.BANK_ACCOUNT)
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            accountRepository.save(acc1);
+            accountRepository.save(acc2);
+
+            List<CreateAccountCommand> commands = List.of(
+                    CreateAccountCommand.builder().name("GCASH").type(AccountType.E_WALLET).build(),
+                    CreateAccountCommand.builder().name("BDO").type(AccountType.E_WALLET).build()
+            );
+
+            List<Account> found = accountRepository.findByNameAndTypeAndUserIdBatch(commands, userId);
+
+            Assertions.assertThat(found).as("should return only GCASH since BDO+E_WALLET does not exist").hasSize(1);
+            assertEquals("GCASH", found.getFirst().name(), "only GCASH should match");
+        }
+
+        @Test
+        void givenNoMatchingAccounts_shouldReturnEmptyList() {
+            UUID userId = UUID.randomUUID();
+
+            Account acc1 = Account.builder()
+                    .name("GCASH")
+                    .user(User.of(userId))
+                    .currency(java.util.Currency.getInstance("PHP"))
+                    .type(AccountType.E_WALLET)
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            accountRepository.save(acc1);
+
+            List<CreateAccountCommand> commands = List.of(
+                    CreateAccountCommand.builder().name("BDO").type(AccountType.BANK_ACCOUNT).build(),
+                    CreateAccountCommand.builder().name("PAYMAYA").type(AccountType.E_WALLET).build()
+            );
+
+            List<Account> found = accountRepository.findByNameAndTypeAndUserIdBatch(commands, userId);
+
+            Assertions.assertThat(found).as("should return empty list when no accounts match").isEmpty();
         }
     }
 }

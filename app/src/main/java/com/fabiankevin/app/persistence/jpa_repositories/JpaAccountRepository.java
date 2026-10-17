@@ -18,6 +18,17 @@ public interface JpaAccountRepository extends JpaRepository<AccountEntity, UUID>
 
     Optional<AccountEntity> findByNameAndTypeAndUserId(String name, String type, UUID userId);
 
+    @Query("""
+            SELECT a FROM AccountEntity a
+            WHERE a.userId = :userId
+            AND a.type IN :types
+            AND a.name IN :names
+            """)
+    List<AccountEntity> findAllByNamesAndTypesAndUserId(
+            @Param("names") List<String> names,
+            @Param("types") List<String> types,
+            @Param("userId") UUID userId);
+
     int deleteByIdAndUserId(UUID accountId, UUID userId);
 
     long deleteAllByUserId(UUID userId);

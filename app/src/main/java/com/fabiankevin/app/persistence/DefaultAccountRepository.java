@@ -6,6 +6,7 @@ import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.persistence.entities.AccountEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
+import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -33,6 +34,17 @@ public class DefaultAccountRepository implements AccountRepository {
     public Account save(Account account) {
         AccountEntity saved = jpaAccountRepository.save(AccountEntity.from(account));
         return saved.toModel();
+    }
+
+    @Override
+    public List<Account> saveAll(List<Account> accounts) {
+        List<AccountEntity> entities = accounts.stream()
+                .map(AccountEntity::from)
+                .collect(Collectors.toList());
+        List<AccountEntity> saved = jpaAccountRepository.saveAll(entities);
+        return saved.stream()
+                .map(AccountEntity::toModel)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -84,6 +96,22 @@ public class DefaultAccountRepository implements AccountRepository {
     public Optional<Account> findByNameAndTypeAndUserId(String name, AccountType type, UUID userId) {
         return jpaAccountRepository.findByNameAndTypeAndUserId(name, type.name(), userId)
                 .map(AccountEntity::toModel);
+    }
+
+    @Override
+    public List<Account> findByNameAndTypeAndUserIdBatch(List<CreateAccountCommand> commands, UUID userId) {
+        List<String> names = commands.stream()
+                .map(CreateAccountCommand::name)
+                .distinct()
+                .toList();
+        List<String> types = commands.stream()
+                .map(cmd -> cmd.type().name())
+                .distinct()
+                .toList();
+
+        return jpaAccountRepository.findAllByNamesAndTypesAndUserId(names, types, userId).stream()
+                .map(AccountEntity::toModel)
+                .collect(Collectors.toList());
     }
 
     @Override
