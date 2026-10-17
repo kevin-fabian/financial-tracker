@@ -42,6 +42,16 @@ public class DefaultAccountService implements AccountService {
 
     @Transactional
     @Override
+    public void createBatchAccounts(List<CreateAccountCommand> commands, UUID userId) {
+        for (CreateAccountCommand command : commands) {
+            Account account = accountRepository.findByNameAndTypeAndUserId(command.name(), command.type(), userId)
+                    .map(this::reactivateAccount)
+                    .orElseGet(() -> createNewAccount(command));
+        }
+    }
+
+    @Transactional
+    @Override
     public AccountSummary createAccount(CreateAccountCommand command) {
         Account account = accountRepository.findByNameAndTypeAndUserId(command.name(), command.type(), command.userId())
                 .map(this::reactivateAccount)
@@ -56,6 +66,7 @@ public class DefaultAccountService implements AccountService {
                 .user(User.of(command.userId()))
                 .currency(command.currency())
                 .type(command.type())
+                .localId(command.localId())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();

@@ -544,4 +544,125 @@ class DefaultAccountServiceTest {
             verify(accountRepository, times(1)).deleteAllByUserId(userId);
         }
     }
+
+    @Nested
+    class CreateBatchAccounts {
+
+        @Test
+        void givenMultipleNewAccounts_shouldCreateAll() {
+            UUID userId = UUID.randomUUID();
+            UUID id1 = UUID.randomUUID();
+            UUID id2 = UUID.randomUUID();
+
+            CreateAccountCommand cmd1 = CreateAccountCommand.builder()
+                    .name("GCASH")
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .userId(userId)
+                    .build();
+
+            CreateAccountCommand cmd2 = CreateAccountCommand.builder()
+                    .name("BDO")
+                    .currency(Currency.getInstance("USD"))
+                    .type(com.fabiankevin.app.models.enums.AccountType.BANK_ACCOUNT)
+                    .userId(userId)
+                    .build();
+
+            when(accountRepository.findByNameAndTypeAndUserId(cmd1.name(), cmd1.type(), userId))
+                    .thenReturn(Optional.empty());
+            when(accountRepository.findByNameAndTypeAndUserId(cmd2.name(), cmd2.type(), userId))
+                    .thenReturn(Optional.empty());
+            when(accountRepository.save(any())).thenAnswer(invocation -> {
+                Account a = invocation.getArgument(0);
+                if ("GCASH".equals(a.name())) return a.toBuilder().id(id1).build();
+                if ("BDO".equals(a.name())) return a.toBuilder().id(id2).build();
+                return invocation.getArgument(0);
+            });
+
+            accountService.createBatchAccounts(List.of(cmd1, cmd2), userId);
+
+            verify(accountRepository, times(2)).save(any());
+        }
+
+        @Test
+        void givenBatchWithExistingInactiveAccount_shouldReactivate() {
+            UUID userId = UUID.randomUUID();
+            UUID existingId = UUID.randomUUID();
+
+            Account inactive = Account.builder()
+                    .id(existingId)
+                    .name("GCASH")
+                    .user(User.of(userId))
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .active(false)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            CreateAccountCommand cmd = CreateAccountCommand.builder()
+                    .name("GCASH")
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .userId(userId)
+                    .build();
+
+            when(accountRepository.findByNameAndTypeAndUserId(cmd.name(), cmd.type(), userId))
+                    .thenReturn(Optional.of(inactive));
+            when(accountRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+            accountService.createBatchAccounts(List.of(cmd), userId);
+
+            ArgumentCaptor<Account> captor = ArgumentCaptor.forClass(Account.class);
+            verify(accountRepository).save(captor.capture());
+            assertTrue(captor.getValue().active(), "account should be reactivated");
+        }
+
+        @Test
+        void givenBatchWithNewAndReactivated_shouldCreateAndReactivate() {
+            UUID userId = UUID.randomUUID();
+            UUID existingId = UUID.randomUUID();
+            UUID newId = UUID.randomUUID();
+
+            Account inactive = Account.builder()
+                    .id(existingId)
+                    .name("GCASH")
+                    .user(User.of(userId))
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .active(false)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            CreateAccountCommand cmd1 = CreateAccountCommand.builder()
+                    .name("GCASH")
+                    .currency(Currency.getInstance("PHP"))
+                    .type(E_WALLET)
+                    .userId(userId)
+                    .build();
+
+            CreateAccountCommand cmd2 = CreateAccountCommand.builder()
+                    .name("BDO")
+                    .currency(Currency.getInstance("USD"))
+                    .type(com.fabiankevin.app.models.enums.AccountType.BANK_ACCOUNT)
+                    .userId(userId)
+                    .build();
+
+            when(accountRepository.findByNameAndTypeAndUserId(cmd1.name(), cmd1.type(), userId))
+                    .thenReturn(Optional.of(inactive));
+            when(accountRepository.findByNameAndTypeAndUserId(cmd2.name(), cmd2.type(), userId))
+                    .thenReturn(Optional.empty());
+            when(accountRepository.save(any())).thenAnswer(invocation -> {
+                Account a = invocation.getArgument(0);
+                if ("GCASH".equals(a.name())) return a.toBuilder().id(existingId).active(true).build();
+                if ("BDO".equals(a.name())) return a.toBuilder().id(newId).build();
+                return invocation.getArgument(0);
+            });
+
+            accountService.createBatchAccounts(List.of(cmd1, cmd2), userId);
+
+            verify(accountRepository, times(2)).save(any());
+        }
+    }
 }

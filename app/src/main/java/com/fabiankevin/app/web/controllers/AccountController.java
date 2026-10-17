@@ -3,10 +3,12 @@ package com.fabiankevin.app.web.controllers;
 import com.fabiankevin.app.models.AccountSummary;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.services.AccountService;
+import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.web.controllers.dtos.AccountResponse;
 import com.fabiankevin.app.web.controllers.dtos.AccountSummaryResponse;
 import com.fabiankevin.app.web.controllers.dtos.CreateAccountRequest;
+import com.fabiankevin.app.web.controllers.dtos.CreateBatchAccountsRequest;
 import com.fabiankevin.app.web.controllers.dtos.PageResponse;
 import com.fabiankevin.app.web.controllers.dtos.PatchAccountRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,6 +34,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -123,6 +126,27 @@ public class AccountController {
                 .buildAndExpand(response.id())
                 .toUri();
         return ResponseEntity.created(location).body(response);
+    }
+
+    @Operation(
+            summary = "Create multiple accounts in a batch",
+            description = "Creates multiple accounts in a single request and returns nothing",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - All accounts created successfully"),
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+            }
+    )
+    @PostMapping("/batch")
+    public ResponseEntity<Void> createBatchAccounts(@Valid @RequestBody CreateBatchAccountsRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        List<CreateAccountCommand> commands = request.accounts().stream()
+                .map(r -> r.toCommand(userId))
+                .toList();
+        accountService.createBatchAccounts(commands, userId);
+        return ResponseEntity.ok().build();
     }
 
     @Operation(

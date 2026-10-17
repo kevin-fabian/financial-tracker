@@ -15,6 +15,7 @@ import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateAccountRequest;
+import com.fabiankevin.app.web.controllers.dtos.CreateBatchAccountsRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchAccountRequest;
 import com.fabiankevin.app.web.controllers.dtos.household.HouseholdResponse;
 import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
@@ -45,6 +46,9 @@ import java.util.stream.Stream;
 import static com.fabiankevin.app.models.enums.AccountType.CREDIT_CARD;
 import static com.fabiankevin.app.models.enums.AccountType.E_WALLET;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.matchesPattern;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -118,6 +122,7 @@ class AccountControllerIntegrationTest {
                     .name("GCASH")
                     .currency("PHP")
                     .type(E_WALLET)
+                    .localId("GCASH_001")
                     .build();
 
             when(userClient.getUsersByIds(List.of(userId)))
@@ -134,7 +139,7 @@ class AccountControllerIntegrationTest {
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isCreated())
-                    .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/accounts/[-a-f0-9]{36}")))
+                    .andExpect(header().string("Location", matchesPattern("http://localhost/api/accounts/[-a-f0-9]{36}")))
                     .andExpect(jsonPath("$.id").isNotEmpty())
                     .andExpect(jsonPath("$.name").value("GCASH"))
                     .andExpect(jsonPath("$.currency").value("PHP"))
@@ -142,6 +147,7 @@ class AccountControllerIntegrationTest {
                     .andExpect(jsonPath("$.active").value(true))
                     .andExpect(jsonPath("$.totalBalance").value(0.0))
                     .andExpect(jsonPath("$.totalTransactions").value(0))
+                    .andExpect(jsonPath("$.localId").value("GCASH_001"))
                     .andExpect(jsonPath("$.user.firstName").value("John"))
                     .andExpect(jsonPath("$.user.lastName").value("Doe"))
                     .andExpect(jsonPath("$.user.initial").value("JD"));
@@ -230,6 +236,221 @@ class AccountControllerIntegrationTest {
                                     ))
                             .contentType("application/json")
                             .content(jsonMapper.writeValueAsString(firstRequest)))
+                    .andExpect(status().isConflict());
+        }
+    }
+
+    @Nested
+    class CreateBatchAccounts {
+
+        @Test
+        void givenMultipleNewAccounts_shouldReturnOkAndCreateAll() throws Exception {
+            CreateBatchAccountsRequest request = CreateBatchAccountsRequest.builder()
+                    .accounts(List.of(
+                            CreateAccountRequest.builder()
+                                    .name("GCASH")
+                                    .currency("PHP")
+                                    .type(E_WALLET)
+                                    .build(),
+                            CreateAccountRequest.builder()
+                                    .name("BDO")
+                                    .currency("USD")
+                                    .type(CREDIT_CARD)
+                                    .build()
+                    ))
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(post("/api/accounts/batch")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk());
+
+            List<AccountSummary> summaries = jpaAccountRepository.findAll().stream()
+                    .map(e -> AccountSummary.builder().account(e.toModel()).build())
+                    .toList();
+            assertEquals(2, summaries.size());
+        }
+
+        @Test
+        void givenBatchWithExistingInactiveAccount_shouldReactivate() throws Exception {
+            accountService.createAccount(
+                    CreateAccountCommand.builder()
+                            .name("MAYA")
+                            .userId(userId)
+                            .currency(Currency.getInstance("PHP"))
+                            .type(E_WALLET)
+                            .build()
+            );
+            jpaAccountRepository.findAll().forEach(entity -> {
+                if ("MAYA".equals(entity.getName())) {
+                    entity.setActive(false);
+                    jpaAccountRepository.saveAndFlush(entity);
+                }
+            });
+
+            CreateBatchAccountsRequest request = CreateBatchAccountsRequest.builder()
+                    .accounts(List.of(
+                            CreateAccountRequest.builder()
+                                    .name("MAYA")
+                                    .currency("PHP")
+                                    .type(E_WALLET)
+                                    .build()
+                    ))
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(post("/api/accounts/batch")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk());
+
+            List<AccountSummary> summaries = jpaAccountRepository.findAll().stream()
+                    .filter(a -> "MAYA".equals(a.getName()))
+                    .map(e -> AccountSummary.builder().account(e.toModel()).build())
+                    .toList();
+            assertEquals(1, summaries.size());
+            assertTrue(summaries.get(0).account().active(), "account should be reactivated");
+        }
+
+        @Test
+        void givenBatchWithNewAndReactivated_shouldCreateAndReactivate() throws Exception {
+            accountService.createAccount(
+                    CreateAccountCommand.builder()
+                            .name("BDO")
+                            .userId(userId)
+                            .currency(Currency.getInstance("USD"))
+                            .type(CREDIT_CARD)
+                            .build()
+            );
+            jpaAccountRepository.findAll().forEach(entity -> {
+                if ("BDO".equals(entity.getName())) {
+                    entity.setActive(false);
+                    jpaAccountRepository.saveAndFlush(entity);
+                }
+            });
+
+            CreateBatchAccountsRequest request = CreateBatchAccountsRequest.builder()
+                    .accounts(List.of(
+                            CreateAccountRequest.builder()
+                                    .name("GCASH")
+                                    .currency("PHP")
+                                    .type(E_WALLET)
+                                    .build(),
+                            CreateAccountRequest.builder()
+                                    .name("BDO")
+                                    .currency("USD")
+                                    .type(CREDIT_CARD)
+                                    .build()
+                    ))
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(post("/api/accounts/batch")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk());
+
+            List<AccountSummary> summaries = jpaAccountRepository.findAll().stream()
+                    .map(e -> AccountSummary.builder().account(e.toModel()).build())
+                    .toList();
+            assertEquals(2, summaries.size());
+        }
+
+        @Test
+        void givenNoJwt_shouldReturnUnauthorized() throws Exception {
+            CreateBatchAccountsRequest request = CreateBatchAccountsRequest.builder()
+                    .accounts(List.of(
+                            CreateAccountRequest.builder()
+                                    .name("GCASH")
+                                    .currency("PHP")
+                                    .type(E_WALLET)
+                                    .build()
+                    ))
+                    .build();
+
+            mockMvc.perform(post("/api/accounts/batch")
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void givenEmptyBatch_shouldReturnBadRequest() throws Exception {
+            CreateBatchAccountsRequest request = CreateBatchAccountsRequest.builder()
+                    .accounts(List.of())
+                    .build();
+
+            mockMvc.perform(post("/api/accounts/batch")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void givenDuplicateInSameBatch_shouldReturnConflict() throws Exception {
+            CreateBatchAccountsRequest request = CreateBatchAccountsRequest.builder()
+                    .accounts(List.of(
+                            CreateAccountRequest.builder()
+                                    .name("GCASH")
+                                    .currency("PHP")
+                                    .type(E_WALLET)
+                                    .build(),
+                            CreateAccountRequest.builder()
+                                    .name("GCASH")
+                                    .currency("PHP")
+                                    .type(E_WALLET)
+                                    .build()
+                    ))
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(post("/api/accounts/batch")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isConflict());
         }
     }
