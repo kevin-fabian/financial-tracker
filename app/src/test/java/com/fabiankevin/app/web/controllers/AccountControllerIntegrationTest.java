@@ -174,11 +174,11 @@ class AccountControllerIntegrationTest {
                     Arguments.of("   ", "PHP", E_WALLET),
                     Arguments.of("GCASH", null, E_WALLET),
                     Arguments.of("12345".repeat(100), "PHP", E_WALLET),
-                    Arguments.of((String) null, "PHP", E_WALLET),
+                    Arguments.of(null, "PHP", E_WALLET),
                     Arguments.of("GCASH", "", E_WALLET),
                     Arguments.of("GCASH", "   ", E_WALLET),
                     Arguments.of("GCASH", "12345".repeat(100), E_WALLET),
-                    Arguments.of("GCASH", "PHP", (AccountType) null)
+                    Arguments.of("GCASH", "PHP", null)
             );
         }
 
@@ -328,7 +328,7 @@ class AccountControllerIntegrationTest {
                     .map(e -> AccountSummary.builder().account(e.toModel()).build())
                     .toList();
             assertEquals(1, summaries.size());
-            assertTrue(summaries.get(0).account().active(), "account should be reactivated");
+            assertTrue(summaries.getFirst().account().active(), "account should be reactivated");
         }
 
         @Test
