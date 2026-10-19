@@ -8,11 +8,13 @@ import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.PatchCategoryCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface CategoryService {
     CategorySummary getCategoryById(UUID id, UUID userId);
     Category createCategory(CreateCategoryCommand command);
+    void createCategories(List<CreateCategoryCommand> commands, UUID userId);
     CategorySummary patchCategory(PatchCategoryCommand command);
     void deleteCategoryById(UUID id, UUID userId);
     void disableCategory(UUID id, UUID userId);

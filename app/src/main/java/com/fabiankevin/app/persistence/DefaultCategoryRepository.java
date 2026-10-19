@@ -181,4 +181,12 @@ public class DefaultCategoryRepository implements CategoryRepository {
     public long deleteAllByUserId(UUID userId) {
         return jpaCategoryRepository.deleteAllByUserId(userId);
     }
+
+    @Override
+    public List<Category> findAllByNamesAndUserId(List<String> names, UUID userId) {
+        return jpaCategoryRepository.findAllByNamesAndUserId(names, userId)
+                .stream()
+                .map(CategoryEntity::toModel)
+                .collect(Collectors.toList());
+    }
 }

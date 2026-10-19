@@ -57,6 +57,13 @@ public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUI
     Optional<CategoryEntity> findFirstByActiveFalseAndNameAndTransactionTypeAndUserId(String name, TransactionType type, UUID userId);
     Optional<CategoryEntity> findFirstByNameAndTransactionTypeAndUserId(String name, TransactionType type, UUID userId);
 
+    @Query("""
+            SELECT c FROM CategoryEntity c
+            WHERE c.name IN :names
+            AND c.userId = :userId
+            """)
+    List<CategoryEntity> findAllByNamesAndUserId(@Param("names") List<String> names, @Param("userId") UUID userId);
+
     List<CategoryEntity> findAllByNameIn(List<String> names);
 
     @Query("""

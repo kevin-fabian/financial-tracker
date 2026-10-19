@@ -17,8 +17,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -41,18 +43,45 @@ public class DefaultCategoryService implements CategoryService {
                 .orElseGet(() -> createNewCategory(command));
     }
 
-    private Category createNewCategory(CreateCategoryCommand command) {
-        Category newCategory = Category.builder()
-                .name(command.name())
-                .type(command.type())
-                .icon(command.icon())
-                .userId(command.userId())
-                .active(true)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
+    @Transactional
+    @Override
+    public void createCategories(List<CreateCategoryCommand> commands, UUID userId) {
+        if (commands.isEmpty()) {
+            return;
+        }
 
-        return categoryRepository.save(newCategory);
+        List<String> names = commands.stream()
+                .map(CreateCategoryCommand::name)
+                .distinct()
+                .collect(Collectors.toList());
+        List<Category> existing = categoryRepository.findAllByNamesAndUserId(names, userId);
+
+        // Filter by type programmatically
+        Map<String, Category> existingByKey = existing.stream()
+                .filter(category -> commands.stream().anyMatch(cmd -> cmd.name().
+                        equals(category.name()) && cmd.type() == category.type()))
+                .collect(Collectors.toMap(
+                        category -> category.name() + ":" + category.type().name(),
+                        category -> category
+                ));
+
+        List<Category> toSave = commands.stream()
+                .map(command -> {
+                    String key = command.name() + ":" + command.type().name();
+                    return Optional.ofNullable(existingByKey.get(key))
+                            .map(existingCategory -> existingCategory.toBuilder()
+                                    .active(true)
+                                    .updatedAt(Instant.now())
+                                    .build())
+                            .orElseGet(() -> Category.from(command));
+                })
+                .collect(Collectors.toList());
+
+        categoryRepository.saveAll(toSave);
+    }
+
+    private Category createNewCategory(CreateCategoryCommand command) {
+        return categoryRepository.save(Category.from(command));
     }
 
     private Category reactivateCategory(Category existingCategory, CreateCategoryCommand command) {

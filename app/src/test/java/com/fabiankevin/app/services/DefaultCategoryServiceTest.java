@@ -7,6 +7,7 @@ import com.fabiankevin.app.models.CategorySummary;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.CategoryRepository;
+import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.persistence.entities.projections.CategorySummaryProjection;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
@@ -14,29 +15,102 @@ import com.fabiankevin.app.services.commands.PatchCategoryCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
 class DefaultCategoryServiceTest {
-    @Mock
-    private CategoryRepository categoryRepository;
+    private final CategoryRepository categoryRepository = mock(CategoryRepository.class);
+    private final TransactionRepository transactionRepository = mock(TransactionRepository.class);
+    private final HouseholdService householdService = mock(HouseholdService.class);
+    private final CategoryService categoryService = new DefaultCategoryService(categoryRepository, transactionRepository, householdService);
 
-    @InjectMocks
-    private DefaultCategoryService categoryService;
+    @Nested
+    class CreateCategories {
+        @Test
+        void givenMultipleNewCategories_thenShouldSaveAll() {
+            UUID userId = UUID.randomUUID();
+            List<CreateCategoryCommand> commands = List.of(
+                    CreateCategoryCommand.builder().name("FOOD").type(TransactionType.EXPENSE).icon("food").userId(userId).build(),
+                    CreateCategoryCommand.builder().name("RENT").type(TransactionType.EXPENSE).icon("home").userId(userId).build()
+            );
+
+            when(categoryRepository.findAllByNamesAndUserId(any(), eq(userId))).thenReturn(List.of());
+            when(categoryRepository.saveAll(any())).thenAnswer(invocation -> {
+                List<Category> list = invocation.getArgument(0);
+                return list.stream()
+                        .map(c -> c.toBuilder().id(UUID.randomUUID()).build())
+                        .collect(Collectors.toList());
+            });
+
+            categoryService.createCategories(commands, userId);
+
+            verify(categoryRepository).findAllByNamesAndUserId(any(), eq(userId));
+            verify(categoryRepository, times(1)).saveAll(anyList());
+        }
+
+        @Test
+        void givenMixedNewAndReactivatedCategories_thenShouldHandleEachCorrectly() {
+            UUID userId = UUID.randomUUID();
+            UUID existingId = UUID.randomUUID();
+
+            Category inactiveCategory = Category.builder()
+                    .id(existingId)
+                    .name("FOOD")
+                    .type(TransactionType.EXPENSE)
+                    .userId(userId)
+                    .icon("restaurant")
+                    .active(false)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            List<CreateCategoryCommand> commands = List.of(
+                    CreateCategoryCommand.builder().name("FOOD").type(TransactionType.EXPENSE).icon("utensils").userId(userId).build(),
+                    CreateCategoryCommand.builder().name("RENT").type(TransactionType.EXPENSE).icon("home").userId(userId).build()
+            );
+
+            when(categoryRepository.findAllByNamesAndUserId(any(), eq(userId))).thenReturn(List.of(inactiveCategory));
+            when(categoryRepository.saveAll(any())).thenAnswer(invocation -> {
+                List<Category> list = invocation.getArgument(0);
+                return list.stream()
+                        .map(c -> c.toBuilder().id(UUID.randomUUID()).build())
+                        .collect(Collectors.toList());
+            });
+
+            categoryService.createCategories(commands, userId);
+
+            verify(categoryRepository).findAllByNamesAndUserId(any(), eq(userId));
+            verify(categoryRepository).saveAll(any());
+        }
+
+        @Test
+        void givenEmptyList_thenShouldNotCallRepository() {
+            UUID userId = UUID.randomUUID();
+            List<CreateCategoryCommand> commands = List.of();
+
+            categoryService.createCategories(commands, userId);
+
+            verify(categoryRepository, never()).findAllByNamesAndUserId(any(), any());
+            verify(categoryRepository, never()).saveAll(any());
+        }
+    }
 
     @Nested
     class CreateCategory {
@@ -294,8 +368,7 @@ class DefaultCategoryServiceTest {
 
         Page<Category> result = categoryService.getCategoriesByPageQuery(query, userId, type);
 
-        // result should be the same instance returned by repository
-        assertEquals(expectedPage, result, "service should return the page provided by repository");
+        assertEquals(expectedPage, result);
         verify(categoryRepository, times(1)).findAllByPageQuery(any(PageQuery.class), eq(userId), eq(type));
     }
 

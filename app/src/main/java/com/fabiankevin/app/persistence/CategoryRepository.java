@@ -17,6 +17,7 @@ public interface CategoryRepository {
     boolean existsByNameAndTypeAndUserId(String name, TransactionType type, UUID userId);
     Optional<Category> findInactiveByNameAndTypeAndUserId(String name, TransactionType type, UUID userId);
     Optional<Category> findByNameAndTypeAndUserId(String name, TransactionType type, UUID userId);
+    List<Category> findAllByNamesAndUserId(List<String> names, UUID userId);
     Category save(Category category);
     List<Category> saveAll(List<Category> categories);
     int deleteByIdAndUserId(UUID id, UUID userId);
