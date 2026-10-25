@@ -8,6 +8,7 @@ import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
+import com.fabiankevin.app.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaBudgetRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaRecurringTransactionRepository;
@@ -18,6 +19,7 @@ import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
+import com.fabiankevin.app.web.controllers.dtos.CreateBatchCategoriesRequest;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchCategoryRequest;
 import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
@@ -47,6 +49,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -132,8 +136,8 @@ class CategoryControllerIntegrationTest {
                     Arguments.of(" ", TransactionType.EXPENSE),
                     Arguments.of("   ", TransactionType.EXPENSE),
                     Arguments.of("12345".repeat(100), TransactionType.EXPENSE),
-                    Arguments.of((String) null, TransactionType.EXPENSE),
-                    Arguments.of("FOOD", (TransactionType) null)
+                    Arguments.of(null, TransactionType.EXPENSE),
+                    Arguments.of("FOOD", null)
             );
         }
 
@@ -1236,6 +1240,180 @@ class CategoryControllerIntegrationTest {
                                             .claim("scope", List.of())
                                     )))
                     .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    class CreateBatchCategories {
+
+        @Test
+        void givenMultipleNewCategories_shouldReturnOkAndCreateAll() throws Exception {
+            CreateBatchCategoriesRequest request = CreateBatchCategoriesRequest.builder()
+                    .categories(List.of(
+                            CreateCategoryRequest.builder()
+                                    .name("FOOD")
+                                    .type(TransactionType.EXPENSE)
+                                    .build(),
+                            CreateCategoryRequest.builder()
+                                    .name("RENT")
+                                    .type(TransactionType.EXPENSE)
+                                    .build()
+                    ))
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(post("/api/categories/batch")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk());
+
+            List<Category> categories = jpaCategoryRepository.findAll().stream()
+                    .map(CategoryEntity::toModel)
+                    .toList();
+            assertEquals(2, categories.size());
+        }
+
+        @Test
+        void givenBatchWithExistingInactiveCategory_shouldReactivate() throws Exception {
+            categoryService.createCategory(
+                    CreateCategoryCommand.builder()
+                            .name("FOOD")
+                            .type(TransactionType.EXPENSE)
+                            .userId(userId)
+                            .build()
+            );
+            jpaCategoryRepository.findAll().forEach(entity -> {
+                if ("FOOD".equals(entity.getName())) {
+                    entity.setActive(false);
+                    jpaCategoryRepository.saveAndFlush(entity);
+                }
+            });
+
+            CreateBatchCategoriesRequest request = CreateBatchCategoriesRequest.builder()
+                    .categories(List.of(
+                            CreateCategoryRequest.builder()
+                                    .name("FOOD")
+                                    .type(TransactionType.EXPENSE)
+                                    .build()
+                    ))
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(post("/api/categories/batch")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk());
+
+            List<Category> categories = jpaCategoryRepository.findAll().stream()
+                    .filter(c -> "FOOD".equals(c.getName()))
+                    .map(CategoryEntity::toModel)
+                    .toList();
+            assertEquals(1, categories.size());
+            assertTrue(categories.getFirst().active(), "category should be reactivated");
+        }
+
+        @Test
+        void givenBatchWithNewAndReactivated_shouldCreateAndReactivate() throws Exception {
+            categoryService.createCategory(
+                    CreateCategoryCommand.builder()
+                            .name("RENT")
+                            .type(TransactionType.EXPENSE)
+                            .userId(userId)
+                            .build()
+            );
+            jpaCategoryRepository.findAll().forEach(entity -> {
+                if ("RENT".equals(entity.getName())) {
+                    entity.setActive(false);
+                    jpaCategoryRepository.saveAndFlush(entity);
+                }
+            });
+
+            CreateBatchCategoriesRequest request = CreateBatchCategoriesRequest.builder()
+                    .categories(List.of(
+                            CreateCategoryRequest.builder()
+                                    .name("FOOD")
+                                    .type(TransactionType.EXPENSE)
+                                    .build(),
+                            CreateCategoryRequest.builder()
+                                    .name("RENT")
+                                    .type(TransactionType.EXPENSE)
+                                    .build()
+                    ))
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(post("/api/categories/batch")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk());
+
+            List<Category> categories = jpaCategoryRepository.findAll().stream()
+                    .map(CategoryEntity::toModel)
+                    .toList();
+            assertEquals(2, categories.size());
+        }
+
+        @Test
+        void givenNoJwt_shouldReturnUnauthorized() throws Exception {
+            CreateBatchCategoriesRequest request = CreateBatchCategoriesRequest.builder()
+                    .categories(List.of(
+                            CreateCategoryRequest.builder()
+                                    .name("FOOD")
+                                    .type(TransactionType.EXPENSE)
+                                    .build()
+                    ))
+                    .build();
+
+            mockMvc.perform(post("/api/categories/batch")
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void givenEmptyBatch_shouldReturnBadRequest() throws Exception {
+            CreateBatchCategoriesRequest request = CreateBatchCategoriesRequest.builder()
+                    .categories(List.of())
+                    .build();
+
+            mockMvc.perform(post("/api/categories/batch")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
         }
     }
 }

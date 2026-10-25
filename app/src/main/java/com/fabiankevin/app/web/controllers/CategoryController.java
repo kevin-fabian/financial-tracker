@@ -5,9 +5,11 @@ import com.fabiankevin.app.models.CategorySummary;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.CategoryService;
+import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.web.controllers.dtos.CategoryResponse;
 import com.fabiankevin.app.web.controllers.dtos.CategorySummaryResponse;
+import com.fabiankevin.app.web.controllers.dtos.CreateBatchCategoriesRequest;
 import com.fabiankevin.app.web.controllers.dtos.CreateCategoryRequest;
 import com.fabiankevin.app.web.controllers.dtos.PageResponse;
 import com.fabiankevin.app.web.controllers.dtos.PatchCategoryRequest;
@@ -32,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -116,6 +119,27 @@ public class CategoryController {
                 .buildAndExpand(response.id())
                 .toUri();
         return ResponseEntity.created(location).body(response);
+    }
+
+    @Operation(
+            summary = "Create multiple categories in a batch",
+            description = "Creates multiple categories in a single request and returns nothing",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - All categories created successfully"),
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+            }
+    )
+    @PostMapping("/batch")
+    public ResponseEntity<Void> createBatchCategories(@Valid @RequestBody CreateBatchCategoriesRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        List<CreateCategoryCommand> commands = request.categories().stream()
+                .map(r -> r.toCommand(userId))
+                .toList();
+        categoryService.createCategories(commands, userId);
+        return ResponseEntity.ok().build();
     }
 
     @Operation(

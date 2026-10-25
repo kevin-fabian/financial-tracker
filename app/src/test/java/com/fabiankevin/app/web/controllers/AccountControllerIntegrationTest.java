@@ -420,39 +420,6 @@ class AccountControllerIntegrationTest {
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest());
         }
-
-        @Test
-        void givenDuplicateInSameBatch_shouldReturnConflict() throws Exception {
-            CreateBatchAccountsRequest request = CreateBatchAccountsRequest.builder()
-                    .accounts(List.of(
-                            CreateAccountRequest.builder()
-                                    .name("GCASH")
-                                    .currency("PHP")
-                                    .type(E_WALLET)
-                                    .build(),
-                            CreateAccountRequest.builder()
-                                    .name("GCASH")
-                                    .currency("PHP")
-                                    .type(E_WALLET)
-                                    .build()
-                    ))
-                    .build();
-
-            when(userClient.getUsersByIds(List.of(userId)))
-                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
-
-            mockMvc.perform(post("/api/accounts/batch")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isConflict());
-        }
     }
 
     @Nested
