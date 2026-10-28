@@ -65,4 +65,6 @@ public interface JpaBudgetRepository extends JpaRepository<BudgetEntity, UUID> {
     Optional<BudgetSummaryProjection> findByBudgetId(@Param("budgetId") UUID budgetId,
                                                      @Param("monthStart") LocalDate monthStart,
                                                      @Param("monthEnd") LocalDate monthEnd);
+
+    void deleteAllByUserId(UUID userId);
 }

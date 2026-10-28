@@ -404,4 +404,54 @@ class DefaultBudgetRepositoryTest {
             assertEquals(18.75, summary.spentPercentage(), "spentPercentage should be 150/800*100 = 18.75");
         }
     }
+
+    @Nested
+    class DeleteAllByUserId {
+        @Test
+        void givenUserIdWithBudgets_thenDeletesAllBudgets() {
+            UUID userId = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            CategoryEntity category = jpaCategoryRepository.saveAndFlush(CategoryEntity.builder()
+                    .name("GROCERIES")
+                    .transactionType(TransactionType.EXPENSE)
+                    .userId(userId)
+                    .icon("local_grocery_store")
+                    .active(true)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+
+            jpaBudgetRepository.saveAndFlush(BudgetEntity.builder()
+                    .userId(userId)
+                    .updatedBy(userId)
+                    .period(BudgetPeriod.MONTHLY)
+                    .category(category)
+                    .allocated(500.0)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+
+            // Act
+            budgetRepository.deleteAllByUserId(userId);
+
+            // Assert
+            List<BudgetEntity> remaining = jpaBudgetRepository.findAllByUserIdAndCreatedAtBetween(
+                    userId, Instant.EPOCH, Instant.now().plusSeconds(1));
+            Assertions.assertThat(remaining)
+                    .as("all budgets should be deleted for the user")
+                    .isEmpty();
+
+            verify(jpaBudgetRepository, times(1)).deleteAllByUserId(userId);
+        }
+
+        @Test
+        void givenUserIdWithNoBudgets_thenDeletesSuccessfully() {
+            UUID userId = UUID.randomUUID();
+
+            budgetRepository.deleteAllByUserId(userId);
+
+            verify(jpaBudgetRepository, times(1)).deleteAllByUserId(userId);
+        }
+    }
 }

@@ -29,4 +29,6 @@ public interface BudgetRepository {
     List<BudgetSummary> findAllBudgetSummaryByUserId(List<UUID> usersId, LocalDate startMonth, LocalDate endMonth);
 
     Optional<BudgetSummary> findBudgetSummaryById(UUID id);
+
+    void deleteAllByUserId(UUID userId);
 }

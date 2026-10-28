@@ -157,4 +157,10 @@ public class DefaultBudgetService implements BudgetService {
                 .map(summary -> enrichWithUserData(List.of(summary)).getFirst())
                 .orElseThrow(BudgetNotFoundException::new);
     }
+
+    @Transactional
+    @Override
+    public void deleteAllByUserId(UUID userId) {
+        budgetRepository.deleteAllByUserId(userId);
+    }
 }

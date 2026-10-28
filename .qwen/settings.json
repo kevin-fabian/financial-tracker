@@ -36,6 +36,6 @@
     "enableManagedAutoDream": false,
     "autoSkillConfirm": true,
     "enableAutoSkill": false,
-    "enableManagedAutoMemory": true
+    "enableManagedAutoMemory": false
   }
 }

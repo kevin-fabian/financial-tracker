@@ -513,6 +513,27 @@ class DefaultBudgetServiceTest {
     }
 
     @Nested
+    class DeleteAllByUserId {
+        @Test
+        void givenUserId_thenDeletesAllBudgets() {
+            UUID userId = UUID.randomUUID();
+
+            budgetService.deleteAllByUserId(userId);
+
+            verify(budgetRepository, times(1)).deleteAllByUserId(userId);
+        }
+
+        @Test
+        void givenUserIdWithNoBudgets_thenDeletesSuccessfully() {
+            UUID userId = UUID.randomUUID();
+
+            budgetService.deleteAllByUserId(userId);
+
+            verify(budgetRepository, times(1)).deleteAllByUserId(userId);
+        }
+    }
+
+    @Nested
     class GetBudgetSummaryByIdAndUserId {
         @Test
         void givenExistingBudgetWithMatchingUserId_thenReturnsEnrichedSummary() {

@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.UUID;
 
 public interface BudgetService {
+    void deleteAllByUserId(UUID userId);
+
     BudgetSummary createBudget(CreateBudgetCommand command);
 
     List<BudgetSummary> getBudgetsByUserId(UUID userId);

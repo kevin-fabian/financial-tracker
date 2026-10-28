@@ -80,6 +80,11 @@ public class DefaultBudgetRepository implements BudgetRepository {
                 .map(this::toSummary);
     }
 
+    @Override
+    public void deleteAllByUserId(UUID userId) {
+        jpaBudgetRepository.deleteAllByUserId(userId);
+    }
+
     private BudgetSummary toSummary(BudgetSummaryProjection projection) {
         double spent = projection.spent();
         Budget budget = projection.budget().toModel();
