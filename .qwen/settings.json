@@ -35,6 +35,7 @@
   "memory": {
     "enableManagedAutoDream": false,
     "autoSkillConfirm": true,
-    "enableAutoSkill": false
+    "enableAutoSkill": false,
+    "enableManagedAutoMemory": true
   }
 }

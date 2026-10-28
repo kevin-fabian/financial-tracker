@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -53,10 +54,10 @@ public class DefaultCategoryService implements CategoryService {
         List<String> names = commands.stream()
                 .map(CreateCategoryCommand::name)
                 .distinct()
-                .collect(Collectors.toList());
+                .toList();
         List<Category> existing = categoryRepository.findAllByNamesAndUserId(names, userId);
 
-        // Filter by type programmatically
+        // Build lookup maps from the already-loaded existing categories
         Map<String, Category> existingByKey = existing.stream()
                 .filter(category -> commands.stream().anyMatch(cmd -> cmd.name().
                         equals(category.name()) && cmd.type() == category.type()))
@@ -68,14 +69,25 @@ public class DefaultCategoryService implements CategoryService {
         List<Category> toSave = commands.stream()
                 .map(command -> {
                     String key = command.name() + ":" + command.type().name();
-                    return Optional.ofNullable(existingByKey.get(key))
-                            .map(existingCategory -> existingCategory.toBuilder()
-                                    .active(true)
-                                    .updatedAt(Instant.now())
-                                    .build())
-                            .orElseGet(() -> Category.from(command));
+                    Category existingCategory = existingByKey.get(key);
+                    if (existingCategory != null) {
+                        return existingCategory.toBuilder()
+                                .active(true)
+                                .updatedAt(Instant.now())
+                                .build();
+                    }
+                    if (command.localId() != null && !command.localId().isBlank()
+                            && existing.stream().anyMatch(c -> command.localId().equals(c.localId()))) {
+                        return null;
+                    }
+                    Category newCategory = Category.from(command);
+                    if (newCategory.localId() != null && existing.stream().anyMatch(c -> newCategory.localId().equals(c.localId()))) {
+                        return null;
+                    }
+                    return newCategory;
                 })
-                .collect(Collectors.toList());
+                .filter(Objects::nonNull)
+                .toList();
 
         categoryRepository.saveAll(toSave);
     }
