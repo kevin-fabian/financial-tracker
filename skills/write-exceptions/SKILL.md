@@ -154,7 +154,7 @@ public final class InsufficientFundsException extends BusinessRuleException {
 Use `ApiException` when you need a specific HTTP status but don't need a machine-readable `code`. Good for simple permission or validation errors.
 
 ```java
-package com.fabiankevin.app.exceptions.shared_space;
+package com.fabiankevin.app.exceptions.party;
 
 import com.github.fabiankevin.lemon.web.exceptions.ApiException;
 
@@ -188,7 +188,7 @@ Only create a custom exception class when the web layer needs to map it to a spe
 When the error has no dynamic payload and a fixed message suffices, a no-arg constructor is acceptable:
 
 ```java
-package com.fabiankevin.app.exceptions.shared_space;
+package com.fabiankevin.app.exceptions.party;
 
 import com.github.fabiankevin.lemon.web.exceptions.ApiException;
 

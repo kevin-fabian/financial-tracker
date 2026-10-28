@@ -1,162 +1,373 @@
 ---
 name: write-test-cases
-description: Workflow and best practices for writing clear, consistent, and maintainable Java test cases across all test layers.
+description: Workflow and best practices for writing clear, consistent, and maintainable Java test cases across all test layers. The happy-path test MUST assert every field of the result — this is non-negotiable for controller, service, and repository layers.
 ---
 
 # Test Case Best-Practice Skill
 
-Primary goal: write test cases that are readable, behavior-focused, and consistent across the codebase for all test layers (`@WebMvcTest`, unit tests, `@DataJpaTest`, and similar).
+Primary goal: write test cases that are readable, behavior-focused, and consistent across the codebase for all test
+layers (`@WebMvcTest`, `@SpringBootTest`, unit tests, `@DataJpaTest`, and similar).
 
-## Workflow
+## Rules
 
-1. Name each test using `methodName_given<state>_then<expected_behavior>`.
-2. Arrange only the minimum data needed for the scenario.
-3. Execute one clear behavior per test.
-4. Assert expected outcomes with concise assertion messages.
-5. For the happy-path scenario, assert all possible fields of the result.
-6. Add interaction verification when behavior depends on collaborators.
-7. Use `ArgumentCaptor` to verify parameters passed to collaborators for methods with no return value.
-8. For each method, place the happy-path test first, followed by positive and negative/error scenarios.
-9. Convert repetitive scenario matrices into parameterized tests.
-10. Order tests by method under test; use `@Nested` to group multiple scenarios of the same method.
+### Grouping and Naming
 
----
+- Group all test scenarios for a method under a `@Nested` class named after the method in PascalCase (e.g.
+  `createUser` → `@Nested class CreateUser`, `organize` → `OrganizeParty`).
+- Name each test method using `given<state>_shouldReturn<expected_behavior>` — omit the method name, since the `@Nested`
+  class already provides that context.
+- Order `@Nested` classes by method under test.
+- Within each `@Nested` class, place the happy-path test first, followed by positive and negative/error scenarios.
 
-## Mandatory Rules
+### Happy-Path Field Coverage (all layers)
 
-- Use test method names in `methodName_given<state>_then<expected_behavior>` format.
-- Use `mock()` for collaborator setup in unit tests.
-- Include concise assertion messages for intent clarity.
-- Use assertions to verify expected outcomes for every test.
+The first test case for every method MUST be the happy path and MUST assert **every field** of the returned result — no
+exceptions. This applies to controller (`@WebMvcTest`, `@SpringBootTest`), service (unit), and repository
+(`@DataJpaTest`) layers. Use `jsonPath` for controller tests, direct field access for service tests, and entity field
+assertions for repository tests. Subsequent (non-happy-path) scenarios assert only what the scenario verifies —
+scenario-based assertions, not full-field enumeration.
+
+### Assertions
+
 - Use JUnit 5 assertions for simple checks (`assertEquals`, `assertNotNull`, `assertTrue`, etc.).
-- Use AssertJ for complex assertions or when asserting collections (size/content/order, recursive comparison, chained extraction).
+- Use AssertJ for complex assertions or when asserting collections (size/content/order, recursive comparison, chained
+  extraction).
+- Include concise assertion messages for intent clarity.
+- Use `ArgumentCaptor` to verify parameters passed to collaborators for methods with no return value.
+- Use `verify(collaborator).method(args)` to confirm a collaborator was called.
+- Use `verify(collaborator, never()).method(args)` in negative tests to confirm no side effects occurred.
+
+### Mocking and Setup
+
+- Unit tests: use `mock()` for collaborator setup. Declare the service under test as a `final` field and instantiate it
+  manually with mocked collaborators — do not use `@ExtendWith(MockitoExtension.class)` or `@Mock`.
+- Spring slice tests (`@WebMvcTest`, `@SpringBootTest`): use `@MockitoBean` (Spring Boot 3.4+) to override beans. Do not
+  use the deprecated `@MockBean`.
+- `@DataJpaTest`: provide adapter beans in a nested `@TestConfiguration` class.
+
+### Spring Test Slice Requirements
+
+- Any Spring test slice MUST import `@Import(CacheTestConfig.class)` to enable caching in tests; otherwise test cases
+  will fail. See `src/test/java/com/fabiankevin/app/config/CacheTestConfig.java`.
+- `@SpringBootTest` integration tests MUST use `@ActiveProfiles("test")` so the test runs against the in-memory H2
+  database.
+- `@SpringBootTest` controller tests MUST override `JwtDecoder`, `ClientRegistrationRepository`, and
+  `OAuth2AuthorizedClientRepository` as `@MockitoBean`, or the application context will fail to start.
+
+### Parameterization
+
 - Use `@ParameterizedTest` with `@ValueSource`, `@CsvSource`, or `@EnumSource` when inputs vary systematically.
 - Use `@NullAndEmptySource` when validating null/empty string behavior.
-- Order tests consistently by method name/method under test.
-- Use `@Nested` classes when one method has multiple test scenarios.
+- Convert repetitive scenario matrices into parameterized tests.
+
+### Style
+
+- Execute one clear behavior per test.
 - Keep clear blank-line separation between setup, execution, and assertion blocks.
 - Strictly no comments inside test cases.
+
+### Test Count per Method Type
+
+| Method type                                                 | Minimum tests | Guidance                                                                                 |
+|-------------------------------------------------------------|---------------|------------------------------------------------------------------------------------------|
+| Pure delegation (no logic, returns repository result as-is) | 2             | One happy path (non-empty result) + one empty/default result.                            |
+| Common repository methods (`save`, `retrieve*`, `delete*`)  | 2–3           | Happy path + not-found case + edge case (null input, empty collection, etc.).            |
+| Methods with domain logic                                   | 5+            | One happy path + all exception branches + edge cases. Cover every `throw` in the method. |
 
 ---
 
 ## Layer Applicability
 
-- Unit tests: isolate business logic and mock external collaborators.
-- `@WebMvcTest`: focus on controller request/response behavior, validation, status codes, and JSON contracts.
-- `@DataJpaTest`: focus on repository persistence behavior, query correctness, and entity mapping.
+- **Unit tests**: isolate business logic and mock external collaborators.
+- **`@WebMvcTest`**: focus on controller request/response behavior, validation, status codes, and JSON contracts.
+- **`@SpringBootTest`**: full application context with real database (e.g. H2) for integration tests that verify the
+  complete stack — controllers, services, repositories, and data persistence.
+- **`@DataJpaTest`**: focus on repository persistence behavior, query correctness, and entity mapping.
 - For any layer, keep each test focused on one behavior and assert both success and failure scenarios where relevant.
 
 ---
 
-## Practical Examples
+## Happy-Path vs Scenario-Based Assertions
+
+The first test case for every method MUST be the happy path and MUST assert **every field** of the returned result.
+Subsequent scenarios assert only what the scenario verifies. This applies to all layers.
+
+### Controller Layer (`@WebMvcTest`)
+
+Use `jsonPath` to assert every field of the response DTO in the happy path:
 
 ```java
-class DefaultUserServiceTest {
-    private final UserRepository userRepository = mock(UserRepository.class);
-    private final DefaultUserService userService = new DefaultUserService(userRepository);
 
-    // example 1: method returns a value — assert all possible fields
+@Nested
+class GetRecurringTransactions {
+
     @Test
-    void createUser_givenNewUser_thenDelegateExpectedParameters(){
-        CreateUserCommand command = CreateUserCommand.builder()
-                .firstName("john")
-                .lastName("doe")
-                .build();
-
-        when(userRepository.save(any())).thenAnswer(i -> {
-            User user = i.getArgument(0);
-            return user.toBuilder().id(UUID.randomUUID())
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
-                    .build();
-        });
-
-        User createdUser = userService.createUser(command);
-
-        assertNotNull(createdUser.id(), "id should be generated");
-        assertEquals("john", createdUser.firstName(), "firstName should match command");
-        assertEquals("doe", createdUser.lastName(), "lastName should match command");
-        assertNotNull(createdUser.createdAt(), "createdAt should be generated");
-        assertNotNull(createdUser.updatedAt(), "updatedAt should be generated");
+    void givenRecurringTransactionsExist_shouldReturnListOfSummaries() throws Exception {
+        mockMvc.perform(get("/api/recurring-transactions")
+                .with(jwt()...))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").isNotEmpty())
+                .andExpect(jsonPath("$[0].description").value("Monthly subscription"))
+                .andExpect(jsonPath("$[0].amount").value(15.99))
+                .andExpect(jsonPath("$[0].createdAt").exists())
+                .andExpect(jsonPath("$[0].updatedAt").exists());
     }
 
     @Test
-    void findById_givenExistingId_thenReturnsUser() {
-        User user = new User("john@acme.com", "ACTIVE");
-        when(userRepository.findById(user.id())).thenReturn(Optional.of(user));
-
-        User found = userService.findById(user.id());
-
-        assertNotNull(found, "User should be found");
-        assertEquals("john@acme.com", found.email(), "Email should match");
-        assertEquals("ACTIVE", found.status(), "Status should match");
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"ACTIVE", "INACTIVE"})
-    void save_givenValidStatus_thenReturnsSavedUser(String status) {
-        User user = new User("john@acme.com", status);
-        when(userRepository.save(any())).thenReturn(user);
-
-        User saved = userService.save(user);
-
-        assertNotNull(saved, "Saved user should not be null");
-        assertEquals(status, saved.status(), "Status should match input");
-    }
-
-    @ParameterizedTest
-    @NullAndEmptySource
-    void updateStatus_givenNullOrEmptyStatus_thenThrowsException(String invalidStatus) {
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> new User("john@acme.com", invalidStatus),
-            "Creating user with null or empty status should throw IllegalArgumentException"
-        );
-    }
-
-    @Test
-    void findAll_givenUsersExist_thenReturnsAllUsers() {
-        List<User> users = List.of(
-            new User("john@acme.com", "ACTIVE"),
-            new User("jane@acme.com", "INACTIVE")
-        );
-        when(userRepository.findAll()).thenReturn(users);
-
-        List<User> result = userService.findAll();
-
-        assertThat(result)
-            .as("Returned users should contain expected emails and size")
-            .hasSize(2)
-            .extracting(User::email)
-            .containsExactlyInAnyOrder("john@acme.com", "jane@acme.com");
-    }
-
-    // example 2: method has no return value — use ArgumentCaptor to verify passed parameters
-    @Test
-    void delete_givenExistingId_thenDelegateToRepository() {
-        UUID userId = UUID.randomUUID();
-        ArgumentCaptor<UUID> idCaptor = ArgumentCaptor.forClass(UUID.class);
-
-        userService.delete(userId);
-
-        verify(userRepository).deleteById(idCaptor.capture());
-        assertEquals(userId, idCaptor.getValue(), "Repository should receive the correct user id");
+    void givenNoRecurringTransactions_shouldReturnEmptyList() throws Exception {
+        mockMvc.perform(get("/api/recurring-transactions")
+                .with(jwt()...))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 }
 ```
 
+```java
+
+@Nested
+class Create {
+
+    @Test
+    void givenValidRequest_shouldReturnCreatedWithSummary() throws Exception {
+        mockMvc.perform(post("/api/recurring-transactions")...)
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").isNotEmpty())
+                .andExpect(jsonPath("$.description").value("Monthly subscription"))
+                .andExpect(jsonPath("$.createdAt").exists())
+                .andExpect(jsonPath("$.updatedAt").exists());
+    }
+
+    @Test
+    void givenNoJwt_shouldReturnForbidden() throws Exception {
+        mockMvc.perform(post("/api/recurring-transactions")...)
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void givenNonExistentAccount_shouldReturnNotFound() throws Exception {
+        mockMvc.perform(post("/api/recurring-transactions")...)
+                .andExpect(status().isNotFound());
+    }
+}
+```
+
+### Integration Layer (`@SpringBootTest`)
+
+Full application context with a real database (e.g. H2) for integration tests that verify the complete stack —
+controllers, services, repositories, and data persistence. Use `@SpringBootTest` +
+`@AutoConfigureTestDatabase(replace = Replace.NONE)` or an in-memory database for tests that need real persistence.
+
+```java
+
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+@Import(CacheTestConfig.class)
+class UserRegistrationIntegrationTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
+    @MockitoBean
+    private ClientRegistrationRepository clientRegistrationRepository;
+    @MockitoBean
+    private OAuth2AuthorizedClientRepository oAuth2AuthorizedClientRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Nested
+    class RegisterUser {
+
+        @Test
+        void givenValidRegistrationData_shouldReturnCreatedUser() throws Exception {
+            var request = new CreateUserRequest("john@example.com", "John", "Doe", "Password123!");
+
+            mockMvc.perform(post("/api/users")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.email").value("john@example.com"))
+                    .andExpect(jsonPath("$.firstName").value("John"))
+                    .andExpect(jsonPath("$.id").isNotEmpty())
+                    .andExpect(jsonPath("$.createdAt").exists());
+        }
+
+        @Test
+        void givenDuplicateEmail_shouldReturnConflict() throws Exception {
+            var request = new CreateUserRequest("john@example.com", "Jane", "Doe", "Password123!");
+
+            mockMvc.perform(post("/api/users")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isConflict());
+        }
+
+        @Test
+        void givenWeakPassword_shouldReturnBadRequest() throws Exception {
+            var request = new CreateUserRequest("jane@example.com", "Jane", "Doe", "weak");
+
+            mockMvc.perform(post("/api/users")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+}
+```
+
+### Service Layer (Unit Test)
+
+Declare the service under test as a `final` field and use manual `mock()` for collaborators — do not use
+`@ExtendWith(MockitoExtension.class)` or `@Mock`.
+
+```java
+class DefaultPurchaseVerificationServiceTest {
+
+    private final PurchaseVerificationService service = new DefaultPurchaseVerificationService(
+            accountRepository,
+            purchaseRepository,
+            fraudDetectionClient
+    );
+
+    private final Account account = AccountTestHelpers.createActiveAccount();
+    private final Purchase purchase = PurchaseTestHelpers.createPurchase(account);
+
+    @Nested
+    class VerifyPurchase {
+
+        @Test
+        void givenValidPurchase_shouldReturnVerifiedResult() {
+            when(accountRepository.findById(account.id())).thenReturn(Optional.of(account));
+            when(purchaseRepository.findById(purchase.id())).thenReturn(Optional.of(purchase));
+            when(fraudDetectionClient.check(any())).thenReturn(FraudCheckResult.CLEAR);
+
+            PurchaseVerificationResult result = service.verifyPurchase(purchase.id());
+
+            assertNotNull(result, "result should not be null");
+            assertTrue(result.isVerified(), "result should be verified");
+            assertEquals(purchase.id(), result.purchaseId(), "purchaseId should match");
+            assertNotNull(result.verifiedAt(), "verifiedAt should not be null");
+
+            verify(accountRepository).findById(account.id());
+            verify(purchaseRepository).findById(purchase.id());
+            verify(fraudDetectionClient).check(any());
+        }
+
+        @Test
+        void givenNonExistentAccount_shouldThrowAccountNotFoundException() {
+            when(accountRepository.findById(account.id())).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> service.verifyPurchase(purchase.id()))
+                    .as("should throw AccountNotFoundException when account does not exist")
+                    .isInstanceOf(AccountNotFoundException.class);
+
+            verify(purchaseRepository, never()).findById(any());
+            verify(fraudDetectionClient, never()).check(any());
+        }
+
+        @Test
+        void givenFraudFlagged_shouldThrowFraudDetectedException() {
+            when(accountRepository.findById(account.id())).thenReturn(Optional.of(account));
+            when(purchaseRepository.findById(purchase.id())).thenReturn(Optional.of(purchase));
+            when(fraudDetectionClient.check(any())).thenReturn(FraudCheckResult.FRAUD);
+
+            assertThatThrownBy(() -> service.verifyPurchase(purchase.id()))
+                    .as("should throw FraudDetectedException when fraud is flagged")
+                    .isInstanceOf(FraudDetectedException.class);
+        }
+    }
+}
+```
+
+### Repository Layer (`@DataJpaTest`)
+
+Assert every persisted field in the happy path. Provide adapter beans in a nested `@TestConfiguration` class.
+
+```java
+
+@DataJpaTest
+@Import(CacheTestConfig.class)
+class RecurringTransactionRepositoryTest {
+
+    @Autowired
+    private RecurringTransactionRepository recurringTransactionRepository;
+
+    @TestConfiguration
+    static class AdapterConfig {
+        @Bean
+        RecurringTransactionRepository recurringTransactionRepository(JpaRecurringTransactionRepository jpaRepo) {
+            return new DefaultRecurringTransactionRepository(jpaRepo);
+        }
+    }
+
+    @Nested
+    class Save {
+
+        @Test
+        void givenValidRecurringTransaction_persistsAndRetrievesAllFields() {
+            RecurringTransaction saved = recurringTransactionRepository.save(recurringTransaction);
+
+            assertNotNull(saved.id(), "recurring transaction id should have been generated");
+            assertEquals(recurringTransaction.description(), saved.description(), "description should match");
+            assertEquals(recurringTransaction.amount(), saved.amount(), "amount should match");
+            assertNotNull(saved.createdAt(), "createdAt should not be null");
+            assertNotNull(saved.updatedAt(), "updatedAt should not be null");
+        }
+
+        @Test
+        void givenNull_shouldThrowInvalidDataAccessApiUsageException() {
+            assertThatThrownBy(() -> recurringTransactionRepository.save(null))
+                    .as("saving null should throw InvalidDataAccessApiUsageException")
+                    .isInstanceOf(InvalidDataAccessApiUsageException.class);
+        }
+    }
+}
+```
+
+---
+
 ## Checklist
 
-- test names follow `methodName_given<state>_then<expected_behavior>`
-- happy-path scenario asserts all possible fields
-- assertions include concise messages
-- JUnit assertions used for simple checks
-- AssertJ used for complex checks and collection assertions
-- parameterized tests used where applicable
-- null/empty input covered with `@NullAndEmptySource` when relevant
+- Every method under test has its scenarios grouped under a `@Nested` class
+- `@Nested` class name is PascalCase derived from the method under test
+- Test names follow `given<state>_shouldReturn<expected_behavior>` (no method name repetition)
+- Happy-path test is first and asserts every field of the result (all layers: controller, service, repository)
+- Subsequent (non-happy-path) tests assert only what the scenario verifies (scenario-based)
+- Assertions include concise messages
+- JUnit assertions used for simple checks; AssertJ used for complex checks and collection assertions
+- `verify(...)` used to confirm collaborator calls; `verify(never())` used in negative tests
 - `ArgumentCaptor` used for verifying parameters on void methods
-- happy-path test placed first, followed by negative/error scenarios
-- tests are ordered by method under test
-- `@Nested` is used when a method has multiple scenarios
-- test scope matches the layer purpose (unit vs `@WebMvcTest` vs `@DataJpaTest`)
-- no comments in test methods
+- Parameterized tests used where applicable; `@NullAndEmptySource` for null/empty input
+- `@Nested` classes are ordered by method under test
+- Test scope matches the layer purpose (unit vs `@WebMvcTest` vs `@SpringBootTest` vs `@DataJpaTest`)
+- Spring test slices import `@Import(CacheTestConfig.class)`
+- `@SpringBootTest` uses `@ActiveProfiles("test")` and overrides `JwtDecoder`, `ClientRegistrationRepository`,
+  `OAuth2AuthorizedClientRepository` as `@MockitoBean`
+- `@DataJpaTest` provides adapter beans in a nested `@TestConfiguration`
+- No comments in test methods

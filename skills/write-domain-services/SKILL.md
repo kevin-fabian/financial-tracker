@@ -152,9 +152,188 @@ Rule:
 
 ## Service Test Guidance
 
-- Instantiate the concrete service (`Default...Service`) with mocked collaborators for unit tests.
-- Keep tests service-focused; persistence behavior belongs in repository integration tests.
-- Follow naming, assertion, and parameterized-test conventions from `.github/skills/write-test-cases/SKILL.md`.
+### Test Structure
+
+Declare the service under test as a `final` field and use manual `mock()` for collaborators — do not use `@ExtendWith(MockitoExtension.class)`, `@Mock`, or `@InjectMocks`.
+
+```java
+class DefaultUserServiceTest {
+
+    private final UserService service = new DefaultUserService(userRepository, profileClient);
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private UserProfileClient profileClient;
+```
+
+### Grouping and Ordering with `@Nested`
+
+Group all test scenarios for a method under a `@Nested` class named after the method in PascalCase (e.g. `create` → `@Nested class Create`). Use `given<state>_shouldReturn<expected_behavior>` naming for test methods.
+
+Within each `@Nested` group, order test methods as:
+1. **Happy path** — the primary success scenario; assert all returned values to verify mapping and delegation.
+2. **Positive scenarios** — alternative valid inputs (null handling, defaults, boundary values).
+3. **Negative scenarios** — exceptions thrown, edge cases, unauthorized access.
+
+### Test Case Count per Method Type
+
+| Method type | Minimum tests | Guidance |
+|---|---|---|
+| Pure delegation (no logic, returns repository result as-is) | 2 | One happy path (non-empty result) + one empty/default result. |
+| Common repository methods (`save`, `retrieve*`, `delete*`) | 2–3 | Happy path + not-found case + edge case (null input, empty collection, etc.). |
+| Methods with domain logic | 5+ | One happy path + all exception branches + edge cases. Cover every `throw` in the method. |
+
+### Asserting the Happy Path
+
+For happy-path tests, **always assert every field** of the returned domain model to verify:
+- Correct mapping from entity/model to response DTO (when mapping occurs).
+- Correct delegation to collaborators (use `verify(...)`).
+- All derived/computed values (calculated fields, defaults applied).
+
+Example:
+
+```java
+@Test
+void givenValidId_shouldReturnMappedResult() {
+    // arrange
+    UUID id = UUID.randomUUID();
+    when(repository.findById(id)).thenReturn(Optional.of(entity));
+    when(client.getUsersByIds(any())).thenReturn(List.of(user));
+
+    // act
+    Summary result = service.getById(id);
+
+    // assert — verify every field
+    assertNotNull(result);
+    assertEquals(id, result.id());
+    assertEquals("expected Name", result.name());
+    assertEquals(SharingMode.EVEN_SHARE, result.sharingMode());
+    assertEquals(3, result.items().size());
+    assertTrue(result.active());
+
+    // verify delegation
+    verify(repository).findById(id);
+    verify(client).getUsersByIds(any());
+}
+```
+
+### Testing Methods with Logic
+
+For methods containing business rules, write one test per exception plus edge cases:
+
+```java
+@Nested
+class KickPartyMember {
+
+    @Test
+    void givenPartyLeaderKicksMember_shouldRemoveMember() {
+        // happy path: leader kicks non-leader member
+        // assert all fields of the saved entity via ArgumentCaptor
+    }
+
+    @Test
+    void givenMemberKicksThemselves_shouldRemoveMember() {
+        // positive scenario: self-removal is allowed
+    }
+
+    @Test
+    void givenLeaderKicksThemselves_shouldThrowCannotRemoveOwnerException() {
+        // negative: CannotRemoveOwnerException
+        assertThatThrownBy(() -> service.kickPartyMember(partyId, leaderId, leaderId))
+                .as("should throw CannotRemoveOwnerException when leader tries to kick themselves")
+                .isInstanceOf(CannotRemoveOwnerException.class);
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void givenNonLeaderAttemptsKick_shouldThrowForbiddenException() {
+        // negative: ForbiddenException
+        assertThatThrownBy(() -> service.kickPartyMember(partyId, targetId, nonLeaderId))
+                .as("should throw ForbiddenException when non-leader tries to kick")
+                .isInstanceOf(ForbiddenException.class);
+        verify(repository, never()).save(any());
+    }
+}
+```
+
+### Verifying Delegation and Side Effects
+
+- Use `verify(collaborator).method(args)` to confirm a collaborator was called.
+- Use `verify(collaborator, never()).method(args)` in negative tests to confirm no side effects occurred.
+- Use `ArgumentCaptor<T>` to inspect the exact argument passed to a collaborator (e.g., the entity saved by `repository.save(...)`).
+
+### Parameterized Tests
+
+When multiple inputs produce identical behavior, use `@ParameterizedTest`:
+
+```java
+@ParameterizedTest
+@NullAndEmptySource
+@ValueSource(strings = {" ", "  "})
+void givenBlankName_shouldThrowInvalidNameException(String blankName) {
+    assertThatThrownBy(() -> service.create(new CreateUserCommand(blankName, "email@test.com")))
+            .as("should throw InvalidNameException when name is blank")
+            .isInstanceOf(InvalidNameException.class);
+}
+```
+
+### Complete Example
+
+```java
+class DefaultUserServiceTest {
+
+    private final UserService service = new DefaultUserService(userRepository, profileClient);
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private UserProfileClient profileClient;
+
+    @Nested
+    class Create {
+
+        @Test
+        void givenValidCommand_shouldReturnCreatedUser() {
+            // happy path — assert all fields
+        }
+
+        @Test
+        void givenNullName_shouldUseDefaultName() {
+            // positive: default value applied
+        }
+
+        @Test
+        void givenNullEmail_shouldThrowInvalidEmailException() {
+            // negative: domain invariant
+            assertThatThrownBy(() -> service.create(new CreateUserCommand("John", null)))
+                    .as("should throw InvalidEmailException when email is null")
+                    .isInstanceOf(InvalidEmailException.class);
+        }
+
+        @Test
+        void givenDuplicateEmail_shouldThrowDuplicateEmailException() {
+            // positive: idempotent behavior
+        }
+    }
+
+    @Nested
+    class GetById {
+
+        @Test
+        void givenExistingId_shouldReturnUser() {
+            // delegation test — happy path
+        }
+
+        @Test
+        void givenNonExistingId_shouldThrowUserNotFoundException() {
+            // delegation test — not found
+        }
+    }
+}
+```
 
 ---
 
@@ -168,4 +347,6 @@ Rule:
 - only domain exceptions are propagated by domain services
 - downstream adapter/repository translates infrastructure exceptions into domain exceptions
 - write operations that span multiple persistence calls use `@Transactional`
-- test cases follow `.github/skills/write-test-cases/SKILL.md`
+- service tests use `final` fields for the service and manual `mock()` for collaborators
+- test scenarios are grouped under `@Nested` classes named after the method in PascalCase
+- test names follow `given<state>_shouldReturn<expected_behavior>`
