@@ -13,5 +13,6 @@ public record AddTransactionCommand(
         UUID categoryId,
         UUID accountId,
         UUID userId,
-        UUID recurringTransactionId) {
+        UUID recurringTransactionId,
+        String categoryLocalId) {
 }

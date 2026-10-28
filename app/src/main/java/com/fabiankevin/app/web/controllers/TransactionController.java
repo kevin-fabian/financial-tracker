@@ -8,6 +8,7 @@ import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.web.controllers.dtos.PageResponse;
 import com.fabiankevin.app.web.controllers.dtos.SummaryRequest;
 import com.fabiankevin.app.web.controllers.dtos.SummarySeriesResponse;
+import com.fabiankevin.app.web.controllers.dtos.transactions.CreateBatchTransactionsRequest;
 import com.fabiankevin.app.web.controllers.dtos.transactions.CreateTransactionRequest;
 import com.fabiankevin.app.web.controllers.dtos.transactions.PatchTransactionRequest;
 import com.fabiankevin.app.web.controllers.dtos.transactions.TransactionResponse;
@@ -69,6 +70,24 @@ public class TransactionController {
                 .buildAndExpand(response.id())
                 .toUri();
         return ResponseEntity.created(location).body(response);
+    }
+
+    @Operation(
+            summary = "Create multiple transactions in a batch",
+            description = "Creates multiple transactions in a single request and returns nothing",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - All transactions created successfully"),
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+            }
+    )
+    @PostMapping("/batch")
+    public ResponseEntity<Void> createBatchTransactions(@Valid @RequestBody CreateBatchTransactionsRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        transactionService.addTransactions(request.toCommands(userId));
+        return ResponseEntity.ok().build();
     }
 
     @Operation(

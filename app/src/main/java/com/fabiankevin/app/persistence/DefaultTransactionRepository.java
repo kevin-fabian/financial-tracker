@@ -203,4 +203,9 @@ public class DefaultTransactionRepository implements TransactionRepository {
                 .map(DailyStatsProjection::toModel)
                 .toList();
     }
+
+    @Override
+    public int deleteAllByUserId(UUID userId) {
+        return jpaTransactionRepository.deleteAllByAccountUserId(userId);
+    }
 }

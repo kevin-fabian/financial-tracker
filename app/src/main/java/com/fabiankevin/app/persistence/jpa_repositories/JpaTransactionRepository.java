@@ -194,5 +194,5 @@ public interface JpaTransactionRepository extends JpaRepository<TransactionEntit
             """)
     long countByAccountId(@Param("accountId") UUID accountId);
 
-    void deleteAllByCategoryId(UUID categoryId);
+    int deleteAllByAccountUserId(UUID userId);
 }

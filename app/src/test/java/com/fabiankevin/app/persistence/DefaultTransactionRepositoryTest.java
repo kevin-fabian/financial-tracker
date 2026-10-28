@@ -5,6 +5,7 @@ import com.fabiankevin.app.events.DefaultHouseholdEventPublisher;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.Transaction;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.entities.AccountEntity;
 import com.fabiankevin.app.persistence.entities.CategoryEntity;
@@ -863,6 +864,94 @@ class DefaultTransactionRepositoryTest {
         }
     }
 
+    @Nested
+    class DeleteAllByUserId {
+        @Test
+        void givenExistingTransactionsForUser_shouldDeleteAllAndReturnCount() {
+            AccountEntity cash = createAccount("CASH");
+
+            for (int i = 0; i < 3; i++) {
+                CategoryEntity cat = createCategory("CATEGORY " + i);
+                Transaction tx = Transaction.builder()
+                        .account(cash.toModel())
+                        .category(cat.toModel())
+                        .type(TransactionType.EXPENSE)
+                        .amount(100)
+                        .transactionDate(LocalDate.now())
+                        .description("Transaction " + i)
+                        .createdAt(Instant.now())
+                        .updatedAt(Instant.now())
+                        .addedBy(User.of(userId))
+                        .updatedBy(User.of(userId))
+                        .build();
+                transactionRepository.save(tx);
+            }
+
+            int deleted = transactionRepository.deleteAllByUserId(userId);
+
+            Assertions.assertThat(deleted).as("should return the number of deleted transactions").isEqualTo(3);
+            Assertions.assertThat(jpaTransactionRepository.count()).as("all transactions should be deleted").isZero();
+
+            verify(jpaTransactionRepository, times(1)).deleteAllByAccountUserId(userId);
+        }
+
+        @Test
+        void givenNonExistingUserId_shouldDeleteNothingAndReturnZero() {
+            UUID nonExistingUserId = UUID.randomUUID();
+
+            int deleted = transactionRepository.deleteAllByUserId(nonExistingUserId);
+
+            Assertions.assertThat(deleted).as("should return 0 when no transactions exist for user").isZero();
+
+            verify(jpaTransactionRepository, times(1)).deleteAllByAccountUserId(nonExistingUserId);
+        }
+
+        @Test
+        void givenTransactionsFromMultipleUsers_shouldDeleteOnlySpecifiedUser() {
+            UUID targetUserId = UUID.randomUUID();
+            UUID otherUserId = UUID.randomUUID();
+            AccountEntity targetAccount = createAccount("TARGET_ACCOUNT", targetUserId);
+            AccountEntity otherAccount = createAccount("OTHER_ACCOUNT", otherUserId);
+
+            CategoryEntity category = createCategory("SHARED");
+
+            Transaction targetTx = Transaction.builder()
+                    .account(targetAccount.toModel())
+                    .category(category.toModel())
+                    .type(TransactionType.EXPENSE)
+                    .amount(100)
+                    .transactionDate(LocalDate.now())
+                    .description("Target user transaction")
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .addedBy(User.of(targetUserId))
+                    .updatedBy(User.of(targetUserId))
+                    .build();
+            transactionRepository.save(targetTx);
+
+            Transaction otherTx = Transaction.builder()
+                    .account(otherAccount.toModel())
+                    .category(category.toModel())
+                    .type(TransactionType.EXPENSE)
+                    .amount(200)
+                    .transactionDate(LocalDate.now())
+                    .description("Other user transaction")
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .addedBy(User.of(otherUserId))
+                    .updatedBy(User.of(otherUserId))
+                    .build();
+            transactionRepository.save(otherTx);
+
+            int deleted = transactionRepository.deleteAllByUserId(targetUserId);
+
+            Assertions.assertThat(deleted).as("should delete only target user's transactions").isEqualTo(1);
+            Assertions.assertThat(jpaTransactionRepository.count()).as("other user's transaction should remain").isEqualTo(1L);
+
+            verify(jpaTransactionRepository, times(1)).deleteAllByAccountUserId(targetUserId);
+        }
+    }
+
     private CategoryEntity createCategory(String categoryName) {
         return createCategory(categoryName, TransactionType.EXPENSE);
     }
@@ -879,6 +968,10 @@ class DefaultTransactionRepositoryTest {
     }
 
     private AccountEntity createAccount(String name) {
+        return createAccount(name, userId);
+    }
+
+    private AccountEntity createAccount(String name, UUID userId) {
         AccountEntity account = new AccountEntity();
         account.setUserId(userId);
         account.setName(name);

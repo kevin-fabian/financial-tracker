@@ -9,6 +9,7 @@ import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.AccountRepository;
 import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
+import com.fabiankevin.app.persistence.entities.TransactionEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.CategoryService;
@@ -17,6 +18,7 @@ import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.household.HouseholdResponse;
+import com.fabiankevin.app.web.controllers.dtos.transactions.CreateBatchTransactionsRequest;
 import com.fabiankevin.app.web.controllers.dtos.transactions.CreateTransactionRequest;
 import com.fabiankevin.app.web.controllers.dtos.transactions.PatchTransactionRequest;
 import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
@@ -1573,6 +1575,103 @@ class TransactionControllerIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isArray())
                     .andExpect(jsonPath("$.totalElements").value(1));
+        }
+    }
+
+    @Nested
+    class CreateBatchTransactions {
+
+        @Test
+        void givenMultipleNewTransactions_shouldReturnOkAndCreateAll() throws Exception {
+            CreateBatchTransactionsRequest request = CreateBatchTransactionsRequest.builder()
+                    .transactions(List.of(
+                            CreateTransactionRequest.builder()
+                                    .amount(50.0)
+                                    .description("First transaction")
+                                    .transactionDate(LocalDate.of(2026, 1, 1))
+                                    .categoryId(category.id())
+                                    .accountId(account.id())
+                                    .categoryLocalId(category.localId())
+                                    .build(),
+                            CreateTransactionRequest.builder()
+                                    .amount(100.0)
+                                    .description("Second transaction")
+                                    .transactionDate(LocalDate.of(2026, 1, 2))
+                                    .categoryId(category.id())
+                                    .accountId(account.id())
+                                    .categoryLocalId(category.localId())
+                                    .build()
+                    ))
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(post("/api/transactions/batch")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk());
+
+            List<Transaction> transactions = jpaTransactionRepository.findAll().stream()
+                    .map(TransactionEntity::toModel)
+                    .toList();
+            org.junit.jupiter.api.Assertions.assertEquals(2L, transactions.size());
+        }
+
+        @Test
+        void givenCategoryNotFoundInBatch_shouldReturnBadRequest() throws Exception {
+            CreateBatchTransactionsRequest request = CreateBatchTransactionsRequest.builder()
+                    .transactions(List.of(
+                            CreateTransactionRequest.builder()
+                                    .amount(50.0)
+                                    .description("Invalid category")
+                                    .transactionDate(LocalDate.of(2026, 1, 1))
+                                    .categoryId(UUID.randomUUID())
+                                    .accountId(account.id())
+                                    .categoryLocalId("NONEXISTENT")
+                                    .build()
+                    ))
+                    .build();
+
+            mockMvc.perform(post("/api/transactions/batch")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void givenNoJwt_thenReturnsUnauthorized() throws Exception {
+            CreateBatchTransactionsRequest request = CreateBatchTransactionsRequest.builder()
+                    .transactions(List.of(
+                            CreateTransactionRequest.builder()
+                                    .amount(50.0)
+                                    .description("Unauthorized batch")
+                                    .transactionDate(LocalDate.of(2026, 1, 1))
+                                    .categoryId(category.id())
+                                    .accountId(account.id())
+                                    .categoryLocalId(category.localId())
+                                    .build()
+                    ))
+                    .build();
+
+            mockMvc.perform(post("/api/transactions/batch")
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isUnauthorized());
         }
     }
 }

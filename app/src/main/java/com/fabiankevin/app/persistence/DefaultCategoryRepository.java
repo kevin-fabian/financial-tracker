@@ -189,4 +189,12 @@ public class DefaultCategoryRepository implements CategoryRepository {
                 .map(CategoryEntity::toModel)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<Category> findAllByUserId(UUID userId) {
+        return jpaCategoryRepository.findAllByUserId(userId)
+                .stream()
+                .map(CategoryEntity::toModel)
+                .collect(Collectors.toList());
+    }
 }

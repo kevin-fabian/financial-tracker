@@ -86,4 +86,10 @@ public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUI
             @Param("monthStart") LocalDate monthStart,
             @Param("monthEnd") LocalDate monthEnd,
             Pageable pageable);
+
+    @Query("""
+            SELECT c FROM CategoryEntity c
+            WHERE c.userId = :userId OR c.system = true
+            """)
+    List<CategoryEntity> findAllByUserId(@Param("userId") UUID userId);
 }

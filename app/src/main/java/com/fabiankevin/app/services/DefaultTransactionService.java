@@ -99,6 +99,12 @@ public class DefaultTransactionService implements TransactionService {
         }
     }
 
+    @Transactional
+    @Override
+    public int deleteAllByUserId(UUID userId) {
+        return transactionRepository.deleteAllByUserId(userId);
+    }
+
     @Override
     public TransactionResponse getTransactionById(UUID id, UUID userId) {
         Transaction transaction = transactionRepository.findById(id)
@@ -158,6 +164,48 @@ public class DefaultTransactionService implements TransactionService {
         );
 
         return enrichedTransaction;
+    }
+
+    @Transactional
+    @Override
+    public void addTransactions(List<AddTransactionCommand> commands) {
+        if (commands == null || commands.isEmpty()) {
+            return;
+        }
+
+        UUID userId = commands.getFirst().userId();
+        List<Category> allCategories = categoryRepository.findAllByUserId(userId);
+
+        Map<String, Category> categoryByLocalId = allCategories.stream()
+                .filter(cat -> cat.userId().equals(userId) || cat.system())
+                .collect(Collectors.toMap(Category::localId, Function.identity()));
+
+        List<Transaction> newTransactions = new ArrayList<>();
+        for (AddTransactionCommand command : commands) {
+            Account account = accountRepository.findById(command.accountId())
+                    .orElseThrow(AccountNotFoundException::new);
+
+            Category category = Optional.ofNullable(categoryByLocalId.get(command.categoryLocalId()))
+                    .orElseThrow(CategoryNotFoundException::new);
+
+            Transaction transaction = Transaction.builder()
+                    .category(category)
+                    .account(account)
+                    .description(command.description())
+                    .amount(command.amount())
+                    .type(category.type())
+                    .transactionDate(command.transactionDate())
+                    .recurringTransactionId(command.recurringTransactionId())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .addedBy(User.of(userId))
+                    .updatedBy(User.of(userId))
+                    .build();
+
+            newTransactions.add(transaction);
+        }
+
+        transactionRepository.saveAll(newTransactions);
     }
 
     @Transactional

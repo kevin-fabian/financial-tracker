@@ -10,9 +10,12 @@ import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.services.queries.SummaryQuery;
 import com.fabiankevin.app.web.controllers.dtos.transactions.TransactionResponse;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface TransactionService {
+    void addTransactions(List<AddTransactionCommand> commands);
+    int deleteAllByUserId(UUID userId);
     Transaction addTransaction(AddTransactionCommand command);
     SummarySeries getSummary(SummaryQuery query);
 

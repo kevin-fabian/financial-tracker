@@ -40,4 +40,5 @@ public interface TransactionRepository {
     long countByUserIdAndCreatedAtOnDate(UUID userId, LocalDate date);
     long countByAccountId(UUID accountId);
     List<DailyStatsPoint> getSummaryByDateRangeAndUserIdGroupedByDayOfMonth(LocalDate from, LocalDate to, Set<UUID> userIds);
+    int deleteAllByUserId(UUID userId);
 }

@@ -552,6 +552,43 @@ class DefaultTransactionServiceTest {
         }
     }
 
+    @Nested
+    class DeleteAllByUserId {
+        @Test
+        void givenUserIdWithTransactions_thenShouldDeleteAll() {
+            UUID userId = UUID.randomUUID();
+
+            when(transactionRepository.deleteAllByUserId(userId)).thenReturn(5);
+
+            int deleted = transactionService.deleteAllByUserId(userId);
+
+            assertEquals(5, deleted);
+            verify(transactionRepository, times(1)).deleteAllByUserId(userId);
+        }
+
+        @Test
+        void givenUserIdWithoutTransactions_thenShouldReturnZero() {
+            UUID userId = UUID.randomUUID();
+
+            when(transactionRepository.deleteAllByUserId(userId)).thenReturn(0);
+
+            int deleted = transactionService.deleteAllByUserId(userId);
+
+            assertEquals(0, deleted);
+            verify(transactionRepository, times(1)).deleteAllByUserId(userId);
+        }
+
+        @Test
+        void givenDatabaseError_thenShouldPropagateException() {
+            UUID userId = UUID.randomUUID();
+
+            when(transactionRepository.deleteAllByUserId(userId)).thenThrow(new RuntimeException("database error"));
+
+            assertThrows(RuntimeException.class, () -> transactionService.deleteAllByUserId(userId));
+            verify(transactionRepository, times(1)).deleteAllByUserId(userId);
+        }
+    }
+
     @Test
     void getTransactionById_givenExistingAndBelongsToUser_thenShouldReturnResponse() {
         UUID userId = UUID.randomUUID();
@@ -720,5 +757,140 @@ class DefaultTransactionServiceTest {
         assertEquals(1, result.content().size());
         assertEquals(transactionId, result.content().getFirst().id());
         verify(transactionRepository, times(1)).getTransactionsByPageAndUserIdAndType(query, Set.of(userId), type);
+    }
+
+    @Nested
+    class AddTransactions {
+        @Test
+        void givenValidCommandsWithLocalIds_thenShouldSaveAll() {
+            UUID userId = UUID.randomUUID();
+            UUID accountLocalId = UUID.randomUUID();
+            UUID categoryLocalId = UUID.randomUUID();
+            String categoryLocalIdStr = "cat-1";
+
+            List<AddTransactionCommand> commands = List.of(
+                    AddTransactionCommand.builder()
+                            .userId(userId)
+                            .amount(100)
+                            .description("Food")
+                            .categoryId(UUID.randomUUID())
+                            .accountId(accountLocalId)
+                            .transactionDate(LocalDate.now())
+                            .categoryLocalId(categoryLocalIdStr)
+                            .build(),
+                    AddTransactionCommand.builder()
+                            .userId(userId)
+                            .amount(200)
+                            .description("Salary")
+                            .categoryId(UUID.randomUUID())
+                            .accountId(accountLocalId)
+                            .transactionDate(LocalDate.now())
+                            .categoryLocalId(categoryLocalIdStr)
+                            .build()
+            );
+
+            when(accountRepository.findById(accountLocalId)).thenReturn(Optional.of(
+                    Account.builder()
+                            .id(accountLocalId)
+                            .name("GCASH")
+                            .currency(Currency.getInstance("PHP"))
+                            .user(User.of(userId))
+                            .build()
+            ));
+            when(categoryRepository.findAllByUserId(userId)).thenReturn(List.of(
+                    Category.builder()
+                            .id(categoryLocalId)
+                            .name("FOOD")
+                            .type(TransactionType.EXPENSE)
+                            .userId(userId)
+                            .localId(categoryLocalIdStr)
+                            .build()
+            ));
+            when(transactionRepository.saveAll(any())).thenAnswer(invocation -> {
+                List<Transaction> txns = invocation.getArgument(0);
+                return txns.stream()
+                        .map(t -> t.toBuilder()
+                                .id(UUID.randomUUID())
+                                .build())
+                        .toList();
+            });
+
+            transactionService.addTransactions(commands);
+
+            verify(transactionRepository, times(1)).saveAll(any());
+        }
+
+        @Test
+        void givenValidCommandsWithHousehold_thenShouldSaveAll() {
+            UUID userId = UUID.randomUUID();
+            UUID accountId = UUID.randomUUID();
+            String categoryLocalIdStr = "cat-1";
+
+            List<AddTransactionCommand> commands = List.of(
+                    AddTransactionCommand.builder()
+                            .userId(userId)
+                            .amount(50)
+                            .description("Transport")
+                            .categoryId(UUID.randomUUID())
+                            .accountId(accountId)
+                            .transactionDate(LocalDate.now())
+                            .categoryLocalId(categoryLocalIdStr)
+                            .build()
+            );
+
+            when(accountRepository.findById(accountId)).thenReturn(Optional.of(
+                    Account.builder()
+                            .id(accountId)
+                            .name("BDO")
+                            .currency(Currency.getInstance("PHP"))
+                            .user(User.of(userId))
+                            .build()
+            ));
+            when(categoryRepository.findAllByUserId(userId)).thenReturn(List.of(
+                    Category.builder()
+                            .id(UUID.randomUUID())
+                            .name("TRANSPORT")
+                            .type(TransactionType.EXPENSE)
+                            .userId(userId)
+                            .localId(categoryLocalIdStr)
+                            .build()
+            ));
+            when(transactionRepository.saveAll(any())).thenAnswer(invocation -> {
+                List<Transaction> txns = invocation.getArgument(0);
+                return txns.stream()
+                        .map(t -> t.toBuilder()
+                                .id(UUID.randomUUID())
+                                .build())
+                        .toList();
+            });
+
+            transactionService.addTransactions(commands);
+
+            verify(transactionRepository, times(1)).saveAll(any());
+        }
+
+        @Test
+        void givenAccountNotFoundByLocalId_thenShouldThrow() {
+            UUID userId = UUID.randomUUID();
+            UUID accountId = UUID.randomUUID();
+            String categoryLocalIdStr = "cat-1";
+
+            List<AddTransactionCommand> commands = List.of(
+                    AddTransactionCommand.builder()
+                            .userId(userId)
+                            .amount(100)
+                            .description("Food")
+                            .categoryId(UUID.randomUUID())
+                            .accountId(accountId)
+                            .transactionDate(LocalDate.now())
+                            .categoryLocalId(categoryLocalIdStr)
+                            .build()
+            );
+
+            when(accountRepository.findById(accountId)).thenReturn(Optional.empty());
+
+            assertThrows(AccountNotFoundException.class, () -> transactionService.addTransactions(commands));
+            verify(transactionRepository, never()).saveAll(any());
+        }
     }
 }

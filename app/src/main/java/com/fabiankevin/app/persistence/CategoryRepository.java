@@ -25,5 +25,7 @@ public interface CategoryRepository {
     Page<CategorySummary> findAllByPageQueryWithSummary(PageQuery query, UUID userId, TransactionType type, List<UUID> userIds);
     List<Category> findAllByNamesIn(List<String> names);
 
+    List<Category> findAllByUserId(UUID userId);
+
     long deleteAllByUserId(UUID userId);
 }
