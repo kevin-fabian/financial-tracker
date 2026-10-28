@@ -319,4 +319,108 @@ class DefaultShoppingListRepositoryTest {
                     .doesNotThrowAnyException();
         }
     }
+
+    @Nested
+    class DeleteAllByUserId {
+
+        @Test
+        void givenUserWithShoppingLists_thenDeletesAllOfThem() {
+            UUID userId = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            ShoppingList list1 = ShoppingList.builder()
+                    .id(null)
+                    .name("List 1")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .items(List.of())
+                    .userId(userId)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingList list2 = ShoppingList.builder()
+                    .id(null)
+                    .name("List 2")
+                    .status(ShoppingListStatus.ARCHIVED)
+                    .items(List.of())
+                    .userId(userId)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            shoppingListRepository.save(list1);
+            shoppingListRepository.save(list2);
+
+            assertThat(shoppingListRepository.findAllByUserId(userId)).hasSize(2);
+
+            shoppingListRepository.deleteAllByUserId(userId);
+
+            assertThat(shoppingListRepository.findAllByUserId(userId)).isEmpty();
+            verify(jpaShoppingListRepository, times(1)).deleteAllByUserId(userId);
+        }
+
+        @Test
+        void givenUserWithShoppingListsContainingItems_thenDeletesListsAndItems() {
+            UUID userId = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            ShoppingItem item1 = ShoppingItem.builder()
+                    .id(null)
+                    .name("Item 1")
+                    .category("Category A")
+                    .quantity(1.0)
+                    .unit("piece")
+                    .price(10.00)
+                    .purchased(false)
+                    .priority(ItemPriority.HIGH)
+                    .notes("Note 1")
+                    .addedBy(userId)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingItem item2 = ShoppingItem.builder()
+                    .id(null)
+                    .name("Item 2")
+                    .category("Category B")
+                    .quantity(2.0)
+                    .unit("pieces")
+                    .price(20.00)
+                    .purchased(true)
+                    .priority(ItemPriority.LOW)
+                    .notes("Note 2")
+                    .addedBy(userId)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingList listWithItems = ShoppingList.builder()
+                    .id(null)
+                    .name("List With Items")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .items(List.of(item1, item2))
+                    .userId(userId)
+                    .budget(500.00)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            shoppingListRepository.save(listWithItems);
+
+            List<ShoppingList> listsBefore = shoppingListRepository.findAllByUserId(userId);
+            assertThat(listsBefore).hasSize(1);
+            assertThat(listsBefore.get(0).items()).hasSize(2);
+
+            shoppingListRepository.deleteAllByUserId(userId);
+
+            assertThat(shoppingListRepository.findAllByUserId(userId)).isEmpty();
+            verify(jpaShoppingListRepository, times(1)).deleteAllByUserId(userId);
+        }
+
+        @Test
+        void givenUserWithoutShoppingLists_thenDoesNotThrow() {
+            assertThatCode(() -> shoppingListRepository.deleteAllByUserId(UUID.randomUUID()))
+                    .doesNotThrowAnyException();
+        }
+    }
 }
