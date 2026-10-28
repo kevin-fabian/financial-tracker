@@ -23,4 +23,6 @@ public interface RecurringTransactionRepository {
     int deleteByIdAndUserId(UUID id, UUID userId);
 
     Optional<RecurringTransaction> findByIdAndUserId(UUID id, UUID userId);
+
+    void deleteAllByUserId(UUID userId);
 }

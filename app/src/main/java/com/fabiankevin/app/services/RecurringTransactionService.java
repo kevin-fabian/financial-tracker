@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.UUID;
 
 public interface RecurringTransactionService {
+    void deleteAllByUserId(UUID userId);
+
     RecurringTransactionSummary create(CreateRecurringTransactionCommand command);
 
     List<RecurringTransactionSummary> getRecurringTransactionsByUserId(UUID userId);

@@ -10,6 +10,7 @@ import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionSum
 import com.fabiankevin.app.models.recurring_transactions.TransactionStatus;
 import com.fabiankevin.app.persistence.entities.AccountEntity;
 import com.fabiankevin.app.persistence.entities.CategoryEntity;
+import com.fabiankevin.app.persistence.entities.RecurringTransactionEntity;
 import com.fabiankevin.app.persistence.entities.TransactionEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
@@ -26,6 +27,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -44,6 +46,7 @@ import static org.mockito.Mockito.verify;
 @ActiveProfiles("test")
 @DataJpaTest
 @Import(DefaultRecurringTransactionRepository.class)
+@Transactional
 class DefaultRecurringTransactionRepositoryTest {
 
     @MockitoSpyBean
@@ -320,6 +323,142 @@ class DefaultRecurringTransactionRepositoryTest {
             Optional<RecurringTransaction> found = recurringTransactionRepository.findByIdAndUserId(nonExistentId, userId);
 
             Assertions.assertThat(found).isEmpty();
+        }
+    }
+
+    @Nested
+    class DeleteAllByUserId {
+        @Test
+        void givenUserIdWithRecurringTransactions_thenDeletesAll() {
+            UUID userId = UUID.randomUUID();
+            UUID testRecurringId = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            AccountEntity testAccount = jpaAccountRepository.saveAndFlush(AccountEntity.builder()
+                    .name("Test Checking")
+                    .userId(userId)
+                    .currency("USD")
+                    .type(AccountType.CASH.name())
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+            CategoryEntity testCategory = jpaCategoryRepository.saveAndFlush(CategoryEntity.builder()
+                    .name("TEST_CATEGORY")
+                    .transactionType(TransactionType.EXPENSE)
+                    .userId(userId)
+                    .icon("test")
+                    .active(true)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+            jpaRecurringTransactionRepository.saveAndFlush(RecurringTransactionEntity.builder()
+                    .updatedBy(userId)
+                    .description("Test recurring")
+                    .amount(10.0)
+                    .dayOfMonth(1)
+                    .nextOccurrenceDate(LocalDate.now())
+                    .endDate(null)
+                    .status(RecurringTransactionStatus.ACTIVE)
+                    .category(testCategory)
+                    .account(testAccount)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+
+            recurringTransactionRepository.deleteAllByUserId(userId);
+
+            Assertions.assertThat(jpaRecurringTransactionRepository.findById(testRecurringId))
+                    .as("all recurring transactions should be deleted for the user")
+                    .isEmpty();
+
+            verify(jpaRecurringTransactionRepository, times(1)).deleteAllByAccountUserId(userId);
+        }
+
+        @Test
+        void givenUserIdWithNoRecurringTransactions_thenDeletesSuccessfully() {
+            UUID userId = UUID.randomUUID();
+
+            recurringTransactionRepository.deleteAllByUserId(userId);
+
+            verify(jpaRecurringTransactionRepository, times(1)).deleteAllByAccountUserId(userId);
+        }
+
+        @Test
+        void givenRecurringTransactionOwnedByDifferentUser_thenNotDeleted() {
+            UUID targetUserId = UUID.randomUUID();
+            UUID otherUserId = UUID.randomUUID();
+            UUID otherRecurringId = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            AccountEntity targetAccount = jpaAccountRepository.saveAndFlush(AccountEntity.builder()
+                    .name("GCash")
+                    .userId(targetUserId)
+                    .currency("PHP")
+                    .type(AccountType.CASH.name())
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+            CategoryEntity targetCategory = jpaCategoryRepository.saveAndFlush(CategoryEntity.builder()
+                    .name("TARGET_CATEGORY")
+                    .transactionType(TransactionType.EXPENSE)
+                    .userId(targetUserId)
+                    .icon("target")
+                    .active(true)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+            jpaRecurringTransactionRepository.saveAndFlush(RecurringTransactionEntity.builder()
+                    .updatedBy(targetUserId)
+                    .description("Target user recurring")
+                    .amount(10.0)
+                    .dayOfMonth(1)
+                    .nextOccurrenceDate(LocalDate.now())
+                    .endDate(null)
+                    .status(RecurringTransactionStatus.ACTIVE)
+                    .category(targetCategory)
+                    .account(targetAccount)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+
+            AccountEntity otherAccount = jpaAccountRepository.saveAndFlush(AccountEntity.builder()
+                    .name("Other Checking")
+                    .userId(otherUserId)
+                    .currency("USD")
+                    .type(AccountType.CASH.name())
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+            CategoryEntity otherCategory = jpaCategoryRepository.saveAndFlush(CategoryEntity.builder()
+                    .name("OTHER_CATEGORY")
+                    .transactionType(TransactionType.INCOME)
+                    .userId(otherUserId)
+                    .icon("other")
+                    .active(true)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+            jpaRecurringTransactionRepository.saveAndFlush(RecurringTransactionEntity.builder()
+                    .updatedBy(otherUserId)
+                    .description("Monthly subscription")
+                    .amount(15.99)
+                    .dayOfMonth(15)
+                    .nextOccurrenceDate(LocalDate.of(2026, 8, 15))
+                    .endDate(null)
+                    .status(RecurringTransactionStatus.ACTIVE)
+                    .category(otherCategory)
+                    .account(otherAccount)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build());
+
+            recurringTransactionRepository.deleteAllByUserId(targetUserId);
+            jpaRecurringTransactionRepository.flush();
+
+            Optional<RecurringTransactionEntity> found = jpaRecurringTransactionRepository.findById(otherRecurringId);
+            Assertions.assertThat(found)
+                    .as("recurring transactions owned by other users should not be deleted")
+                    .isPresent();
         }
     }
 }

@@ -68,6 +68,11 @@ public class DefaultRecurringTransactionRepository implements RecurringTransacti
                 .map(RecurringTransactionEntity::toModel);
     }
 
+    @Override
+    public void deleteAllByUserId(UUID userId) {
+        jpaRecurringTransactionRepository.deleteAllByAccountUserId(userId);
+    }
+
     private RecurringTransactionSummary toSummary(RecurringTransactionSummaryProjection p) {
         return RecurringTransactionSummary.builder()
                 .id(p.id())

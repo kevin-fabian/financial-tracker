@@ -524,4 +524,25 @@ class DefaultRecurringTransactionServiceTest {
             verify(recurringTransactionRepository).findSummariesByUserIds(any(), any());
         }
     }
+
+    @Nested
+    class DeleteAllByUserId {
+        @Test
+        void givenUserId_thenDeletesAllRecurringTransactions() {
+            UUID userId = UUID.randomUUID();
+
+            service.deleteAllByUserId(userId);
+
+            verify(recurringTransactionRepository, times(1)).deleteAllByUserId(userId);
+        }
+
+        @Test
+        void givenUserIdWithNoRecurringTransactions_thenDeletesSuccessfully() {
+            UUID userId = UUID.randomUUID();
+
+            service.deleteAllByUserId(userId);
+
+            verify(recurringTransactionRepository, times(1)).deleteAllByUserId(userId);
+        }
+    }
 }

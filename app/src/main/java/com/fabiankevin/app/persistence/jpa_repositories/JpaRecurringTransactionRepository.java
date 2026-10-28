@@ -2,11 +2,10 @@ package com.fabiankevin.app.persistence.jpa_repositories;
 
 import com.fabiankevin.app.persistence.entities.RecurringTransactionEntity;
 import com.fabiankevin.app.persistence.entities.projections.RecurringTransactionSummaryProjection;
-import jakarta.persistence.QueryHint;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
@@ -49,4 +48,8 @@ public interface JpaRecurringTransactionRepository extends JpaRepository<Recurri
     Optional<RecurringTransactionEntity> findByIdAndAccountUserId(UUID id, UUID userId);
 
     int deleteByIdAndAccountUserId(UUID id, UUID userId);
+
+    @Modifying
+    @Query("DELETE FROM RecurringTransactionEntity rt WHERE rt.account.userId = :userId")
+    void deleteAllByAccountUserId(@Param("userId") UUID userId);
 }

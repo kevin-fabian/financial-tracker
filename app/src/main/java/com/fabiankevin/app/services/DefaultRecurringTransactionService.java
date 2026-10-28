@@ -154,6 +154,12 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
 
     @Transactional
     @Override
+    public void deleteAllByUserId(UUID userId) {
+        recurringTransactionRepository.deleteAllByUserId(userId);
+    }
+
+    @Transactional
+    @Override
     public RecurringTransactionSummary updateRecurringTransaction(UpdateRecurringTransactionCommand command) {
         RecurringTransaction existing = recurringTransactionRepository.findByIdAndUserId(command.id(), command.userId())
                 .orElseThrow(() -> new NotFoundException("Recurring transaction not found"));
