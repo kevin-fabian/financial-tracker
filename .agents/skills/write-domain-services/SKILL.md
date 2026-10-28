@@ -154,15 +154,23 @@ Rule:
 
 ### Test Structure
 
-- Use `@ExtendWith(MockitoExtension.class)` for plain unit tests.
-- Inject mocks with `@Mock` for each collaborator (repositories, clients, other services).
-- Instantiate the service under test with `@InjectMocks` (`Default...Service`).
-- Keep tests service-focused; persistence behavior belongs in repository integration tests.
-- Follow naming conventions from `.github/skills/write-test-cases/SKILL.md`.
+Declare the service under test as a `final` field and use manual `mock()` for collaborators — do not use `@ExtendWith(MockitoExtension.class)`, `@Mock`, or `@InjectMocks`.
+
+```java
+class DefaultUserServiceTest {
+
+    private final UserService service = new DefaultUserService(userRepository, profileClient);
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private UserProfileClient profileClient;
+```
 
 ### Grouping and Ordering with `@Nested`
 
-Group tests using `@Nested` inner classes when a method has more than 2 test cases. Each `@Nested` class is named after the method under test (e.g., `class CreateUser { }`).
+Group all test scenarios for a method under a `@Nested` class named after the method in PascalCase (e.g. `create` → `@Nested class Create`). Use `given<state>_shouldReturn<expected_behavior>` naming for test methods.
 
 Within each `@Nested` group, order test methods as:
 1. **Happy path** — the primary success scenario; assert all returned values to verify mapping and delegation.
@@ -188,7 +196,7 @@ Example:
 
 ```java
 @Test
-void givenValidCommand_thenReturnsMappedResult() {
+void givenValidId_shouldReturnMappedResult() {
     // arrange
     UUID id = UUID.randomUUID();
     when(repository.findById(id)).thenReturn(Optional.of(entity));
@@ -220,29 +228,31 @@ For methods containing business rules, write one test per exception plus edge ca
 class KickPartyMember {
 
     @Test
-    void givenPartyLeaderKicksMember_thenMemberIsRemoved() {
+    void givenPartyLeaderKicksMember_shouldRemoveMember() {
         // happy path: leader kicks non-leader member
         // assert all fields of the saved entity via ArgumentCaptor
     }
 
     @Test
-    void givenMemberKicksThemselves_thenMemberIsRemoved() {
+    void givenMemberKicksThemselves_shouldRemoveMember() {
         // positive scenario: self-removal is allowed
     }
 
     @Test
-    void givenLeaderKicksThemselves_thenThrows() {
+    void givenLeaderKicksThemselves_shouldThrowCannotRemoveOwnerException() {
         // negative: CannotRemoveOwnerException
-        assertThrows(CannotRemoveOwnerException.class,
-            () -> service.kickPartyMember(partyId, leaderId, leaderId));
+        assertThatThrownBy(() -> service.kickPartyMember(partyId, leaderId, leaderId))
+                .as("should throw CannotRemoveOwnerException when leader tries to kick themselves")
+                .isInstanceOf(CannotRemoveOwnerException.class);
         verify(repository, never()).save(any());
     }
 
     @Test
-    void givenNonLeaderAttemptsKick_thenThrows() {
+    void givenNonLeaderAttemptsKick_shouldThrowForbiddenException() {
         // negative: ForbiddenException
-        assertThrows(ForbiddenException.class,
-            () -> service.kickPartyMember(partyId, targetId, nonLeaderId));
+        assertThatThrownBy(() -> service.kickPartyMember(partyId, targetId, nonLeaderId))
+                .as("should throw ForbiddenException when non-leader tries to kick")
+                .isInstanceOf(ForbiddenException.class);
         verify(repository, never()).save(any());
     }
 }
@@ -262,64 +272,64 @@ When multiple inputs produce identical behavior, use `@ParameterizedTest`:
 @ParameterizedTest
 @NullAndEmptySource
 @ValueSource(strings = {" ", "  "})
-void givenBlankName_thenThrows(String blankName) {
-    assertThrows(InvalidNameException.class,
-        () -> service.create(new CreateUserCommand(blankName, "email@test.com")));
+void givenBlankName_shouldThrowInvalidNameException(String blankName) {
+    assertThatThrownBy(() -> service.create(new CreateUserCommand(blankName, "email@test.com")))
+            .as("should throw InvalidNameException when name is blank")
+            .isInstanceOf(InvalidNameException.class);
 }
 ```
 
 ### Complete Example
 
 ```java
-@ExtendWith(MockitoExtension.class)
-class DefaultPartyServiceTest {
+class DefaultUserServiceTest {
+
+    private final UserService service = new DefaultUserService(userRepository, profileClient);
 
     @Mock
-    private PartyRepository partyRepository;
+    private UserRepository userRepository;
 
     @Mock
-    private UserClient userClient;
-
-    @InjectMocks
-    private DefaultPartyService service;
+    private UserProfileClient profileClient;
 
     @Nested
-    class OrganizeParty {
+    class Create {
 
         @Test
-        void givenValidCommand_thenCreatesPartyWithOwnerAsMember() {
+        void givenValidCommand_shouldReturnCreatedUser() {
             // happy path — assert all fields
         }
 
         @Test
-        void givenNullPartyName_thenUsesDefaultName() {
+        void givenNullName_shouldUseDefaultName() {
             // positive: default value applied
         }
 
         @Test
-        void givenNullPartyLeaderId_thenThrows() {
-            // negative: constructor invariant
-            assertThrows(NullPointerException.class,
-                () -> new OrganizePartyCommand(null, "Name", SharingMode.EVEN_SHARE));
+        void givenNullEmail_shouldThrowInvalidEmailException() {
+            // negative: domain invariant
+            assertThatThrownBy(() -> service.create(new CreateUserCommand("John", null)))
+                    .as("should throw InvalidEmailException when email is null")
+                    .isInstanceOf(InvalidEmailException.class);
         }
 
         @Test
-        void givenLeaderAlreadyInParty_thenReturnsExistingParty() {
+        void givenDuplicateEmail_shouldThrowDuplicateEmailException() {
             // positive: idempotent behavior
         }
     }
 
     @Nested
-    class GetPartyMembersUserId {
+    class GetById {
 
         @Test
-        void givenUserId_thenDelegatesAndReturnsResult() {
+        void givenExistingId_shouldReturnUser() {
             // delegation test — happy path
         }
 
         @Test
-        void givenRepositoryReturnsEmpty_thenReturnsEmptyList() {
-            // delegation test — empty result
+        void givenNonExistingId_shouldThrowUserNotFoundException() {
+            // delegation test — not found
         }
     }
 }
@@ -337,4 +347,6 @@ class DefaultPartyServiceTest {
 - only domain exceptions are propagated by domain services
 - downstream adapter/repository translates infrastructure exceptions into domain exceptions
 - write operations that span multiple persistence calls use `@Transactional`
-- test cases follow `.github/skills/write-test-cases/SKILL.md`
+- service tests use `final` fields for the service and manual `mock()` for collaborators
+- test scenarios are grouped under `@Nested` classes named after the method in PascalCase
+- test names follow `given<state>_shouldReturn<expected_behavior>`

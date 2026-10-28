@@ -41,7 +41,7 @@ The first provides the production `RestClient` support; the second provides `@Re
 - Use `ResourceAccessException` + `SocketTimeoutException` for network failure scenarios.
 - Call `mockServer.verify()` at the end of every test to ensure all expected requests were consumed.
 - Use AssertJ for all assertions (`assertThat`).
-- Name tests: `methodName_givenScenario_whenAction_thenOutcome`.
+- Name tests: `methodName_scenarioResult_throwsXxx` or `methodName_scenarioResult_returnsXxx` (e.g. `createUser_validRequest_returnsUserResponse`, `createUser_apiUnreachable_throwsResourceAccessException`).
 - No comments inside test methods.
 - Keep blank-line separation between Arrange, Act, and Assert blocks.
 
@@ -73,7 +73,7 @@ class DefaultUserClientTest {
         public UserClient userClient(RestClient restClient) {
             return new DefaultUserClient(restClient,
                     BASE_URL,
-                    "zeny-service");
+                    "financial-tracker-service");
         }
     }
 }
@@ -214,6 +214,6 @@ class DefaultUserClientTest {
 - used `MockRestResponseCreators` for all mock responses
 - called `mockServer.verify()` in every test
 - used AssertJ for all assertions
-- test names follow `methodName_given_when_then`
+- test names follow `methodName_scenarioResult_throwsXxx` or `methodName_scenarioResult_returnsXxx`
 - no comments inside test methods
 - blank-line separation between Arrange/Act/Assert blocks

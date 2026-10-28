@@ -1,22 +1,21 @@
 # Project Architecture Guidelines
 
+## Project Architecture Overview
 This project follows light hexagonal architecture principles with DDD-light modeling. Keep domain models valid by construction: a model should not exist if it cannot be in a valid state.
 
 **Architecture reference**
 controllers -> services -> repositories -> jpa_repositories -> entities
 
-This file is intentionally repo agnostic. For concrete package names, module layout, infrastructure choices, profiles, and known exceptions in the current repository, consult `QWEN.md`.
+This file is intentionally repo agnostic. For concrete package names, module layout, infrastructure choices, profiles, and known exceptions in the current repository, consult `AGENTS.md`.
 
 ---
 
 ## Related Repository Skills
 
 - [Test Case Skill](.github/skills/write-test-cases/SKILL.md)
-- [REST API Skill](.github/skills/write-rest-api/SKILL.md)
-- [Domain Service Skill](.github/skills/write-domain-services/SKILL.md)
-- [JPA + Domain Repository Skill](.github/skills/write-jpa-domain-repositories/SKILL.md)
-- [JPA Entity Skill](.github/skills/write-jpa-entities/SKILL.md)
-
+- [Modern Java Best Practices](.agents/skills/modern-java-best-practices/SKILL.md)
+- [Use Java Optional](.agents/skills/use-java-optional/SKILL.md)
+- [Use Imported Classes](.agents/skills/use-imported-classes/SKILL.md)
 
 ---
 
@@ -24,7 +23,7 @@ This file is intentionally repo agnostic. For concrete package names, module lay
 
 ### Web layer
 - Keep controllers in the web layer and keep web DTOs close to controllers.
-- Derive `user`, tenant id, or similar ownership context from the authenticated principal or another trusted server-side context; clients must never send it in request payloads.
+- Derive `userId`, tenant id, or similar ownership context from the authenticated principal or another trusted server-side context; clients must never send it in request payloads.
 - Keep DTO-to-command translation at the web edge. For example, request DTOs should expose `toCommand(...)` methods and controllers should pass commands to services.
 - Prefer converting domain models to response DTOs in controllers.
 
@@ -43,7 +42,18 @@ This file is intentionally repo agnostic. For concrete package names, module lay
 
 ### Domain models
 - Prefer Java records for domain models and immutable carriers.
-- Use Lombok `@Builder(toBuilder = true)` where the existing model follows that pattern.
+- Use Lombok `@Builder(toBuilder = true)` where the existing model follows that pattern. Do not chain builder calls on a single line — spread them across multiple lines:
+
+```java
+// Bad — single line
+User.builder().id(id).name("john").build();
+
+// Good — multi line
+User.builder()
+    .id(id)
+    .name("john")
+    .build();
+```
 - Use constructor invariants to reject invalid state early.
 - Use `Instant` for timestamps, `UUID` for identifiers, and `Optional` instead of returning `null` where absence is expected.
 
@@ -53,19 +63,22 @@ This file is intentionally repo agnostic. For concrete package names, module lay
 
 ### Do
 - Follow existing code style and naming conventions in the project.
-- Use Java 25 language features where they improve clarity without fighting the surrounding code style.
-- Prefer direct imports over wildcard imports.
+- Use modern Java (17+) idioms — records, sealed types, pattern matching, switch expressions, streams, and method references — when they improve clarity.
+- Use direct imports instead of fully qualified class names in source code.
 - Use Lombok selectively to reduce boilerplate in records, DTOs, and Spring components.
-- Keep classes and methods focused on a single responsibility.
+- Keep classes and methods focused on a single responsibility; extract reusable logic only when it genuinely has multiple callers.
 - Keep OpenAPI, security, and bean wiring changes close to configuration classes rather than scattering them across feature packages.
 - For pluggable behaviors such as summaries, exporters, or calculators, prefer a strategy pattern keyed by a clear enum or discriminator type.
+- Return early for invalid or terminal conditions using guard clauses to reduce nesting.
+- Use loops instead of streams when a loop is simpler, easier to debug, or better suited to stateful logic.
+- Handle absence and errors explicitly — do not call `Optional.get()` without checking; do not silently swallow exceptions.
 
-### Don’t
-- Don’t accept `user` from API clients.
-- Don’t leak JPA entities or `Jpa*Repository` types outside the persistence layer.
-- Don’t put orchestration timestamps in controllers or repositories.
-- Don’t bypass repository/entity conversion methods by leaking entities into services.
-- Don’t assume packages, modules, or infrastructure exist without verifying the current repository.
+### Don't
+- Don't accept `userId` from API clients.
+- Don't leak JPA entities or `Jpa*Repository` types outside the persistence layer.
+- Don't put orchestration timestamps in controllers or repositories.
+- Don't bypass repository/entity conversion methods by leaking entities into services.
+- Don't assume packages, modules, or infrastructure exist without verifying the current repository.
 
 ---
 
@@ -97,3 +110,4 @@ This file is intentionally repo agnostic. For concrete package names, module lay
 - Put repository tests with the persistence layer and follow the established `@DataJpaTest` + nested `@TestConfiguration` pattern when the repository uses JPA slices.
 - Keep service and strategy tests with the service layer.
 - Check the active profile before assuming datasource behavior, schema source, or security configuration.
+- Use `@SpringBootTest` + `@AutoConfigureMockMvc` + `@ActiveProfiles("test")` for controller-layer integration tests that exercise the full request pipeline (HTTP → controller → service → repository → database). Autowire real dependencies, `@MockitoBean` external/auth collaborators (e.g. `JwtDecoder`, `ClientRegistrationRepository`), and `@MockitoSpyBean` where interaction verification (`verify()`) is needed. Use shared test helpers (`UserTestHelpers`, `OtpTestHelpers`) to set up authenticated test data, then assert both JSON response fields and persisted database state via repository queries.

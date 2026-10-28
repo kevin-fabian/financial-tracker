@@ -36,7 +36,7 @@ References:
 - For `4xx` and `5xx` `@ApiResponse` entries, document the error body with `@Content(schema = @Schema(implementation = ProblemDetail.class))` so the OpenAPI spec reflects the `ProblemDetail` payload returned by the global exception handler.
 - Use explicit mapping: `Request -> Command/Query` and `Domain Model -> Response`.
 - Keep business validation and domain rules in services/domain models, not in controllers.
-- Never accept ownership identifiers (`user`, tenant id, organization id) from client request payloads when server context is available.
+- Never accept ownership identifiers (`userId`, tenant id, organization id) from client request payloads when server context is available.
 - Keep persistence mapping and infrastructure concerns in persistence adapters.
 - Standard CRUD uses HTTP verbs (GET/PUT/PATCH/DELETE), not trailing verbs — see Action Patterns below.
 
@@ -113,6 +113,18 @@ When the action generates side effects that must be audited, requires its own me
 
 ## Practical: Step 1 - Define HTTP contracts and validation
 
+### Standard CRUD request DTO naming convention
+
+Request DTOs follow `<Action><Resource>Request`. The action describes what the caller wants to do with the resource:
+
+| Scenario | Request DTO name | Example |
+|---|---|---|
+| Create resource | `Create<Resource>Request` | `CreateUserRequest` |
+| Send trigger | `<Action><Resource>Request` | `SendOtpRequest` |
+| Verify/confirm | `Verify<Resource>Request` | `VerifyOtpRequest` |
+| Update resource | `<Action><Resource>Request` | `PasswordResetRequest`, `PasswordChangeRequest` |
+| Patch resource | `Patch<Resource>Request` | `PatchUserProfileRequest` |
+
 ### Standard CRUD request DTO
 
 ```java
@@ -137,7 +149,16 @@ public record CreateItemRequest(
 }
 ```
 
-### Response DTO
+### Response DTO naming convention
+
+All response DTOs follow `<ResourceName>Response`. The resource name is the domain entity or aggregate root the response represents:
+
+| Scenario | Response DTO name | Example |
+|---|---|---|
+| Standard resource response | `<Resource>Response` | `UserResponse`, `AccountResponse`, `ItemResponse` |
+| OTP-specific response (details) | `OneTimePasswordResponse` or `OtpResponse` | `OneTimePasswordResponse` |
+| Token/ID-only response | `TokenResponse` | `TokenResponse` (for OTP token, auth token, etc.) |
+| Partial/degraded resource | `<Modifier>ResourceResponse` | `UnverifiedUserResponse`, `MinimalAccountResponse` |
 
 ```java
 @Builder(toBuilder = true)
@@ -346,6 +367,8 @@ Guidance:
 
 ### Controller test (`@WebMvcTest`)
 
+Group test scenarios under `@Nested` classes named after the controller method in PascalCase. Use `given<state>_shouldReturn<expected_behavior>` naming.
+
 ```java
 @WebMvcTest(AccountController.class)
 class AccountControllerActivateTest {
@@ -356,23 +379,37 @@ class AccountControllerActivateTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @Test
-    void activateAccount_withValidId_returnsNoContent() throws Exception {
-        mockMvc.perform(post("/api/accounts/1/activate")
-                .with(jwt()))
-            .andExpect(status().isNoContent());
+    @Nested
+    class ActivateAccount {
 
-        verify(accountService, times(1)).activate(eq(1L), any(UUID.class));
-    }
+        @Test
+        void givenValidId_shouldReturnNoContent() throws Exception {
+            mockMvc.perform(post("/api/accounts/1/activate")
+                    .with(jwt()))
+                .andExpect(status().isNoContent());
 
-    @Test
-    void activateAccount_withNotFoundAccount_returnsNotFound() throws Exception {
-        doThrow(new ResourceNotFoundException("Account not found: 999"))
-            .when(accountService).activate(eq(999L), any(UUID.class));
+            verify(accountService, times(1)).activate(eq(1L), any(UUID.class));
+        }
 
-        mockMvc.perform(post("/api/accounts/999/activate")
-                .with(jwt()))
-            .andExpect(status().isNotFound());
+        @Test
+        void givenNotFoundAccount_shouldReturnNotFound() throws Exception {
+            doThrow(new ResourceNotFoundException("Account not found: 999"))
+                .when(accountService).activate(eq(999L), any(UUID.class));
+
+            mockMvc.perform(post("/api/accounts/999/activate")
+                    .with(jwt()))
+                .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void givenAlreadyActiveAccount_shouldReturnConflict() throws Exception {
+            doThrow(new AccountConflictException("Account is already active"))
+                .when(accountService).activate(eq(1L), any(UUID.class));
+
+            mockMvc.perform(post("/api/accounts/1/activate")
+                    .with(jwt()))
+                .andExpect(status().isConflict());
+        }
     }
 }
 ```
@@ -382,75 +419,79 @@ class AccountControllerActivateTest {
 When several request fields share the same validation rule (e.g. `@NotBlank`, `@Size(max = ...)`), cover the failing cases with a single `@ParameterizedTest` driven by a `@MethodSource` that supplies one invalid request per field. Keep the happy-path and not-found tests as separate `@Test` methods.
 
 ```java
-@ParameterizedTest
-@NullAndEmptySource
-void givenBlankName_thenReturnsBadRequest(String name) throws Exception {
-    CreateItemRequest request = CreateItemRequest.builder()
-            .name(name)
-            .category("Dairy")
-            .quantity(2.0)
-            .unit("liters")
-            .price(3.5)
-            .priority(ItemPriority.HIGH)
-            .build();
+@Nested
+class CreateItem {
 
-    mockMvc.perform(post("/api/items/{id}/items", UUID.randomUUID())
-                    .with(jwt()
-                            .authorities(new SimpleGrantedAuthority("USER"))
-                            .jwt(jwt -> jwt
-                                    .audience(List.of("financial-tracker-test"))
-                                    .claim("sub", UUID.randomUUID())
-                                    .claim("scope", List.of())
-                            ))
-                    .contentType("application/json")
-                    .content(jsonMapper.writeValueAsString(request)))
-            .andExpect(status().isBadRequest());
-}
+    @ParameterizedTest
+    @NullAndEmptySource
+    void givenBlankName_shouldReturnBadRequest(String name) throws Exception {
+        CreateItemRequest request = CreateItemRequest.builder()
+                .name(name)
+                .category("Dairy")
+                .quantity(2.0)
+                .unit("liters")
+                .price(3.5)
+                .priority(ItemPriority.HIGH)
+                .build();
 
-@ParameterizedTest
-@MethodSource("oversizedFieldRequests")
-void givenFieldExceedsMaxLength_thenReturnsBadRequest(CreateItemRequest request) throws Exception {
-    mockMvc.perform(post("/api/items/{id}/items", UUID.randomUUID())
-                    .with(jwt()
-                            .authorities(new SimpleGrantedAuthority("USER"))
-                            .jwt(jwt -> jwt
-                                    .audience(List.of("financial-tracker-test"))
-                                    .claim("sub", UUID.randomUUID())
-                                    .claim("scope", List.of())
-                            ))
-                    .contentType("application/json")
-                    .content(jsonMapper.writeValueAsString(request)))
-            .andExpect(status().isBadRequest());
-}
+        mockMvc.perform(post("/api/items/{id}/items", UUID.randomUUID())
+                        .with(jwt()
+                                .authorities(new SimpleGrantedAuthority("USER"))
+                                .jwt(jwt -> jwt
+                                        .audience(List.of("financial-tracker-test"))
+                                        .claim("sub", UUID.randomUUID())
+                                        .claim("scope", List.of())
+                                ))
+                        .contentType("application/json")
+                        .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
 
-static Stream<Arguments> oversizedFieldRequests() {
-    return Stream.of(
-            Arguments.of(CreateItemRequest.builder()
-                    .name("a".repeat(129))
-                    .category("Dairy")
-                    .quantity(2.0)
-                    .unit("liters")
-                    .price(3.5)
-                    .priority(ItemPriority.HIGH)
-                    .build()),
-            Arguments.of(CreateItemRequest.builder()
-                    .name("Milk")
-                    .category("a".repeat(129))
-                    .quantity(2.0)
-                    .unit("liters")
-                    .price(3.5)
-                    .priority(ItemPriority.HIGH)
-                    .build()),
-            Arguments.of(CreateItemRequest.builder()
-                    .name("Milk")
-                    .category("Dairy")
-                    .quantity(2.0)
-                    .unit("liters")
-                    .price(3.5)
-                    .notes("a".repeat(129))
-                    .priority(ItemPriority.HIGH)
-                    .build())
-    );
+    @ParameterizedTest
+    @MethodSource("oversizedFieldRequests")
+    void givenFieldExceedsMaxLength_shouldReturnBadRequest(CreateItemRequest request) throws Exception {
+        mockMvc.perform(post("/api/items/{id}/items", UUID.randomUUID())
+                        .with(jwt()
+                                .authorities(new SimpleGrantedAuthority("USER"))
+                                .jwt(jwt -> jwt
+                                        .audience(List.of("financial-tracker-test"))
+                                        .claim("sub", UUID.randomUUID())
+                                        .claim("scope", List.of())
+                                ))
+                        .contentType("application/json")
+                        .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    static Stream<Arguments> oversizedFieldRequests() {
+        return Stream.of(
+                Arguments.of(CreateItemRequest.builder()
+                        .name("a".repeat(129))
+                        .category("Dairy")
+                        .quantity(2.0)
+                        .unit("liters")
+                        .price(3.5)
+                        .priority(ItemPriority.HIGH)
+                        .build()),
+                Arguments.of(CreateItemRequest.builder()
+                        .name("Milk")
+                        .category("a".repeat(129))
+                        .quantity(2.0)
+                        .unit("liters")
+                        .price(3.5)
+                        .priority(ItemPriority.HIGH)
+                        .build()),
+                Arguments.of(CreateItemRequest.builder()
+                        .name("Milk")
+                        .category("Dairy")
+                        .quantity(2.0)
+                        .unit("liters")
+                        .price(3.5)
+                        .notes("a".repeat(129))
+                        .priority(ItemPriority.HIGH)
+                        .build())
+        );
+    }
 }
 ```
 
@@ -458,60 +499,63 @@ Guidance:
 - Use `@NullAndEmptySource` to cover both `null` and `""` (and `@NotBlank` also rejects whitespace-only) in one method.
 - Use `@MethodSource` with a `static Stream<Arguments>` when each failing case needs a different field populated differently (e.g. exceeding a per-field `@Size` max).
 - Build every supplied request so that **only one** field violates at a time — keep the rest valid — to pinpoint which annotation rejects.
-- Name the method `given<Field>ExceedsMaxLength_thenReturnsBadRequest` (or `givenBlank<Field>_thenReturnsBadRequest`) so the failure message identifies the rule.
+- Name the method `given<Field>ExceedsMaxLength_shouldReturnBadRequest` (or `givenBlank<Field>_shouldReturnBadRequest`) so the failure message identifies the rule.
 
 ### Service test (unit)
+
+Declare the service under test as a `final` field and use manual `mock()` for collaborators — do not use `@ExtendWith(MockitoExtension.class)` or `@Mock`.
 
 ```java
 class DefaultAccountServiceActivateTest {
 
-    private AccountService accountService;
+    private final AccountService accountService = new DefaultAccountService(accountRepository);
 
     @Mock
     private AccountRepository accountRepository;
 
-    @BeforeEach
-    void setUp() {
-        accountService = new DefaultAccountService(accountRepository);
-    }
+    @Nested
+    class ActivateAccount {
 
-    @Test
-    void activate_withValidAccount_setsActiveFlag() {
-        Account account = Account.builder()
-            .id(1L)
-            .userId(UUID.randomUUID())
-            .active(false)
-            .build();
+        @Test
+        void givenValidAccount_shouldSetActiveFlag() {
+            Account account = Account.builder()
+                .id(1L)
+                .userId(UUID.randomUUID())
+                .active(false)
+                .build();
 
-        when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
-        when(accountRepository.save(any(Account.class))).thenReturn(account);
+            when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+            when(accountRepository.save(any(Account.class))).thenReturn(account);
 
-        accountService.activate(1L, account.userId());
+            accountService.activate(1L, account.userId());
 
-        assertTrue(account.isActive());
-        verify(accountRepository, times(1)).save(account);
-    }
+            assertTrue(account.isActive(), "account should be active");
+            verify(accountRepository, times(1)).save(account);
+        }
 
-    @Test
-    void activate_withAlreadyActiveAccount_throwsConflict() {
-        Account account = Account.builder()
-            .id(1L)
-            .userId(UUID.randomUUID())
-            .active(true)
-            .build();
+        @Test
+        void givenAlreadyActiveAccount_shouldThrowConflict() {
+            Account account = Account.builder()
+                .id(1L)
+                .userId(UUID.randomUUID())
+                .active(true)
+                .build();
 
-        when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+            when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
-        assertThrows(AccountConflictException.class,
-            () -> accountService.activate(1L, account.userId()));
+            assertThatThrownBy(() -> accountService.activate(1L, account.userId()))
+                    .as("should throw AccountConflictException when account is already active")
+                    .isInstanceOf(AccountConflictException.class);
+        }
     }
 }
 ```
 
 Guidance:
-- Controller tests use `@WebMvcTest(ControllerClass.class)` with `@MockitoBean` for the service and `MockMvc` for HTTP assertions.
-- Service tests instantiate the concrete service with mocked collaborators.
+- Controller tests use `@WebMvcTest(ControllerClass.class)` with `@MockitoBean` for the service and `MockMvc` for HTTP assertions. Group test scenarios under `@Nested` classes named after the controller method in PascalCase.
+- Service tests instantiate the concrete service with mocked collaborators, using `final` fields and manual `mock()`.
 - Verify both success and error paths (not found, conflict, unauthorized).
+- Name test methods using `given<state>_shouldReturn<expected_behavior>`.
 
 ---
 
@@ -535,7 +579,13 @@ Guidance:
 - `409 Conflict` for state conflicts (e.g., activating an already-active account)
 - `404 Not Found` for missing resources
 - service owns business rules, cross-user isolation, and domain exceptions
-- controller tests use `@WebMvcTest` with `MockMvc` and `@MockitoBean`
+- controller tests use `@WebMvcTest` with `MockMvc`, `@MockitoBean`, and `@Nested` grouping
+- service tests use `final` fields for the service and manual `mock()` for collaborators
 - request field-validation failures are covered by `@ParameterizedTest` (`@NullAndEmptySource` or `@MethodSource`), one invalid field per supplied request
 - every `String` request field carries a `@Size(max = ...)` boundary annotation
+- request DTOs follow `<Action><Resource>Request` (e.g., `CreateUserRequest`, `SendOtpRequest`, `VerifyOtpRequest`, `PatchUserProfileRequest`)
+- response DTOs follow `<Resource>Response` (e.g., `UserResponse`, `AccountResponse`, `ItemResponse`)
+- OTP-specific responses use `OneTimePasswordResponse` or `OtpResponse`
+- token/ID-only responses use `TokenResponse`
+- partial/degraded resource responses use `<Modifier>ResourceResponse` (e.g., `UnverifiedUserResponse`)
 - service tests use mocked collaborators with focused assertions

@@ -122,12 +122,24 @@ class DefaultUserRepositoryTest {
     @Autowired
     private UserRepository userRepository;
 
+    private User user;
+
     @TestConfiguration
     public static class ContextConfiguration {
         @Bean
         public UserRepository userRepository(JpaUserRepository jpaUserRepository) {
             return new DefaultUserRepository(jpaUserRepository);
         }
+    }
+
+    @BeforeEach
+    void setUp() {
+        user = User.builder()
+            .email("john@acme.com")
+            .name("John Doe")
+            .createdAt(Instant.now())
+            .updatedAt(Instant.now())
+            .build();
     }
 }
 ```
@@ -138,6 +150,7 @@ Key choices:
 - **`@Autowired`** the domain repository under test — injected from the nested `@TestConfiguration`.
 - **`@Import(ContextConfiguration.class)`** — ensures the test picks up the bean factory.
 - Tests run against the real persistence engine (H2 for `local`/`test` profiles, PostgreSQL for `local-pg` profile).
+- **Group all test scenarios for a repository method under a `@Nested` class** named after the method in PascalCase (e.g. `save` → `@Nested class Save`). Use `given<state>_shouldReturn<expected_behavior>` naming for test methods.
 
 ### Cross-Repository Persistence
 
@@ -187,9 +200,9 @@ void setUp() {
 
 ### Grouping with `@Nested` and Ordering
 
-Group query/find tests with `@Nested` inner classes (one per repository method or query variant).
+Group all test scenarios for a repository method under a `@Nested` class named after the method in PascalCase (e.g. `save` → `@Nested class Save`, `findById` → `@Nested class FindById`). Use `given<state>_shouldReturn<expected_behavior>` naming for test methods.
 
-Ordering within each group:
+Ordering within each `@Nested` group:
 1. **Happy path** (entity exists, returns result) — assert every field.
 2. **Positive scenarios** (null handling, default values, alternative valid inputs).
 3. **Negative scenarios** (entity not found, invalid input, throws exception).
@@ -200,7 +213,7 @@ Always persist first, then retrieve, and assert every non-generated field via `u
 
 ```java
 @Test
-void givenValidUser_persistsAndRetrievesAllFields() {
+void givenValidUser_shouldPersistAndRetrieveAllFields() {
     User saved = userRepository.save(user);
 
     var found = userRepository.findById(saved.id()).orElseThrow();
@@ -317,63 +330,76 @@ class DefaultUserRepositoryTest {
             .build();
     }
 
-    @Test
-    void save_givenValidUser_persistsAndRetrieves() {
-        User saved = userRepository.save(user);
+    @Nested
+    class Save {
 
-        var found = userRepository.findById(saved.id()).orElseThrow();
+        @Test
+        void givenValidUser_shouldPersistAndRetrieveAllFields() {
+            User saved = userRepository.save(user);
 
-        Assertions.assertThat(found)
-            .as("retrieved equals saved ignoring id")
-            .usingRecursiveComparison()
-            .ignoringFields("id")
-            .isEqualTo(saved);
+            var found = userRepository.findById(saved.id()).orElseThrow();
 
-        verify(jpaUserRepository, times(1)).save(any());
-        verify(jpaUserRepository, times(1)).findById(saved.id());
+            Assertions.assertThat(found)
+                .as("retrieved equals saved ignoring id")
+                .usingRecursiveComparison()
+                .ignoringFields("id")
+                .isEqualTo(saved);
+
+            verify(jpaUserRepository, times(1)).save(any());
+            verify(jpaUserRepository, times(1)).findById(saved.id());
+        }
     }
 
-    @Test
-    void findById_givenExistingUser_returnsUser() {
-        User saved = userRepository.save(user);
+    @Nested
+    class FindById {
 
-        var found = userRepository.findById(saved.id()).orElseThrow();
+        @Test
+        void givenExistingUser_shouldReturnUser() {
+            User saved = userRepository.save(user);
 
-        assertEquals("john@acme.com", found.email());
+            var found = userRepository.findById(saved.id()).orElseThrow();
 
-        verify(jpaUserRepository, times(1)).findById(saved.id());
+            assertEquals("john@acme.com", found.email());
+
+            verify(jpaUserRepository, times(1)).findById(saved.id());
+        }
+
+        @Test
+        void givenNonExistingUser_shouldReturnEmpty() {
+            Optional<User> found = userRepository.findById(UUID.randomUUID());
+
+            Assertions.assertThat(found).isEmpty();
+        }
     }
 
-    @Test
-    void findById_givenNonExisting_returnsEmpty() {
-        Optional<User> found = userRepository.findById(UUID.randomUUID());
+    @Nested
+    class DeleteById {
 
-        Assertions.assertThat(found).isEmpty();
-    }
+        @Test
+        void givenExistingUser_shouldRemove() {
+            User saved = userRepository.save(user);
 
-    @Test
-    void deleteById_givenExisting_removes() {
-        User saved = userRepository.save(user);
+            userRepository.deleteById(saved.id());
 
-        userRepository.deleteById(saved.id());
+            Assertions.assertThat(userRepository.findById(saved.id())).isEmpty();
 
-        Assertions.assertThat(userRepository.findById(saved.id())).isEmpty();
-
-        verify(jpaUserRepository, times(1)).deleteById(saved.id());
+            verify(jpaUserRepository, times(1)).deleteById(saved.id());
+        }
     }
 }
 ```
 
 ### Coverage Checklist
 
-- `save` — persists + retrieves all fields, generated `id` non-null
+- every repository method has its scenarios grouped under a `@Nested` class (e.g. `Save`, `FindById`, `DeleteById`)
+- test names follow `given<state>_shouldReturn<expected_behavior>`
+- `save` — happy path persists + retrieves all fields, generated `id` non-null
 - `findById` — found (full field match) and not found (empty Optional)
 - custom queries — happy path with computed values; empty/zero-result path
 - `deleteById` — existing removed; delegation verified
 - cascade/Embeddable collections — every nested field persisted and retrieved
 - exception translation — infra exception converted to domain exception type
 - delegation — `verify(jpaRepository, times(1)).method(args)` on every happy path
-- use `@Nested` grouping when a method has more than 2 test cases
 - follow ordering: happy path → positive → negative
 - strictly no comments in test cases
 - use AssertJ (`Assertions.assertThat`, `assertThatThrownBy`, `assertThatCode`)

@@ -11,11 +11,12 @@ Primary goal: implement JPA entities that are explicit, predictable, and safe in
 
 1. Define the entity as a Java class with `@Entity` and `@Table(name = "...")`.
 2. Add core identity and audit fields (`id`, `createdAt`, `updatedAt`) with explicit `@Column` constraints, using `Instant` for timestamps.
-3. Map scalar fields with `@Column(...)` and map enums with `@Enumerated(EnumType.STRING)`.
-4. Design relationships by deciding the owning side first, then apply `@JoinColumn` only on the owning side.
-5. Set fetch strategy intentionally (default to `LAZY`, use `EAGER` only when bounded and justified).
-6. Add `toModel()` / `from(...)` conversion methods using builders for stable domain/entity mapping.
-7. Confirm nullability, column lengths, and relationship ownership are aligned with DB constraints.
+3. Add `@Index` entries to `@Table(indexes = ...)` for every column or column combination used in `WHERE`, `JOIN`, `ORDER BY`, or unique constraints — see Index Guidelines below.
+4. Map scalar fields with `@Column(...)` and map enums with `@Enumerated(EnumType.STRING)`.
+5. Design relationships by deciding the owning side first, then apply `@JoinColumn` only on the owning side.
+6. Set fetch strategy intentionally (default to `LAZY`, use `EAGER` only when bounded and justified).
+7. Add `toModel()` / `from(...)` conversion methods using builders for stable domain/entity mapping.
+8. Confirm nullability, column lengths, and relationship ownership are aligned with DB constraints.
 
 ---
 
@@ -31,6 +32,62 @@ Primary goal: implement JPA entities that are explicit, predictable, and safe in
 - Model reusable value objects with `@Embeddable` + `@Embedded` instead of flattening repeated fields.
 - Avoid bidirectional relationships unless they provide real query/navigation value.
 - Keep owning side updates explicit to avoid hidden relationship bugs.
+- Define `@Table(indexes = ...)` for every column or column combination used in queries (`WHERE`, `JOIN`, `ORDER BY`, `GROUP BY`). Use composite indexes for multi-column predicates. Mark unique constraints with `@Table(uniqueConstraints = ...)`.
+
+---
+
+## Index Guidelines
+
+Add `@Index` entries to `@Table(indexes = ...)` for columns that appear in query predicates. Follow a query-first approach: only index what you actually query.
+
+### Single-column indexes
+
+For single-column `WHERE`, `JOIN`, or `ORDER BY` predicates:
+
+```java
+@Entity
+@Table(name = "subscriptions", indexes = {
+    @Index(name = "idx_subscriptions_user_id", columnList = "user_id"),
+    @Index(name = "idx_subscriptions_status", columnList = "status"),
+    @Index(name = "idx_subscriptions_ends_at", columnList = "ends_at")
+})
+public class SubscriptionEntity {
+    // ...
+}
+```
+
+### Composite indexes
+
+For multi-column predicates, use a single composite index with `columnList = "col1, col2"` — the column order matters. Place equality columns first, then range columns:
+
+```java
+@Entity
+@Table(name = "subscriptions", indexes = {
+    @Index(name = "idx_subscriptions_user_status", columnList = "user_id, status")
+})
+public class SubscriptionEntity {
+    // ...
+}
+```
+
+Rules:
+- Equality columns (`WHERE user_id = ? AND status = ?`) come first; range columns (`WHERE user_id = ? AND ends_at > ?`) come last.
+- One composite index can satisfy both the full predicate and a prefix predicate (e.g., `idx_subscriptions_user_status` covers `WHERE user_id = ?` and `WHERE user_id = ? AND status = ?`).
+- Do not create separate single-column indexes for columns already covered by a composite index prefix.
+
+### Unique constraints
+
+For columns that must be unique (e.g., email, username), use `@Table(uniqueConstraints = ...)`:
+
+```java
+@Entity
+@Table(name = "users", uniqueConstraints = {
+    @UniqueConstraint(name = "uq_users_email", columnNames = "email")
+})
+public class UserEntity {
+    // ...
+}
+```
 
 ---
 
@@ -335,6 +392,9 @@ public User toModel() {
 ## Checklist
 
 - entity uses `@Entity` + explicit `@Table(name = "...")`
+- `@Table` includes `indexes = ...` for query columns (`WHERE`, `JOIN`, `ORDER BY`, `GROUP BY`)
+- composite indexes place equality columns before range columns
+- `@Table` includes `uniqueConstraints = ...` for unique columns
 - id uses UUID with `@GeneratedValue(strategy = GenerationType.UUID)`
 - scalar fields define explicit `@Column` constraints
 - enums use `@Enumerated(EnumType.STRING)`
