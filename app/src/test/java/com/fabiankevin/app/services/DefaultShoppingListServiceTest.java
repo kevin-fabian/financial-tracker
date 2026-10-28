@@ -1951,4 +1951,28 @@ class DefaultShoppingListServiceTest {
             verify(shoppingListEventPublisher, never()).publish(any(), any());
         }
     }
+
+    @Nested
+    class DeleteAllByUserId {
+
+        @Test
+        void givenUserIdWithShoppingLists_thenDelegatesToDeleteRepository() {
+            UUID userId = UUID.randomUUID();
+            ArgumentCaptor<UUID> idCaptor = ArgumentCaptor.forClass(UUID.class);
+
+            shoppingListService.deleteAllByUserId(userId);
+
+            verify(shoppingListRepository, times(1)).deleteAllByUserId(idCaptor.capture());
+            assertEquals(userId, idCaptor.getValue(), "Repository should receive the correct user id");
+        }
+
+        @Test
+        void givenUserIdWithoutShoppingLists_thenSucceedsSilently() {
+            UUID userId = UUID.randomUUID();
+
+            shoppingListService.deleteAllByUserId(userId);
+
+            verify(shoppingListRepository, times(1)).deleteAllByUserId(userId);
+        }
+    }
 }

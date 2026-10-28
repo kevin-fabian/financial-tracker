@@ -296,6 +296,12 @@ public class DefaultShoppingListService implements ShoppingListService {
 
     @Transactional
     @Override
+    public void deleteAllByUserId(UUID userId) {
+        shoppingListRepository.deleteAllByUserId(userId);
+    }
+
+    @Transactional
+    @Override
     public List<ShoppingListSummary> getShoppingListsByUserId(UUID userId) {
         List<ShoppingList> result = shoppingListRepository.findAllByUserId(userId);
 

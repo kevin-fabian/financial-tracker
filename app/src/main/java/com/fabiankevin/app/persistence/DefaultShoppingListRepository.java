@@ -50,4 +50,9 @@ public class DefaultShoppingListRepository implements ShoppingListRepository {
     public void deleteById(UUID id) {
         jpaShoppingListRepository.deleteById(id);
     }
+
+    @Override
+    public void deleteAllByUserId(UUID userId) {
+        jpaShoppingListRepository.deleteAllByUserId(userId);
+    }
 }

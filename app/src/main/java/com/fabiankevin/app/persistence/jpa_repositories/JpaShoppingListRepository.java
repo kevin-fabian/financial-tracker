@@ -28,4 +28,6 @@ public interface JpaShoppingListRepository extends JpaRepository<ShoppingListEnt
             ORDER BY i.createdAt ASC
             """)
     Optional<ShoppingListEntity> findByIdWithDetails(@Param("id") UUID id);
+
+    void deleteAllByUserId(UUID userId);
 }
