@@ -29,11 +29,7 @@ import com.fabiankevin.app.services.shopping_list.commands.UpdateShoppingItemCom
 import com.fabiankevin.app.services.shopping_list.commands.UpdateShoppingListCommand;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -51,32 +47,29 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
 class DefaultShoppingListServiceTest {
-    @Mock
-    private ShoppingListRepository shoppingListRepository;
+    private final ShoppingListRepository shoppingListRepository = mock(ShoppingListRepository.class);
+    private final CategoryRepository categoryRepository = mock(CategoryRepository.class);
+    private final UserClient userClient = mock(UserClient.class);
+    private final EventPublisher shoppingListEventPublisher = mock(EventPublisher.class);
 
-    @Mock
-    private UserClient userClient;
-
-    @Mock
-    private CategoryRepository categoryRepository;
-
-    @Mock
-    private EventPublisher shoppingListEventPublisher;
-
-    @InjectMocks
-    private DefaultShoppingListService shoppingListService;
+    private final ShoppingListService shoppingListService = new DefaultShoppingListService(
+            shoppingListRepository,
+            categoryRepository,
+            userClient,
+            shoppingListEventPublisher
+    );
 
     @Nested
     class CreateShoppingList {
         @Test
-        void givenValidCommand_thenCreatesAndReturnsSummary() {
+        void givenValidCommand_shouldReturnSummary() {
             UUID userId = UUID.randomUUID();
             CreateShoppingListCommand command = CreateShoppingListCommand.builder()
                     .name("Groceries")
@@ -129,7 +122,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenCommandWithSharedUserIds_thenPublishesEventToAllSharedUsers() {
+        void givenCommandWithSharedUserIds_shouldPublishEvents() {
             UUID userId = UUID.randomUUID();
             UUID sharedUserId1 = UUID.randomUUID();
             UUID sharedUserId2 = UUID.randomUUID();
@@ -170,7 +163,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenBlankName_thenThrowsIllegalArgumentException() {
+        void givenBlankName_shouldThrowIllegalArgumentException() {
             CreateShoppingListCommand command = CreateShoppingListCommand.builder()
                     .name(" ")
                     .userId(UUID.randomUUID())
@@ -187,7 +180,7 @@ class DefaultShoppingListServiceTest {
     @Nested
     class UpdateShoppingList {
         @Test
-        void givenValidCommand_thenUpdatesAndReturnsSummary() {
+        void givenValidCommand_shouldReturnSummary() {
             UUID userId = UUID.randomUUID();
             UUID shoppingListId = UUID.randomUUID();
             UUID categoryId = UUID.randomUUID();
@@ -274,7 +267,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenUpdateWithSharedUserIds_thenPublishesEventToAllSharedUsers() {
+        void givenUpdateWithSharedUserIds_shouldPublishEvents() {
             UUID userId = UUID.randomUUID();
             UUID shoppingListId = UUID.randomUUID();
             UUID categoryId = UUID.randomUUID();
@@ -335,7 +328,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenListNotFound_thenThrowsAndDoesNotSave() {
+        void givenListNotFound_shouldThrowAndDoesNotSave() {
             UUID shoppingListId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
 
@@ -358,7 +351,7 @@ class DefaultShoppingListServiceTest {
     @Nested
     class AddShoppingItem {
         @Test
-        void givenExistingList_thenAddsItemAndReturnsIt() {
+        void givenExistingList_shouldReturnAddedItem() {
             UUID shoppingListId = UUID.randomUUID();
             UUID addedBy = UUID.randomUUID();
             ShoppingList existing = ShoppingList.builder()
@@ -419,7 +412,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenExistingListWithSharedUserIds_thenAddsItemAndPublishesToAllSharedUsers() {
+        void givenExistingListWithSharedUserIds_shouldPublishEvents() {
             UUID shoppingListId = UUID.randomUUID();
             UUID addedBy = UUID.randomUUID();
             UUID sharedUserId1 = UUID.randomUUID();
@@ -472,7 +465,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenListWithExistingItemsAndSharedUsers_thenAddsNewItemAndPublishesFullListSummary() {
+        void givenListWithExistingItemsAndSharedUsers_shouldPublishFullListSummary() {
             UUID shoppingListId = UUID.randomUUID();
             UUID addedBy = UUID.randomUUID();
             UUID sharedUserId = UUID.randomUUID();
@@ -558,7 +551,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenNotesExceedsMaxLength_thenThrowsAndDoesNotSave() {
+        void givenNotesExceedsMaxLength_shouldThrow() {
             UUID shoppingListId = UUID.randomUUID();
             ShoppingList existing = ShoppingList.builder()
                     .id(shoppingListId)
@@ -590,7 +583,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenListNotFound_thenThrowsAndDoesNotSave() {
+        void givenListNotFound_shouldThrowAndDoesNotSave() {
             UUID shoppingListId = UUID.randomUUID();
             CreateShoppingItemCommand command = CreateShoppingItemCommand.builder()
                     .name("Milk")
@@ -611,7 +604,7 @@ class DefaultShoppingListServiceTest {
     @Nested
     class DeleteShoppingList {
         @Test
-        void givenExistingListWithSharedUserIds_thenDeletesAndPublishesEvent() {
+        void givenExistingList_shouldDeleteAndPublishEvent() {
             UUID shoppingListId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
             Instant now = Instant.now();
@@ -642,7 +635,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenDeleteWithSharedUserIds_thenPublishesEventToAllSharedUsers() {
+        void givenListWithSharedUserIds_shouldPublishEvents() {
             UUID shoppingListId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
             UUID sharedUserId1 = UUID.randomUUID();
@@ -683,7 +676,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenListNotFound_thenThrowsAndDoesNotDelete() {
+        void givenListNotFound_shouldThrowAndDoesNotDelete() {
             UUID shoppingListId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
 
@@ -702,7 +695,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenWrongUser_thenThrowsAndDoesNotDelete() {
+        void givenWrongUser_shouldThrowAndDoesNotDelete() {
             UUID shoppingListId = UUID.randomUUID();
             UUID ownerUserId = UUID.randomUUID();
             UUID wrongUserId = UUID.randomUUID();
@@ -735,7 +728,7 @@ class DefaultShoppingListServiceTest {
     @Nested
     class CompleteShoppingList {
         @Test
-        void givenAllItemsPurchased_thenCompletesAndReturnsSummary() {
+        void givenAllItemsPurchased_shouldReturnSummary() {
             UUID shoppingListId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
             UUID addedBy = UUID.randomUUID();
@@ -828,7 +821,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenListCreatedBySharedUser_thenCurrentUserCanComplete() {
+        void givenListCreatedBySharedUser_shouldSucceed() {
             UUID shoppingListId = UUID.randomUUID();
             UUID listOwner = UUID.randomUUID();
             UUID sharedUser = UUID.randomUUID();
@@ -929,7 +922,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenAllItemsPurchasedWithSharedUserIds_thenPublishesEventToAllSharedUsers() {
+        void givenAllItemsPurchasedWithSharedUserIds_shouldPublishEvents() {
             UUID shoppingListId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
             UUID sharedUserId1 = UUID.randomUUID();
@@ -1004,7 +997,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenListNotFound_thenThrowsAndDoesNotComplete() {
+        void givenListNotFound_shouldThrowAndDoesNotComplete() {
             UUID shoppingListId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
 
@@ -1024,7 +1017,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenWrongUser_thenThrowsAndDoesNotComplete() {
+        void givenWrongUser_shouldThrowAndDoesNotComplete() {
             UUID shoppingListId = UUID.randomUUID();
             UUID ownerUserId = UUID.randomUUID();
             UUID wrongUserId = UUID.randomUUID();
@@ -1056,7 +1049,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenEmptyItems_thenThrowsAndDoesNotComplete() {
+        void givenEmptyItems_shouldThrowAndDoesNotComplete() {
             UUID shoppingListId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
             Instant now = Instant.now();
@@ -1087,7 +1080,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenUnpurchasedItems_thenThrowsAndDoesNotComplete() {
+        void givenUnpurchasedItems_shouldThrowAndDoesNotComplete() {
             UUID shoppingListId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
             UUID addedBy = UUID.randomUUID();
@@ -1150,7 +1143,7 @@ class DefaultShoppingListServiceTest {
     @Nested
     class UpdateShoppingItem {
         @Test
-        void givenExistingItem_thenUpdatesAndReturnsSummary() {
+        void givenExistingItem_shouldReturnSummary() {
             UUID shoppingListId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
             UUID itemId = UUID.randomUUID();
@@ -1233,7 +1226,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenItemAddedBySharedUser_thenSharedUserCanPatchIt() {
+        void givenItemAddedBySharedUser_shouldSucceed() {
             UUID shoppingListId = UUID.randomUUID();
             UUID listOwner = UUID.randomUUID();
             UUID sharedUser = UUID.randomUUID();
@@ -1317,7 +1310,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenListWithExistingItemsAndSharedUsers_thenUpdatesItemAndPublishesFullListSummary() {
+        void givenListWithExistingItemsAndSharedUsers_shouldPublishFullListSummary() {
             UUID shoppingListId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
             UUID itemId = UUID.randomUUID();
@@ -1398,7 +1391,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenExistingListWithSharedUserIds_thenUpdatesItemAndPublishesToAllSharedUsers() {
+        void givenExistingListWithSharedUserIds_shouldPublishEvents() {
             // Given
             UUID shoppingListId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
@@ -1477,7 +1470,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenListNotFound_thenThrowsAndDoesNotUpdate() {
+        void givenListNotFound_shouldThrowAndDoesNotUpdate() {
             UUID shoppingListId = UUID.randomUUID();
             UUID itemId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
@@ -1499,7 +1492,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenWrongUser_thenThrowsAndDoesNotUpdate() {
+        void givenWrongUser_shouldThrowAndDoesNotUpdate() {
             UUID shoppingListId = UUID.randomUUID();
             UUID itemId = UUID.randomUUID();
             UUID ownerUserId = UUID.randomUUID();
@@ -1547,7 +1540,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenItemNotFound_thenThrowsAndDoesNotUpdate() {
+        void givenItemNotFound_shouldThrowAndDoesNotUpdate() {
             UUID shoppingListId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
             UUID wrongItemId = UUID.randomUUID();
@@ -1598,7 +1591,7 @@ class DefaultShoppingListServiceTest {
     @Nested
     class DeleteShoppingItem {
         @Test
-        void givenExistingItem_thenDeletesAndPublishesEvent() {
+        void givenExistingItem_shouldDeleteAndPublishEvent() {
             UUID shoppingListId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
             UUID itemId = UUID.randomUUID();
@@ -1677,7 +1670,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenListWithMultipleItemsAndSharedUsers_thenDeletesItemAndPublishesFullListSummary() {
+        void givenListWithMultipleItemsAndSharedUsers_shouldPublishFullListSummary() {
             UUID shoppingListId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
             UUID itemId = UUID.randomUUID();
@@ -1758,7 +1751,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenExistingListWithSharedUserIds_thenDeletesItemAndPublishesToAllSharedUsers() {
+        void givenExistingListWithSharedUserIds_shouldPublishEvents() {
             // Given
             UUID shoppingListId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
@@ -1837,7 +1830,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenListNotFound_thenThrowsAndDoesNotDelete() {
+        void givenListNotFound_shouldThrowAndDoesNotDelete() {
             UUID shoppingListId = UUID.randomUUID();
             UUID itemId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
@@ -1858,7 +1851,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenWrongUser_thenThrowsAndDoesNotDelete() {
+        void givenWrongUser_shouldThrowAndDoesNotDelete() {
             UUID shoppingListId = UUID.randomUUID();
             UUID itemId = UUID.randomUUID();
             UUID ownerUserId = UUID.randomUUID();
@@ -1905,7 +1898,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenItemNotFound_thenThrowsAndDoesNotDelete() {
+        void givenItemNotFound_shouldThrowAndDoesNotDelete() {
             UUID shoppingListId = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
             UUID wrongItemId = UUID.randomUUID();
@@ -1956,7 +1949,7 @@ class DefaultShoppingListServiceTest {
     class DeleteAllByUserId {
 
         @Test
-        void givenUserIdWithShoppingLists_thenDelegatesToDeleteRepository() {
+        void givenUserIdWithShoppingLists_shouldSucceed() {
             UUID userId = UUID.randomUUID();
             ArgumentCaptor<UUID> idCaptor = ArgumentCaptor.forClass(UUID.class);
 
@@ -1967,7 +1960,7 @@ class DefaultShoppingListServiceTest {
         }
 
         @Test
-        void givenUserIdWithoutShoppingLists_thenSucceedsSilently() {
+        void givenUserIdWithoutShoppingLists_shouldSucceed() {
             UUID userId = UUID.randomUUID();
 
             shoppingListService.deleteAllByUserId(userId);
