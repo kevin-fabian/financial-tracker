@@ -1,6 +1,24 @@
 # Project Architecture Guidelines
 
+## Development Workflow
+
+1. Inspect the existing implementation.
+2. Identify the affected layers and relevant skills.
+3. Read applicable architecture documentation.
+4. Implement the smallest complete solution.
+5. Add or update tests.
+6. Run relevant verification commands.
+7. Review the final changes.
+
+## Project Conventions
+
+- Java 25 and Spring Boot 4.x.x.
+- Follow the existing hexagonal architecture.
+- Keep business logic separate from infrastructure concerns.
+- Follow existing naming conventions and patterns.
+
 ## Project Architecture Overview
+
 This project follows light hexagonal architecture principles with DDD-light modeling. Keep domain models valid by construction: a model should not exist if it cannot be in a valid state.
 
 **Architecture reference**
@@ -10,12 +28,36 @@ This file is intentionally repo agnostic. For concrete package names, module lay
 
 ---
 
-## Related Repository Skills
+## Available Skills
 
-- [Test Case Skill](.github/skills/write-test-cases/SKILL.md)
-- [Modern Java Best Practices](.agents/skills/modern-java-best-practices/SKILL.md)
-- [Use Java Optional](.agents/skills/use-java-optional/SKILL.md)
-- [Use Imported Classes](.agents/skills/use-imported-classes/SKILL.md)
+Use the relevant skills based on the task.
+
+| Skill | When to use |
+|---|---|
+| **write-rest-api-controller** | Implementing or modifying REST endpoints — thin controllers, validated web DTOs, command/query mapping |
+| **write-pagination-rest-api** | Adding paginated endpoints with `PageQuery`, `Page`, and `PageResponse` |
+| **write-domain-models** | Creating or modifying domain model records — builder pattern, constructor invariants, static factories |
+| **write-domain-services** | Implementing business rules and workflows — interface-first design, domain-only contracts |
+| **write-exceptions** | Writing domain-driven exceptions that name the broken rule and carry data for error responses |
+| **write-jpa-entities** | Writing JPA entities with correct mapping, ownership, and fetch strategies |
+| **write-jpa-domain-repositories** | Implementing Spring Data `JpaRepository` plus framework-independent domain repository adapters |
+| **write-jpa-projection-queries** | Writing JPA projection queries using lightweight DTOs with primitive types and `COALESCE` |
+| **write-oauth2-rest-client** | Calling protected downstream services with automatic `client_credentials` token acquisition |
+| **write-liquibase-migrations** | Creating database migrations with Liquibase (raw SQL scripts, master changelog) |
+| **write-test-cases** | Writing clear test cases across all layers — controller, service, repository |
+| **write-springboot-controller-test** | Full `@SpringBootTest` controller tests with JWT auth, `@MockitoBean` overrides, test data helpers |
+| **write-springboot-integration-test** | Full `@SpringBootTest` integration tests exercising the complete request pipeline |
+| **write-spring-cucumber-autotests** | Cucumber-based integration tests with Allure reporting |
+| **write-batch-streaming-job** | Memory-efficient batch jobs that stream records, process in batches, and bulk-insert results |
+| **write-b-tree-indexes** | Designing effective B-tree indexes for equality, range, and join queries |
+| **service-level-architecture** | Analyzing business capabilities, reviewing architecture consistency before implementation |
+| **comply-to-light-hexagonal-architecture** | Deciding where a class belongs — domain models stay framework-agnostic, infrastructure in adapters |
+| **modern-java-best-practices** | Applying modern Java idioms — records, sealed types, pattern matching, text blocks, switch expressions |
+| **thymeleaf-ui-pattern-form-ux** | Thymeleaf templates, Tailwind styling, form binding, validation patterns |
+| **use-java-optional** | **Mandatory** — Replace manual null checks with `Optional` |
+| **use-imported-classes** | **Mandatory** — Use direct imports instead of fully qualified class names |
+
+Mandatory skills activate automatically. The rest activate based on task relevance.
 
 ---
 
@@ -81,33 +123,3 @@ User.builder()
 - Don't assume packages, modules, or infrastructure exist without verifying the current repository.
 
 ---
-
-## Package Structure Standards
-
-```bash
-<root package>
-├── <application entry>
-├── config
-├── exceptions
-├── models
-│   └── enums
-├── persistence
-│   ├── <domain-facing repositories>
-│   ├── entities
-│   └── jpa_repositories
-├── services
-│   ├── commands
-│   ├── queries
-│   └── summaries
-└── web
-	└── controllers
-		└── dtos
-```
-
-## Testing and Profiles
-
-- Put controller tests with the web layer and follow the established `@WebMvcTest` + `@MockitoBean` + `MockMvc` + authenticated-request pattern when the repository uses Spring MVC slices.
-- Put repository tests with the persistence layer and follow the established `@DataJpaTest` + nested `@TestConfiguration` pattern when the repository uses JPA slices.
-- Keep service and strategy tests with the service layer.
-- Check the active profile before assuming datasource behavior, schema source, or security configuration.
-- Use `@SpringBootTest` + `@AutoConfigureMockMvc` + `@ActiveProfiles("test")` for controller-layer integration tests that exercise the full request pipeline (HTTP → controller → service → repository → database). Autowire real dependencies, `@MockitoBean` external/auth collaborators (e.g. `JwtDecoder`, `ClientRegistrationRepository`), and `@MockitoSpyBean` where interaction verification (`verify()`) is needed. Use shared test helpers (`UserTestHelpers`, `OtpTestHelpers`) to set up authenticated test data, then assert both JSON response fields and persisted database state via repository queries.
