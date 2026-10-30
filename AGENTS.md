@@ -61,46 +61,6 @@ Mandatory skills activate automatically. The rest activate based on task relevan
 
 ---
 
-## General Implementation Rules
-
-### Web layer
-- Keep controllers in the web layer and keep web DTOs close to controllers.
-- Derive `userId`, tenant id, or similar ownership context from the authenticated principal or another trusted server-side context; clients must never send it in request payloads.
-- Keep DTO-to-command translation at the web edge. For example, request DTOs should expose `toCommand(...)` methods and controllers should pass commands to services.
-- Prefer converting domain models to response DTOs in controllers.
-
-### Service layer
-- Keep service APIs centered on commands, queries, and domain models.
-- Services own orchestration, validation that spans multiple collaborators, and timestamps such as `Instant.now()`.
-- Use standard Spring stereotypes such as `@Service` by default.
-- Use manual configuration only when bean composition is required, such as wiring a curated strategy list or another explicitly ordered dependency set.
-- If a repository already contains a known boundary leak, treat it as an exception to contain rather than a pattern to copy into new APIs.
-
-### Persistence layer
-- Keep repository adapters thin and map between domain models and JPA entities.
-- Follow the existing conversion pattern on entities such as `from(model)` and `toModel()`.
-- Keep Spring Data JPA interfaces separate from entities and domain-facing repository abstractions.
-- Enforce cross-user isolation in service and repository logic, not in request payloads.
-
-### Domain models
-- Prefer Java records for domain models and immutable carriers.
-- Use Lombok `@Builder(toBuilder = true)` where the existing model follows that pattern. Do not chain builder calls on a single line — spread them across multiple lines:
-
-```java
-// Bad — single line
-User.builder().id(id).name("john").build();
-
-// Good — multi line
-User.builder()
-    .id(id)
-    .name("john")
-    .build();
-```
-- Use constructor invariants to reject invalid state early.
-- Use `Instant` for timestamps, `UUID` for identifiers, and `Optional` instead of returning `null` where absence is expected.
-
----
-
 ## Coding Standards and Best Practices
 
 ### Do
