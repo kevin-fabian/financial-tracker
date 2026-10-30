@@ -140,13 +140,12 @@ public class AccountController {
             }
     )
     @PostMapping("/batch")
-    public ResponseEntity<Void> createBatchAccounts(@Valid @RequestBody CreateBatchAccountsRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
+    public void createBatchAccounts(@Valid @RequestBody CreateBatchAccountsRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         List<CreateAccountCommand> commands = request.accounts().stream()
                 .map(r -> r.toCommand(userId))
                 .toList();
         accountService.createBatchAccounts(commands, userId);
-        return ResponseEntity.ok().build();
     }
 
     @Operation(
@@ -183,9 +182,8 @@ public class AccountController {
             }
     )
     @PostMapping("/{accountId}/disable")
-    public ResponseEntity<Void> disableAccount(@PathVariable UUID accountId, JwtAuthenticationToken jwtAuthenticationToken) {
+    public void disableAccount(@PathVariable UUID accountId, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         accountService.disableAccount(accountId, userId);
-        return ResponseEntity.ok().build();
     }
 }
