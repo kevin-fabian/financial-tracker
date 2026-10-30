@@ -10,6 +10,15 @@
 6. Run relevant verification commands.
 7. Review the final changes.
 
+## Verification Checklist
+
+Before marking work complete, confirm:
+
+- [ ] All test cases are passing
+- [ ] Code complies with `use-imported-classes` (direct imports, no fully qualified names)
+- [ ] Code complies with `use-java-optional` (no manual null checks, use `Optional`)
+- [ ] IntelliJ Lint passes (when enabled)
+
 ## Project Conventions
 
 - Java 25 and Spring Boot 4.x.x.
@@ -25,6 +34,17 @@ This project follows light hexagonal architecture principles with DDD-light mode
 controllers -> services -> repositories -> jpa_repositories -> entities
 
 This file is intentionally repo agnostic. For concrete package names, module layout, infrastructure choices, profiles, and known exceptions in the current repository, consult `AGENTS.md`.
+
+---
+
+## Mandatory Skills
+
+These skills activate automatically on every turn:
+
+| Skill | Rule |
+|---|---|
+| **use-java-optional** | Replace manual null checks with `Optional` |
+| **use-imported-classes** | Use direct imports instead of fully qualified class names |
 
 ---
 
@@ -54,10 +74,6 @@ Use the relevant skills based on the task.
 | **comply-to-light-hexagonal-architecture** | Deciding where a class belongs — domain models stay framework-agnostic, infrastructure in adapters |
 | **modern-java-best-practices** | Applying modern Java idioms — records, sealed types, pattern matching, text blocks, switch expressions |
 | **thymeleaf-ui-pattern-form-ux** | Thymeleaf templates, Tailwind styling, form binding, validation patterns |
-| **use-java-optional** | **Mandatory** — Replace manual null checks with `Optional` |
-| **use-imported-classes** | **Mandatory** — Use direct imports instead of fully qualified class names |
-
-Mandatory skills activate automatically. The rest activate based on task relevance.
 
 ---
 
