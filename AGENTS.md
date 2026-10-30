@@ -45,6 +45,7 @@ These skills activate automatically on every turn:
 |---|---|
 | **use-java-optional** | Replace manual null checks with `Optional` |
 | **use-imported-classes** | Use direct imports instead of fully qualified class names |
+| **modern-java-best-practices** | Apply modern Java idioms — records, sealed types, pattern matching, text blocks, switch expressions |
 
 ---
 
@@ -72,7 +73,6 @@ Use the relevant skills based on the task.
 | **write-b-tree-indexes** | Designing effective B-tree indexes for equality, range, and join queries |
 | **service-level-architecture** | Analyzing business capabilities, reviewing architecture consistency before implementation |
 | **comply-to-light-hexagonal-architecture** | Deciding where a class belongs — domain models stay framework-agnostic, infrastructure in adapters |
-| **modern-java-best-practices** | Applying modern Java idioms — records, sealed types, pattern matching, text blocks, switch expressions |
 | **thymeleaf-ui-pattern-form-ux** | Thymeleaf templates, Tailwind styling, form binding, validation patterns |
 
 ---
