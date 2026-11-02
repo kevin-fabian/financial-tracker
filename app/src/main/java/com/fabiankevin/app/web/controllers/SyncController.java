@@ -1,19 +1,31 @@
 package com.fabiankevin.app.web.controllers;
 
+import com.fabiankevin.app.models.SyncState;
 import com.fabiankevin.app.services.SyncService;
+import com.fabiankevin.app.services.SyncStateService;
+import com.fabiankevin.app.web.controllers.dtos.CreateSyncStateRequest;
+import com.fabiankevin.app.web.controllers.dtos.PatchSyncStateRequest;
+import com.fabiankevin.app.web.controllers.dtos.SyncStateResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -22,6 +34,7 @@ import java.util.UUID;
 @RequestMapping(value = "/api/sync", version = "v1")
 public class SyncController {
     private final SyncService syncService;
+    private final SyncStateService syncStateService;
 
     @Operation(
             summary = "Prepare data synchronization",
@@ -41,5 +54,73 @@ public class SyncController {
         log.debug("Sync prepare requested by user: {}", userId);
         syncService.prepare(userId);
         return ResponseEntity.ok().build();
+    }
+
+    @Operation(
+            summary = "Create an initial sync state",
+            description = "Posts an initial sync state for a resource type on a user's device.",
+            responses = {
+                    @ApiResponse(responseCode = "201", description = "Created - Sync state created successfully",
+                            content = @Content(schema = @Schema(implementation = SyncStateResponse.class))),
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized - Missing or invalid authentication",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+            }
+    )
+    @PostMapping
+    public ResponseEntity<SyncStateResponse> createSyncState(@Valid @RequestBody CreateSyncStateRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        log.debug("Sync state creation requested by user: {}", userId);
+        SyncState created = syncStateService.createSyncState(request.toCommand(userId));
+        return ResponseEntity.created(URI.create("/api/sync/" + created.id()))
+                .body(SyncStateResponse.from(created));
+    }
+
+    @Operation(
+            summary = "Patch a sync state",
+            description = "Updates the sync status of an existing sync state.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - Sync state updated successfully",
+                            content = @Content(schema = @Schema(implementation = SyncStateResponse.class))),
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized - Missing or invalid authentication",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "404", description = "Not Found - Sync state not found",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+            }
+    )
+    @PatchMapping("/{syncId}")
+    public SyncStateResponse patchSyncState(@PathVariable UUID syncId, @Valid @RequestBody PatchSyncStateRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        log.debug("Sync state patch requested by user: {} for syncId: {}", userId, syncId);
+        SyncState updated = syncStateService.patchSyncState(request.toCommand(syncId, userId));
+        return SyncStateResponse.from(updated);
+    }
+
+    @Operation(
+            summary = "Retrieve all sync states",
+            description = "Retrieves all sync states for the authenticated user.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - Sync states retrieved successfully",
+                            content = @Content(schema = @Schema(implementation = SyncStateResponse.class))),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized - Missing or invalid authentication",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+            }
+    )
+    @GetMapping
+    public List<SyncStateResponse> getAllSyncStates(JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
+        log.debug("Sync states retrieval requested by user: {}", userId);
+        return syncStateService.getAllSyncStatesByUserId(userId).stream()
+                .map(SyncStateResponse::from)
+                .toList();
     }
 }

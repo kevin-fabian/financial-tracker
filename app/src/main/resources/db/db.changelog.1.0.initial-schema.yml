@@ -97,3 +97,16 @@ databaseChangeLog:
           dbms: postgresql
           path: rollbacks/U1.0.7_system_categories.sql
           relativeToChangelogFile: true
+
+  - changeSet:
+      author: kevin.fabian
+      id: 1.0.8
+      sqlFile:
+        dbms: 'postgresql'
+        path: rollouts/V1.0.8_sync_states.sql
+        relativeToChangelogFile: true
+      rollback:
+        sqlFile:
+          dbms: postgresql
+          path: rollbacks/U1.0.8_sync_states.sql
+          relativeToChangelogFile: true
