@@ -174,12 +174,24 @@ public class DefaultTransactionService implements TransactionService {
         }
 
         UUID userId = commands.getFirst().userId();
+
+        List<Account> accounts = accountRepository.findAllByUserId(userId);
+        Map<UUID, Account> accountByLocalId = accounts.stream()
+                .collect(Collectors.toMap(Account::localId, Function.identity()));
+
+        List<Category> categories = categoryRepository.findAllByUserId(userId);
+        Map<UUID, Category> categoryByLocalId = categories.stream()
+                .collect(Collectors.toMap(Category::localId, Function.identity()));
+
         List<Transaction> newTransactions = new ArrayList<>();
         for (AddTransactionCommand command : commands) {
-            Account account = accountRepository.findById(command.accountId())
-                    .orElseThrow(AccountNotFoundException::new);
+            if (command.amount() <= 0) {
+                throw new InvalidAmountException("amount must be greater than zero");
+            }
 
-            Category category = categoryRepository.findById(command.categoryId())
+            Account account = Optional.ofNullable(accountByLocalId.get(command.accountId()))
+                    .orElseThrow(AccountNotFoundException::new);
+            Category category = Optional.ofNullable(categoryByLocalId.get(command.categoryId()))
                     .orElseThrow(CategoryNotFoundException::new);
 
             Transaction transaction = Transaction.builder()

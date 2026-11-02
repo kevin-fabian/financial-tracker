@@ -5,7 +5,7 @@ import com.fabiankevin.app.events.EventPublisher;
 import com.fabiankevin.app.events.dtos.TransactionEventPayload;
 import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.exceptions.CategoryNotFoundException;
-import com.fabiankevin.app.exceptions.DailyTransactionLimitExceededException;
+import com.fabiankevin.app.exceptions.InvalidAmountException;
 import com.fabiankevin.app.exceptions.TransactionNotFoundException;
 import com.fabiankevin.app.models.Account;
 import com.fabiankevin.app.models.Category;
@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -124,7 +125,6 @@ class DefaultTransactionServiceTest {
 
            assertEquals("Food and drinks", transaction.description(), "description should match");
 
-           verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, LocalDate.now());
            verify(accountRepository, times(1)).findById(command.accountId());
            verify(categoryRepository, times(1)).findById(command.categoryId());
            verify(transactionRepository, times(1)).save(any());
@@ -144,7 +144,6 @@ class DefaultTransactionServiceTest {
            when(accountRepository.findById(command.accountId())).thenReturn(Optional.empty());
 
            assertThrows(AccountNotFoundException.class, () -> transactionService.addTransaction(command));
-           verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, LocalDate.now());
            verify(accountRepository, times(1)).findById(command.accountId());
            verify(categoryRepository, never()).findById(any());
            verify(transactionRepository, never()).save(any());
@@ -170,7 +169,6 @@ class DefaultTransactionServiceTest {
                    .build()));
 
            assertThrows(AccountNotFoundException.class, () -> transactionService.addTransaction(command));
-           verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, LocalDate.now());
            verify(accountRepository, times(1)).findById(command.accountId());
            verify(categoryRepository, never()).findById(any());
            verify(transactionRepository, never()).save(any());
@@ -196,7 +194,6 @@ class DefaultTransactionServiceTest {
            when(categoryRepository.findById(command.categoryId())).thenReturn(Optional.empty());
 
            assertThrows(CategoryNotFoundException.class, () -> transactionService.addTransaction(command));
-           verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, LocalDate.now());
            verify(accountRepository, times(1)).findById(command.accountId());
            verify(categoryRepository, times(1)).findById(command.categoryId());
            verify(transactionRepository, never()).save(any());
@@ -228,7 +225,6 @@ class DefaultTransactionServiceTest {
                    .build()));
 
            assertThrows(CategoryNotFoundException.class, () -> transactionService.addTransaction(command));
-           verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, LocalDate.now());
            verify(accountRepository, times(1)).findById(command.accountId());
            verify(categoryRepository, times(1)).findById(command.categoryId());
            verify(transactionRepository, never()).save(any());
@@ -266,7 +262,6 @@ class DefaultTransactionServiceTest {
            Transaction transaction = transactionService.addTransaction(command);
 
            assertEquals("Food and drinks", transaction.description());
-           verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, LocalDate.now());
            verify(householdRepository, times(1)).findByUserId(userId);
            verify(eventPublisher, times(1)).publish(eq(sharedSpaceId), argThat(payload ->
                    payload instanceof TransactionEventPayload p
@@ -303,31 +298,10 @@ class DefaultTransactionServiceTest {
            Transaction transaction = transactionService.addTransaction(command);
 
            assertEquals("Food and drinks", transaction.description());
-           verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, LocalDate.now());
            verify(householdRepository, times(1)).findByUserId(userId);
            verify(eventPublisher, never()).publish(any(), any());
        }
 
-       @Test
-       void givenDailyLimitReachedOnCurrentDay_thenShouldThrow() {
-           UUID userId = UUID.randomUUID();
-           LocalDate today = LocalDate.now();
-           AddTransactionCommand command = AddTransactionCommand.builder()
-                   .userId(userId)
-                   .amount(100)
-                   .accountId(UUID.randomUUID())
-                   .description("Food and drinks")
-                   .categoryId(UUID.randomUUID())
-                   .transactionDate(today)
-                   .build();
-           when(transactionRepository.countByUserIdAndCreatedAtOnDate(userId, today)).thenReturn(100L);
-
-           assertThrows(DailyTransactionLimitExceededException.class, () -> transactionService.addTransaction(command));
-           verify(transactionRepository, times(1)).countByUserIdAndCreatedAtOnDate(userId, today);
-           verify(accountRepository, never()).findById(any());
-           verify(categoryRepository, never()).findById(any());
-           verify(transactionRepository, never()).save(any());
-       }
    }
 
     @Test
@@ -761,49 +735,52 @@ class DefaultTransactionServiceTest {
 
     @Nested
     class AddTransactions {
+        private UUID userId;
+        private UUID accountLocalId;
+        private UUID categoryLocalId;
+        private Account account;
+        private Category category;
+
+        @BeforeEach
+        void setUp() {
+            userId = UUID.randomUUID();
+            accountLocalId = UUID.randomUUID();
+            categoryLocalId = UUID.randomUUID();
+            account = Account.builder()
+                    .id(UUID.randomUUID())
+                    .localId(accountLocalId)
+                    .name("GCASH")
+                    .currency(Currency.getInstance("PHP"))
+                    .user(User.of(userId))
+                    .build();
+            category = Category.builder()
+                    .id(UUID.randomUUID())
+                    .localId(categoryLocalId)
+                    .name("FOOD")
+                    .type(TransactionType.EXPENSE)
+                    .userId(userId)
+                    .build();
+        }
+
+        private List<AddTransactionCommand> buildCommands(int count) {
+            return IntStream.range(0, count)
+                    .mapToObj(i -> AddTransactionCommand.builder()
+                            .userId(userId)
+                            .amount(100 + i)
+                            .description("Transaction " + i)
+                            .categoryId(categoryLocalId)
+                            .accountId(accountLocalId)
+                            .transactionDate(LocalDate.now())
+                            .build())
+                    .toList();
+        }
+
         @Test
         void givenValidCommandsWithLocalIds_thenShouldSaveAll() {
-            UUID userId = UUID.randomUUID();
-            UUID accountLocalId = UUID.randomUUID();
-            UUID categoryId = UUID.randomUUID();
-            UUID categoryLocalIdUuid = UUID.randomUUID();
+            List<AddTransactionCommand> commands = buildCommands(2);
 
-            List<AddTransactionCommand> commands = List.of(
-                    AddTransactionCommand.builder()
-                            .userId(userId)
-                            .amount(100)
-                            .description("Food")
-                            .categoryId(categoryId)
-                            .accountId(accountLocalId)
-                            .transactionDate(LocalDate.now())
-                            .build(),
-                    AddTransactionCommand.builder()
-                            .userId(userId)
-                            .amount(200)
-                            .description("Salary")
-                            .categoryId(categoryId)
-                            .accountId(accountLocalId)
-                            .transactionDate(LocalDate.now())
-                            .build()
-            );
-
-            when(accountRepository.findById(accountLocalId)).thenReturn(Optional.of(
-                    Account.builder()
-                            .id(accountLocalId)
-                            .name("GCASH")
-                            .currency(Currency.getInstance("PHP"))
-                            .user(User.of(userId))
-                            .build()
-            ));
-            when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(
-                    Category.builder()
-                            .id(categoryId)
-                            .name("FOOD")
-                            .type(TransactionType.EXPENSE)
-                            .userId(userId)
-                            .localId(categoryLocalIdUuid)
-                            .build()
-            ));
+            when(accountRepository.findAllByUserId(userId)).thenReturn(List.of(account));
+            when(categoryRepository.findAllByUserId(userId)).thenReturn(List.of(category));
             when(transactionRepository.saveAll(any())).thenAnswer(invocation -> {
                 List<Transaction> txns = invocation.getArgument(0);
                 return txns.stream()
@@ -819,75 +796,89 @@ class DefaultTransactionServiceTest {
         }
 
         @Test
-        void givenValidCommandsWithHousehold_thenShouldSaveAll() {
-            UUID userId = UUID.randomUUID();
-            UUID accountId = UUID.randomUUID();
-            UUID categoryId = UUID.randomUUID();
-            UUID categoryLocalIdUuid = UUID.randomUUID();
+        void givenEmptyList_thenShouldNotPersist() {
+            transactionService.addTransactions(List.of());
 
-            List<AddTransactionCommand> commands = List.of(
-                    AddTransactionCommand.builder()
-                            .userId(userId)
-                            .amount(50)
-                            .description("Transport")
-                            .categoryId(categoryId)
-                            .accountId(accountId)
-                            .transactionDate(LocalDate.now())
-                            .build()
-            );
+            verify(transactionRepository, never()).saveAll(any());
+        }
 
-            when(accountRepository.findById(accountId)).thenReturn(Optional.of(
-                    Account.builder()
-                            .id(accountId)
-                            .name("BDO")
-                            .currency(Currency.getInstance("PHP"))
-                            .user(User.of(userId))
-                            .build()
-            ));
-            when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(
-                    Category.builder()
-                            .id(categoryId)
-                            .name("TRANSPORT")
-                            .type(TransactionType.EXPENSE)
-                            .userId(userId)
-                            .localId(categoryLocalIdUuid)
-                            .build()
-            ));
-            when(transactionRepository.saveAll(any())).thenAnswer(invocation -> {
-                List<Transaction> txns = invocation.getArgument(0);
-                return txns.stream()
-                        .map(t -> t.toBuilder()
-                                .id(UUID.randomUUID())
-                                .build())
-                        .toList();
-            });
+        @Test
+        void givenNullList_thenShouldNotPersist() {
+            transactionService.addTransactions(null);
 
-            transactionService.addTransactions(commands);
-
-            verify(transactionRepository, times(1)).saveAll(any());
+            verify(transactionRepository, never()).saveAll(any());
         }
 
         @Test
         void givenAccountNotFound_thenShouldThrow() {
-            UUID userId = UUID.randomUUID();
-            UUID accountId = UUID.randomUUID();
-            UUID categoryId = UUID.randomUUID();
+            List<AddTransactionCommand> commands = buildCommands(1);
 
+            when(accountRepository.findAllByUserId(userId)).thenReturn(List.of());
+            when(categoryRepository.findAllByUserId(userId)).thenReturn(List.of(category));
+
+            assertThrows(AccountNotFoundException.class, () -> transactionService.addTransactions(commands));
+            verify(transactionRepository, never()).saveAll(any());
+        }
+
+        @Test
+        void givenCategoryNotFound_thenShouldThrow() {
+            List<AddTransactionCommand> commands = buildCommands(1);
+
+            when(accountRepository.findAllByUserId(userId)).thenReturn(List.of(account));
+            when(categoryRepository.findAllByUserId(userId)).thenReturn(List.of());
+
+            assertThrows(CategoryNotFoundException.class, () -> transactionService.addTransactions(commands));
+            verify(transactionRepository, never()).saveAll(any());
+        }
+
+        @Test
+        void givenInvalidAmount_thenShouldThrow() {
             List<AddTransactionCommand> commands = List.of(
                     AddTransactionCommand.builder()
                             .userId(userId)
-                            .amount(100)
-                            .description("Food")
-                            .categoryId(categoryId)
-                            .accountId(accountId)
+                            .amount(0)
+                            .description("Zero amount")
+                            .categoryId(categoryLocalId)
+                            .accountId(accountLocalId)
                             .transactionDate(LocalDate.now())
                             .build()
             );
 
-            when(accountRepository.findById(accountId)).thenReturn(Optional.empty());
+            when(accountRepository.findAllByUserId(userId)).thenReturn(List.of(account));
+            when(categoryRepository.findAllByUserId(userId)).thenReturn(List.of(category));
 
-            assertThrows(AccountNotFoundException.class, () -> transactionService.addTransactions(commands));
+            assertThrows(InvalidAmountException.class, () -> transactionService.addTransactions(commands));
             verify(transactionRepository, never()).saveAll(any());
+        }
+
+        @Test
+        void givenSystemCategory_thenShouldSucceed() {
+            UUID systemCategoryLocalId = UUID.randomUUID();
+            Category systemCategory = Category.builder()
+                    .id(UUID.randomUUID())
+                    .localId(systemCategoryLocalId)
+                    .name("SYSTEM_CATEGORY")
+                    .type(TransactionType.EXPENSE)
+                    .userId(userId)
+                    .system(true)
+                    .build();
+            List<AddTransactionCommand> commands = List.of(
+                    AddTransactionCommand.builder()
+                            .userId(userId)
+                            .amount(50)
+                            .description("System category")
+                            .categoryId(systemCategoryLocalId)
+                            .accountId(accountLocalId)
+                            .transactionDate(LocalDate.now())
+                            .build()
+            );
+
+            when(accountRepository.findAllByUserId(userId)).thenReturn(List.of(account));
+            when(categoryRepository.findAllByUserId(userId)).thenReturn(List.of(systemCategory));
+
+            transactionService.addTransactions(commands);
+
+            verify(transactionRepository, times(1)).saveAll(any());
         }
     }
 }

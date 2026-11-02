@@ -116,12 +116,16 @@ class TransactionControllerIntegrationTest {
     private TransactionServiceTestHelper transactionHelper;
 
     private UUID userId;
+    private UUID accountLocalId;
+    private UUID categoryLocalId;
     private Account account;
     private Category category;
 
     @BeforeEach
     void setup() {
         userId = UUID.randomUUID();
+        accountLocalId = UUID.randomUUID();
+        categoryLocalId = UUID.randomUUID();
         jpaTransactionRepository.deleteAll();
         categoryRepository.deleteAllByUserId(userId);
         accountRepository.deleteAllByUserId(userId);
@@ -132,6 +136,7 @@ class TransactionControllerIntegrationTest {
                         .userId(userId)
                         .currency(Currency.getInstance("PHP"))
                         .type(E_WALLET)
+                        .localId(accountLocalId)
                         .build()
         ).account();
 
@@ -140,6 +145,7 @@ class TransactionControllerIntegrationTest {
                         .name("FOOD")
                         .type(TransactionType.EXPENSE)
                         .userId(userId)
+                        .localId(categoryLocalId)
                         .build()
         );
     }
@@ -1591,15 +1597,15 @@ class TransactionControllerIntegrationTest {
                                     .amount(50.0)
                                     .description("First transaction")
                                     .transactionDate(LocalDate.of(2026, 1, 1))
-                                    .categoryId(category.id())
-                                    .accountId(account.id())
+                                    .categoryId(categoryLocalId)
+                                    .accountId(accountLocalId)
                                     .build(),
                             CreateTransactionRequest.builder()
                                     .amount(100.0)
                                     .description("Second transaction")
                                     .transactionDate(LocalDate.of(2026, 1, 2))
-                                    .categoryId(category.id())
-                                    .accountId(account.id())
+                                    .categoryId(categoryLocalId)
+                                    .accountId(accountLocalId)
                                     .build()
                     ))
                     .build();
