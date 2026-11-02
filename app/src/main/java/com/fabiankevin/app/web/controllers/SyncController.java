@@ -2,7 +2,6 @@ package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.models.SyncState;
 import com.fabiankevin.app.services.SyncService;
-import com.fabiankevin.app.services.SyncStateService;
 import com.fabiankevin.app.web.controllers.dtos.CreateSyncStateRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchSyncStateRequest;
 import com.fabiankevin.app.web.controllers.dtos.SyncStateResponse;
@@ -34,7 +33,6 @@ import java.util.UUID;
 @RequestMapping(value = "/api/sync", version = "v1")
 public class SyncController {
     private final SyncService syncService;
-    private final SyncStateService syncStateService;
 
     @Operation(
             summary = "Prepare data synchronization",
@@ -74,7 +72,7 @@ public class SyncController {
     public ResponseEntity<SyncStateResponse> createSyncState(@Valid @RequestBody CreateSyncStateRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         log.debug("Sync state creation requested by user: {}", userId);
-        SyncState created = syncStateService.createSyncState(request.toCommand(userId));
+        SyncState created = syncService.createSyncState(request.toCommand(userId));
         return ResponseEntity.created(URI.create("/api/sync/" + created.id()))
                 .body(SyncStateResponse.from(created));
     }
@@ -99,7 +97,7 @@ public class SyncController {
     public SyncStateResponse patchSyncState(@PathVariable UUID syncId, @Valid @RequestBody PatchSyncStateRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         log.debug("Sync state patch requested by user: {} for syncId: {}", userId, syncId);
-        SyncState updated = syncStateService.patchSyncState(request.toCommand(syncId, userId));
+        SyncState updated = syncService.patchSyncState(request.toCommand(syncId, userId));
         return SyncStateResponse.from(updated);
     }
 
@@ -119,7 +117,7 @@ public class SyncController {
     public List<SyncStateResponse> getAllSyncStates(JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         log.debug("Sync states retrieval requested by user: {}", userId);
-        return syncStateService.getAllSyncStatesByUserId(userId).stream()
+        return syncService.getAllSyncStatesByUserId(userId).stream()
                 .map(SyncStateResponse::from)
                 .toList();
     }
