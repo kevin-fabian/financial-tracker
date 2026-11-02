@@ -7,8 +7,9 @@
 3. Read applicable architecture documentation.
 4. Implement the smallest complete solution.
 5. Add or update tests.
-6. Run relevant verification commands.
-7. Review the final changes.
+6. Run IntelliJ Lint on all modified files and fix any findings.
+7. Run relevant verification commands.
+8. Review the final changes.
 
 ## Verification Checklist
 
@@ -17,7 +18,7 @@ Before marking work complete, confirm:
 - [ ] All test cases are passing
 - [ ] Code complies with `use-imported-classes` (direct imports, no fully qualified names)
 - [ ] Code complies with `use-java-optional` (no manual null checks, use `Optional`)
-- [ ] IntelliJ Lint passes (when enabled)
+- [ ] IntelliJ Lint passes on all modified files (mandatory — run `lint_files` before marking work complete)
 
 ## Project Conventions
 

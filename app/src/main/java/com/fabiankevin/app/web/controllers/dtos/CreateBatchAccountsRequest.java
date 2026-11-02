@@ -1,7 +1,6 @@
 package com.fabiankevin.app.web.controllers.dtos;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import lombok.Builder;
@@ -14,7 +13,6 @@ public record CreateBatchAccountsRequest(
         @NotEmpty(message = "At least one account request is required")
         @Size(max = 100, message = "Batch size must not exceed 100 accounts")
         @Schema(description = "List of account creation requests")
-        @Valid
         List<CreateAccountRequest> accounts
 ) {
 }
