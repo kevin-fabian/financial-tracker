@@ -76,7 +76,7 @@ public class DefaultCategoryService implements CategoryService {
                                 .updatedAt(Instant.now())
                                 .build();
                     }
-                    if (command.localId() != null && !command.localId().isBlank()
+                    if (command.localId() != null
                             && existing.stream().anyMatch(c -> command.localId().equals(c.localId()))) {
                         return null;
                     }

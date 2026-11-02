@@ -29,5 +29,7 @@ public interface AccountRepository {
 
     List<Account> findByNameAndTypeAndUserIdBatch(List<CreateAccountCommand> commands, UUID userId);
 
+    List<Account> findAllByUserId(UUID userId);
+
     long deleteAllByUserId(UUID userId);
 }

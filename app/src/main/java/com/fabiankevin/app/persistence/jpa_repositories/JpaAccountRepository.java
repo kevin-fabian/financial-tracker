@@ -31,6 +31,8 @@ public interface JpaAccountRepository extends JpaRepository<AccountEntity, UUID>
 
     int deleteByIdAndUserId(UUID accountId, UUID userId);
 
+    List<AccountEntity> findAllByUserId(UUID userId);
+
     long deleteAllByUserId(UUID userId);
 
     @Query("""

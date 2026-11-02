@@ -21,7 +21,7 @@ public record Account(
         Instant createdAt,
         Instant updatedAt,
         User user,
-        String localId) {
+        UUID localId) {
     public Account {
         Objects.requireNonNull(user, "User object is required");
         Objects.requireNonNull(user.id(), "User ID is required");

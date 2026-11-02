@@ -53,7 +53,7 @@ public class CategoryEntity {
     private boolean system = false;
 
     @Column(name = "local_id")
-    private String localId;
+    private UUID localId;
 
     public static CategoryEntity from(Category category) {
         if (category == null) return null;

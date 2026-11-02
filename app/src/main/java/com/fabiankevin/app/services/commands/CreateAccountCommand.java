@@ -11,6 +11,6 @@ public record CreateAccountCommand(
         Currency currency,
         com.fabiankevin.app.models.enums.AccountType type,
         UUID userId,
-        String localId
+        UUID localId
 ) {
 }

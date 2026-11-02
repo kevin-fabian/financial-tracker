@@ -1593,7 +1593,6 @@ class TransactionControllerIntegrationTest {
                                     .transactionDate(LocalDate.of(2026, 1, 1))
                                     .categoryId(category.id())
                                     .accountId(account.id())
-                                    .categoryLocalId(category.localId())
                                     .build(),
                             CreateTransactionRequest.builder()
                                     .amount(100.0)
@@ -1601,7 +1600,6 @@ class TransactionControllerIntegrationTest {
                                     .transactionDate(LocalDate.of(2026, 1, 2))
                                     .categoryId(category.id())
                                     .accountId(account.id())
-                                    .categoryLocalId(category.localId())
                                     .build()
                     ))
                     .build();
@@ -1628,7 +1626,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenCategoryNotFoundInBatch_shouldReturnBadRequest() throws Exception {
+        void givenCategoryNotFoundInBatch_shouldReturnNotFound() throws Exception {
             CreateBatchTransactionsRequest request = CreateBatchTransactionsRequest.builder()
                     .transactions(List.of(
                             CreateTransactionRequest.builder()
@@ -1637,7 +1635,6 @@ class TransactionControllerIntegrationTest {
                                     .transactionDate(LocalDate.of(2026, 1, 1))
                                     .categoryId(UUID.randomUUID())
                                     .accountId(account.id())
-                                    .categoryLocalId("NONEXISTENT")
                                     .build()
                     ))
                     .build();
@@ -1665,7 +1662,6 @@ class TransactionControllerIntegrationTest {
                                     .transactionDate(LocalDate.of(2026, 1, 1))
                                     .categoryId(category.id())
                                     .accountId(account.id())
-                                    .categoryLocalId(category.localId())
                                     .build()
                     ))
                     .build();

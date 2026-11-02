@@ -1368,12 +1368,13 @@ class CategoryControllerIntegrationTest {
 
         @Test
         void givenExistingNonSystemCategoryWithSameLocalId_shouldIgnore() throws Exception {
+            UUID foodLocalId = UUID.randomUUID();
             categoryRepository.save(
                     Category.builder()
                             .name("FOOD")
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
-                            .localId("FOOD_001")
+                            .localId(foodLocalId)
                             .active(true)
                             .system(false)
                             .createdAt(Instant.now())
@@ -1386,7 +1387,7 @@ class CategoryControllerIntegrationTest {
                             CreateCategoryRequest.builder()
                                     .name("FOOD")
                                     .type(TransactionType.EXPENSE)
-                                    .localId("FOOD_001")
+                                    .localId(foodLocalId)
                                     .build()
                     ))
                     .build();

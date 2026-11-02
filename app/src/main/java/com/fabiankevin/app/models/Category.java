@@ -21,7 +21,7 @@ public record Category(
         boolean system,
         Instant createdAt,
         Instant updatedAt,
-        String localId) {
+        UUID localId) {
     public Category {
         Optional.ofNullable(name)
                 .filter(n -> !n.isBlank())

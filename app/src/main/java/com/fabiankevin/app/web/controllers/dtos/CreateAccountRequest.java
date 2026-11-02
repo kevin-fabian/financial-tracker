@@ -28,9 +28,8 @@ public record CreateAccountRequest(
         @Schema(description = "Type of the account", example = "E_WALLET")
         AccountType type,
 
-        @Size(max = 128, message = "Local ID must not exceed 128 characters")
-        @Schema(description = "Client-facing identifier that may differ from the internal UUID", example = "GCASH_001")
-        String localId
+        @Schema(description = "Client-facing identifier that may differ from the internal UUID", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
+        UUID localId
 ) {
     public CreateAccountCommand toCommand(UUID userId) {
         return CreateAccountCommand.builder()

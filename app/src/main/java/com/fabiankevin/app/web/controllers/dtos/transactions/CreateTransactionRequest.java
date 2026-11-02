@@ -30,10 +30,7 @@ public record CreateTransactionRequest(
 
         @NotNull(message = "Account is required")
         @Schema(description = "Account id", example = "d290f1ee-6c54-4b01-90e6-d701748f0852")
-        UUID accountId,
-
-        @Schema(description = "Client-facing category identifier used for batch lookups", example = "FOOD")
-        String categoryLocalId
+        UUID accountId
 ) {
     public AddTransactionCommand toCommand(UUID userId) {
         return AddTransactionCommand.builder()
@@ -43,7 +40,6 @@ public record CreateTransactionRequest(
                 .categoryId(this.categoryId)
                 .accountId(this.accountId)
                 .userId(userId)
-                .categoryLocalId(this.categoryLocalId)
                 .build();
     }
 }

@@ -11,6 +11,6 @@ public record CreateCategoryCommand(
         TransactionType type,
         String icon,
         UUID userId,
-        String localId
+        UUID localId
 ) {
 }

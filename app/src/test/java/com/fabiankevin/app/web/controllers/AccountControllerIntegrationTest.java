@@ -118,11 +118,12 @@ class AccountControllerIntegrationTest {
 
         @Test
         void givenValidRequest_thenReturnsCreatedWithAccountResponse() throws Exception {
+            UUID localId = UUID.randomUUID();
             CreateAccountRequest request = CreateAccountRequest.builder()
                     .name("GCASH")
                     .currency("PHP")
                     .type(E_WALLET)
-                    .localId("GCASH_001")
+                    .localId(localId)
                     .build();
 
             when(userClient.getUsersByIds(List.of(userId)))
@@ -147,7 +148,7 @@ class AccountControllerIntegrationTest {
                     .andExpect(jsonPath("$.active").value(true))
                     .andExpect(jsonPath("$.totalBalance").value(0.0))
                     .andExpect(jsonPath("$.totalTransactions").value(0))
-                    .andExpect(jsonPath("$.localId").value("GCASH_001"))
+                    .andExpect(jsonPath("$.localId").value(localId.toString()))
                     .andExpect(jsonPath("$.user.firstName").value("John"))
                     .andExpect(jsonPath("$.user.lastName").value("Doe"))
                     .andExpect(jsonPath("$.user.initial").value("JD"));

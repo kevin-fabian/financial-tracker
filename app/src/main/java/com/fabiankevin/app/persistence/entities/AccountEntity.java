@@ -47,7 +47,7 @@ public class AccountEntity {
     private boolean active = true;
 
     @Column(name = "local_id")
-    private String localId;
+    private UUID localId;
 
     public static AccountEntity from(Account account) {
         if (account == null) return null;

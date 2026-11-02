@@ -765,27 +765,25 @@ class DefaultTransactionServiceTest {
         void givenValidCommandsWithLocalIds_thenShouldSaveAll() {
             UUID userId = UUID.randomUUID();
             UUID accountLocalId = UUID.randomUUID();
-            UUID categoryLocalId = UUID.randomUUID();
-            String categoryLocalIdStr = "cat-1";
+            UUID categoryId = UUID.randomUUID();
+            UUID categoryLocalIdUuid = UUID.randomUUID();
 
             List<AddTransactionCommand> commands = List.of(
                     AddTransactionCommand.builder()
                             .userId(userId)
                             .amount(100)
                             .description("Food")
-                            .categoryId(UUID.randomUUID())
+                            .categoryId(categoryId)
                             .accountId(accountLocalId)
                             .transactionDate(LocalDate.now())
-                            .categoryLocalId(categoryLocalIdStr)
                             .build(),
                     AddTransactionCommand.builder()
                             .userId(userId)
                             .amount(200)
                             .description("Salary")
-                            .categoryId(UUID.randomUUID())
+                            .categoryId(categoryId)
                             .accountId(accountLocalId)
                             .transactionDate(LocalDate.now())
-                            .categoryLocalId(categoryLocalIdStr)
                             .build()
             );
 
@@ -797,13 +795,13 @@ class DefaultTransactionServiceTest {
                             .user(User.of(userId))
                             .build()
             ));
-            when(categoryRepository.findAllByUserId(userId)).thenReturn(List.of(
+            when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(
                     Category.builder()
-                            .id(categoryLocalId)
+                            .id(categoryId)
                             .name("FOOD")
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
-                            .localId(categoryLocalIdStr)
+                            .localId(categoryLocalIdUuid)
                             .build()
             ));
             when(transactionRepository.saveAll(any())).thenAnswer(invocation -> {
@@ -824,17 +822,17 @@ class DefaultTransactionServiceTest {
         void givenValidCommandsWithHousehold_thenShouldSaveAll() {
             UUID userId = UUID.randomUUID();
             UUID accountId = UUID.randomUUID();
-            String categoryLocalIdStr = "cat-1";
+            UUID categoryId = UUID.randomUUID();
+            UUID categoryLocalIdUuid = UUID.randomUUID();
 
             List<AddTransactionCommand> commands = List.of(
                     AddTransactionCommand.builder()
                             .userId(userId)
                             .amount(50)
                             .description("Transport")
-                            .categoryId(UUID.randomUUID())
+                            .categoryId(categoryId)
                             .accountId(accountId)
                             .transactionDate(LocalDate.now())
-                            .categoryLocalId(categoryLocalIdStr)
                             .build()
             );
 
@@ -846,13 +844,13 @@ class DefaultTransactionServiceTest {
                             .user(User.of(userId))
                             .build()
             ));
-            when(categoryRepository.findAllByUserId(userId)).thenReturn(List.of(
+            when(categoryRepository.findById(categoryId)).thenReturn(Optional.of(
                     Category.builder()
-                            .id(UUID.randomUUID())
+                            .id(categoryId)
                             .name("TRANSPORT")
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
-                            .localId(categoryLocalIdStr)
+                            .localId(categoryLocalIdUuid)
                             .build()
             ));
             when(transactionRepository.saveAll(any())).thenAnswer(invocation -> {
@@ -870,20 +868,19 @@ class DefaultTransactionServiceTest {
         }
 
         @Test
-        void givenAccountNotFoundByLocalId_thenShouldThrow() {
+        void givenAccountNotFound_thenShouldThrow() {
             UUID userId = UUID.randomUUID();
             UUID accountId = UUID.randomUUID();
-            String categoryLocalIdStr = "cat-1";
+            UUID categoryId = UUID.randomUUID();
 
             List<AddTransactionCommand> commands = List.of(
                     AddTransactionCommand.builder()
                             .userId(userId)
                             .amount(100)
                             .description("Food")
-                            .categoryId(UUID.randomUUID())
+                            .categoryId(categoryId)
                             .accountId(accountId)
                             .transactionDate(LocalDate.now())
-                            .categoryLocalId(categoryLocalIdStr)
                             .build()
             );
 

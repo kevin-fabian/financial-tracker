@@ -174,18 +174,12 @@ public class DefaultTransactionService implements TransactionService {
         }
 
         UUID userId = commands.getFirst().userId();
-        List<Category> allCategories = categoryRepository.findAllByUserId(userId);
-
-        Map<String, Category> categoryByLocalId = allCategories.stream()
-                .filter(cat -> cat.userId().equals(userId) || cat.system())
-                .collect(Collectors.toMap(Category::localId, Function.identity()));
-
         List<Transaction> newTransactions = new ArrayList<>();
         for (AddTransactionCommand command : commands) {
             Account account = accountRepository.findById(command.accountId())
                     .orElseThrow(AccountNotFoundException::new);
 
-            Category category = Optional.ofNullable(categoryByLocalId.get(command.categoryLocalId()))
+            Category category = categoryRepository.findById(command.categoryId())
                     .orElseThrow(CategoryNotFoundException::new);
 
             Transaction transaction = Transaction.builder()
