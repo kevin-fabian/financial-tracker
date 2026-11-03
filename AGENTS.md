@@ -2,23 +2,37 @@
 
 ## Development Workflow
 
-1. Inspect the existing implementation.
-2. Identify the affected layers and relevant skills.
-3. Implement the smallest complete solution.
-4. Add or update tests.
-5. Run IntelliJ Lint on all modified files and fix any findings.
-6. Run tests for all modified and new classes.
-7. Review the final changes.
+Follow these steps for every implementation task.
 
-## Verification Checklist
+1. **Inspect**
+    - Read the relevant source files, tests, and project instructions.
+    - Check existing patterns before introducing new abstractions.
+    - Identify affected layers, dependencies, and behavior.
 
-Before marking work complete, confirm:
+2. **Select skills**
+    - Load the mandatory skills for the task.
+    - Load additional skills only when their guidance applies.
+    - Follow each skill's instructions on when to consult its references.
 
-- [ ] All test cases are passing
-- [ ] Code complies with `use-imported-classes` (direct imports, no fully qualified names)
-- [ ] Code complies with `use-java-optional` (no manual null checks, use `Optional`)
-- [ ] Code complies with `modern-java-best-practices` (records, sealed types, pattern matching, text blocks, switch expressions)
-- [ ] IntelliJ Lint passes on all modified files (mandatory — run `lint_files` before marking work complete)
+3. **Plan**
+    - Identify the intended behavior and affected components.
+    - Choose the simplest solution consistent with the architecture.
+    - Identify necessary tests and generated files.
+
+4. **Implement**
+    - Keep changes scoped to the requested behavior.
+    - Reuse existing components, providers, repositories, and utilities.
+    - Update related tests and documentation when necessary.
+
+5. **Verify**
+    - Run IntelliJ Lint on all modified files and fix any findings.
+    - Run targeted tests for modified and new classes.
+    - Run broader tests when practical.
+
+6. **Review**
+    - Check architectural boundaries, error handling, and edge cases.
+    - Inspect the final diff for unrelated changes.
+    - Report completed work, verification results, and any remaining issues.
 
 ## Project Conventions
 
@@ -100,3 +114,13 @@ Use the relevant skills based on the task.
 - Don't assume packages, modules, or infrastructure exist without verifying the current repository.
 
 ---
+
+## Verification Checklist
+
+Before marking work complete, confirm:
+
+- [ ] All test cases are passing
+- [ ] Code complies with `use-imported-classes` (direct imports, no fully qualified names)
+- [ ] Code complies with `use-java-optional` (no manual null checks, use `Optional`)
+- [ ] Code complies with `modern-java-best-practices` (records, sealed types, pattern matching, text blocks, switch expressions)
+- [ ] IntelliJ Lint passes on all modified files (mandatory — run `lint_files` before marking work complete)

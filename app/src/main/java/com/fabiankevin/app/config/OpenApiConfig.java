@@ -88,4 +88,13 @@ public class OpenApiConfig {
                 .pathsToMatch("/api/shopping-lists/**")
                 .build();
     }
+
+    @Bean
+    public GroupedOpenApi syncApi() {
+        return GroupedOpenApi.builder()
+                .group("sync")
+                .displayName("Sync API")
+                .pathsToMatch("/api/sync/**")
+                .build();
+    }
 }
