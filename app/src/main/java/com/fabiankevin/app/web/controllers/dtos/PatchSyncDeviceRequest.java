@@ -11,15 +11,15 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 @Schema(description = "Request DTO for patching a sync state")
 public record PatchSyncDeviceRequest(
-        @NotNull(message = "Bootstrap status is required")
+        @NotNull(message = "Status is required")
         @Schema(description = "New bootstrap status", example = "COMPLETED")
-        BootstrapStatus syncStatus) {
+        BootstrapStatus status) {
 
     public PatchSyncStateCommand toCommand(UUID id, UUID userId) {
         return PatchSyncStateCommand.builder()
                 .id(id)
                 .userId(userId)
-                .syncStatus(this.syncStatus)
+                .syncStatus(this.status)
                 .build();
     }
 }

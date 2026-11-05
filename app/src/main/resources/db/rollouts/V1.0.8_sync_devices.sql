@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS sync_devices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     user_id UUID NOT NULL,
     device_id UUID NOT NULL,
-    user_device UUID NOT NULL,
+    user_device VARCHAR(64) NOT NULL,
     status VARCHAR(32) NOT NULL CHECK (status IN ('IN_PROGRESS', 'COMPLETED', 'FAILED')),
     direction VARCHAR(32) NOT NULL CHECK (direction IN ('PULL', 'PUSH')),
     last_synced_at TIMESTAMPTZ NULL,

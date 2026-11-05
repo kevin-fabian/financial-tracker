@@ -301,7 +301,7 @@ class SyncControllerIntegrationTest {
             UUID syncId = createSyncState(BootstrapStatus.IN_PROGRESS, BootstrapDirection.PULL);
 
             PatchSyncDeviceRequest request = PatchSyncDeviceRequest.builder()
-                    .syncStatus(BootstrapStatus.COMPLETED)
+                    .status(BootstrapStatus.COMPLETED)
                     .build();
 
             mockMvc.perform(patch("/api/sync-devices/" + syncId)
@@ -324,7 +324,7 @@ class SyncControllerIntegrationTest {
             UUID nonExistentId = UUID.randomUUID();
 
             PatchSyncDeviceRequest request = PatchSyncDeviceRequest.builder()
-                    .syncStatus(BootstrapStatus.COMPLETED)
+                    .status(BootstrapStatus.COMPLETED)
                     .build();
 
             mockMvc.perform(patch("/api/sync-devices/" + nonExistentId)
@@ -346,7 +346,7 @@ class SyncControllerIntegrationTest {
             UUID syncId = createSyncStateForUser(otherUserId, BootstrapStatus.IN_PROGRESS, BootstrapDirection.PULL);
 
             PatchSyncDeviceRequest request = PatchSyncDeviceRequest.builder()
-                    .syncStatus(BootstrapStatus.COMPLETED)
+                    .status(BootstrapStatus.COMPLETED)
                     .build();
 
             mockMvc.perform(patch("/api/sync-devices/" + syncId)
@@ -367,7 +367,7 @@ class SyncControllerIntegrationTest {
             UUID syncId = createSyncState(BootstrapStatus.IN_PROGRESS, BootstrapDirection.PULL);
 
             PatchSyncDeviceRequest request = PatchSyncDeviceRequest.builder()
-                    .syncStatus(null)
+                    .status(null)
                     .build();
 
             mockMvc.perform(patch("/api/sync-devices/" + syncId)

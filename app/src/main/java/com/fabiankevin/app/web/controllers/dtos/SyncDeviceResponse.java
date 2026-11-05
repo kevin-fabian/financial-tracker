@@ -15,7 +15,7 @@ public record SyncDeviceResponse(
         @Schema(description = "Unique identifier of the sync state")
         UUID id,
         @Schema(description = "Identifier of the user's device", example = "iphone-15")
-        String userDeviceId,
+        String userDevice,
         @Schema(description = "Bootstrap status")
         BootstrapStatus status,
         @Schema(description = "Bootstrap direction")
@@ -28,7 +28,7 @@ public record SyncDeviceResponse(
     public static SyncDeviceResponse from(SyncDevice syncDevice) {
         return SyncDeviceResponse.builder()
                 .id(syncDevice.id())
-                .userDeviceId(syncDevice.userDevice())
+                .userDevice(syncDevice.userDevice())
                 .status(syncDevice.status())
                 .direction(syncDevice.direction())
                 .createdAt(syncDevice.createdAt())
