@@ -1,6 +1,6 @@
 package com.fabiankevin.app.services.commands;
 
-import com.fabiankevin.app.models.enums.SyncStatus;
+import com.fabiankevin.app.models.enums.BootstrapStatus;
 import lombok.Builder;
 
 import java.util.UUID;
@@ -9,5 +9,5 @@ import java.util.UUID;
 public record PatchSyncStateCommand(
         UUID id,
         UUID userId,
-        SyncStatus syncStatus) {
+        BootstrapStatus syncStatus) {
 }

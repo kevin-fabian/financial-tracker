@@ -4,15 +4,15 @@ import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.AccountSummary;
 import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
-import com.fabiankevin.app.models.enums.ResourceType;
-import com.fabiankevin.app.models.enums.SyncStatus;
+import com.fabiankevin.app.models.enums.BootstrapDirection;
+import com.fabiankevin.app.models.enums.BootstrapStatus;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaSyncStateRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.CategoryService;
-import com.fabiankevin.app.services.SyncService;
+import com.fabiankevin.app.services.SyncDeviceService;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
@@ -20,7 +20,6 @@ import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.CreateSyncStateCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateSyncStateRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchSyncStateRequest;
-import com.fabiankevin.app.web.controllers.helper.TransactionServiceTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -80,7 +79,7 @@ class SyncControllerIntegrationTest {
     private JpaAccountRepository jpaAccountRepository;
 
     @Autowired
-    private SyncService syncService;
+    private SyncDeviceService syncDeviceService;
 
     @Autowired
     private AccountService accountService;
@@ -90,9 +89,6 @@ class SyncControllerIntegrationTest {
 
     @Autowired
     private CategoryService categoryService;
-
-    @Autowired
-    private TransactionServiceTestHelper transactionHelper;
 
     @MockitoBean
     private JwtDecoder jwtDecoder;
@@ -125,10 +121,9 @@ class SyncControllerIntegrationTest {
 
         @Test
         void givenValidRequest_thenReturnsOkAndDeletesAllUserData() throws Exception {
-            // Seed data via service layer
             createTestData(userId);
 
-            mockMvc.perform(post("/api/sync/prepare")
+            mockMvc.perform(post("/api/sync-devices/prepare")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -138,7 +133,6 @@ class SyncControllerIntegrationTest {
                                     )))
                     .andExpect(status().isOk());
 
-            // Verify all data deleted
             assertThat(jpaTransactionRepository.count()).isZero();
             assertThat(jpaCategoryRepository.count()).isZero();
             assertThat(jpaAccountRepository.count()).isZero();
@@ -146,7 +140,7 @@ class SyncControllerIntegrationTest {
 
         @Test
         void givenNoJwt_thenReturnsUnauthorized() throws Exception {
-            mockMvc.perform(post("/api/sync/prepare"))
+            mockMvc.perform(post("/api/sync-devices/prepare"))
                     .andExpect(status().isUnauthorized());
         }
 
@@ -155,7 +149,7 @@ class SyncControllerIntegrationTest {
             when(userClient.getUsersByIds(List.of(userId)))
                     .thenReturn(List.of(User.builder().id(userId).firstName("Test").lastName("User").build()));
 
-            mockMvc.perform(post("/api/sync/prepare")
+            mockMvc.perform(post("/api/sync-devices/prepare")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -168,19 +162,15 @@ class SyncControllerIntegrationTest {
 
         @Test
         void givenTransactionDeleteFails_thenReturnsInternalServerErrorAndRollsBack() throws Exception {
-            // Seed data via service layer
             createTestData(userId);
 
-            // Verify data exists before sync
             assertThat(jpaTransactionRepository.count()).isGreaterThan(0);
             assertThat(jpaCategoryRepository.count()).isGreaterThan(0);
             assertThat(jpaAccountRepository.count()).isGreaterThan(0);
 
-            // Make the spy throw on deleteAllByAccountUserId to simulate a database error mid-sync
             doThrow(new RuntimeException("database error")).when(jpaTransactionRepositorySpy).deleteAllByAccountUserId(userId);
 
-            // Call sync — should return 500
-            mockMvc.perform(post("/api/sync/prepare")
+            mockMvc.perform(post("/api/sync-devices/prepare")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -190,7 +180,6 @@ class SyncControllerIntegrationTest {
                                     )))
                     .andExpect(status().isInternalServerError());
 
-            // Verify data was rolled back — all original records should still exist
             assertThat(jpaTransactionRepository.count()).isGreaterThan(0);
             assertThat(jpaCategoryRepository.count()).isGreaterThan(0);
             assertThat(jpaAccountRepository.count()).isGreaterThan(0);
@@ -224,17 +213,17 @@ class SyncControllerIntegrationTest {
     }
 
     @Nested
-    class CreateSyncState {
+    class CreateSyncDevice {
 
         @Test
         void givenValidRequest_thenReturnsCreatedWithSyncState() throws Exception {
             CreateSyncStateRequest request = CreateSyncStateRequest.builder()
-                    .userDevice("iphone-15")
-                    .resourceType(ResourceType.ACCOUNTS)
-                    .syncStatus(SyncStatus.PENDING)
+                    .userDeviceId(UUID.randomUUID())
+                    .status(BootstrapStatus.IN_PROGRESS)
+                    .direction(BootstrapDirection.PULL)
                     .build();
 
-            MvcResult result = mockMvc.perform(post("/api/sync")
+            MvcResult result = mockMvc.perform(post("/api/sync-devices")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -246,27 +235,48 @@ class SyncControllerIntegrationTest {
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.id").isNotEmpty())
-                    .andExpect(jsonPath("$.userDevice").value("iphone-15"))
-                    .andExpect(jsonPath("$.resourceType").value("ACCOUNTS"))
-                    .andExpect(jsonPath("$.syncStatus").value("PENDING"))
+                    .andExpect(jsonPath("$.status").value("IN_PROGRESS"))
+                    .andExpect(jsonPath("$.direction").value("PULL"))
                     .andExpect(jsonPath("$.createdAt").isNotEmpty())
                     .andExpect(jsonPath("$.updatedAt").isNotEmpty())
                     .andReturn();
 
             String responseBody = result.getResponse().getContentAsString();
-            assertThat(responseBody).contains("iphone-15");
+            UUID requestUserDeviceId = request.userDeviceId();
+            assertThat(responseBody).contains(requestUserDeviceId.toString());
             assertThat(jpaSyncStateRepository.count()).isEqualTo(1);
         }
 
         @Test
-        void givenMissingResourceType_thenReturnsBadRequest() throws Exception {
+        void givenMissingStatus_thenReturnsBadRequest() throws Exception {
             CreateSyncStateRequest request = CreateSyncStateRequest.builder()
-                    .userDevice("iphone-15")
-                    .resourceType(null)
-                    .syncStatus(SyncStatus.PENDING)
+                    .userDeviceId(UUID.randomUUID())
+                    .status(null)
+                    .direction(BootstrapDirection.PULL)
                     .build();
 
-            mockMvc.perform(post("/api/sync")
+            mockMvc.perform(post("/api/sync-devices")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void givenMissingDirection_thenReturnsBadRequest() throws Exception {
+            CreateSyncStateRequest request = CreateSyncStateRequest.builder()
+                    .userDeviceId(UUID.randomUUID())
+                    .status(BootstrapStatus.IN_PROGRESS)
+                    .direction(null)
+                    .build();
+
+            mockMvc.perform(post("/api/sync-devices")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -282,12 +292,12 @@ class SyncControllerIntegrationTest {
         @Test
         void givenNoJwt_thenReturnsUnauthorized() throws Exception {
             CreateSyncStateRequest request = CreateSyncStateRequest.builder()
-                    .userDevice("iphone-15")
-                    .resourceType(ResourceType.ACCOUNTS)
-                    .syncStatus(SyncStatus.PENDING)
+                    .userDeviceId(UUID.randomUUID())
+                    .status(BootstrapStatus.IN_PROGRESS)
+                    .direction(BootstrapDirection.PULL)
                     .build();
 
-            mockMvc.perform(post("/api/sync")
+            mockMvc.perform(post("/api/sync-devices")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isUnauthorized());
@@ -295,17 +305,17 @@ class SyncControllerIntegrationTest {
     }
 
     @Nested
-    class PatchSyncState {
+    class PatchSyncDevice {
 
         @Test
         void givenExistingSyncState_thenReturnsUpdatedSyncState() throws Exception {
-            UUID syncId = createSyncState(ResourceType.ACCOUNTS, SyncStatus.PENDING);
+            UUID syncId = createSyncState(BootstrapStatus.IN_PROGRESS, BootstrapDirection.PULL);
 
             PatchSyncStateRequest request = PatchSyncStateRequest.builder()
-                    .syncStatus(SyncStatus.COMPLETED)
+                    .syncStatus(BootstrapStatus.COMPLETED)
                     .build();
 
-            mockMvc.perform(patch("/api/sync/" + syncId)
+            mockMvc.perform(patch("/api/sync-devices/" + syncId)
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -317,7 +327,7 @@ class SyncControllerIntegrationTest {
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.id").value(syncId.toString()))
-                    .andExpect(jsonPath("$.syncStatus").value("COMPLETED"));
+                    .andExpect(jsonPath("$.status").value("COMPLETED"));
         }
 
         @Test
@@ -325,10 +335,10 @@ class SyncControllerIntegrationTest {
             UUID nonExistentId = UUID.randomUUID();
 
             PatchSyncStateRequest request = PatchSyncStateRequest.builder()
-                    .syncStatus(SyncStatus.COMPLETED)
+                    .syncStatus(BootstrapStatus.COMPLETED)
                     .build();
 
-            mockMvc.perform(patch("/api/sync/" + nonExistentId)
+            mockMvc.perform(patch("/api/sync-devices/" + nonExistentId)
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -344,13 +354,13 @@ class SyncControllerIntegrationTest {
         @Test
         void givenSyncStateOwnedByDifferentUser_thenReturnsNotFound() throws Exception {
             UUID otherUserId = UUID.randomUUID();
-            UUID syncId = createSyncStateForUser(otherUserId, ResourceType.ACCOUNTS, SyncStatus.PENDING);
+            UUID syncId = createSyncStateForUser(otherUserId, BootstrapStatus.IN_PROGRESS, BootstrapDirection.PULL);
 
             PatchSyncStateRequest request = PatchSyncStateRequest.builder()
-                    .syncStatus(SyncStatus.COMPLETED)
+                    .syncStatus(BootstrapStatus.COMPLETED)
                     .build();
 
-            mockMvc.perform(patch("/api/sync/" + syncId)
+            mockMvc.perform(patch("/api/sync-devices/" + syncId)
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -365,13 +375,13 @@ class SyncControllerIntegrationTest {
 
         @Test
         void givenMissingSyncStatus_thenReturnsBadRequest() throws Exception {
-            UUID syncId = createSyncState(ResourceType.ACCOUNTS, SyncStatus.PENDING);
+            UUID syncId = createSyncState(BootstrapStatus.IN_PROGRESS, BootstrapDirection.PULL);
 
             PatchSyncStateRequest request = PatchSyncStateRequest.builder()
                     .syncStatus(null)
                     .build();
 
-            mockMvc.perform(patch("/api/sync/" + syncId)
+            mockMvc.perform(patch("/api/sync-devices/" + syncId)
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -390,11 +400,11 @@ class SyncControllerIntegrationTest {
 
         @Test
         void givenUserWithSyncStates_thenReturnsAllSyncStates() throws Exception {
-            createSyncState(ResourceType.ACCOUNTS, SyncStatus.PENDING);
-            createSyncState(ResourceType.CATEGORIES, SyncStatus.COMPLETED);
-            createSyncState(ResourceType.TRANSACTIONS, SyncStatus.IN_PROGRESS);
+            createSyncState(BootstrapStatus.COMPLETED, BootstrapDirection.PULL);
+            createSyncState(BootstrapStatus.IN_PROGRESS, BootstrapDirection.PUSH);
+            createSyncState(BootstrapStatus.FAILED, BootstrapDirection.PULL);
 
-            mockMvc.perform(get("/api/sync")
+            mockMvc.perform(get("/api/sync-devices")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -404,13 +414,13 @@ class SyncControllerIntegrationTest {
                                     )))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.length()").value(3))
-                    .andExpect(jsonPath("$[0].resourceType").isNotEmpty())
-                    .andExpect(jsonPath("$[0].syncStatus").isNotEmpty());
+                    .andExpect(jsonPath("$[0].status").isNotEmpty())
+                    .andExpect(jsonPath("$[0].direction").isNotEmpty());
         }
 
         @Test
         void givenUserWithNoSyncStates_thenReturnsEmptyList() throws Exception {
-            mockMvc.perform(get("/api/sync")
+            mockMvc.perform(get("/api/sync-devices")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
@@ -424,22 +434,22 @@ class SyncControllerIntegrationTest {
 
         @Test
         void givenNoJwt_thenReturnsUnauthorized() throws Exception {
-            mockMvc.perform(get("/api/sync"))
+            mockMvc.perform(get("/api/sync-devices"))
                     .andExpect(status().isUnauthorized());
         }
     }
 
-    private UUID createSyncState(ResourceType resourceType, SyncStatus syncStatus) {
-        return createSyncStateForUser(userId, resourceType, syncStatus);
+    private UUID createSyncState(BootstrapStatus status, BootstrapDirection direction) {
+        return createSyncStateForUser(userId, status, direction);
     }
 
-    private UUID createSyncStateForUser(UUID uid, ResourceType resourceType, SyncStatus syncStatus) {
+    private UUID createSyncStateForUser(UUID uid, BootstrapStatus status, BootstrapDirection direction) {
         CreateSyncStateCommand command = CreateSyncStateCommand.builder()
                 .userId(uid)
-                .userDevice("iphone-15")
-                .resourceType(resourceType)
-                .syncStatus(syncStatus)
+                .userDeviceId(UUID.randomUUID())
+                .status(status)
+                .direction(direction)
                 .build();
-        return syncService.createSyncState(command).id();
+        return syncDeviceService.create(command).id();
     }
 }

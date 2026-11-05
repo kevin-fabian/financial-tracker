@@ -103,7 +103,7 @@ databaseChangeLog:
       id: 1.0.8
       sqlFile:
         dbms: 'postgresql'
-        path: rollouts/V1.0.8_sync_states.sql
+        path: rollouts/V1.0.8_sync_devices.sql
         relativeToChangelogFile: true
       rollback:
         sqlFile:

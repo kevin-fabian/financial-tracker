@@ -1,7 +1,7 @@
 package com.fabiankevin.app.persistence;
 
-import com.fabiankevin.app.models.SyncState;
-import com.fabiankevin.app.persistence.entities.SyncStateEntity;
+import com.fabiankevin.app.models.SyncDevice;
+import com.fabiankevin.app.persistence.entities.SyncDeviceEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaSyncStateRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -12,25 +12,25 @@ import java.util.UUID;
 
 @RequiredArgsConstructor
 @Repository
-public class DefaultSyncStateRepository implements SyncStateRepository {
+public class DefaultSyncDeviceRepository implements SyncDeviceRepository {
     private final JpaSyncStateRepository jpaSyncStateRepository;
 
     @Override
-    public Optional<SyncState> findById(UUID id) {
+    public Optional<SyncDevice> findById(UUID id) {
         return jpaSyncStateRepository.findById(id)
-                .map(SyncStateEntity::toModel);
+                .map(SyncDeviceEntity::toModel);
     }
 
     @Override
-    public SyncState save(SyncState syncState) {
-        SyncStateEntity saved = jpaSyncStateRepository.save(SyncStateEntity.from(syncState));
+    public SyncDevice save(SyncDevice syncDevice) {
+        SyncDeviceEntity saved = jpaSyncStateRepository.save(SyncDeviceEntity.from(syncDevice));
         return saved.toModel();
     }
 
     @Override
-    public List<SyncState> findAllByUserId(UUID userId) {
+    public List<SyncDevice> findAllByUserId(UUID userId) {
         return jpaSyncStateRepository.findAllByUserId(userId).stream()
-                .map(SyncStateEntity::toModel)
+                .map(SyncDeviceEntity::toModel)
                 .toList();
     }
 

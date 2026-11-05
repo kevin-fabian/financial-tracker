@@ -1,7 +1,7 @@
 package com.fabiankevin.app.web.controllers;
 
-import com.fabiankevin.app.models.SyncState;
-import com.fabiankevin.app.services.SyncService;
+import com.fabiankevin.app.models.SyncDevice;
+import com.fabiankevin.app.services.SyncDeviceService;
 import com.fabiankevin.app.web.controllers.dtos.CreateSyncStateRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchSyncStateRequest;
 import com.fabiankevin.app.web.controllers.dtos.SyncStateResponse;
@@ -30,9 +30,9 @@ import java.util.UUID;
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-@RequestMapping(value = "/api/sync", version = "v1")
-public class SyncController {
-    private final SyncService syncService;
+@RequestMapping(value = "/api/sync-devices", version = "v1")
+public class SyncDeviceController {
+    private final SyncDeviceService syncDeviceService;
 
     @Operation(
             summary = "Prepare data synchronization",
@@ -47,10 +47,9 @@ public class SyncController {
     )
     @PostMapping("/prepare")
     public ResponseEntity<Void> prepareSync(JwtAuthenticationToken jwtAuthenticationToken) {
-        String subject = jwtAuthenticationToken.getToken().getSubject();
-        UUID userId = UUID.fromString(subject);
+        UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         log.debug("Sync prepare requested by user: {}", userId);
-        syncService.prepare(userId);
+        syncDeviceService.prepare(userId);
         return ResponseEntity.ok().build();
     }
 
@@ -72,8 +71,8 @@ public class SyncController {
     public ResponseEntity<SyncStateResponse> createSyncState(@Valid @RequestBody CreateSyncStateRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         log.debug("Sync state creation requested by user: {}", userId);
-        SyncState created = syncService.createSyncState(request.toCommand(userId));
-        return ResponseEntity.created(URI.create("/api/sync/" + created.id()))
+        SyncDevice created = syncDeviceService.create(request.toCommand(userId));
+        return ResponseEntity.created(URI.create("/api/sync-devices/" + created.id()))
                 .body(SyncStateResponse.from(created));
     }
 
@@ -97,7 +96,7 @@ public class SyncController {
     public SyncStateResponse patchSyncState(@PathVariable UUID syncId, @Valid @RequestBody PatchSyncStateRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         log.debug("Sync state patch requested by user: {} for syncId: {}", userId, syncId);
-        SyncState updated = syncService.patchSyncState(request.toCommand(syncId, userId));
+        SyncDevice updated = syncDeviceService.patch(request.toCommand(syncId, userId));
         return SyncStateResponse.from(updated);
     }
 
@@ -117,7 +116,7 @@ public class SyncController {
     public List<SyncStateResponse> getAllSyncStates(JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         log.debug("Sync states retrieval requested by user: {}", userId);
-        return syncService.getAllSyncStatesByUserId(userId).stream()
+        return syncDeviceService.getAllByUserId(userId).stream()
                 .map(SyncStateResponse::from)
                 .toList();
     }

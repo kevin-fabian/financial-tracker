@@ -1,9 +1,8 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.exceptions.SyncStateNotFoundException;
-import com.fabiankevin.app.models.SyncState;
-import com.fabiankevin.app.models.enums.SyncStatus;
-import com.fabiankevin.app.persistence.SyncStateRepository;
+import com.fabiankevin.app.models.SyncDevice;
+import com.fabiankevin.app.persistence.SyncDeviceRepository;
 import com.fabiankevin.app.services.commands.CreateSyncStateCommand;
 import com.fabiankevin.app.services.commands.PatchSyncStateCommand;
 import jakarta.transaction.Transactional;
@@ -18,14 +17,14 @@ import java.util.UUID;
 @Slf4j
 @RequiredArgsConstructor
 @Service
-public class DefaultSyncService implements SyncService {
+public class DefaultSyncDeviceService implements SyncDeviceService {
     private final TransactionService transactionService;
     private final RecurringTransactionService recurringTransactionService;
     private final BudgetService budgetService;
     private final ShoppingListService shoppingListService;
     private final AccountService accountService;
     private final CategoryService categoryService;
-    private final SyncStateRepository syncStateRepository;
+    private final SyncDeviceRepository syncDeviceRepository;
 
     @Transactional
     @Override
@@ -61,42 +60,42 @@ public class DefaultSyncService implements SyncService {
 
     @Transactional
     @Override
-    public SyncState createSyncState(CreateSyncStateCommand command) {
-        SyncStatus status = command.syncStatus() != null ? command.syncStatus() : SyncStatus.PENDING;
-        SyncState syncState = SyncState.builder()
+    public SyncDevice create(CreateSyncStateCommand command) {
+        SyncDevice syncDevice = SyncDevice.builder()
                 .userId(command.userId())
-                .userDevice(command.userDevice())
-                .resourceType(command.resourceType())
-                .syncStatus(status)
+                .deviceId(UUID.randomUUID())
+                .userDevice(command.userDeviceId())
+                .status(command.status())
+                .direction(command.direction())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
-        return syncStateRepository.save(syncState);
+        return syncDeviceRepository.save(syncDevice);
     }
 
     @Transactional
     @Override
-    public SyncState patchSyncState(PatchSyncStateCommand command) {
-        SyncState existing = syncStateRepository.findById(command.id())
+    public SyncDevice patch(PatchSyncStateCommand command) {
+        SyncDevice existing = syncDeviceRepository.findById(command.id())
                 .filter(s -> s.userId().equals(command.userId()))
                 .orElseThrow(SyncStateNotFoundException::new);
 
-        SyncState updated = existing.toBuilder()
-                .syncStatus(command.syncStatus())
+        SyncDevice updated = existing.toBuilder()
+                .status(command.syncStatus())
                 .updatedAt(Instant.now())
                 .build();
-        return syncStateRepository.save(updated);
+        return syncDeviceRepository.save(updated);
     }
 
     @Override
-    public SyncState getSyncStateById(UUID id, UUID userId) {
-        return syncStateRepository.findById(id)
+    public SyncDevice getById(UUID id, UUID userId) {
+        return syncDeviceRepository.findById(id)
                 .filter(s -> s.userId().equals(userId))
                 .orElseThrow(SyncStateNotFoundException::new);
     }
 
     @Override
-    public List<SyncState> getAllSyncStatesByUserId(UUID userId) {
-        return syncStateRepository.findAllByUserId(userId);
+    public List<SyncDevice> getAllByUserId(UUID userId) {
+        return syncDeviceRepository.findAllByUserId(userId);
     }
 }
