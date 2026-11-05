@@ -70,25 +70,17 @@ Use the relevant skills based on the task.
 
 | Skill | When to use |
 |---|---|
+| **write-test-cases** | Writing clear test cases across all layers — controller, service, repository |
 | **write-rest-api-controller** | Implementing or modifying REST endpoints — thin controllers, validated web DTOs, command/query mapping |
-| **write-pagination-rest-api** | Adding paginated endpoints with `PageQuery`, `Page`, and `PageResponse` |
 | **write-domain-models** | Creating or modifying domain model records — builder pattern, constructor invariants, static factories |
 | **write-domain-services** | Implementing business rules and workflows — interface-first design, domain-only contracts |
 | **write-exceptions** | Writing domain-driven exceptions that name the broken rule and carry data for error responses |
 | **write-jpa-entities** | Writing JPA entities with correct mapping, ownership, and fetch strategies |
 | **write-jpa-domain-repositories** | Implementing Spring Data `JpaRepository` plus framework-independent domain repository adapters |
 | **write-jpa-projection-queries** | Writing JPA projection queries using lightweight DTOs with primitive types and `COALESCE` |
-| **write-oauth2-rest-client** | Calling protected downstream services with automatic `client_credentials` token acquisition |
 | **write-liquibase-migrations** | Creating database migrations with Liquibase (raw SQL scripts, master changelog) |
-| **write-test-cases** | Writing clear test cases across all layers — controller, service, repository |
-| **write-springboot-controller-test** | Full `@SpringBootTest` controller tests with JWT auth, `@MockitoBean` overrides, test data helpers |
-| **write-springboot-integration-test** | Full `@SpringBootTest` integration tests exercising the complete request pipeline |
-| **write-spring-cucumber-autotests** | Cucumber-based integration tests with Allure reporting |
-| **write-batch-streaming-job** | Memory-efficient batch jobs that stream records, process in batches, and bulk-insert results |
 | **write-b-tree-indexes** | Designing effective B-tree indexes for equality, range, and join queries |
-| **service-level-architecture** | Analyzing business capabilities, reviewing architecture consistency before implementation |
 | **comply-to-light-hexagonal-architecture** | Deciding where a class belongs — domain models stay framework-agnostic, infrastructure in adapters |
-| **thymeleaf-ui-pattern-form-ux** | Thymeleaf templates, Tailwind styling, form binding, validation patterns |
 
 ---
 
