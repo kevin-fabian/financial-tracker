@@ -18,11 +18,13 @@ import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.CreateSyncStateCommand;
-import com.fabiankevin.app.web.controllers.dtos.CreateSyncStateRequest;
-import com.fabiankevin.app.web.controllers.dtos.PatchSyncStateRequest;
+import com.fabiankevin.app.web.controllers.dtos.CreateSyncDeviceRequest;
+import com.fabiankevin.app.web.controllers.dtos.PatchSyncDeviceRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -42,6 +44,7 @@ import java.time.LocalDate;
 import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static com.fabiankevin.app.models.enums.AccountType.E_WALLET;
 import static com.fabiankevin.app.models.enums.TransactionType.EXPENSE;
@@ -217,8 +220,8 @@ class SyncControllerIntegrationTest {
 
         @Test
         void givenValidRequest_thenReturnsCreatedWithSyncState() throws Exception {
-            CreateSyncStateRequest request = CreateSyncStateRequest.builder()
-                    .userDeviceId(UUID.randomUUID())
+            UUID requestUserDeviceId = UUID.randomUUID();
+            CreateSyncDeviceRequest request = CreateSyncDeviceRequest.builder()
                     .status(BootstrapStatus.IN_PROGRESS)
                     .direction(BootstrapDirection.PULL)
                     .build();
@@ -229,6 +232,7 @@ class SyncControllerIntegrationTest {
                                     .jwt(jwt -> jwt
                                             .audience(List.of("financial-tracker-test"))
                                             .claim("sub", userId)
+                                            .claim("userDeviceId", requestUserDeviceId)
                                             .claim("scope", List.of())
                                     ))
                             .contentType(MediaType.APPLICATION_JSON)
@@ -242,40 +246,26 @@ class SyncControllerIntegrationTest {
                     .andReturn();
 
             String responseBody = result.getResponse().getContentAsString();
-            UUID requestUserDeviceId = request.userDeviceId();
             assertThat(responseBody).contains(requestUserDeviceId.toString());
             assertThat(jpaSyncStateRepository.count()).isEqualTo(1);
         }
 
-        @Test
-        void givenMissingStatus_thenReturnsBadRequest() throws Exception {
-            CreateSyncStateRequest request = CreateSyncStateRequest.builder()
-                    .userDeviceId(UUID.randomUUID())
-                    .status(null)
-                    .direction(BootstrapDirection.PULL)
-                    .build();
-
-            mockMvc.perform(post("/api/sync-devices")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
+        static Stream<CreateSyncDeviceRequest> invalidCreateSyncStateRequests() {
+            return Stream.of(
+                    CreateSyncDeviceRequest.builder()
+                            .status(null)
+                            .direction(BootstrapDirection.PULL)
+                            .build(),
+                    CreateSyncDeviceRequest.builder()
+                            .status(BootstrapStatus.IN_PROGRESS)
+                            .direction(null)
+                            .build()
+            );
         }
 
-        @Test
-        void givenMissingDirection_thenReturnsBadRequest() throws Exception {
-            CreateSyncStateRequest request = CreateSyncStateRequest.builder()
-                    .userDeviceId(UUID.randomUUID())
-                    .status(BootstrapStatus.IN_PROGRESS)
-                    .direction(null)
-                    .build();
-
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("invalidCreateSyncStateRequests")
+        void givenMissingRequiredField_thenReturnsBadRequest(CreateSyncDeviceRequest request) throws Exception {
             mockMvc.perform(post("/api/sync-devices")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -291,8 +281,7 @@ class SyncControllerIntegrationTest {
 
         @Test
         void givenNoJwt_thenReturnsUnauthorized() throws Exception {
-            CreateSyncStateRequest request = CreateSyncStateRequest.builder()
-                    .userDeviceId(UUID.randomUUID())
+            CreateSyncDeviceRequest request = CreateSyncDeviceRequest.builder()
                     .status(BootstrapStatus.IN_PROGRESS)
                     .direction(BootstrapDirection.PULL)
                     .build();
@@ -311,7 +300,7 @@ class SyncControllerIntegrationTest {
         void givenExistingSyncState_thenReturnsUpdatedSyncState() throws Exception {
             UUID syncId = createSyncState(BootstrapStatus.IN_PROGRESS, BootstrapDirection.PULL);
 
-            PatchSyncStateRequest request = PatchSyncStateRequest.builder()
+            PatchSyncDeviceRequest request = PatchSyncDeviceRequest.builder()
                     .syncStatus(BootstrapStatus.COMPLETED)
                     .build();
 
@@ -334,7 +323,7 @@ class SyncControllerIntegrationTest {
         void givenNonExistentSyncState_thenReturnsNotFound() throws Exception {
             UUID nonExistentId = UUID.randomUUID();
 
-            PatchSyncStateRequest request = PatchSyncStateRequest.builder()
+            PatchSyncDeviceRequest request = PatchSyncDeviceRequest.builder()
                     .syncStatus(BootstrapStatus.COMPLETED)
                     .build();
 
@@ -356,7 +345,7 @@ class SyncControllerIntegrationTest {
             UUID otherUserId = UUID.randomUUID();
             UUID syncId = createSyncStateForUser(otherUserId, BootstrapStatus.IN_PROGRESS, BootstrapDirection.PULL);
 
-            PatchSyncStateRequest request = PatchSyncStateRequest.builder()
+            PatchSyncDeviceRequest request = PatchSyncDeviceRequest.builder()
                     .syncStatus(BootstrapStatus.COMPLETED)
                     .build();
 
@@ -377,7 +366,7 @@ class SyncControllerIntegrationTest {
         void givenMissingSyncStatus_thenReturnsBadRequest() throws Exception {
             UUID syncId = createSyncState(BootstrapStatus.IN_PROGRESS, BootstrapDirection.PULL);
 
-            PatchSyncStateRequest request = PatchSyncStateRequest.builder()
+            PatchSyncDeviceRequest request = PatchSyncDeviceRequest.builder()
                     .syncStatus(null)
                     .build();
 

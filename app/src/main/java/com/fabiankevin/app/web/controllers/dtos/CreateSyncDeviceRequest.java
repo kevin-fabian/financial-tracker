@@ -11,9 +11,7 @@ import java.util.UUID;
 
 @Builder(toBuilder = true)
 @Schema(description = "Request DTO for creating an initial sync state")
-public record CreateSyncStateRequest(
-        @Schema(description = "Identifier of the user's device", example = "iphone-15")
-        UUID userDeviceId,
+public record CreateSyncDeviceRequest(
         @NotNull(message = "Bootstrap status is required")
         @Schema(description = "Bootstrap status", example = "IN_PROGRESS")
         BootstrapStatus status,
@@ -21,10 +19,10 @@ public record CreateSyncStateRequest(
         @Schema(description = "Bootstrap direction", example = "PULL")
         BootstrapDirection direction) {
 
-    public CreateSyncStateCommand toCommand(UUID userId) {
+    public CreateSyncStateCommand toCommand(UUID userId, UUID userDeviceId) {
         return CreateSyncStateCommand.builder()
                 .userId(userId)
-                .userDeviceId(this.userDeviceId)
+                .userDeviceId(userDeviceId)
                 .status(this.status)
                 .direction(this.direction)
                 .build();

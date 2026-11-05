@@ -10,7 +10,7 @@ import java.util.UUID;
 
 @Builder(toBuilder = true)
 @Schema(description = "Request DTO for patching a sync state")
-public record PatchSyncStateRequest(
+public record PatchSyncDeviceRequest(
         @NotNull(message = "Bootstrap status is required")
         @Schema(description = "New bootstrap status", example = "COMPLETED")
         BootstrapStatus syncStatus) {

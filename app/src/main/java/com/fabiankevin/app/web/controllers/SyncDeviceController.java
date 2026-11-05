@@ -2,9 +2,9 @@ package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.models.SyncDevice;
 import com.fabiankevin.app.services.SyncDeviceService;
-import com.fabiankevin.app.web.controllers.dtos.CreateSyncStateRequest;
-import com.fabiankevin.app.web.controllers.dtos.PatchSyncStateRequest;
-import com.fabiankevin.app.web.controllers.dtos.SyncStateResponse;
+import com.fabiankevin.app.web.controllers.dtos.CreateSyncDeviceRequest;
+import com.fabiankevin.app.web.controllers.dtos.PatchSyncDeviceRequest;
+import com.fabiankevin.app.web.controllers.dtos.SyncDeviceResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -58,7 +58,7 @@ public class SyncDeviceController {
             description = "Posts an initial sync state for a resource type on a user's device.",
             responses = {
                     @ApiResponse(responseCode = "201", description = "Created - Sync state created successfully",
-                            content = @Content(schema = @Schema(implementation = SyncStateResponse.class))),
+                            content = @Content(schema = @Schema(implementation = SyncDeviceResponse.class))),
                     @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
                             content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
                     @ApiResponse(responseCode = "401", description = "Unauthorized - Missing or invalid authentication",
@@ -68,12 +68,13 @@ public class SyncDeviceController {
             }
     )
     @PostMapping
-    public ResponseEntity<SyncStateResponse> createSyncState(@Valid @RequestBody CreateSyncStateRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
+    public ResponseEntity<SyncDeviceResponse> createSyncState(@Valid @RequestBody CreateSyncDeviceRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
-        log.debug("Sync state creation requested by user: {}", userId);
-        SyncDevice created = syncDeviceService.create(request.toCommand(userId));
+        UUID userDeviceId = UUID.fromString(jwtAuthenticationToken.getToken().getClaimAsString("userDeviceId"));
+        log.debug("Sync state creation requested by user: {}, device: {}", userId, userDeviceId);
+        SyncDevice created = syncDeviceService.create(request.toCommand(userId, userDeviceId));
         return ResponseEntity.created(URI.create("/api/sync-devices/" + created.id()))
-                .body(SyncStateResponse.from(created));
+                .body(SyncDeviceResponse.from(created));
     }
 
     @Operation(
@@ -81,7 +82,7 @@ public class SyncDeviceController {
             description = "Updates the sync status of an existing sync state.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "OK - Sync state updated successfully",
-                            content = @Content(schema = @Schema(implementation = SyncStateResponse.class))),
+                            content = @Content(schema = @Schema(implementation = SyncDeviceResponse.class))),
                     @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
                             content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
                     @ApiResponse(responseCode = "401", description = "Unauthorized - Missing or invalid authentication",
@@ -93,11 +94,11 @@ public class SyncDeviceController {
             }
     )
     @PatchMapping("/{syncId}")
-    public SyncStateResponse patchSyncState(@PathVariable UUID syncId, @Valid @RequestBody PatchSyncStateRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
+    public SyncDeviceResponse patchSyncState(@PathVariable UUID syncId, @Valid @RequestBody PatchSyncDeviceRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         log.debug("Sync state patch requested by user: {} for syncId: {}", userId, syncId);
         SyncDevice updated = syncDeviceService.patch(request.toCommand(syncId, userId));
-        return SyncStateResponse.from(updated);
+        return SyncDeviceResponse.from(updated);
     }
 
     @Operation(
@@ -105,7 +106,7 @@ public class SyncDeviceController {
             description = "Retrieves all sync states for the authenticated user.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "OK - Sync states retrieved successfully",
-                            content = @Content(schema = @Schema(implementation = SyncStateResponse.class))),
+                            content = @Content(schema = @Schema(implementation = SyncDeviceResponse.class))),
                     @ApiResponse(responseCode = "401", description = "Unauthorized - Missing or invalid authentication",
                             content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
                     @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
@@ -113,11 +114,11 @@ public class SyncDeviceController {
             }
     )
     @GetMapping
-    public List<SyncStateResponse> getAllSyncStates(JwtAuthenticationToken jwtAuthenticationToken) {
+    public List<SyncDeviceResponse> getAllSyncStates(JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = UUID.fromString(jwtAuthenticationToken.getToken().getSubject());
         log.debug("Sync states retrieval requested by user: {}", userId);
         return syncDeviceService.getAllByUserId(userId).stream()
-                .map(SyncStateResponse::from)
+                .map(SyncDeviceResponse::from)
                 .toList();
     }
 }
