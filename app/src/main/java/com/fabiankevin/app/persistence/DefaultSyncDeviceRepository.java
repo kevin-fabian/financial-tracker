@@ -22,6 +22,12 @@ public class DefaultSyncDeviceRepository implements SyncDeviceRepository {
     }
 
     @Override
+    public Optional<SyncDevice> findByUserIdAndUserDevice(UUID userId, String userDevice) {
+        return jpaSyncStateRepository.findByUserIdAndUserDevice(userId, userDevice)
+                .map(SyncDeviceEntity::toModel);
+    }
+
+    @Override
     public SyncDevice save(SyncDevice syncDevice) {
         SyncDeviceEntity saved = jpaSyncStateRepository.save(SyncDeviceEntity.from(syncDevice));
         return saved.toModel();

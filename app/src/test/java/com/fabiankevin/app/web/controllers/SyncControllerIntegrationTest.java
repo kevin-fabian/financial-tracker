@@ -44,6 +44,7 @@ import java.time.LocalDate;
 import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import static com.fabiankevin.app.models.enums.AccountType.E_WALLET;
@@ -291,6 +292,37 @@ class SyncControllerIntegrationTest {
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isUnauthorized());
         }
+
+        @Test
+        void givenDuplicateDeviceForSameUser_shouldReturnExistingSyncState() throws Exception {
+            UUID existingSyncId = createSyncStateForUser(userId, BootstrapStatus.IN_PROGRESS, BootstrapDirection.PULL, "test-device-001");
+
+            CreateSyncDeviceRequest request = CreateSyncDeviceRequest.builder()
+                    .status(BootstrapStatus.COMPLETED)
+                    .direction(BootstrapDirection.PUSH)
+                    .build();
+
+            MvcResult result = mockMvc.perform(post("/api/sync-devices")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("userDevice", "test-device-001")
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").value(existingSyncId.toString()))
+                    .andExpect(jsonPath("$.status").value("IN_PROGRESS"))
+                    .andExpect(jsonPath("$.direction").value("PULL"))
+                    .andReturn();
+
+            String responseBody = result.getResponse().getContentAsString();
+            assertThat(responseBody).contains("test-device-001");
+            assertThat(jpaSyncStateRepository.count()).isEqualTo(1);
+        }
     }
 
     @Nested
@@ -428,14 +460,21 @@ class SyncControllerIntegrationTest {
         }
     }
 
+    private static final AtomicInteger deviceCounter = new AtomicInteger(1);
+
     private UUID createSyncState(BootstrapStatus status, BootstrapDirection direction) {
-        return createSyncStateForUser(userId, status, direction);
+        String userDevice = "test-device-" + deviceCounter.getAndIncrement();
+        return createSyncStateForUser(userId, status, direction, userDevice);
     }
 
     private UUID createSyncStateForUser(UUID uid, BootstrapStatus status, BootstrapDirection direction) {
+        return createSyncStateForUser(uid, status, direction, "test-device-001");
+    }
+
+    private UUID createSyncStateForUser(UUID uid, BootstrapStatus status, BootstrapDirection direction, String userDevice) {
         CreateSyncStateCommand command = CreateSyncStateCommand.builder()
                 .userId(uid)
-                .userDeviceId("test-device-001")
+                .userDevice(userDevice)
                 .status(status)
                 .direction(direction)
                 .build();

@@ -9,6 +9,8 @@ import java.util.UUID;
 public interface SyncDeviceRepository {
     Optional<SyncDevice> findById(UUID id);
 
+    Optional<SyncDevice> findByUserIdAndUserDevice(UUID userId, String userDevice);
+
     SyncDevice save(SyncDevice syncDevice);
 
     List<SyncDevice> findAllByUserId(UUID userId);

@@ -92,9 +92,9 @@ public class OpenApiConfig {
     @Bean
     public GroupedOpenApi syncApi() {
         return GroupedOpenApi.builder()
-                .group("sync")
-                .displayName("Sync API")
-                .pathsToMatch("/api/sync/**")
+                .group("sync-devices")
+                .displayName("Sync Device API")
+                .pathsToMatch("/api/sync-devices/**")
                 .build();
     }
 }

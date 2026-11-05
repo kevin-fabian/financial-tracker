@@ -87,11 +87,12 @@ class DefaultSyncDeviceServiceTest {
             UUID userId = UUID.randomUUID();
             CreateSyncStateCommand command = CreateSyncStateCommand.builder()
                     .userId(userId)
-                    .userDeviceId("test-device-001")
+                    .userDevice("test-device-001")
                     .status(BootstrapStatus.IN_PROGRESS)
                     .direction(BootstrapDirection.PULL)
                     .build();
 
+            when(syncDeviceRepository.findByUserIdAndUserDevice(userId, command.userDevice())).thenReturn(Optional.empty());
             when(syncDeviceRepository.save(any(SyncDevice.class))).thenAnswer(invocation -> {
                 SyncDevice input = invocation.getArgument(0);
                 return input.toBuilder().id(UUID.randomUUID()).build();
@@ -101,13 +102,48 @@ class DefaultSyncDeviceServiceTest {
 
             assertThat(result.id()).isNotNull();
             assertThat(result.userId()).isEqualTo(userId);
-            assertThat(result.deviceId()).isNotNull();
-            assertThat(result.userDevice()).isEqualTo(command.userDeviceId());
+            assertThat(result.userDevice()).isEqualTo(command.userDevice());
             assertThat(result.status()).isEqualTo(BootstrapStatus.IN_PROGRESS);
             assertThat(result.direction()).isEqualTo(BootstrapDirection.PULL);
             assertThat(result.createdAt()).isNotNull();
             assertThat(result.updatedAt()).isNotNull();
+            verify(syncDeviceRepository).findByUserIdAndUserDevice(userId, command.userDevice());
             verify(syncDeviceRepository).save(any(SyncDevice.class));
+        }
+
+        @Test
+        void givenExistingDevice_shouldReturnExistingSyncState() {
+            UUID userId = UUID.randomUUID();
+            CreateSyncStateCommand command = CreateSyncStateCommand.builder()
+                    .userId(userId)
+                    .userDevice("test-device-001")
+                    .status(BootstrapStatus.IN_PROGRESS)
+                    .direction(BootstrapDirection.PULL)
+                    .build();
+
+            SyncDevice existing = SyncDevice.builder()
+                    .id(UUID.randomUUID())
+                    .userId(userId)
+                    .userDevice(command.userDevice())
+                    .status(BootstrapStatus.COMPLETED)
+                    .direction(BootstrapDirection.PUSH)
+                    .createdAt(Instant.now().minusSeconds(3600))
+                    .updatedAt(Instant.now().minusSeconds(1800))
+                    .build();
+
+            when(syncDeviceRepository.findByUserIdAndUserDevice(userId, command.userDevice())).thenReturn(Optional.of(existing));
+
+            SyncDevice result = syncService.create(command);
+
+            assertThat(result.id()).isEqualTo(existing.id());
+            assertThat(result.userId()).isEqualTo(userId);
+            assertThat(result.userDevice()).isEqualTo(command.userDevice());
+            assertThat(result.status()).isEqualTo(BootstrapStatus.COMPLETED);
+            assertThat(result.direction()).isEqualTo(BootstrapDirection.PUSH);
+            assertThat(result.createdAt()).isEqualTo(existing.createdAt());
+            assertThat(result.updatedAt()).isEqualTo(existing.updatedAt());
+            verify(syncDeviceRepository).findByUserIdAndUserDevice(userId, command.userDevice());
+            verify(syncDeviceRepository, org.mockito.Mockito.never()).save(any());
         }
     }
 
@@ -123,7 +159,7 @@ class DefaultSyncDeviceServiceTest {
             SyncDevice existing = SyncDevice.builder()
                     .id(syncId)
                     .userId(userId)
-                    .deviceId(UUID.randomUUID())
+                    .userDevice("test-device-001")
                     .status(BootstrapStatus.IN_PROGRESS)
                     .direction(BootstrapDirection.PULL)
                     .createdAt(now)
@@ -174,7 +210,7 @@ class DefaultSyncDeviceServiceTest {
             SyncDevice existing = SyncDevice.builder()
                     .id(syncId)
                     .userId(otherUserId)
-                    .deviceId(UUID.randomUUID())
+                    .userDevice("test-device-001")
                     .status(BootstrapStatus.IN_PROGRESS)
                     .direction(BootstrapDirection.PULL)
                     .createdAt(now)
@@ -206,7 +242,7 @@ class DefaultSyncDeviceServiceTest {
             SyncDevice existing = SyncDevice.builder()
                     .id(syncId)
                     .userId(userId)
-                    .deviceId(UUID.randomUUID())
+                    .userDevice("test-device-001")
                     .status(BootstrapStatus.IN_PROGRESS)
                     .direction(BootstrapDirection.PUSH)
                     .createdAt(now)
@@ -246,7 +282,7 @@ class DefaultSyncDeviceServiceTest {
             SyncDevice state1 = SyncDevice.builder()
                     .id(UUID.randomUUID())
                     .userId(userId)
-                    .deviceId(UUID.randomUUID())
+                    .userDevice("test-device-001")
                     .status(BootstrapStatus.COMPLETED)
                     .direction(BootstrapDirection.PULL)
                     .createdAt(now)
@@ -256,7 +292,7 @@ class DefaultSyncDeviceServiceTest {
             SyncDevice state2 = SyncDevice.builder()
                     .id(UUID.randomUUID())
                     .userId(userId)
-                    .deviceId(UUID.randomUUID())
+                    .userDevice("test-device-002")
                     .status(BootstrapStatus.IN_PROGRESS)
                     .direction(BootstrapDirection.PUSH)
                     .createdAt(now)

@@ -14,7 +14,6 @@ import java.util.UUID;
 public record SyncDevice(
         UUID id,
         UUID userId,
-        UUID deviceId,
         String userDevice,
         BootstrapStatus status,
         BootstrapDirection direction,
@@ -26,5 +25,6 @@ public record SyncDevice(
         Objects.requireNonNull(userId, "User ID is required");
         Objects.requireNonNull(status, "Bootstrap status is required");
         Objects.requireNonNull(direction, "Bootstrap direction is required");
+        Objects.requireNonNull(userDevice, "User device identifier is required");
     }
 }

@@ -73,9 +73,9 @@ public class SyncDeviceController {
     @PostMapping
     public ResponseEntity<SyncDeviceResponse> createSyncDevice(@Valid @RequestBody CreateSyncDeviceRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = getUserId(jwtAuthenticationToken);
-        String userDeviceId = getUserDeviceId(jwtAuthenticationToken);
-        log.debug("Sync state creation requested by user: {}, device: {}", userId, userDeviceId);
-        SyncDevice created = syncDeviceService.create(request.toCommand(userId, userDeviceId));
+        String userDevice = getUserDevice(jwtAuthenticationToken);
+        log.debug("Sync state creation requested by user: {}, device: {}", userId, userDevice);
+        SyncDevice created = syncDeviceService.create(request.toCommand(userId, userDevice));
         return ResponseEntity.created(URI.create("/api/sync-devices/" + created.id()))
                 .body(SyncDeviceResponse.from(created));
     }
@@ -129,7 +129,7 @@ public class SyncDeviceController {
         return UUID.fromString(token.getToken().getSubject());
     }
 
-    private String getUserDeviceId(JwtAuthenticationToken token) {
+    private String getUserDevice(JwtAuthenticationToken token) {
         return token.getToken().getClaimAsString(USER_DEVICE_CLAIM);
     }
 }

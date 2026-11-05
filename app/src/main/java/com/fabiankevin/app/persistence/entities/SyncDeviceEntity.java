@@ -26,7 +26,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @Table(name = "sync_devices",
         indexes = {
-                @Index(name = "idx_sync_devices_user_id", columnList = "user_id")
+                @Index(name = "idx_sync_devices_user_id", columnList = "user_id"),
+                @Index(name = "idx_sync_devices_user_id_device", columnList = "user_id, user_device")
         })
 @Entity
 public class SyncDeviceEntity {
@@ -35,8 +36,6 @@ public class SyncDeviceEntity {
     private UUID id;
     @Column(name = "user_id", nullable = false)
     private UUID userId;
-    @Column(name = "device_id", nullable = false)
-    private UUID deviceId;
     @Column(name = "user_device", nullable = false)
     private String userDevice;
     @Column(name = "status", nullable = false)
@@ -57,7 +56,6 @@ public class SyncDeviceEntity {
         return SyncDeviceEntity.builder()
                 .id(syncDevice.id())
                 .userId(syncDevice.userId())
-                .deviceId(syncDevice.deviceId())
                 .userDevice(syncDevice.userDevice())
                 .status(syncDevice.status())
                 .direction(syncDevice.direction())
@@ -71,7 +69,6 @@ public class SyncDeviceEntity {
         return SyncDevice.builder()
                 .id(this.id)
                 .userId(this.userId)
-                .deviceId(this.deviceId)
                 .userDevice(this.userDevice)
                 .status(this.status)
                 .direction(this.direction)

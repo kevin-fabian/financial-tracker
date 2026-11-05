@@ -52,7 +52,6 @@ class DefaultSyncDeviceRepositoryTest {
     void setUp() {
         syncDevice = SyncDevice.builder()
                 .userId(UUID.randomUUID())
-                .deviceId(UUID.randomUUID())
                 .userDevice("test-device-001")
                 .status(BootstrapStatus.IN_PROGRESS)
                 .direction(BootstrapDirection.PULL)
@@ -73,7 +72,6 @@ class DefaultSyncDeviceRepositoryTest {
 
             assertNotNull(retrieved.id(), "id should be generated");
             assertEquals(syncDevice.userId(), retrieved.userId(), "userId should match");
-            assertEquals(syncDevice.deviceId(), retrieved.deviceId(), "deviceId should match");
             assertEquals(syncDevice.userDevice(), retrieved.userDevice(), "userDevice should match");
             assertEquals(syncDevice.status(), retrieved.status(), "status should match");
             assertEquals(syncDevice.direction(), retrieved.direction(), "direction should match");
@@ -89,7 +87,6 @@ class DefaultSyncDeviceRepositoryTest {
         void givenSyncDeviceWithNullLastSyncedAt_shouldPersistAndReturnWithNullLastSyncedAt() {
             SyncDevice deviceWithoutLastSync = SyncDevice.builder()
                     .userId(UUID.randomUUID())
-                    .deviceId(UUID.randomUUID())
                     .userDevice("test-device-001")
                     .status(BootstrapStatus.FAILED)
                     .direction(BootstrapDirection.PUSH)
@@ -103,7 +100,6 @@ class DefaultSyncDeviceRepositoryTest {
 
             assertEquals(saved.id(), retrieved.id(), "id should match");
             assertEquals(deviceWithoutLastSync.userId(), retrieved.userId(), "userId should match");
-            assertEquals(deviceWithoutLastSync.deviceId(), retrieved.deviceId(), "deviceId should match");
             assertEquals(deviceWithoutLastSync.userDevice(), retrieved.userDevice(), "userDevice should match");
             assertEquals(deviceWithoutLastSync.status(), retrieved.status(), "status should match");
             assertEquals(deviceWithoutLastSync.direction(), retrieved.direction(), "direction should match");
@@ -126,7 +122,6 @@ class DefaultSyncDeviceRepositoryTest {
 
             assertNotNull(retrieved.id(), "id should be set");
             assertEquals(syncDevice.userId(), retrieved.userId(), "userId should match");
-            assertEquals(syncDevice.deviceId(), retrieved.deviceId(), "deviceId should match");
             assertEquals(syncDevice.userDevice(), retrieved.userDevice(), "userDevice should match");
             assertEquals(syncDevice.status(), retrieved.status(), "status should match");
             assertEquals(syncDevice.direction(), retrieved.direction(), "direction should match");
@@ -155,7 +150,6 @@ class DefaultSyncDeviceRepositoryTest {
 
             SyncDevice device1 = SyncDevice.builder()
                     .userId(userId)
-                    .deviceId(UUID.randomUUID())
                     .userDevice("test-device-001")
                     .status(BootstrapStatus.IN_PROGRESS)
                     .direction(BootstrapDirection.PULL)
@@ -164,8 +158,7 @@ class DefaultSyncDeviceRepositoryTest {
                     .build();
             SyncDevice device2 = SyncDevice.builder()
                     .userId(userId)
-                    .deviceId(UUID.randomUUID())
-                    .userDevice("test-device-001")
+                    .userDevice("test-device-002")
                     .status(BootstrapStatus.COMPLETED)
                     .direction(BootstrapDirection.PUSH)
                     .createdAt(Instant.now())
@@ -173,8 +166,7 @@ class DefaultSyncDeviceRepositoryTest {
                     .build();
             SyncDevice device3 = SyncDevice.builder()
                     .userId(userId)
-                    .deviceId(UUID.randomUUID())
-                    .userDevice("test-device-001")
+                    .userDevice("test-device-003")
                     .status(BootstrapStatus.FAILED)
                     .direction(BootstrapDirection.PULL)
                     .createdAt(Instant.now())
@@ -208,6 +200,88 @@ class DefaultSyncDeviceRepositoryTest {
     }
 
     @Nested
+    class FindByUserIdAndUserDevice {
+
+        @Test
+        void givenExistingDevice_shouldReturnSyncDevice() {
+            UUID userId = UUID.randomUUID();
+            String userDevice = "test-device-001";
+
+            SyncDevice saved = syncDeviceRepository.save(SyncDevice.builder()
+                    .userId(userId)
+                    .userDevice(userDevice)
+                    .status(BootstrapStatus.IN_PROGRESS)
+                    .direction(BootstrapDirection.PULL)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build());
+
+            Optional<SyncDevice> found = syncDeviceRepository.findByUserIdAndUserDevice(userId, userDevice);
+
+            assertThat(found).isPresent();
+            SyncDevice retrieved = found.orElseThrow();
+            assertEquals(saved.id(), retrieved.id(), "id should match");
+            assertEquals(userId, retrieved.userId(), "userId should match");
+            assertEquals(userDevice, retrieved.userDevice(), "userDevice should match");
+            assertEquals(BootstrapStatus.IN_PROGRESS, retrieved.status(), "status should match");
+            assertEquals(BootstrapDirection.PULL, retrieved.direction(), "direction should match");
+
+            verify(jpaSyncStateRepository, times(1)).findByUserIdAndUserDevice(userId, userDevice);
+        }
+
+        @Test
+        void givenSameUserDifferentDevice_shouldReturnEmpty() {
+            UUID userId = UUID.randomUUID();
+
+            syncDeviceRepository.save(SyncDevice.builder()
+                    .userId(userId)
+                    .userDevice("test-device-001")
+                    .status(BootstrapStatus.IN_PROGRESS)
+                    .direction(BootstrapDirection.PULL)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build());
+
+            Optional<SyncDevice> found = syncDeviceRepository.findByUserIdAndUserDevice(userId, "test-device-002");
+
+            assertThat(found).as("different device for same user should return empty").isEmpty();
+
+            verify(jpaSyncStateRepository, times(1)).findByUserIdAndUserDevice(userId, "test-device-002");
+        }
+
+        @Test
+        void givenDifferentUserSameDeviceName_shouldReturnEmpty() {
+            UUID userId1 = UUID.randomUUID();
+            UUID userId2 = UUID.randomUUID();
+            String userDevice = "shared-device-name";
+
+            syncDeviceRepository.save(SyncDevice.builder()
+                    .userId(userId1)
+                    .userDevice(userDevice)
+                    .status(BootstrapStatus.COMPLETED)
+                    .direction(BootstrapDirection.PUSH)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build());
+
+            Optional<SyncDevice> found = syncDeviceRepository.findByUserIdAndUserDevice(userId2, userDevice);
+
+            assertThat(found).as("same device name for different user should return empty").isEmpty();
+
+            verify(jpaSyncStateRepository, times(1)).findByUserIdAndUserDevice(userId2, userDevice);
+        }
+
+        @Test
+        void givenNonExistentCombination_shouldReturnEmpty() {
+            Optional<SyncDevice> found = syncDeviceRepository.findByUserIdAndUserDevice(UUID.randomUUID(), "non-existent-device");
+
+            assertThat(found).as("non-existent combination should return empty").isEmpty();
+
+            verify(jpaSyncStateRepository, times(1)).findByUserIdAndUserDevice(any(), any());
+        }
+    }
+
+    @Nested
     class DeleteAllByUserId {
         @Test
         void givenExistingDevicesForUser_shouldDeleteAllAndReturnCount() {
@@ -216,7 +290,6 @@ class DefaultSyncDeviceRepositoryTest {
             for (int i = 0; i < 3; i++) {
                 SyncDevice device = SyncDevice.builder()
                         .userId(userId)
-                        .deviceId(UUID.randomUUID())
                         .userDevice("test-device-001")
                         .status(BootstrapStatus.IN_PROGRESS)
                         .direction(BootstrapDirection.PULL)

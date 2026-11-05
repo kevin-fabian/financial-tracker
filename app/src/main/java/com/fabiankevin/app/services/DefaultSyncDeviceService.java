@@ -61,16 +61,18 @@ public class DefaultSyncDeviceService implements SyncDeviceService {
     @Transactional
     @Override
     public SyncDevice create(CreateSyncStateCommand command) {
-        SyncDevice syncDevice = SyncDevice.builder()
-                .userId(command.userId())
-                .deviceId(UUID.randomUUID())
-                .userDevice(command.userDeviceId())
-                .status(command.status())
-                .direction(command.direction())
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-        return syncDeviceRepository.save(syncDevice);
+        return syncDeviceRepository.findByUserIdAndUserDevice(command.userId(), command.userDevice())
+                .orElseGet(() -> {
+                    SyncDevice syncDevice = SyncDevice.builder()
+                            .userId(command.userId())
+                            .userDevice(command.userDevice())
+                            .status(command.status())
+                            .direction(command.direction())
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build();
+                    return syncDeviceRepository.save(syncDevice);
+                });
     }
 
     @Transactional
