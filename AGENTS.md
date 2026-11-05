@@ -80,7 +80,6 @@ Use the relevant skills based on the task.
 | **write-jpa-projection-queries** | Writing JPA projection queries using lightweight DTOs with primitive types and `COALESCE` |
 | **write-liquibase-migrations** | Creating database migrations with Liquibase (raw SQL scripts, master changelog) |
 | **write-b-tree-indexes** | Designing effective B-tree indexes for equality, range, and join queries |
-| **comply-to-light-hexagonal-architecture** | Deciding where a class belongs — domain models stay framework-agnostic, infrastructure in adapters |
 
 ---
 

@@ -15,7 +15,7 @@ public record SyncDeviceResponse(
         @Schema(description = "Unique identifier of the sync state")
         UUID id,
         @Schema(description = "Identifier of the user's device", example = "iphone-15")
-        UUID userDeviceId,
+        String userDeviceId,
         @Schema(description = "Bootstrap status")
         BootstrapStatus status,
         @Schema(description = "Bootstrap direction")

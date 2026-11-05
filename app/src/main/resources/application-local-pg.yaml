@@ -25,6 +25,7 @@ spring:
 logging:
   level:
     com.fabiankevin.app: DEBUG
+    com.github.fabiankevin: DEBUG
     org.zalando.logbook: INFO
     org.springframework.security: INFO
     org.springframework.security.oauth2.server.resource: INFO

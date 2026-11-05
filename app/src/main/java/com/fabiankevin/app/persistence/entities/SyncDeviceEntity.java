@@ -38,7 +38,7 @@ public class SyncDeviceEntity {
     @Column(name = "device_id", nullable = false)
     private UUID deviceId;
     @Column(name = "user_device", nullable = false)
-    private UUID userDevice;
+    private String userDevice;
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
     private BootstrapStatus status;

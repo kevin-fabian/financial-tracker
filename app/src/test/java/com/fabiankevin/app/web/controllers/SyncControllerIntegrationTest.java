@@ -220,7 +220,7 @@ class SyncControllerIntegrationTest {
 
         @Test
         void givenValidRequest_thenReturnsCreatedWithSyncState() throws Exception {
-            UUID requestUserDeviceId = UUID.randomUUID();
+            String requestUserDeviceId = "test-device-001";
             CreateSyncDeviceRequest request = CreateSyncDeviceRequest.builder()
                     .status(BootstrapStatus.IN_PROGRESS)
                     .direction(BootstrapDirection.PULL)
@@ -232,7 +232,7 @@ class SyncControllerIntegrationTest {
                                     .jwt(jwt -> jwt
                                             .audience(List.of("financial-tracker-test"))
                                             .claim("sub", userId)
-                                            .claim("userDeviceId", requestUserDeviceId)
+                                            .claim("userDevice", requestUserDeviceId)
                                             .claim("scope", List.of())
                                     ))
                             .contentType(MediaType.APPLICATION_JSON)
@@ -246,7 +246,7 @@ class SyncControllerIntegrationTest {
                     .andReturn();
 
             String responseBody = result.getResponse().getContentAsString();
-            assertThat(responseBody).contains(requestUserDeviceId.toString());
+            assertThat(responseBody).contains(requestUserDeviceId);
             assertThat(jpaSyncStateRepository.count()).isEqualTo(1);
         }
 
@@ -435,7 +435,7 @@ class SyncControllerIntegrationTest {
     private UUID createSyncStateForUser(UUID uid, BootstrapStatus status, BootstrapDirection direction) {
         CreateSyncStateCommand command = CreateSyncStateCommand.builder()
                 .userId(uid)
-                .userDeviceId(UUID.randomUUID())
+                .userDeviceId("test-device-001")
                 .status(status)
                 .direction(direction)
                 .build();

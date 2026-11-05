@@ -15,7 +15,7 @@ public record SyncDevice(
         UUID id,
         UUID userId,
         UUID deviceId,
-        UUID userDevice,
+        String userDevice,
         BootstrapStatus status,
         BootstrapDirection direction,
         Instant lastSyncedAt,

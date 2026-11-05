@@ -87,7 +87,7 @@ class DefaultSyncDeviceServiceTest {
             UUID userId = UUID.randomUUID();
             CreateSyncStateCommand command = CreateSyncStateCommand.builder()
                     .userId(userId)
-                    .userDeviceId(UUID.randomUUID())
+                    .userDeviceId("test-device-001")
                     .status(BootstrapStatus.IN_PROGRESS)
                     .direction(BootstrapDirection.PULL)
                     .build();

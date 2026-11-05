@@ -33,17 +33,9 @@ import java.util.UUID;
 @RequestMapping(value = "/api/sync-devices", version = "v1")
 public class SyncDeviceController {
 
-    private static final String USER_DEVICE_ID_CLAIM = "userDeviceId";
+    private static final String USER_DEVICE_CLAIM = "userDevice";
 
     private final SyncDeviceService syncDeviceService;
-
-    private UUID getUserId(JwtAuthenticationToken token) {
-        return UUID.fromString(token.getToken().getSubject());
-    }
-
-    private UUID getUserDeviceId(JwtAuthenticationToken token) {
-        return UUID.fromString(token.getToken().getClaimAsString(USER_DEVICE_ID_CLAIM));
-    }
 
     @Operation(
             summary = "Prepare data synchronization",
@@ -81,7 +73,7 @@ public class SyncDeviceController {
     @PostMapping
     public ResponseEntity<SyncDeviceResponse> createSyncDevice(@Valid @RequestBody CreateSyncDeviceRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
         UUID userId = getUserId(jwtAuthenticationToken);
-        UUID userDeviceId = getUserDeviceId(jwtAuthenticationToken);
+        String userDeviceId = getUserDeviceId(jwtAuthenticationToken);
         log.debug("Sync state creation requested by user: {}, device: {}", userId, userDeviceId);
         SyncDevice created = syncDeviceService.create(request.toCommand(userId, userDeviceId));
         return ResponseEntity.created(URI.create("/api/sync-devices/" + created.id()))
@@ -131,5 +123,13 @@ public class SyncDeviceController {
         return syncDeviceService.getAllByUserId(userId).stream()
                 .map(SyncDeviceResponse::from)
                 .toList();
+    }
+
+    private UUID getUserId(JwtAuthenticationToken token) {
+        return UUID.fromString(token.getToken().getSubject());
+    }
+
+    private String getUserDeviceId(JwtAuthenticationToken token) {
+        return token.getToken().getClaimAsString(USER_DEVICE_CLAIM);
     }
 }

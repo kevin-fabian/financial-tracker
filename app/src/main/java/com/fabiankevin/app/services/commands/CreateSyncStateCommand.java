@@ -9,7 +9,7 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 public record CreateSyncStateCommand(
         UUID userId,
-        UUID userDeviceId,
+        String userDeviceId,
         BootstrapStatus status,
         BootstrapDirection direction) {
 }

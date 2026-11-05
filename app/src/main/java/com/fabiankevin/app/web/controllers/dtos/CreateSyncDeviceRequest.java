@@ -19,7 +19,7 @@ public record CreateSyncDeviceRequest(
         @Schema(description = "Bootstrap direction", example = "PULL")
         BootstrapDirection direction) {
 
-    public CreateSyncStateCommand toCommand(UUID userId, UUID userDeviceId) {
+    public CreateSyncStateCommand toCommand(UUID userId, String userDeviceId) {
         return CreateSyncStateCommand.builder()
                 .userId(userId)
                 .userDeviceId(userDeviceId)
