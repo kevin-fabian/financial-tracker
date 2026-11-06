@@ -168,6 +168,7 @@ class DefaultBudgetRepositoryTest {
             LocalDate monthEnd = today.withDayOfMonth(today.lengthOfMonth());
 
             TransactionEntity transaction1 = TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .amount(150.0)
                     .transactionDate(monthStart.plusDays(5))
                     .category(savedCategory)
@@ -177,6 +178,7 @@ class DefaultBudgetRepositoryTest {
                     .build();
 
             TransactionEntity transaction2 = TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .amount(200.0)
                     .transactionDate(monthStart.plusDays(10))
                     .category(savedCategory)
@@ -280,6 +282,7 @@ class DefaultBudgetRepositoryTest {
                     .updatedAt(now)
                     .build());
             jpaTransactionRepository.saveAndFlush(TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .category(category)
                     .amount(150.0)
                     .transactionDate(LocalDate.now())
@@ -287,6 +290,7 @@ class DefaultBudgetRepositoryTest {
                     .updatedAt(now)
                     .build());
             jpaTransactionRepository.saveAndFlush(TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .category(category)
                     .amount(50.0)
                     .transactionDate(LocalDate.now())
@@ -378,6 +382,7 @@ class DefaultBudgetRepositoryTest {
                     .build());
             // Previous month transaction — should NOT be included
             jpaTransactionRepository.saveAndFlush(TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .category(category)
                     .amount(300.0)
                     .transactionDate(previousMonthStart)
@@ -386,6 +391,7 @@ class DefaultBudgetRepositoryTest {
                     .build());
             // Current month transactions — should be included
             jpaTransactionRepository.saveAndFlush(TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .category(category)
                     .amount(100.0)
                     .transactionDate(today)
@@ -393,6 +399,7 @@ class DefaultBudgetRepositoryTest {
                     .updatedAt(now)
                     .build());
             jpaTransactionRepository.saveAndFlush(TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .category(category)
                     .amount(50.0)
                     .transactionDate(today)

@@ -151,6 +151,7 @@ class DefaultRecurringTransactionRepositoryTest {
             Category category = saved.category();
 
             jpaTransactionRepository.saveAndFlush(TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .account(AccountEntity.builder().id(account.id()).name(account.name()).userId(account.user().id())
                             .currency(account.currency().getCurrencyCode()).type(account.type().name())
                             .active(account.active()).createdAt(now).updatedAt(now).build())

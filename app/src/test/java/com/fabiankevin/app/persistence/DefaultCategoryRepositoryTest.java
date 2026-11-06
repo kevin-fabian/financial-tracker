@@ -576,6 +576,7 @@ class DefaultCategoryRepositoryTest {
             account = jpaAccountRepository.saveAndFlush(account);
 
             var foodTx = TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .account(account)
                     .category(food)
                     .amount(300.0)
@@ -585,6 +586,7 @@ class DefaultCategoryRepositoryTest {
                     .build();
 
             var rentTx = TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .account(account)
                     .category(rent)
                     .amount(700.0)
@@ -653,6 +655,7 @@ class DefaultCategoryRepositoryTest {
             account = jpaAccountRepository.saveAndFlush(account);
 
             var salaryTx = TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .account(account)
                     .category(salary)
                     .amount(5000.0)
@@ -662,6 +665,7 @@ class DefaultCategoryRepositoryTest {
                     .build();
 
             var freelanceTx = TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .account(account)
                     .category(freelance)
                     .amount(3000.0)
@@ -728,6 +732,7 @@ class DefaultCategoryRepositoryTest {
             account = jpaAccountRepository.saveAndFlush(account);
 
             var foodTx = TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .account(account)
                     .category(food)
                     .amount(500.0)
@@ -737,6 +742,7 @@ class DefaultCategoryRepositoryTest {
                     .build();
 
             var salaryTx = TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .account(account)
                     .category(salary)
                     .amount(5000.0)
@@ -837,6 +843,7 @@ class DefaultCategoryRepositoryTest {
             otherAccount = jpaAccountRepository.saveAndFlush(otherAccount);
 
             var currentUserIdTx = TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .account(currentAccount)
                     .category(food)
                     .amount(300.0)
@@ -846,6 +853,7 @@ class DefaultCategoryRepositoryTest {
                     .build();
 
             var otherUserIdTx = TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .account(otherAccount)
                     .category(food)
                     .amount(700.0)

@@ -16,6 +16,7 @@ import java.util.UUID;
 public interface TransactionRepository {
     Transaction save(Transaction transaction);
     List<Transaction> saveAll(List<Transaction> transactions);
+    Transaction update(Transaction transaction);
     void flush();
     Optional<Transaction> findById(UUID id);
     void deleteById(UUID id);

@@ -5,8 +5,6 @@ import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.models.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
@@ -34,7 +32,6 @@ import java.util.UUID;
 @Entity
 public class TransactionEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     @ManyToOne
     @JoinColumn(name = "account_id")

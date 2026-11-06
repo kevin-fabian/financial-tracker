@@ -9,6 +9,7 @@ import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.entities.AccountEntity;
 import com.fabiankevin.app.persistence.entities.CategoryEntity;
+import com.fabiankevin.app.persistence.entities.TransactionEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
@@ -27,6 +28,7 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.util.Streamable;
 import org.springframework.test.context.ActiveProfiles;
@@ -949,6 +951,89 @@ class DefaultTransactionRepositoryTest {
             Assertions.assertThat(jpaTransactionRepository.count()).as("other user's transaction should remain").isEqualTo(1L);
 
             verify(jpaTransactionRepository, times(1)).deleteAllByAccountUserId(targetUserId);
+        }
+    }
+
+    @Nested
+    class Update {
+        @Test
+        void givenExistingTransaction_shouldUpdateDescriptionAndAmount() {
+            CategoryEntity food = createCategory("FOOD");
+            AccountEntity cash = createAccount("CASH");
+
+            Transaction saved = transactionService.addTransaction(AddTransactionCommand.builder()
+                    .userId(userId)
+                    .categoryId(food.getId())
+                    .accountId(cash.getId())
+                    .amount(500)
+                    .transactionDate(LocalDate.of(2026, 5, 1))
+                    .description("Original description")
+                    .build());
+
+            Instant originalUpdatedAt = saved.updatedAt();
+
+            Transaction updated = Transaction.builder()
+                    .id(saved.id())
+                    .account(saved.account())
+                    .type(saved.type())
+                    .category(saved.category())
+                    .amount(750)
+                    .description("Updated description")
+                    .transactionDate(saved.transactionDate())
+                    .recurringTransactionId(saved.recurringTransactionId())
+                    .createdAt(saved.createdAt())
+                    .updatedAt(originalUpdatedAt)
+                    .addedBy(saved.addedBy())
+                    .updatedBy(User.of(userId))
+                    .build();
+
+            Transaction result = transactionRepository.update(updated);
+
+            Assertions.assertThat(result).isNotNull();
+            Assertions.assertThat(result.id()).isEqualTo(saved.id());
+            Assertions.assertThat(result.amount()).isEqualTo(750.0);
+            Assertions.assertThat(result.description()).isEqualTo("Updated description");
+            Assertions.assertThat(result.updatedBy()).isNotNull();
+            Assertions.assertThat(result.updatedBy().id()).isEqualTo(userId);
+            Assertions.assertThat(result.updatedAt()).isAfterOrEqualTo(originalUpdatedAt);
+
+            verify(jpaTransactionRepository, times(1)).save(any(TransactionEntity.class));
+        }
+
+        @Test
+        void givenTransactionWithNullId_shouldThrowInvalidDataAccessApiUsageException() {
+            CategoryEntity food = createCategory("FOOD");
+            AccountEntity cash = createAccount("CASH");
+
+            Transaction saved = transactionService.addTransaction(AddTransactionCommand.builder()
+                    .userId(userId)
+                    .categoryId(food.getId())
+                    .accountId(cash.getId())
+                    .amount(500)
+                    .transactionDate(LocalDate.of(2026, 5, 1))
+                    .description("Test transaction")
+                    .build());
+
+            Transaction updateWithoutId = Transaction.builder()
+                    .id(null)
+                    .account(saved.account())
+                    .type(saved.type())
+                    .category(saved.category())
+                    .amount(999)
+                    .description("Should fail")
+                    .transactionDate(saved.transactionDate())
+                    .recurringTransactionId(saved.recurringTransactionId())
+                    .createdAt(saved.createdAt())
+                    .updatedAt(saved.updatedAt())
+                    .addedBy(saved.addedBy())
+                    .updatedBy(User.of(userId))
+                    .build();
+
+            Assertions.assertThatThrownBy(() -> transactionRepository.update(updateWithoutId))
+                    .isInstanceOf(InvalidDataAccessApiUsageException.class)
+                    .hasMessageContaining("id must not be null");
+
+            verify(jpaTransactionRepository, times(0)).save(any(TransactionEntity.class));
         }
     }
 

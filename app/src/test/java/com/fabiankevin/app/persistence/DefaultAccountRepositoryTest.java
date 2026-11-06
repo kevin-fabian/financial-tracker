@@ -281,6 +281,7 @@ class DefaultAccountRepositoryTest {
                     .updatedAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC)).build());
 
             jpaTransactionRepository.save(TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .amount(50)
                     .transactionDate(today)
                     .account(jpaAccountRepository.findById(acc1.id()).orElseThrow())
@@ -288,6 +289,7 @@ class DefaultAccountRepositoryTest {
                     .updatedAt(Instant.now())
                     .category(expenseCategory1).build());
             jpaTransactionRepository.save(TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .amount(50)
                     .transactionDate(today)
                     .account(jpaAccountRepository.findById(acc1.id()).orElseThrow())
@@ -295,6 +297,7 @@ class DefaultAccountRepositoryTest {
                     .updatedAt(Instant.now())
                     .category(expenseCategory1).build());
             jpaTransactionRepository.save(TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .amount(50)
                     .transactionDate(today)
                     .account(jpaAccountRepository.findById(acc2.id()).orElseThrow())
@@ -302,6 +305,7 @@ class DefaultAccountRepositoryTest {
                     .updatedAt(Instant.now())
                     .category(incomeCategory).build());
             jpaTransactionRepository.save(TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .amount(300)
                     .transactionDate(today)
                     .account(jpaAccountRepository.findById(acc3.id()).orElseThrow())
@@ -358,6 +362,7 @@ class DefaultAccountRepositoryTest {
                     .updatedAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC)).build());
 
             jpaTransactionRepository.save(TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .amount(100)
                     .transactionDate(today)
                     .account(jpaAccountRepository.findById(account.id()).orElseThrow())
@@ -365,6 +370,7 @@ class DefaultAccountRepositoryTest {
                     .updatedAt(Instant.now())
                     .category(expenseCategory).build());
             jpaTransactionRepository.save(TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .amount(50)
                     .transactionDate(today)
                     .account(jpaAccountRepository.findById(account.id()).orElseThrow())

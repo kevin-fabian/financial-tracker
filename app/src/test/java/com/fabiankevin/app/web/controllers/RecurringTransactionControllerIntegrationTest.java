@@ -591,6 +591,7 @@ class RecurringTransactionControllerIntegrationTest {
             RecurringTransaction saved = recurringTransactionRepository.save(recurringTransaction);
 
             TransactionEntity linkedTransaction = TransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .account(AccountEntity.from(account))
                     .category(CategoryEntity.from(category))
                     .amount(15.99)

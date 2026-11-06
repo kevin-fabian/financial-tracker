@@ -10,7 +10,9 @@ import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.web.controllers.dtos.DailyStatsPoint;
 import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
@@ -29,20 +31,44 @@ public class DefaultTransactionRepository implements TransactionRepository {
     private final JpaTransactionRepository jpaTransactionRepository;
     private final EntityManager entityManager;
 
+    @Transactional
     @Override
     public Transaction save(Transaction transaction) {
-        TransactionEntity saved = jpaTransactionRepository.save(TransactionEntity.from(transaction));
-        return saved.toModel();
+        if (transaction == null) {
+            throw new InvalidDataAccessApiUsageException("Transaction must not be null");
+        }
+        TransactionEntity entity = TransactionEntity.from(transaction);
+        entity.setId(Optional.ofNullable(entity.getId()).orElse(UUID.randomUUID()));
+        entityManager.persist(entity);
+        return entity.toModel();
     }
 
+    @Transactional
     @Override
     public List<Transaction> saveAll(List<Transaction> transactions) {
         List<TransactionEntity> entities = transactions.stream()
                 .map(TransactionEntity::from)
+                .map(entity -> {
+                    entity.setId(Optional.ofNullable(entity.getId()).orElse(UUID.randomUUID()));
+                    entityManager.persist(entity);
+                    return entity;
+                })
                 .toList();
-        return jpaTransactionRepository.saveAll(entities).stream()
+
+        return entities.stream()
                 .map(TransactionEntity::toModel)
                 .toList();
+    }
+
+    @Transactional
+    @Override
+    public Transaction update(Transaction transaction) {
+        if (transaction == null) {
+            throw new InvalidDataAccessApiUsageException("Transaction must not be null");
+        }
+        TransactionEntity entity = TransactionEntity.from(transaction);
+        entity.setId(Optional.ofNullable(entity.getId()).orElseThrow(() -> new InvalidDataAccessApiUsageException("Transaction id must not be null for update")));
+        return jpaTransactionRepository.save(entity).toModel();
     }
 
     @Override
