@@ -43,6 +43,7 @@ public record Category(
 
     public static Category from(CreateCategoryCommand command) {
         return Category.builder()
+                .id(command.id())
                 .name(command.name())
                 .type(command.type())
                 .userId(command.userId())

@@ -451,7 +451,7 @@ class TransactionControllerIntegrationTest {
             );
 
             Category systemCategoryWithFlag = systemCategory.withSystem(true);
-            categoryRepository.save(systemCategoryWithFlag);
+            categoryRepository.update(systemCategoryWithFlag);
 
             User mockUser = User.builder()
                     .id(userId)

@@ -146,7 +146,10 @@ class DefaultBudgetRepositoryTest {
         @Test
         void givenExistingIdWithTransactions_returnsSummaryWithSpent() {
             // Arrange: save category entity first, then budget, then transactions
-            CategoryEntity savedCategory = jpaCategoryRepository.save(CategoryEntity.from(budget.category()));
+            Category categoryWithId = budget.category().toBuilder()
+                    .id(UUID.randomUUID())
+                    .build();
+            CategoryEntity savedCategory = jpaCategoryRepository.save(CategoryEntity.from(categoryWithId));
 
             BudgetEntity savedBudgetEntity = jpaBudgetRepository.save(BudgetEntity.builder()
                     .id(budget.id())
@@ -205,7 +208,10 @@ class DefaultBudgetRepositoryTest {
         void givenExistingIdWithoutTransactions_returnsSummaryWithZeroSpent() {
             // Arrange: save budget directly via JPA without any transactions
             Instant now = Instant.now();
-            CategoryEntity savedCategory = jpaCategoryRepository.save(CategoryEntity.from(budget.category()));
+            Category categoryWithId = budget.category().toBuilder()
+                    .id(UUID.randomUUID())
+                    .build();
+            CategoryEntity savedCategory = jpaCategoryRepository.save(CategoryEntity.from(categoryWithId));
             BudgetEntity savedBudgetEntity = jpaBudgetRepository.save(BudgetEntity.builder()
                     .id(budget.id())
                     .userId(budget.user().id())
@@ -255,6 +261,7 @@ class DefaultBudgetRepositoryTest {
             UUID userId = UUID.randomUUID();
             Instant now = Instant.now();
             CategoryEntity category = jpaCategoryRepository.saveAndFlush(CategoryEntity.builder()
+                    .id(UUID.randomUUID())
                     .name("GROCERIES")
                     .transactionType(TransactionType.EXPENSE)
                     .userId(userId)
@@ -310,6 +317,7 @@ class DefaultBudgetRepositoryTest {
             UUID userId = UUID.randomUUID();
             Instant now = Instant.now();
             CategoryEntity category = jpaCategoryRepository.saveAndFlush(CategoryEntity.builder()
+                    .id(UUID.randomUUID())
                     .name("RENT")
                     .transactionType(TransactionType.EXPENSE)
                     .userId(userId)
@@ -350,6 +358,7 @@ class DefaultBudgetRepositoryTest {
             LocalDate previousMonthStart = today.withDayOfMonth(1).minusMonths(1);
 
             CategoryEntity category = jpaCategoryRepository.saveAndFlush(CategoryEntity.builder()
+                    .id(UUID.randomUUID())
                     .name("DINING")
                     .transactionType(TransactionType.EXPENSE)
                     .userId(userId)
@@ -413,6 +422,7 @@ class DefaultBudgetRepositoryTest {
             Instant now = Instant.now();
 
             CategoryEntity category = jpaCategoryRepository.saveAndFlush(CategoryEntity.builder()
+                    .id(UUID.randomUUID())
                     .name("GROCERIES")
                     .transactionType(TransactionType.EXPENSE)
                     .userId(userId)

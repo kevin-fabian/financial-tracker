@@ -6,7 +6,7 @@ spring:
     database-platform: org.hibernate.dialect.H2Dialect
     properties:
       hibernate:
-        show_sql: false
+        show_sql: true
     hibernate:
       ddl-auto: create-drop
   security:

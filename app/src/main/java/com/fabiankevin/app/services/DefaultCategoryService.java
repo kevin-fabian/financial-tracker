@@ -57,7 +57,6 @@ public class DefaultCategoryService implements CategoryService {
                 .toList();
         List<Category> existing = categoryRepository.findAllByNamesAndUserId(names, userId);
 
-        // Build lookup maps from the already-loaded existing categories
         Map<String, Category> existingByKey = existing.stream()
                 .filter(category -> commands.stream().anyMatch(cmd -> cmd.name().
                         equals(category.name()) && cmd.type() == category.type()))
@@ -66,30 +65,20 @@ public class DefaultCategoryService implements CategoryService {
                         category -> category
                 ));
 
-        List<Category> toSave = commands.stream()
+        List<Category> newCategories = commands.stream()
                 .map(command -> {
-                    String key = command.name() + ":" + command.type().name();
-                    Category existingCategory = existingByKey.get(key);
-                    if (existingCategory != null) {
-                        return existingCategory.toBuilder()
-                                .active(true)
-                                .updatedAt(Instant.now())
-                                .build();
-                    }
-                    if (command.localId() != null
-                            && existing.stream().anyMatch(c -> command.localId().equals(c.localId()))) {
-                        return null;
-                    }
                     Category newCategory = Category.from(command);
-                    if (newCategory.localId() != null && existing.stream().anyMatch(c -> newCategory.localId().equals(c.localId()))) {
+                    if (newCategory.id() != null && existing.stream()
+                            .anyMatch(c -> newCategory.id().equals(c.id()))) {
                         return null;
                     }
-                    return newCategory;
+
+                    return Category.from(command);
                 })
                 .filter(Objects::nonNull)
                 .toList();
 
-        categoryRepository.saveAll(toSave);
+        categoryRepository.saveAll(newCategories);
     }
 
     private Category createNewCategory(CreateCategoryCommand command) {
@@ -104,7 +93,7 @@ public class DefaultCategoryService implements CategoryService {
                 .active(true)
                 .updatedAt(Instant.now());
         Optional.ofNullable(command.icon()).ifPresent(builder::icon);
-        return categoryRepository.save(builder.build());
+        return categoryRepository.update(builder.build());
     }
 
     @Transactional
@@ -127,7 +116,7 @@ public class DefaultCategoryService implements CategoryService {
                         category -> {
                             long transactionCount = transactionRepository.countByCategoryIdAndUserId(id, userId);
                             if (transactionCount > 0) {
-                                categoryRepository.save(category.toBuilder().active(false).build());
+                                categoryRepository.update(category.toBuilder().active(false).build());
                             } else {
                                 categoryRepository.deleteByIdAndUserId(id, userId);
                             }
@@ -177,7 +166,7 @@ public class DefaultCategoryService implements CategoryService {
         Optional.ofNullable(command.icon())
                 .ifPresent(categoryBuilder::icon);
 
-        categoryRepository.save(categoryBuilder.build());
+        categoryRepository.update(categoryBuilder.build());
         return categoryRepository.findByIdAndUserIdWithSummary(id, userId)
                 .orElseThrow(CategoryNotFoundException::new);
     }

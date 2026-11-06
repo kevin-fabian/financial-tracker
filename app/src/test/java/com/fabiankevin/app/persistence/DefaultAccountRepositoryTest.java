@@ -291,15 +291,15 @@ class DefaultAccountRepositoryTest {
 
             java.time.LocalDate today = LocalDate.now();
             CategoryEntity expenseCategory1 = jpaCategoryRepository.save(CategoryEntity.builder()
-                    .name("Expense 1").transactionType(TransactionType.EXPENSE).userId(userId)
+                    .id(UUID.randomUUID()).name("Expense 1").transactionType(TransactionType.EXPENSE).userId(userId)
                     .createdAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC))
                     .updatedAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC)).build());
             CategoryEntity incomeCategory = jpaCategoryRepository.save(CategoryEntity.builder()
-                    .name("Income 1").transactionType(TransactionType.INCOME).userId(userId)
+                    .id(UUID.randomUUID()).name("Income 1").transactionType(TransactionType.INCOME).userId(userId)
                     .createdAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC))
                     .updatedAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC)).build());
             CategoryEntity expenseCategory3 = jpaCategoryRepository.save(CategoryEntity.builder()
-                    .name("Expense 3").transactionType(TransactionType.EXPENSE).userId(userId)
+                    .id(UUID.randomUUID()).name("Expense 3").transactionType(TransactionType.EXPENSE).userId(userId)
                     .createdAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC))
                     .updatedAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC)).build());
 
@@ -379,7 +379,7 @@ class DefaultAccountRepositoryTest {
 
             java.time.LocalDate today = java.time.LocalDate.now();
             CategoryEntity expenseCategory = jpaCategoryRepository.save(CategoryEntity.builder()
-                    .name("Expense").transactionType(TransactionType.EXPENSE).userId(userId)
+                    .id(UUID.randomUUID()).name("Expense").transactionType(TransactionType.EXPENSE).userId(userId)
                     .createdAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC))
                     .updatedAt(today.atStartOfDay().toInstant(java.time.ZoneOffset.UTC)).build());
 

@@ -7,6 +7,7 @@ import java.util.UUID;
 
 @Builder(toBuilder = true)
 public record CreateCategoryCommand(
+        UUID id,
         String name,
         TransactionType type,
         String icon,

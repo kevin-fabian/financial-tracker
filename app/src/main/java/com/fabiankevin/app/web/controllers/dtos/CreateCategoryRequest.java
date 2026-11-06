@@ -13,6 +13,8 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 @Schema(description = "Request DTO for creating a category")
 public record CreateCategoryRequest(
+        @Schema(description = "Client-provided UUID for the category. If not provided, a server-generated UUID will be used", example = "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+        UUID id,
         @NotBlank(message = "Name is required")
         @Size(max = 128, message = "Name must not exceed 128 characters")
         @Schema(description = "Name of the category", example = "FOOD")
@@ -27,6 +29,7 @@ public record CreateCategoryRequest(
 ) {
     public CreateCategoryCommand toCommand(UUID userId) {
         return CreateCategoryCommand.builder()
+                .id(this.id)
                 .name(this.name)
                 .type(this.type)
                 .icon(this.icon)

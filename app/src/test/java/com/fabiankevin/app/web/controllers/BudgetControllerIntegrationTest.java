@@ -7,6 +7,7 @@ import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.models.enums.TransactionType;
+import com.fabiankevin.app.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.services.BudgetService;
 import com.fabiankevin.app.services.CategoryService;
@@ -1021,7 +1022,8 @@ class BudgetControllerIntegrationTest {
     }
 
     private Category createSystemCategory() {
-        var entity = com.fabiankevin.app.persistence.entities.CategoryEntity.builder()
+        var entity = CategoryEntity.builder()
+                .id(UUID.randomUUID())
                 .name("GROCERIES")
                 .transactionType(TransactionType.EXPENSE)
                 .icon("local_grocery_store")

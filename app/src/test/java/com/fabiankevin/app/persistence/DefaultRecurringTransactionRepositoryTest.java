@@ -79,6 +79,7 @@ class DefaultRecurringTransactionRepositoryTest {
                 .updatedAt(now)
                 .build());
         CategoryEntity category = jpaCategoryRepository.saveAndFlush(CategoryEntity.builder()
+                .id(UUID.randomUUID())
                 .name("GROCERIES")
                 .transactionType(TransactionType.EXPENSE)
                 .userId(userId)
@@ -343,6 +344,7 @@ class DefaultRecurringTransactionRepositoryTest {
                     .updatedAt(now)
                     .build());
             CategoryEntity testCategory = jpaCategoryRepository.saveAndFlush(CategoryEntity.builder()
+                    .id(UUID.randomUUID())
                     .name("TEST_CATEGORY")
                     .transactionType(TransactionType.EXPENSE)
                     .userId(userId)
@@ -398,6 +400,7 @@ class DefaultRecurringTransactionRepositoryTest {
                     .updatedAt(Instant.now())
                     .build());
             CategoryEntity otherCategory = jpaCategoryRepository.saveAndFlush(CategoryEntity.builder()
+                    .id(UUID.randomUUID())
                     .name("OTHER_CATEGORY")
                     .transactionType(TransactionType.INCOME)
                     .userId(otherUserId)

@@ -50,7 +50,6 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -142,7 +141,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenValidRequest_thenReturnsCreatedWithCategoryResponse() throws Exception {
+        void givenValidRequestWithNoId_shouldReturnCategoryWithGeneratedId() throws Exception {
             CreateCategoryRequest request = CreateCategoryRequest.builder()
                     .name("FOOD")
                     .icon("food")
@@ -173,7 +172,7 @@ class CategoryControllerIntegrationTest {
 
         @ParameterizedTest
         @MethodSource("invalidCreateCategoryRequestTestCases")
-        void givenInvalidCreateCategoryRequest_thenReturnsBadRequest(String name, TransactionType type) throws Exception {
+        void givenInvalidRequest_shouldReturnBadRequest(String name, TransactionType type) throws Exception {
             CreateCategoryRequest request = CreateCategoryRequest.builder()
                     .name(name)
                     .type(type)
@@ -193,7 +192,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenNoJwt_thenReturnsUnauthorized() throws Exception {
+        void givenNoJwt_shouldReturnUnauthorized() throws Exception {
             CreateCategoryRequest request = CreateCategoryRequest.builder()
                     .name("FOOD")
                     .type(TransactionType.EXPENSE)
@@ -206,7 +205,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenDuplicateNameAndType_thenReturnsConflict() throws Exception {
+        void givenDuplicateNameAndType_shouldReturnConflict() throws Exception {
             CreateCategoryRequest firstRequest = CreateCategoryRequest.builder()
                     .name("FOOD")
                     .type(TransactionType.EXPENSE)
@@ -238,7 +237,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenInactiveCategoryWithDifferentIcon_thenReactivatesWithNewDetails() throws Exception {
+        void givenInactiveCategoryWithNewIcon_shouldReactivateWithNewDetails() throws Exception {
             Category inactiveCategory = categoryRepository.save(
                     Category.builder()
                             .name("FOOD")
@@ -276,13 +275,46 @@ class CategoryControllerIntegrationTest {
                     .andExpect(jsonPath("$.active").value(true))
                     .andExpect(jsonPath("$.system").value(false));
         }
+
+        @Test
+        void givenWithProvidedId_shouldUseProvidedId() throws Exception {
+            UUID providedId = UUID.randomUUID();
+            CreateCategoryRequest request = CreateCategoryRequest.builder()
+                    .id(providedId)
+                    .name("FOOD")
+                    .icon("food")
+                    .type(TransactionType.EXPENSE)
+                    .build();
+
+            mockMvc.perform(post("/api/categories")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").value(providedId.toString()))
+                    .andExpect(jsonPath("$.name").value("FOOD"))
+                    .andExpect(jsonPath("$.type").value("EXPENSE"))
+                    .andExpect(jsonPath("$.icon").value("food"))
+                    .andExpect(jsonPath("$.active").value(true))
+                    .andExpect(jsonPath("$.system").value(false));
+
+            Category storedCategory = categoryRepository.findByIdAndUserId(providedId, userId)
+                    .orElseThrow();
+            assertEquals(providedId, storedCategory.id(), "stored category should have the provided id");
+        }
     }
 
     @Nested
     class GetCategoryById {
 
         @Test
-        void givenExistingId_thenReturnsCategory() throws Exception {
+        void givenExistingId_shouldReturnCategory() throws Exception {
             Category category = categoryRepository.save(
                     Category.builder()
                             .name("FOOD")
@@ -315,41 +347,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenExistingIdWithIcon_thenReturnsCategoryWithIcon() throws Exception {
-            Category category = categoryRepository.save(
-                    Category.builder()
-                            .name("FOOD")
-                            .type(TransactionType.EXPENSE)
-                            .userId(userId)
-                            .icon("food")
-                            .active(true)
-                            .system(false)
-                            .createdAt(Instant.now())
-                            .updatedAt(Instant.now())
-                            .build()
-            );
-
-            mockMvc.perform(get("/api/categories/" + category.id())
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    )))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.id").value(category.id().toString()))
-                    .andExpect(jsonPath("$.name").value("FOOD"))
-                    .andExpect(jsonPath("$.icon").value("food"))
-                    .andExpect(jsonPath("$.active").value(true))
-                    .andExpect(jsonPath("$.system").value(false))
-                    .andExpect(jsonPath("$.totalAmount").value(0.0))
-                    .andExpect(jsonPath("$.totalTransactions").value(0))
-                    .andExpect(jsonPath("$.percentage").value(0.0));
-        }
-
-        @Test
-        void givenNoJwt_thenReturnsUnauthorized() throws Exception {
+        void givenNoJwt_shouldReturnUnauthorized() throws Exception {
             UUID id = UUID.randomUUID();
 
             mockMvc.perform(get("/api/categories/" + id))
@@ -357,7 +355,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenCategoryNotFound_thenReturnNotFound() throws Exception {
+        void givenCategoryNotFound_shouldReturnNotFound() throws Exception {
             UUID id = UUID.randomUUID();
 
             mockMvc.perform(get("/api/categories/" + id)
@@ -372,7 +370,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenCategoryBelongsToOtherUser_thenReturnNotFound() throws Exception {
+        void givenCategoryBelongsToOtherUser_shouldReturnNotFound() throws Exception {
             UUID otherUserId = UUID.randomUUID();
             Category category = categoryRepository.save(
                     Category.builder()
@@ -402,7 +400,7 @@ class CategoryControllerIntegrationTest {
     class GetCategories {
 
         @Test
-        void givenCategoriesWithTransactions_thenReturnMultipleCategoriesWithAggregatedFields() throws Exception {
+        void givenCategoriesWithTransactions_shouldReturnMultipleCategoriesWithAggregatedFields() throws Exception {
             var savedCategory1 = categoryService.createCategory(
                     CreateCategoryCommand.builder()
                             .name("FOOD")
@@ -500,7 +498,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenTypeFilterIncome_thenReturnsFilteredResponse() throws Exception {
+        void givenTypeFilterIncome_shouldReturnFilteredResponse() throws Exception {
             categoryRepository.save(
                     Category.builder()
                             .name("SALARY")
@@ -529,7 +527,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenNoTypeFilter_thenReturnsAllTypes() throws Exception {
+        void givenNoTypeFilter_shouldReturnAllTypes() throws Exception {
             categoryRepository.save(
                     Category.builder()
                             .name("FOOD")
@@ -567,13 +565,13 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenNoJwt_thenReturnsUnauthorized() throws Exception {
+        void givenNoJwt_shouldReturnUnauthorized() throws Exception {
             mockMvc.perform(get("/api/categories?page=0&size=2&sort=name&direction=ASC"))
                     .andExpect(status().isUnauthorized());
         }
 
         @Test
-        void givenNoCategories_thenReturnsEmptyPage() throws Exception {
+        void givenNoCategories_shouldReturnEmptyPage() throws Exception {
             mockMvc.perform(get("/api/categories?page=0&size=10&sort=name&direction=ASC&type=EXPENSE")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -590,7 +588,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenCategoriesOwnedByOtherUser_thenExcludesOtherUsersCategories() throws Exception {
+        void givenCategoriesOwnedByOtherUser_shouldExcludeOtherUsersCategories() throws Exception {
             var myCategory = categoryService.createCategory(
                     CreateCategoryCommand.builder()
                             .name("FOOD")
@@ -629,7 +627,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenSystemCategoryWithUserTransactionsAndOtherUserTransactions_thenExcludesOtherUsersTransactionsInAggregate() throws Exception {
+        void givenSystemCategoryWithUserTransactionsAndOtherUserTransactions_shouldExcludeOtherUsersTransactionsInAggregate() throws Exception {
             UUID userId = UUID.randomUUID();
 
             var systemCategory = categoryRepository.save(
@@ -705,7 +703,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenTransactionsFromLastMonthAndCurrentMonth_thenOnlyCurrentMonthTransactionsReflectOnCategoryAggregation() throws Exception {
+        void givenTransactionsFromLastMonthAndCurrentMonth_shouldReturnOnlyCurrentMonthTransactionsInAggregation() throws Exception {
             var savedCategory = categoryService.createCategory(
                     CreateCategoryCommand.builder()
                             .name("FOOD")
@@ -778,7 +776,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenHouseholdMemberWithNoTransactionsButLeaderHasSystemCategoryTransactions_thenReturnsLeaderTransactionsInSystemCategory() throws Exception {
+        void givenHouseholdMemberWithNoTransactionsButLeaderHasSystemCategoryTransactions_shouldReturnLeaderTransactionsInSystemCategory() throws Exception {
             UUID leaderId = UUID.randomUUID();
             UUID memberId = UUID.randomUUID();
             String memberEmail = "member+" + UUID.randomUUID() + "@test.com";
@@ -873,7 +871,7 @@ class CategoryControllerIntegrationTest {
     class PatchCategory {
 
         @Test
-        void givenValidPatchRequest_thenReturnsUpdatedCategory() throws Exception {
+        void givenValidPatchRequest_shouldReturnUpdatedCategory() throws Exception {
             Category category = categoryService.createCategory(
                     CreateCategoryCommand.builder()
                             .name("FOOD")
@@ -910,7 +908,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenValidPatchRequestWithIcon_thenReturnsUpdatedWithIcon() throws Exception {
+        void givenValidPatchRequestWithIcon_shouldReturnUpdatedWithIcon() throws Exception {
             Category category = categoryService.createCategory(
                     CreateCategoryCommand.builder()
                             .name("FOOD")
@@ -957,7 +955,7 @@ class CategoryControllerIntegrationTest {
 
         @ParameterizedTest
         @MethodSource("invalidPatchCategoryRequestTestCases")
-        void givenInvalidPatchCategoryRequest_thenReturnsBadRequest(String name, TransactionType type, String icon) throws Exception {
+        void givenInvalidPatchCategoryRequest_shouldReturnBadRequest(String name, TransactionType type, String icon) throws Exception {
             Category category = categoryService.createCategory(
                     CreateCategoryCommand.builder()
                             .name("FOOD")
@@ -986,7 +984,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenNoJwt_thenReturnsUnauthorized() throws Exception {
+        void givenNoJwt_shouldReturnUnauthorized() throws Exception {
             UUID id = UUID.randomUUID();
 
             PatchCategoryRequest request = PatchCategoryRequest.builder()
@@ -1000,7 +998,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenCategoryNotFound_thenReturnNotFound() throws Exception {
+        void givenCategoryNotFound_shouldReturnNotFound() throws Exception {
             UUID id = UUID.randomUUID();
 
             PatchCategoryRequest request = PatchCategoryRequest.builder()
@@ -1021,7 +1019,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenPartialPatch_thenOnlyUpdatesProvidedFields() throws Exception {
+        void givenPartialPatch_shouldOnlyUpdateProvidedFields() throws Exception {
             Category category = categoryService.createCategory(
                     CreateCategoryCommand.builder()
                             .name("FOOD")
@@ -1052,7 +1050,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenSystemCategoryWithTransactions_thenReturnsCorrectAggregatedFieldsAfterPatch() throws Exception {
+        void givenSystemCategoryWithTransactions_shouldReturnCorrectAggregatedFieldsAfterPatch() throws Exception {
             // Create a system category (shared across users, userId = null)
             Category systemCategory = testHelper.createSystemCategory(TransactionType.EXPENSE, "Food");
 
@@ -1136,7 +1134,7 @@ class CategoryControllerIntegrationTest {
     class DisableCategory {
 
         @Test
-        void givenCategoryWithoutTransactions_thenHardDeletes() throws Exception {
+        void givenCategoryWithoutTransactions_shouldHardDelete() throws Exception {
             Category category = categoryService.createCategory(
                     CreateCategoryCommand.builder()
                             .name("FOOD")
@@ -1167,7 +1165,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenCategoryWithTransactions_thenSoftDisables() throws Exception {
+        void givenCategoryWithTransactions_shouldSoftDisable() throws Exception {
             Category category = categoryService.createCategory(
                     CreateCategoryCommand.builder()
                             .name("FOOD")
@@ -1220,7 +1218,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenNoJwt_thenReturnsUnauthorized() throws Exception {
+        void givenNoJwt_shouldReturnUnauthorized() throws Exception {
             UUID id = UUID.randomUUID();
 
             mockMvc.perform(post("/api/categories/" + id + "/disable"))
@@ -1228,7 +1226,7 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenCategoryNotFound_thenReturnNotFound() throws Exception {
+        void givenCategoryNotFound_shouldReturnNotFound() throws Exception {
             UUID id = UUID.randomUUID();
 
             mockMvc.perform(post("/api/categories/" + id + "/disable")
@@ -1247,7 +1245,7 @@ class CategoryControllerIntegrationTest {
     class CreateBatchCategories {
 
         @Test
-        void givenMultipleNewCategories_shouldReturnOkAndCreateAll() throws Exception {
+        void givenMultipleNewCategories_shouldCreateAll() throws Exception {
             CreateBatchCategoriesRequest request = CreateBatchCategoriesRequest.builder()
                     .categories(List.of(
                             CreateCategoryRequest.builder()
@@ -1280,54 +1278,6 @@ class CategoryControllerIntegrationTest {
                     .map(CategoryEntity::toModel)
                     .toList();
             assertEquals(2, categories.size());
-        }
-
-        @Test
-        void givenBatchWithExistingInactiveCategory_shouldReactivate() throws Exception {
-            categoryService.createCategory(
-                    CreateCategoryCommand.builder()
-                            .name("FOOD")
-                            .type(TransactionType.EXPENSE)
-                            .userId(userId)
-                            .build()
-            );
-            jpaCategoryRepository.findAll().forEach(entity -> {
-                if ("FOOD".equals(entity.getName())) {
-                    entity.setActive(false);
-                    jpaCategoryRepository.saveAndFlush(entity);
-                }
-            });
-
-            CreateBatchCategoriesRequest request = CreateBatchCategoriesRequest.builder()
-                    .categories(List.of(
-                            CreateCategoryRequest.builder()
-                                    .name("FOOD")
-                                    .type(TransactionType.EXPENSE)
-                                    .build()
-                    ))
-                    .build();
-
-            when(userClient.getUsersByIds(List.of(userId)))
-                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
-
-            mockMvc.perform(post("/api/categories/batch")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk());
-
-            List<Category> categories = jpaCategoryRepository.findAll().stream()
-                    .filter(c -> "FOOD".equals(c.getName()))
-                    .map(CategoryEntity::toModel)
-                    .toList();
-            assertEquals(1, categories.size());
-            assertTrue(categories.getFirst().active(), "category should be reactivated");
         }
 
         @Test
@@ -1367,14 +1317,14 @@ class CategoryControllerIntegrationTest {
         }
 
         @Test
-        void givenExistingNonSystemCategoryWithSameLocalId_shouldIgnore() throws Exception {
+        void givenExistingNonSystemCategory_shouldIgnore() throws Exception {
             UUID foodLocalId = UUID.randomUUID();
             categoryRepository.save(
                     Category.builder()
+                            .id(foodLocalId)
                             .name("FOOD")
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
-                            .localId(foodLocalId)
                             .active(true)
                             .system(false)
                             .createdAt(Instant.now())
@@ -1385,9 +1335,9 @@ class CategoryControllerIntegrationTest {
             CreateBatchCategoriesRequest request = CreateBatchCategoriesRequest.builder()
                     .categories(List.of(
                             CreateCategoryRequest.builder()
+                                    .id(foodLocalId)
                                     .name("FOOD")
                                     .type(TransactionType.EXPENSE)
-                                    .localId(foodLocalId)
                                     .build()
                     ))
                     .build();

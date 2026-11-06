@@ -83,8 +83,8 @@ class DefaultTransactionRepositoryTest {
         }
 
         @Bean
-        public CategoryRepository categoryRepository(JpaCategoryRepository jpaCategoryRepository) {
-            return new DefaultCategoryRepository(jpaCategoryRepository);
+        public CategoryRepository categoryRepository(JpaCategoryRepository jpaCategoryRepository, EntityManager entityManager) {
+            return new DefaultCategoryRepository(jpaCategoryRepository, entityManager);
         }
 
         @Bean
@@ -958,6 +958,7 @@ class DefaultTransactionRepositoryTest {
 
     private CategoryEntity createCategory(String categoryName, TransactionType type) {
         CategoryEntity category = new CategoryEntity();
+        category.setId(UUID.randomUUID());
         category.setName(categoryName);
         category.setTransactionType(type);
         category.setUserId(userId);

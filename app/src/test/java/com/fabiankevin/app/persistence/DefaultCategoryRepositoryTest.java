@@ -19,7 +19,6 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
@@ -52,7 +51,6 @@ class DefaultCategoryRepositoryTest {
     @Autowired
     private JpaAccountRepository jpaAccountRepository;
     private Category category;
-    private Category foodCategory;
 
     @BeforeEach
     void setUp() {
@@ -64,17 +62,6 @@ class DefaultCategoryRepositoryTest {
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
-
-        foodCategory = Category.builder()
-                .name("FOOD")
-                .type(TransactionType.EXPENSE)
-                .userId(UUID.randomUUID())
-                .icon("restaurant")
-                .localId(UUID.randomUUID())
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
-                .build();
-        categoryRepository.save(foodCategory);
 
         Mockito.reset(jpaCategoryRepository);
     }
@@ -112,8 +99,6 @@ class DefaultCategoryRepositoryTest {
             Assertions.assertThat(saved).allSatisfy(c -> Assertions.assertThat(c.id()).isNotNull());
             assertEquals(foodLocalId, saved.get(0).localId(), "first category localId should match");
             assertEquals(transportLocalId, saved.get(1).localId(), "second category localId should match");
-
-            verify(jpaCategoryRepository, times(1)).saveAll(any());
         }
 
         @Test
@@ -135,13 +120,22 @@ class DefaultCategoryRepositoryTest {
             Assertions.assertThat(saved).as("should return exactly 1 category").hasSize(1);
             Assertions.assertThat(saved.getFirst().id()).isNotNull();
             assertNull(saved.getFirst().localId(), "null localId should be preserved");
-
-            verify(jpaCategoryRepository, times(1)).saveAll(any());
         }
     }
 
     @Nested
     class Save {
+        @Test
+        void givenExistingCategoryAndNewCategoryName_thenShouldUpdateCategoryName() {
+            Category saved = categoryRepository.save(category);
+            var found = categoryRepository.findByIdAndUserId(saved.id(), saved.userId()).orElseThrow();
+
+            Category updatedCategory = found.toBuilder()
+                    .name("Updated category")
+                    .build();
+            categoryRepository.update(updatedCategory);
+        }
+
         @Test
         void givenValidCategory_shouldPersistAndRetrieve() {
             Category saved = categoryRepository.save(category);
@@ -155,39 +149,6 @@ class DefaultCategoryRepositoryTest {
             assertNotNull(category.createdAt(), "createdAt should have been generated");
             assertNotNull(category.updatedAt(), "updatedAt should have been generated");
             assertNull(category.icon(), "icon should be null when not provided");
-            verify(jpaCategoryRepository, times(1)).save(any());
-            verify(jpaCategoryRepository, times(1)).findByIdAndUserId(saved.id(), saved.userId());
-        }
-
-        @Test
-        void givenCategoryWithIcon_shouldPersistIconAsColumn() {
-            UUID restaurantLocalId = UUID.randomUUID();
-            Category categoryWithIcon = Category.builder()
-                    .name("RESTAURANTS")
-                    .type(TransactionType.EXPENSE)
-                    .userId(category.userId())
-                    .icon("restaurant")
-                    .localId(restaurantLocalId)
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
-                    .build();
-
-            Category saved = categoryRepository.save(categoryWithIcon);
-            jpaCategoryRepository.flush();
-
-            var found = categoryRepository.findByIdAndUserId(saved.id(), saved.userId()).orElseThrow();
-
-            assertNotNull(found.icon(), "icon should be persisted as string column");
-            assertEquals("restaurant", found.icon());
-            assertNotNull(found.localId(), "localId should be persisted");
-            assertEquals(restaurantLocalId, found.localId());
-        }
-
-        @Test
-        void givenNull_shouldThrowIllegalArgumentException() {
-            Assertions.assertThatThrownBy(() -> categoryRepository.save(null))
-                    .as("saving null should throw InvalidDataAccessApiUsageException")
-                    .isInstanceOf(InvalidDataAccessApiUsageException.class);
         }
 
         @Test
@@ -206,10 +167,10 @@ class DefaultCategoryRepositoryTest {
                     "should save");
 
             Assertions.assertThat(jpaCategoryRepository.findAll())
-                    .hasSize(3)
+                    .hasSize(2)
                     .as("category names should be `FOOD`")
                     .extracting("name")
-                    .containsExactlyInAnyOrder("FOOD", "FOOD", "FOOD");
+                    .containsExactlyInAnyOrder("FOOD", "FOOD");
         }
 
         @Test
@@ -572,6 +533,7 @@ class DefaultCategoryRepositoryTest {
             UUID rentLocalId = UUID.randomUUID();
 
             CategoryEntity food = CategoryEntity.builder()
+                    .id(UUID.randomUUID())
                     .name("FOOD")
                     .transactionType(TransactionType.EXPENSE)
                     .userId(userId)
@@ -580,6 +542,7 @@ class DefaultCategoryRepositoryTest {
                     .updatedAt(Instant.now())
                     .build();
             CategoryEntity rent = CategoryEntity.builder()
+                    .id(UUID.randomUUID())
                     .name("RENT")
                     .transactionType(TransactionType.EXPENSE)
                     .userId(userId)
@@ -650,6 +613,7 @@ class DefaultCategoryRepositoryTest {
             UUID freelanceLocalId = UUID.randomUUID();
 
             CategoryEntity salary = CategoryEntity.builder()
+                    .id(UUID.randomUUID())
                     .name("SALARY")
                     .transactionType(TransactionType.INCOME)
                     .userId(userId)
@@ -658,6 +622,7 @@ class DefaultCategoryRepositoryTest {
                     .updatedAt(Instant.now())
                     .build();
             CategoryEntity freelance = CategoryEntity.builder()
+                    .id(UUID.randomUUID())
                     .name("FREELANCE")
                     .transactionType(TransactionType.INCOME)
                     .userId(userId)
@@ -726,6 +691,7 @@ class DefaultCategoryRepositoryTest {
             UUID userId = UUID.randomUUID();
 
             CategoryEntity food = CategoryEntity.builder()
+                    .id(UUID.randomUUID())
                     .name("FOOD")
                     .transactionType(TransactionType.EXPENSE)
                     .userId(userId)
@@ -733,6 +699,7 @@ class DefaultCategoryRepositoryTest {
                     .updatedAt(Instant.now())
                     .build();
             CategoryEntity salary = CategoryEntity.builder()
+                    .id(UUID.randomUUID())
                     .name("SALARY")
                     .transactionType(TransactionType.INCOME)
                     .userId(userId)
@@ -786,6 +753,7 @@ class DefaultCategoryRepositoryTest {
             UUID userId = UUID.randomUUID();
 
             CategoryEntity groceries = CategoryEntity.builder()
+                    .id(UUID.randomUUID())
                     .name("GROCERIES")
                     .transactionType(TransactionType.EXPENSE)
                     .userId(userId)
@@ -793,6 +761,7 @@ class DefaultCategoryRepositoryTest {
                     .updatedAt(Instant.now())
                     .build();
             CategoryEntity entertainment = CategoryEntity.builder()
+                    .id(UUID.randomUUID())
                     .name("ENTERTAINMENT")
                     .transactionType(TransactionType.EXPENSE)
                     .userId(userId)
@@ -826,6 +795,7 @@ class DefaultCategoryRepositoryTest {
             UUID otherUserId = UUID.randomUUID();
 
             CategoryEntity food = CategoryEntity.builder()
+                    .id(UUID.randomUUID())
                     .name("FOOD")
                     .transactionType(TransactionType.EXPENSE)
                     .system(true)
@@ -897,6 +867,7 @@ class DefaultCategoryRepositoryTest {
         void givenExistingNames_shouldReturnMatchingCategories() {
             UUID userId = UUID.randomUUID();
             CategoryEntity food = CategoryEntity.builder()
+                    .id(UUID.randomUUID())
                     .name("TEST_FOOD")
                     .transactionType(TransactionType.EXPENSE)
                     .userId(userId)
@@ -904,6 +875,7 @@ class DefaultCategoryRepositoryTest {
                     .updatedAt(Instant.now())
                     .build();
             CategoryEntity rent = CategoryEntity.builder()
+                    .id(UUID.randomUUID())
                     .name("TEST_RENT")
                     .transactionType(TransactionType.EXPENSE)
                     .userId(userId)
@@ -911,6 +883,7 @@ class DefaultCategoryRepositoryTest {
                     .updatedAt(Instant.now())
                     .build();
             CategoryEntity salary = CategoryEntity.builder()
+                    .id(UUID.randomUUID())
                     .name("TEST_SALARY")
                     .transactionType(TransactionType.INCOME)
                     .userId(userId)

@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -170,7 +171,7 @@ class DefaultCategoryServiceTest {
 
             when(categoryRepository.findByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId))
                     .thenReturn(Optional.of(inactiveCategory));
-            when(categoryRepository.save(any())).thenAnswer(invocation -> {
+            when(categoryRepository.update(any())).thenAnswer(invocation -> {
                 Category c = invocation.getArgument(0);
                 return c.toBuilder().id(categoryId).build();
             });
@@ -183,7 +184,7 @@ class DefaultCategoryServiceTest {
             assertTrue(created.active(), "category should be reactivated");
             assertEquals(newIcon, created.icon(), "should use the icon provided in the command");
             verify(categoryRepository, times(1)).findByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId);
-            verify(categoryRepository, times(1)).save(any());
+            verify(categoryRepository, times(1)).update(any());
             verify(categoryRepository, never()).existsByNameAndTypeAndUserId(any(), any(), any());
         }
 
@@ -214,7 +215,7 @@ class DefaultCategoryServiceTest {
 
             when(categoryRepository.findByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId))
                     .thenReturn(Optional.of(inactiveCategory));
-            when(categoryRepository.save(any())).thenAnswer(invocation -> {
+            when(categoryRepository.update(any())).thenAnswer(invocation -> {
                 Category c = invocation.getArgument(0);
                 return c.toBuilder().id(categoryId).build();
             });
@@ -225,7 +226,7 @@ class DefaultCategoryServiceTest {
             assertEquals(originalCreatedAt, created.createdAt(), "createdAt should be preserved on reactivation");
             assertTrue(created.updatedAt().isAfter(originalUpdatedAt), "updatedAt should be refreshed on reactivation");
             assertEquals("utensils", created.icon(), "should use the icon provided in the command");
-            verify(categoryRepository, times(1)).save(any());
+            verify(categoryRepository, times(1)).update(any());
         }
 
         @Test
@@ -260,6 +261,58 @@ class DefaultCategoryServiceTest {
             verify(categoryRepository, times(1)).findByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId);
             verify(categoryRepository, never()).save(any());
             verify(categoryRepository, never()).existsByNameAndTypeAndUserId(any(), any(), any());
+        }
+
+        @Test
+        void givenCreateCategoryCommandWithNullId_thenShouldGenerateRandomId() {
+            UUID userId = UUID.randomUUID();
+            UUID generatedId = UUID.randomUUID();
+            CreateCategoryCommand command = CreateCategoryCommand.builder()
+                    .id(null)
+                    .name("FOOD")
+                    .icon("food")
+                    .type(TransactionType.EXPENSE)
+                    .userId(userId)
+                    .build();
+
+            when(categoryRepository.findByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId))
+                    .thenReturn(Optional.empty());
+            when(categoryRepository.save(any())).thenAnswer(invocation -> {
+                Category c = invocation.getArgument(0);
+                assertThat(c.id()).isNull();
+                return c.toBuilder().id(generatedId).build();
+            });
+
+            Category created = categoryService.createCategory(command);
+
+            assertEquals(generatedId, created.id(), "should use generated id when command id is null");
+            verify(categoryRepository, times(1)).save(any());
+        }
+
+        @Test
+        void givenCreateCategoryCommandWithProvidedId_thenShouldUseProvidedId() {
+            UUID userId = UUID.randomUUID();
+            UUID providedId = UUID.randomUUID();
+            CreateCategoryCommand command = CreateCategoryCommand.builder()
+                    .id(providedId)
+                    .name("FOOD")
+                    .icon("food")
+                    .type(TransactionType.EXPENSE)
+                    .userId(userId)
+                    .build();
+
+            when(categoryRepository.findByNameAndTypeAndUserId("FOOD", TransactionType.EXPENSE, userId))
+                    .thenReturn(Optional.empty());
+            when(categoryRepository.save(any())).thenAnswer(invocation -> {
+                Category c = invocation.getArgument(0);
+                assertEquals(providedId, c.id(), "saved category should have the provided id");
+                return c;
+            });
+
+            Category created = categoryService.createCategory(command);
+
+            assertEquals(providedId, created.id(), "should use the provided id");
+            verify(categoryRepository, times(1)).save(any());
         }
     }
 
@@ -335,6 +388,75 @@ class DefaultCategoryServiceTest {
         assertThrows(CategoryNotFoundException.class, () -> categoryService.deleteCategoryById(id, userId));
 
         verify(categoryRepository, times(0)).deleteByIdAndUserId(any(), any());
+    }
+
+    @Nested
+    class DisableCategory {
+        @Test
+        void givenCategoryWithTransactions_thenShouldSoftDisable() {
+            UUID id = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+            Category category = Category.builder()
+                    .id(id)
+                    .name("FOOD")
+                    .type(TransactionType.EXPENSE)
+                    .userId(userId)
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(categoryRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(category));
+            when(transactionRepository.countByCategoryIdAndUserId(id, userId)).thenReturn(5L);
+            Category softDisabled = category.toBuilder().active(false).build();
+            when(categoryRepository.update(softDisabled)).thenReturn(softDisabled);
+
+            categoryService.disableCategory(id, userId);
+
+            verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
+            verify(transactionRepository, times(1)).countByCategoryIdAndUserId(id, userId);
+            verify(categoryRepository, times(1)).update(softDisabled);
+            verify(categoryRepository, never()).deleteByIdAndUserId(any(), any());
+        }
+
+        @Test
+        void givenCategoryWithoutTransactions_thenShouldDelete() {
+            UUID id = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+            Category category = Category.builder()
+                    .id(id)
+                    .name("FOOD")
+                    .type(TransactionType.EXPENSE)
+                    .userId(userId)
+                    .active(true)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            when(categoryRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(category));
+            when(transactionRepository.countByCategoryIdAndUserId(id, userId)).thenReturn(0L);
+            when(categoryRepository.deleteByIdAndUserId(id, userId)).thenReturn(1);
+
+            categoryService.disableCategory(id, userId);
+
+            verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
+            verify(transactionRepository, times(1)).countByCategoryIdAndUserId(id, userId);
+            verify(categoryRepository, times(1)).deleteByIdAndUserId(id, userId);
+            verify(categoryRepository, never()).update(any());
+        }
+
+        @Test
+        void givenNonExistingCategory_thenShouldThrow() {
+            UUID id = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+
+            when(categoryRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.empty());
+
+            assertThrows(CategoryNotFoundException.class, () -> categoryService.disableCategory(id, userId));
+            verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
+            verify(categoryRepository, never()).deleteByIdAndUserId(any(), any());
+            verify(categoryRepository, never()).update(any());
+        }
     }
 
     @Test
@@ -424,7 +546,7 @@ class DefaultCategoryServiceTest {
 
         when(categoryRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(existing));
         when(categoryRepository.existsByNameAndTypeAndUserId("GROCERIES", TransactionType.EXPENSE, userId)).thenReturn(false);
-        when(categoryRepository.save(any())).thenReturn(updatedCategory);
+        when(categoryRepository.update(any())).thenReturn(updatedCategory);
         CategorySummary summary = CategorySummary.builder()
                 .category(updatedCategory)
                 .totalAmount(0.0)
@@ -438,7 +560,7 @@ class DefaultCategoryServiceTest {
         assertEquals("GROCERIES", result.category().name(), "name should be updated");
         assertEquals(TransactionType.EXPENSE, result.category().type(), "type should be preserved");
         verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
-        verify(categoryRepository, times(1)).save(any());
+        verify(categoryRepository, times(1)).update(any());
     }
 
     @Test
@@ -456,7 +578,7 @@ class DefaultCategoryServiceTest {
 
         assertThrows(CategoryNotFoundException.class, () -> categoryService.patchCategory(command));
         verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
-        verify(categoryRepository, never()).save(any());
+        verify(categoryRepository, never()).update(any());
     }
 
     @Test
@@ -491,7 +613,7 @@ class DefaultCategoryServiceTest {
                 .name("GROCERIES")
                 .icon(newIcon)
                 .build();
-        when(categoryRepository.save(any())).thenReturn(updatedCategory);
+        when(categoryRepository.update(any())).thenReturn(updatedCategory);
         CategorySummary summary = CategorySummary.builder()
                 .category(updatedCategory)
                 .totalAmount(0.0)
@@ -505,7 +627,7 @@ class DefaultCategoryServiceTest {
         assertEquals("GROCERIES", updated.category().name());
         assertEquals(newIcon, updated.category().icon(), "icon should be updated to new string");
         verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
-        verify(categoryRepository, times(1)).save(any());
+        verify(categoryRepository, times(1)).update(any());
     }
 
     @Test
@@ -536,7 +658,7 @@ class DefaultCategoryServiceTest {
         Category updatedCategory = existing.toBuilder()
                 .name("GROCERIES")
                 .build();
-        when(categoryRepository.save(any())).thenReturn(updatedCategory);
+        when(categoryRepository.update(any())).thenReturn(updatedCategory);
         CategorySummary summary = CategorySummary.builder()
                 .category(updatedCategory)
                 .totalAmount(0.0)
@@ -550,7 +672,7 @@ class DefaultCategoryServiceTest {
         assertEquals("GROCERIES", updated.category().name());
         assertEquals(existingIcon, updated.category().icon(), "icon should be preserved when not provided");
         verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
-        verify(categoryRepository, times(1)).save(any());
+        verify(categoryRepository, times(1)).update(any());
     }
 
     @Test
@@ -579,7 +701,7 @@ class DefaultCategoryServiceTest {
 
         assertThrows(com.fabiankevin.app.exceptions.CategoryAlreadyExistException.class, () -> categoryService.patchCategory(command));
         verify(categoryRepository, times(1)).findByIdAndUserId(id, userId);
-        verify(categoryRepository, never()).save(any());
+        verify(categoryRepository, never()).update(any());
     }
 
     @Test

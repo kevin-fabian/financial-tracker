@@ -19,6 +19,7 @@ public interface CategoryRepository {
     Optional<Category> findByNameAndTypeAndUserId(String name, TransactionType type, UUID userId);
     List<Category> findAllByNamesAndUserId(List<String> names, UUID userId);
     Category save(Category category);
+    Category update(Category category);
     List<Category> saveAll(List<Category> categories);
     int deleteByIdAndUserId(UUID id, UUID userId);
     Page<Category> findAllByPageQuery(PageQuery query, UUID userId, TransactionType type);

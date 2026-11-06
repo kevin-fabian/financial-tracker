@@ -7,7 +7,10 @@ import com.fabiankevin.app.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.persistence.entities.projections.CategorySummaryProjection;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.services.queries.PageQuery;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
@@ -22,6 +25,7 @@ import java.util.stream.Collectors;
 @Repository
 public class DefaultCategoryRepository implements CategoryRepository {
     private final JpaCategoryRepository jpaCategoryRepository;
+    private final EntityManager entityManager;
 
     @Override
     public Optional<Category> findByIdAndUserId(UUID id, UUID userId) {
@@ -70,19 +74,37 @@ public class DefaultCategoryRepository implements CategoryRepository {
                 .map(CategoryEntity::toModel);
     }
 
+    @Transactional
     @Override
     public Category save(Category category) {
-        CategoryEntity saved = jpaCategoryRepository.save(CategoryEntity.from(category));
-        return saved.toModel();
+        if (category == null) {
+            throw new InvalidDataAccessApiUsageException("Category must not be null");
+        }
+        CategoryEntity entity = CategoryEntity.from(category);
+        entity.setId(Optional.ofNullable(entity.getId()).orElse(UUID.randomUUID()));
+        entityManager.persist(entity);
+        return entity.toModel();
+    }
+
+    @Transactional
+    @Override
+    public Category update(Category category) {
+        return jpaCategoryRepository.save(CategoryEntity.from(category))
+                .toModel();
     }
 
     @Override
     public List<Category> saveAll(List<Category> categories) {
         List<CategoryEntity> entities = categories.stream()
                 .map(CategoryEntity::from)
-                .collect(Collectors.toList());
-        List<CategoryEntity> saved = jpaCategoryRepository.saveAll(entities);
-        return saved.stream()
+                .map(entity -> {
+                    entity.setId(Optional.ofNullable(entity.getId()).orElse(UUID.randomUUID()));
+                    return entity;
+                }).toList();
+
+        entities.forEach(entityManager::persist);
+
+        return entities.stream()
                 .map(CategoryEntity::toModel)
                 .collect(Collectors.toList());
     }
@@ -99,7 +121,7 @@ public class DefaultCategoryRepository implements CategoryRepository {
                 query.size(),
                 Sort.by(Sort.Direction.fromString(query.direction()), query.sort())
         );
-        var entityPage  = Optional.ofNullable(type)
+        var entityPage = Optional.ofNullable(type)
                 .map(t -> jpaCategoryRepository.findAllByUserIdAndTransactionType(userId, t, pageable))
                 .orElseGet(() -> jpaCategoryRepository.findAllByUserId(userId, pageable))
                 .map(CategoryEntity::toModel);
