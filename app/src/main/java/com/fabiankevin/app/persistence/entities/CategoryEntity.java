@@ -49,9 +49,6 @@ public class CategoryEntity {
     @Column(name = "`system`", nullable = false)
     private boolean system = false;
 
-    @Column(name = "local_id")
-    private UUID localId;
-
     public static CategoryEntity from(Category category) {
         if (category == null) return null;
         return CategoryEntity.builder()
@@ -62,7 +59,6 @@ public class CategoryEntity {
                 .userId(category.userId())
                 .active(category.active())
                 .system(category.system())
-                .localId(category.localId())
                 .createdAt(category.createdAt())
                 .updatedAt(category.updatedAt())
                 .build();
@@ -77,7 +73,6 @@ public class CategoryEntity {
                 .userId(this.userId)
                 .active(this.active)
                 .system(this.system)
-                .localId(this.localId)
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)
                 .build();

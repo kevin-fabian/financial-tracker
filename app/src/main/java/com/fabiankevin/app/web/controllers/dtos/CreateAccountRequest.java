@@ -28,10 +28,7 @@ public record CreateAccountRequest(
 
         @NotNull(message = "Type is required")
         @Schema(description = "Type of the account", example = "E_WALLET")
-        AccountType type,
-
-        @Schema(description = "Client-facing identifier that may differ from the internal UUID", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
-        UUID localId
+        AccountType type
 ) {
     public CreateAccountCommand toCommand(UUID userId) {
         return CreateAccountCommand.builder()
@@ -40,7 +37,6 @@ public record CreateAccountRequest(
                 .currency(Currency.getInstance(this.currency()))
                 .type(this.type)
                 .userId(userId)
-                .localId(this.localId)
                 .build();
     }
 }

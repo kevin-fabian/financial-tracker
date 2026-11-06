@@ -176,12 +176,12 @@ public class DefaultTransactionService implements TransactionService {
         UUID userId = commands.getFirst().userId();
 
         List<Account> accounts = accountRepository.findAllByUserId(userId);
-        Map<UUID, Account> accountByLocalId = accounts.stream()
-                .collect(Collectors.toMap(Account::localId, Function.identity()));
+        Map<UUID, Account> accountById = accounts.stream()
+                .collect(Collectors.toMap(Account::id, Function.identity()));
 
         List<Category> categories = categoryRepository.findAllByUserId(userId);
-        Map<UUID, Category> categoryByLocalId = categories.stream()
-                .collect(Collectors.toMap(Category::localId, Function.identity()));
+        Map<UUID, Category> categoryById = categories.stream()
+                .collect(Collectors.toMap(Category::id, Function.identity()));
 
         List<Transaction> newTransactions = new ArrayList<>();
         for (AddTransactionCommand command : commands) {
@@ -189,9 +189,9 @@ public class DefaultTransactionService implements TransactionService {
                 throw new InvalidAmountException("amount must be greater than zero");
             }
 
-            Account account = Optional.ofNullable(accountByLocalId.get(command.accountId()))
+            Account account = Optional.ofNullable(accountById.get(command.accountId()))
                     .orElseThrow(AccountNotFoundException::new);
-            Category category = Optional.ofNullable(categoryByLocalId.get(command.categoryId()))
+            Category category = Optional.ofNullable(categoryById.get(command.categoryId()))
                     .orElseThrow(CategoryNotFoundException::new);
 
             Transaction transaction = Transaction.builder()

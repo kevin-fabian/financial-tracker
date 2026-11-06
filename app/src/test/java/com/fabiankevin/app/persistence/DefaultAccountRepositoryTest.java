@@ -39,7 +39,6 @@ import java.util.stream.Collectors;
 import static com.fabiankevin.app.models.enums.AccountType.BANK_ACCOUNT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -72,7 +71,6 @@ class DefaultAccountRepositoryTest {
                 .currency(Currency.getInstance("PHP"))
                 .type(AccountType.E_WALLET)
                 .active(true)
-                .localId(UUID.randomUUID())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -91,32 +89,30 @@ class DefaultAccountRepositoryTest {
                     .usingRecursiveComparison()
                     .ignoringFields("id")
                     .isEqualTo(saved);
-            assertEquals(account.localId(), found.localId(), "localId should match");
 
             verify(jpaAccountRepository, times(1)).findById(saved.id());
         }
 
         @Test
-        void givenAccountWithLocalId_shouldPersistAndRetrieveViaSave() {
-            Account accountWithLocalId = Account.builder()
+        void givenAccount_shouldPersistAndRetrieve() {
+            Account accountWithId = Account.builder()
                     .name("BDO")
                     .user(User.of(UUID.randomUUID()))
                     .currency(java.util.Currency.getInstance("PHP"))
                     .type(AccountType.BANK_ACCOUNT)
                     .active(true)
-                    .localId(UUID.randomUUID())
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
 
-            Account saved = accountRepository.save(accountWithLocalId);
+            Account saved = accountRepository.save(accountWithId);
             Account retrieved = accountRepository.findById(saved.id()).orElseThrow();
 
-            assertNotNull(retrieved.localId(), "localId should be persisted");
+            assertNotNull(retrieved.id(), "account id should be persisted");
         }
 
         @Test
-        void givenAccountWithNullLocalId_shouldPersistAndRetrieve() {
+        void givenAccountWithoutLocalId_shouldPersistAndRetrieve() {
             Account accountWithoutLocalId = Account.builder()
                     .name("CASH WALLET")
                     .user(User.of(UUID.randomUUID()))
@@ -130,7 +126,7 @@ class DefaultAccountRepositoryTest {
             Account saved = accountRepository.save(accountWithoutLocalId);
             Account retrieved = accountRepository.findById(saved.id()).orElseThrow();
 
-            assertNull(retrieved.localId(), "null localId should be persisted and retrieved as null");
+            assertNotNull(retrieved.id(), "account id should be generated");
         }
     }
 
@@ -140,9 +136,6 @@ class DefaultAccountRepositoryTest {
         void givenMultipleNewAccounts_shouldPersistAllAndReturnWithIds() {
             UUID userId = UUID.randomUUID();
 
-            UUID aLocalId = UUID.randomUUID();
-            UUID bLocalId = UUID.randomUUID();
-
             List<Account> accounts = List.of(
                     Account.builder()
                             .name("Account A")
@@ -150,7 +143,6 @@ class DefaultAccountRepositoryTest {
                             .currency(java.util.Currency.getInstance("PHP"))
                             .type(AccountType.BANK_ACCOUNT)
                             .active(true)
-                            .localId(aLocalId)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build(),
@@ -160,7 +152,6 @@ class DefaultAccountRepositoryTest {
                             .currency(java.util.Currency.getInstance("USD"))
                             .type(AccountType.E_WALLET)
                             .active(true)
-                            .localId(bLocalId)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build()
@@ -170,8 +161,6 @@ class DefaultAccountRepositoryTest {
 
             Assertions.assertThat(saved).as("should return exactly 2 accounts").hasSize(2);
             Assertions.assertThat(saved).allSatisfy(a -> Assertions.assertThat(a.id()).isNotNull());
-            assertEquals(aLocalId, saved.get(0).localId(), "first account localId should match");
-            assertEquals(bLocalId, saved.get(1).localId(), "second account localId should match");
         }
 
         @Test
@@ -194,7 +183,6 @@ class DefaultAccountRepositoryTest {
 
             Assertions.assertThat(saved).as("should return exactly 1 account").hasSize(1);
             Assertions.assertThat(saved.getFirst().id()).isNotNull();
-            assertNull(saved.getFirst().localId(), "null localId should be preserved");
         }
     }
 
@@ -211,7 +199,6 @@ class DefaultAccountRepositoryTest {
                     .usingRecursiveComparison()
                     .ignoringFields("id")
                     .isEqualTo(saved);
-            assertEquals(account.localId(), found.localId(), "localId should be retrieved");
 
             verify(jpaAccountRepository, times(1)).findById(saved.id());
         }
@@ -247,9 +234,6 @@ class DefaultAccountRepositoryTest {
         @Test
         void givenMultipleNewAccounts_shouldReturnPagedSummaries() {
             UUID userId = UUID.randomUUID();
-            UUID acc1LocalId = UUID.randomUUID();
-            UUID acc2LocalId = UUID.randomUUID();
-            UUID acc3LocalId = UUID.randomUUID();
 
             Account acc1 = Account.builder()
                     .name("Account 1")
@@ -257,7 +241,6 @@ class DefaultAccountRepositoryTest {
                     .currency(java.util.Currency.getInstance("PHP"))
                     .type(BANK_ACCOUNT)
                     .active(true)
-                    .localId(acc1LocalId)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -267,7 +250,6 @@ class DefaultAccountRepositoryTest {
                     .currency(java.util.Currency.getInstance("PHP"))
                     .type(BANK_ACCOUNT)
                     .active(true)
-                    .localId(acc2LocalId)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -277,7 +259,6 @@ class DefaultAccountRepositoryTest {
                     .currency(java.util.Currency.getInstance("PHP"))
                     .type(BANK_ACCOUNT)
                     .active(true)
-                    .localId(acc3LocalId)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -347,15 +328,12 @@ class DefaultAccountRepositoryTest {
 
             Assertions.assertThat(s1.totalBalance()).as("Account 1 totalBalance (-100)").isEqualTo(-100.0);
             Assertions.assertThat(s1.totalTransactions()).as("Account 1 totalTransactions").isEqualTo(2);
-            assertEquals(acc1LocalId, s1.localId(), "Account 1 summary localId should match");
 
             Assertions.assertThat(s2.totalBalance()).as("Account 2 totalBalance (+200)").isEqualTo(50.0);
             Assertions.assertThat(s2.totalTransactions()).as("Account 2 totalTransactions").isEqualTo(1);
-            assertEquals(acc2LocalId, s2.localId(), "Account 2 summary localId should match");
 
             Assertions.assertThat(s3.totalBalance()).as("Account 3 totalBalance (-300)").isEqualTo(-300.0);
             Assertions.assertThat(s3.totalTransactions()).as("Account 3 totalTransactions").isEqualTo(1);
-            assertEquals(acc3LocalId, s3.localId(), "Account 3 summary localId should match");
         }
 
         @Test

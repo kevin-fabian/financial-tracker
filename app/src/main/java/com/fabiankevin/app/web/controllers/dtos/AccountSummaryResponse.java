@@ -25,8 +25,6 @@ public record AccountSummaryResponse(
         double totalBalance,
         @Schema(description = "Total number of transactions for this account", example = "25")
         int totalTransactions,
-        @Schema(description = "Client-facing identifier that may differ from the internal UUID", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
-        UUID localId,
         @Schema(description = "User details associated with the account",
                 exampleClasses = UserResponse.class)
         UserResponse user) {
@@ -40,7 +38,6 @@ public record AccountSummaryResponse(
                 .active(account.active())
                 .totalBalance(accountSummary.totalBalance())
                 .totalTransactions(accountSummary.totalTransactions())
-                .localId(account.localId())
                 .user(UserResponse.from(account.user()))
                 .build();
     }

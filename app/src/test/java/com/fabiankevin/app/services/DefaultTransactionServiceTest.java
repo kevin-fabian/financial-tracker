@@ -736,26 +736,20 @@ class DefaultTransactionServiceTest {
     @Nested
     class AddTransactions {
         private UUID userId;
-        private UUID accountLocalId;
-        private UUID categoryLocalId;
         private Account account;
         private Category category;
 
         @BeforeEach
         void setUp() {
             userId = UUID.randomUUID();
-            accountLocalId = UUID.randomUUID();
-            categoryLocalId = UUID.randomUUID();
             account = Account.builder()
                     .id(UUID.randomUUID())
-                    .localId(accountLocalId)
                     .name("GCASH")
                     .currency(Currency.getInstance("PHP"))
                     .user(User.of(userId))
                     .build();
             category = Category.builder()
                     .id(UUID.randomUUID())
-                    .localId(categoryLocalId)
                     .name("FOOD")
                     .type(TransactionType.EXPENSE)
                     .userId(userId)
@@ -768,15 +762,15 @@ class DefaultTransactionServiceTest {
                             .userId(userId)
                             .amount(100 + i)
                             .description("Transaction " + i)
-                            .categoryId(categoryLocalId)
-                            .accountId(accountLocalId)
+                            .categoryId(category.id())
+                            .accountId(account.id())
                             .transactionDate(LocalDate.now())
                             .build())
                     .toList();
         }
 
         @Test
-        void givenValidCommandsWithLocalIds_thenShouldSaveAll() {
+        void givenValidCommands_shouldSaveAll() {
             List<AddTransactionCommand> commands = buildCommands(2);
 
             when(accountRepository.findAllByUserId(userId)).thenReturn(List.of(account));
@@ -838,8 +832,8 @@ class DefaultTransactionServiceTest {
                             .userId(userId)
                             .amount(0)
                             .description("Zero amount")
-                            .categoryId(categoryLocalId)
-                            .accountId(accountLocalId)
+                            .categoryId(category.id())
+                            .accountId(account.id())
                             .transactionDate(LocalDate.now())
                             .build()
             );
@@ -853,10 +847,9 @@ class DefaultTransactionServiceTest {
 
         @Test
         void givenSystemCategory_thenShouldSucceed() {
-            UUID systemCategoryLocalId = UUID.randomUUID();
+            UUID systemCategoryId = UUID.randomUUID();
             Category systemCategory = Category.builder()
-                    .id(UUID.randomUUID())
-                    .localId(systemCategoryLocalId)
+                    .id(systemCategoryId)
                     .name("SYSTEM_CATEGORY")
                     .type(TransactionType.EXPENSE)
                     .userId(userId)
@@ -867,8 +860,8 @@ class DefaultTransactionServiceTest {
                             .userId(userId)
                             .amount(50)
                             .description("System category")
-                            .categoryId(systemCategoryLocalId)
-                            .accountId(accountLocalId)
+                            .categoryId(systemCategoryId)
+                            .accountId(account.id())
                             .transactionDate(LocalDate.now())
                             .build()
             );

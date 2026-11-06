@@ -46,7 +46,6 @@ public class DefaultCategoryRepository implements CategoryRepository {
                             .totalAmount(projection.amount())
                             .totalTransactions(projection.totalTransactions())
                             .percentage(percentage)
-                            .localId(category.getLocalId())
                             .build();
                 });
     }
@@ -169,7 +168,6 @@ public class DefaultCategoryRepository implements CategoryRepository {
                             .totalAmount(projection.amount())
                             .percentage(percentage)
                             .totalTransactions(projection.totalTransactions())
-                            .localId(category.getLocalId())
                             .build();
                 })
                 .collect(Collectors.toList());

@@ -20,8 +20,7 @@ public record Category(
         boolean active,
         boolean system,
         Instant createdAt,
-        Instant updatedAt,
-        UUID localId) {
+        Instant updatedAt) {
     public Category {
         Optional.ofNullable(name)
                 .filter(n -> !n.isBlank())
@@ -50,7 +49,6 @@ public record Category(
                 .icon(command.icon())
                 .active(true)
                 .system(false)
-                .localId(command.localId())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();

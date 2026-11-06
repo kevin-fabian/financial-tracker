@@ -96,7 +96,6 @@ public class DefaultAccountService implements AccountService {
                 .user(User.of(command.userId()))
                 .currency(command.currency())
                 .type(command.type())
-                .localId(command.localId())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();

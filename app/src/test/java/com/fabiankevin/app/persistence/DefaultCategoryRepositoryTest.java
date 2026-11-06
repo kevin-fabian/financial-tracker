@@ -58,7 +58,6 @@ class DefaultCategoryRepositoryTest {
                 .name("FOOD")
                 .type(TransactionType.EXPENSE)
                 .userId(UUID.randomUUID())
-                .localId(UUID.randomUUID())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -79,7 +78,6 @@ class DefaultCategoryRepositoryTest {
                             .name("FOOD")
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
-                            .localId(foodLocalId)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build(),
@@ -87,7 +85,6 @@ class DefaultCategoryRepositoryTest {
                             .name("TRANSPORT")
                             .type(TransactionType.EXPENSE)
                             .userId(userId)
-                            .localId(transportLocalId)
                             .createdAt(Instant.now())
                             .updatedAt(Instant.now())
                             .build()
@@ -97,8 +94,6 @@ class DefaultCategoryRepositoryTest {
 
             Assertions.assertThat(saved).as("should return exactly 2 categories").hasSize(2);
             Assertions.assertThat(saved).allSatisfy(c -> Assertions.assertThat(c.id()).isNotNull());
-            assertEquals(foodLocalId, saved.get(0).localId(), "first category localId should match");
-            assertEquals(transportLocalId, saved.get(1).localId(), "second category localId should match");
         }
 
         @Test
@@ -119,7 +114,6 @@ class DefaultCategoryRepositoryTest {
 
             Assertions.assertThat(saved).as("should return exactly 1 category").hasSize(1);
             Assertions.assertThat(saved.getFirst().id()).isNotNull();
-            assertNull(saved.getFirst().localId(), "null localId should be preserved");
         }
     }
 
@@ -134,7 +128,6 @@ class DefaultCategoryRepositoryTest {
             assertNotNull(found.id(), "category id should have been generated");
             assertEquals(category.name(), found.name(), "category name should match");
             assertEquals(category.type(), found.type(), "category type should match");
-            assertEquals(category.localId(), found.localId(), "localId should match");
             assertNotNull(category.createdAt(), "createdAt should have been generated");
             assertNotNull(category.updatedAt(), "updatedAt should have been generated");
             assertNull(category.icon(), "icon should be null when not provided");
@@ -169,7 +162,6 @@ class DefaultCategoryRepositoryTest {
                     .name("TRANSPORT")
                     .type(TransactionType.EXPENSE)
                     .userId(UUID.randomUUID())
-                    .localId(transportLocalId)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -177,11 +169,11 @@ class DefaultCategoryRepositoryTest {
             Category saved = categoryRepository.save(categoryWithLocalId);
             Category retrieved = categoryRepository.findById(saved.id()).orElseThrow();
 
-            assertEquals(transportLocalId, retrieved.localId(), "localId should be persisted and retrieved");
+            assertEquals("TRANSPORT", retrieved.name(), "category name should match");
         }
 
         @Test
-        void givenCategoryWithNullLocalId_shouldPersistAndRetrieve() {
+        void givenCategoryWithoutLocalId_shouldPersistAndRetrieve() {
             Category categoryWithoutLocalId = Category.builder()
                     .name("MISC")
                     .type(TransactionType.EXPENSE)
@@ -193,7 +185,7 @@ class DefaultCategoryRepositoryTest {
             Category saved = categoryRepository.save(categoryWithoutLocalId);
             Category retrieved = categoryRepository.findById(saved.id()).orElseThrow();
 
-            assertNull(retrieved.localId(), "null localId should be persisted and retrieved as null");
+            assertNotNull(retrieved.id(), "retrieved category id should not be null");
         }
     }
 
@@ -266,7 +258,6 @@ class DefaultCategoryRepositoryTest {
                     .usingRecursiveComparison()
                     .ignoringFields("id")
                     .isEqualTo(saved);
-            assertEquals(category.localId(), found.localId(), "localId should be retrieved");
         }
     }
 
@@ -560,7 +551,6 @@ class DefaultCategoryRepositoryTest {
                     .name("FOOD")
                     .transactionType(TransactionType.EXPENSE)
                     .userId(userId)
-                    .localId(foodLocalId)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -569,7 +559,6 @@ class DefaultCategoryRepositoryTest {
                     .name("RENT")
                     .transactionType(TransactionType.EXPENSE)
                     .userId(userId)
-                    .localId(rentLocalId)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -617,14 +606,12 @@ class DefaultCategoryRepositoryTest {
             Assertions.assertThat(foodSummary.totalAmount()).isEqualTo(300.0);
             Assertions.assertThat(foodSummary.totalTransactions()).isEqualTo(1);
             Assertions.assertThat(foodSummary.percentage()).isCloseTo(30.0, Assertions.within(0.01));
-            assertEquals(foodLocalId, foodSummary.localId(), "FOOD summary localId should match");
 
             var rentSummary = page.content().stream()
                     .filter(summary -> "RENT".equals(summary.category().name())).findFirst().orElseThrow();
             Assertions.assertThat(rentSummary.totalAmount()).isEqualTo(700.0);
             Assertions.assertThat(rentSummary.totalTransactions()).isEqualTo(1);
             Assertions.assertThat(rentSummary.percentage()).isCloseTo(70.0, Assertions.within(0.01));
-            assertEquals(rentLocalId, rentSummary.localId(), "RENT summary localId should match");
 
             Assertions.assertThat(page.totalElements()).isEqualTo(2);
             Assertions.assertThat(page.totalPages()).isEqualTo(1);
@@ -641,7 +628,6 @@ class DefaultCategoryRepositoryTest {
                     .name("SALARY")
                     .transactionType(TransactionType.INCOME)
                     .userId(userId)
-                    .localId(salaryLocalId)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -650,7 +636,6 @@ class DefaultCategoryRepositoryTest {
                     .name("FREELANCE")
                     .transactionType(TransactionType.INCOME)
                     .userId(userId)
-                    .localId(freelanceLocalId)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
                     .build();
@@ -698,14 +683,12 @@ class DefaultCategoryRepositoryTest {
             Assertions.assertThat(salarySummary.totalAmount()).isEqualTo(5000.0);
             Assertions.assertThat(salarySummary.totalTransactions()).isEqualTo(1);
             Assertions.assertThat(salarySummary.percentage()).isCloseTo(62.5, Assertions.within(0.01));
-            assertEquals(salaryLocalId, salarySummary.localId(), "SALARY summary localId should match");
 
             var freelanceSummary = page.content().stream()
                     .filter(summary -> "FREELANCE".equals(summary.category().name())).findFirst().orElseThrow();
             Assertions.assertThat(freelanceSummary.totalAmount()).isEqualTo(3000.0);
             Assertions.assertThat(freelanceSummary.totalTransactions()).isEqualTo(1);
             Assertions.assertThat(freelanceSummary.percentage()).isCloseTo(37.5, Assertions.within(0.01));
-            assertEquals(freelanceLocalId, freelanceSummary.localId(), "FREELANCE summary localId should match");
 
             Assertions.assertThat(page.totalElements()).isEqualTo(2);
             Assertions.assertThat(page.totalPages()).isEqualTo(1);

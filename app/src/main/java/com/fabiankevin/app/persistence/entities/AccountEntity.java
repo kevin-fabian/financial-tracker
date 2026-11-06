@@ -43,9 +43,6 @@ public class AccountEntity {
     @Column(nullable = false)
     private boolean active = true;
 
-    @Column(name = "local_id")
-    private UUID localId;
-
     public static AccountEntity from(Account account) {
         if (account == null) return null;
         return AccountEntity.builder()
@@ -55,7 +52,6 @@ public class AccountEntity {
                 .currency(Optional.ofNullable(account.currency()).map(Currency::getCurrencyCode).orElse(null))
                 .type(account.type() != null ? account.type().name() : null)
                 .active(account.active())
-                .localId(account.localId())
                 .createdAt(account.createdAt())
                 .updatedAt(account.updatedAt())
                 .build();
@@ -69,7 +65,6 @@ public class AccountEntity {
                 .currency(Optional.ofNullable(this.currency).map(Currency::getInstance).orElse(null))
                 .type(Optional.ofNullable(this.type).map(AccountType::valueOf).orElse(null))
                 .active(this.active)
-                .localId(this.localId)
                 .createdAt(this.createdAt)
                 .updatedAt(this.updatedAt)
                 .build();
