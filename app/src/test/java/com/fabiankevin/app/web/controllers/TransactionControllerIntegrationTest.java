@@ -303,7 +303,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenValidRequestWithExplicitId_thenReturnsCreatedWithProvidedId() throws Exception {
+        void givenValidRequestWithExplicitId_shouldReturnCreatedWithProvidedId() throws Exception {
             User mockUser = User.builder()
                     .id(userId)
                     .firstName("John")
@@ -345,7 +345,7 @@ class TransactionControllerIntegrationTest {
 
         @ParameterizedTest
         @MethodSource("badInputRequests")
-        void givenBadInputs_thenReturnsBadRequest(CreateTransactionRequest request) throws Exception {
+        void givenBadInputs_shouldReturnBadRequest(CreateTransactionRequest request) throws Exception {
             mockMvc.perform(post("/api/transactions")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -407,7 +407,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenAccountBelongsToOtherUser_thenReturnsNotFound() throws Exception {
+        void givenAccountBelongsToOtherUser_shouldReturnNotFound() throws Exception {
             UUID otherUserId = UUID.randomUUID();
 
             Account otherUserAccount = accountService.createAccount(
@@ -441,7 +441,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenCategoryBelongsToOtherUserAndNotSystem_thenReturnsNotFound() throws Exception {
+        void givenCategoryBelongsToOtherUserAndNotSystem_shouldReturnNotFound() throws Exception {
             UUID otherUserId = UUID.randomUUID();
 
             Category otherUserCategory = categoryService.createCategory(
@@ -474,7 +474,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenSystemCategory_thenReturnsCreated() throws Exception {
+        void givenSystemCategory_shouldReturnCreated() throws Exception {
             UUID otherUserId = UUID.randomUUID();
 
             Category systemCategory = categoryService.createCategory(
@@ -524,7 +524,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenRequestWithSpecialCharactersInDescription_thenReturnsCreated() throws Exception {
+        void givenRequestWithSpecialCharactersInDescription_shouldReturnCreated() throws Exception {
             User mockUser = User.builder()
                     .id(userId)
                     .firstName("John")
@@ -562,7 +562,7 @@ class TransactionControllerIntegrationTest {
     class GetSummary {
 
         @Test
-        void givenValidParams_thenReturnsSummary() throws Exception {
+        void givenValidParams_shouldReturnSummary() throws Exception {
             transactionService.addTransaction(
                     AddTransactionCommand.builder()
                             .amount(50)
@@ -604,7 +604,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenNoJwt_thenReturnsUnauthorized() throws Exception {
+        void givenNoJwt_shouldReturnUnauthorized() throws Exception {
             mockMvc.perform(get("/api/transactions/summary")
                             .param("type", "CATEGORY")
                             .param("from", "2026-01-01")
@@ -613,7 +613,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenNoTransactions_thenReturnsEmptySummary() throws Exception {
+        void givenNoTransactions_shouldReturnEmptySummary() throws Exception {
             mockMvc.perform(get("/api/transactions/summary")
                             .param("type", "CATEGORY")
                             .param("from", "2026-01-01")
@@ -632,7 +632,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenDailySummaryType_thenReturnsDailyPoints() throws Exception {
+        void givenDailySummaryType_shouldReturnDailyPoints() throws Exception {
             transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 30, null, LocalDate.of(2026, 3, 10));
             transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 20, null, LocalDate.of(2026, 3, 10));
             transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 50, null, LocalDate.of(2026, 3, 15));
@@ -658,7 +658,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenMonthlySummaryType_thenReturnsMonthlyPoints() throws Exception {
+        void givenMonthlySummaryType_shouldReturnMonthlyPoints() throws Exception {
             transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 100, null, LocalDate.of(2026, 1, 5));
             transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 200, null, LocalDate.of(2026, 2, 15));
             transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 150, null, LocalDate.of(2026, 2, 28));
@@ -685,7 +685,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenYearlySummaryType_thenReturnsYearlyPoints() throws Exception {
+        void givenYearlySummaryType_shouldReturnYearlyPoints() throws Exception {
             transactionHelper.createTransaction(userId, TransactionType.INCOME, 5000, null, LocalDate.of(2025, 6, 1));
             transactionHelper.createTransaction(userId, TransactionType.INCOME, 6000, null, LocalDate.of(2026, 1, 15));
             transactionHelper.createTransaction(userId, TransactionType.INCOME, 7000, null, LocalDate.of(2026, 8, 30));
@@ -712,7 +712,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenDateRangeExcludesTransactions_thenReturnsEmptyPoints() throws Exception {
+        void givenDateRangeExcludesTransactions_shouldReturnEmptyPoints() throws Exception {
             transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 100, null, LocalDate.of(2026, 6, 15));
 
             mockMvc.perform(get("/api/transactions/summary")
@@ -733,7 +733,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenMultipleCategories_thenReturnsAggregatedByCategory() throws Exception {
+        void givenMultipleCategories_shouldReturnAggregatedByCategory() throws Exception {
             transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 40, "Food", LocalDate.of(2026, 5, 1));
             transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 60, "Food", LocalDate.of(2026, 5, 20));
             transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 80, "Transport", LocalDate.of(2026, 5, 10));
@@ -759,7 +759,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenMixedTransactionTypes_thenReturnsAggregatedByCategory() throws Exception {
+        void givenMixedTransactionTypes_shouldReturnAggregatedByCategory() throws Exception {
             transactionHelper.createTransaction(userId, TransactionType.EXPENSE, 100, "Food", LocalDate.of(2026, 7, 1));
             transactionHelper.createTransaction(userId, TransactionType.INCOME, 500, "Salary", LocalDate.of(2026, 7, 15));
 
@@ -788,7 +788,7 @@ class TransactionControllerIntegrationTest {
     class GetTransactions {
 
         @Test
-        void givenTransactionsExist_thenReturnsPagedResponse() throws Exception {
+        void givenTransactionsExist_shouldReturnPagedResponse() throws Exception {
             User mockUser = User.builder()
                     .id(userId)
                     .firstName("John")
@@ -867,7 +867,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenNoJwt_thenReturnsUnauthorized() throws Exception {
+        void givenNoJwt_shouldReturnUnauthorized() throws Exception {
             mockMvc.perform(get("/api/transactions")
                             .param("page", "0")
                             .param("size", "2")
@@ -877,7 +877,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenNoTransactions_thenReturnsEmptyPage() throws Exception {
+        void givenNoTransactions_shouldReturnEmptyPage() throws Exception {
             mockMvc.perform(get("/api/transactions")
                             .param("page", "0")
                             .param("size", "10")
@@ -900,7 +900,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenTransactionTypeFilter_thenReturnsFilteredTransactions() throws Exception {
+        void givenTransactionTypeFilter_shouldReturnFilteredTransactions() throws Exception {
             Category incomeCategory = categoryService.createCategory(
                     CreateCategoryCommand.builder()
                             .name("SALARY")
@@ -952,7 +952,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenUserWithPartyMembers_thenReturnsConsolidatedTransactions() throws Exception {
+        void givenUserWithPartyMembers_shouldReturnConsolidatedTransactions() throws Exception {
             UUID partyLeaderId = UUID.randomUUID();
             UUID inviteeId = UUID.randomUUID();
 
@@ -1087,7 +1087,7 @@ class TransactionControllerIntegrationTest {
     class GetTransactionById {
 
         @Test
-        void givenExistingId_thenReturnsTransaction() throws Exception {
+        void givenExistingId_shouldReturnTransaction() throws Exception {
             User mockUser = User.builder()
                     .id(userId)
                     .firstName("John")
@@ -1142,7 +1142,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenNoJwt_thenReturnsUnauthorized() throws Exception {
+        void givenNoJwt_shouldReturnUnauthorized() throws Exception {
             UUID id = UUID.randomUUID();
 
             mockMvc.perform(get("/api/transactions/" + id))
@@ -1150,7 +1150,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenNonExistentId_thenReturnsNotFound() throws Exception {
+        void givenNonExistentId_shouldReturnNotFound() throws Exception {
             UUID id = UUID.randomUUID();
 
             mockMvc.perform(get("/api/transactions/" + id)
@@ -1169,7 +1169,7 @@ class TransactionControllerIntegrationTest {
     class PatchTransaction {
 
         @Test
-        void givenPatchAllFields_thenReturnsUpdatedTransaction() throws Exception {
+        void givenPatchAllFields_shouldReturnUpdatedTransaction() throws Exception {
             User mockUser = User.builder()
                     .id(userId)
                     .firstName("John")
@@ -1237,7 +1237,7 @@ class TransactionControllerIntegrationTest {
 
         @ParameterizedTest
         @ValueSource(doubles = {0.0, -100.0})
-        void givenPatchWithNonPositiveAmount_thenReturnsBadRequest(Double amount) throws Exception {
+        void givenPatchWithNonPositiveAmount_shouldReturnBadRequest(Double amount) throws Exception {
             User mockUser = User.builder()
                     .id(userId)
                     .firstName("John")
@@ -1275,7 +1275,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenPatchNonExistentAccount_thenReturnsNotFound() throws Exception {
+        void givenPatchNonExistentAccount_shouldReturnNotFound() throws Exception {
             User mockUser = User.builder()
                     .id(userId)
                     .firstName("John")
@@ -1313,7 +1313,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenPatchNonExistentCategory_thenReturnsNotFound() throws Exception {
+        void givenPatchNonExistentCategory_shouldReturnNotFound() throws Exception {
             User mockUser = User.builder()
                     .id(userId)
                     .firstName("John")
@@ -1351,7 +1351,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenNoJwt_thenReturnsUnauthorized() throws Exception {
+        void givenNoJwt_shouldReturnUnauthorized() throws Exception {
             Transaction created = transactionService.addTransaction(
                     AddTransactionCommand.builder()
                             .amount(100)
@@ -1374,7 +1374,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenNonExistentId_thenReturnsNotFound() throws Exception {
+        void givenNonExistentId_shouldReturnNotFound() throws Exception {
             PatchTransactionRequest request = PatchTransactionRequest.builder()
                     .description("Updated description")
                     .build();
@@ -1393,7 +1393,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenPatchPartialFields_thenReturnsUpdatedFields() throws Exception {
+        void givenPatchPartialFields_shouldReturnUpdatedFields() throws Exception {
             Category newCategory = categoryService.createCategory(
                     CreateCategoryCommand.builder()
                             .name("TRANSPORT")
@@ -1441,7 +1441,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenPatchToSystemCategory_thenReturnsUpdatedTransaction() throws Exception {
+        void givenPatchToSystemCategory_shouldReturnUpdatedTransaction() throws Exception {
             Category systemCategory = categoryRepository.save(
                     Category.builder()
                             .name("SYSTEM TRANSPORT")
@@ -1503,7 +1503,7 @@ class TransactionControllerIntegrationTest {
     class DeleteTransaction {
 
         @Test
-        void givenExistingTransaction_thenReturnsNoContent() throws Exception {
+        void givenExistingTransaction_shouldReturnNoContent() throws Exception {
             Transaction created = transactionService.addTransaction(
                     AddTransactionCommand.builder()
                             .amount(100)
@@ -1530,7 +1530,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenNoJwt_thenReturnsUnauthorized() throws Exception {
+        void givenNoJwt_shouldReturnUnauthorized() throws Exception {
             Transaction created = transactionService.addTransaction(
                     AddTransactionCommand.builder()
                             .amount(100)
@@ -1553,7 +1553,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenNonExistentId_thenReturnsNotFound() throws Exception {
+        void givenNonExistentId_shouldReturnNotFound() throws Exception {
             mockMvc.perform(delete("/api/transactions/" + UUID.randomUUID())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -1571,7 +1571,7 @@ class TransactionControllerIntegrationTest {
 
         @ParameterizedTest
         @EnumSource(TransactionType.class)
-        void givenTransactionTypeFilter_thenPassesTypeToService(TransactionType type) throws Exception {
+        void givenTransactionTypeFilter_shouldPassTypeToService(TransactionType type) throws Exception {
             Category incomeCategory = categoryService.createCategory(
                     CreateCategoryCommand.builder()
                             .name("SALARY")
@@ -1694,7 +1694,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenNoJwt_thenReturnsUnauthorized() throws Exception {
+        void givenNoJwt_shouldReturnUnauthorized() throws Exception {
             CreateBatchTransactionsRequest request = CreateBatchTransactionsRequest.builder()
                     .transactions(List.of(
                             CreateTransactionRequest.builder()
