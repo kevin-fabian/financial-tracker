@@ -104,7 +104,8 @@ public class DefaultAccountService implements AccountService {
         if (existingAccount.active()) {
             throw new AccountAlreadyExistException("Account with the same name and type already exists for the user");
         }
-        return accountRepository.save(existingAccount.toBuilder()
+
+        return accountRepository.update(existingAccount.toBuilder()
                 .active(true)
                 .updatedAt(Instant.now())
                 .build());
@@ -160,7 +161,7 @@ public class DefaultAccountService implements AccountService {
                             if (transactionCount == 0) {
                                 accountRepository.deleteById(id);
                             } else {
-                                accountRepository.save(account.toBuilder().active(false).build());
+                                accountRepository.update(account.toBuilder().active(false).build());
                             }
                         },
                         () -> { throw new AccountNotFoundException(); }
