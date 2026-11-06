@@ -42,7 +42,8 @@ public class DefaultAccountRepository implements AccountRepository {
         }
         AccountEntity entity = AccountEntity.from(account);
         entity.setId(Optional.ofNullable(entity.getId()).orElse(UUID.randomUUID()));
-        return entityManager.merge(entity).toModel();
+        entityManager.persist(entity);
+        return entity.toModel();
     }
 
     @Override
@@ -51,7 +52,8 @@ public class DefaultAccountRepository implements AccountRepository {
             throw new InvalidDataAccessApiUsageException("Account must not be null");
         }
         AccountEntity entity = AccountEntity.from(account);
-        return entityManager.merge(entity).toModel();
+
+        return jpaAccountRepository.save(entity).toModel();
     }
 
     @Transactional

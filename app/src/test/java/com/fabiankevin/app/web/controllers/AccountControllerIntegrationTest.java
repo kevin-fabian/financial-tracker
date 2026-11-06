@@ -117,7 +117,7 @@ class AccountControllerIntegrationTest {
     class CreateAccount {
 
         @Test
-        void givenValidRequest_thenReturnsCreatedWithAccountResponse() throws Exception {
+        void givenValidRequest_shouldReturnCreatedAccountResponse() throws Exception {
             UUID localId = UUID.randomUUID();
             CreateAccountRequest request = CreateAccountRequest.builder()
                     .name("GCASH")
@@ -155,7 +155,44 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        void givenNoJwt_thenReturnsUnauthorized() throws Exception {
+        void givenValidRequestWithExplicitId_shouldReturnCreatedAccountWithProvidedId() throws Exception {
+            UUID providedId = UUID.randomUUID();
+            CreateAccountRequest request = CreateAccountRequest.builder()
+                    .id(providedId)
+                    .name("GCASH")
+                    .currency("PHP")
+                    .type(E_WALLET)
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(post("/api/accounts")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(header().string("Location", matchesPattern("http://localhost/api/accounts/" + providedId)))
+                    .andExpect(jsonPath("$.id").value(providedId.toString()))
+                    .andExpect(jsonPath("$.name").value("GCASH"))
+                    .andExpect(jsonPath("$.currency").value("PHP"))
+                    .andExpect(jsonPath("$.type").value("E_WALLET"))
+                    .andExpect(jsonPath("$.active").value(true))
+                    .andExpect(jsonPath("$.totalBalance").value(0.0))
+                    .andExpect(jsonPath("$.totalTransactions").value(0))
+                    .andExpect(jsonPath("$.user.firstName").value("John"))
+                    .andExpect(jsonPath("$.user.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.user.initial").value("JD"));
+        }
+
+        @Test
+        void givenNoJwt_shouldReturnUnauthorized() throws Exception {
             CreateAccountRequest request = CreateAccountRequest.builder()
                     .name("GCASH")
                     .currency("PHP")
@@ -185,7 +222,7 @@ class AccountControllerIntegrationTest {
 
         @ParameterizedTest
         @MethodSource("invalidCreateAccountRequestTestCases")
-        void givenInvalidCreateAccountRequest_thenReturnsBadRequest(String name, String currency, AccountType type) throws Exception {
+        void givenInvalidCreateAccountRequest_shouldReturnBadRequest(String name, String currency, AccountType type) throws Exception {
             CreateAccountRequest request = CreateAccountRequest.builder()
                     .name(name)
                     .currency(currency)
@@ -206,7 +243,7 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        void givenDuplicateAccountNameAndType_thenReturnsConflict() throws Exception {
+        void givenDuplicateAccountNameAndType_shouldReturnConflict() throws Exception {
             // Create first account
             CreateAccountRequest firstRequest = CreateAccountRequest.builder()
                     .name("GCASH")
@@ -245,7 +282,7 @@ class AccountControllerIntegrationTest {
     class CreateBatchAccounts {
 
         @Test
-        void givenMultipleNewAccounts_shouldReturnOkAndCreateAll() throws Exception {
+        void givenMultipleNewAccounts_shouldReturnOkAndCreatedAccounts() throws Exception {
             CreateBatchAccountsRequest request = CreateBatchAccountsRequest.builder()
                     .accounts(List.of(
                             CreateAccountRequest.builder()
@@ -283,7 +320,7 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        void givenBatchWithExistingInactiveAccount_shouldReactivate() throws Exception {
+        void givenBatchWithExistingInactiveAccount_shouldReturnReactivatedAccount() throws Exception {
             accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("MAYA")
@@ -333,7 +370,7 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        void givenBatchWithNewAndReactivated_shouldCreateAndReactivate() throws Exception {
+        void givenBatchWithNewAndReactivatedAccounts_shouldReturnCreatedAndReactivatedAccounts() throws Exception {
             accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("BDO")
@@ -427,7 +464,7 @@ class AccountControllerIntegrationTest {
     class GetAccountById {
 
         @Test
-        void givenExistingId_thenReturnsAccount() throws Exception {
+        void givenExistingId_shouldReturnAccount() throws Exception {
             AccountSummary accountSummary = accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")
@@ -453,7 +490,7 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        void givenNoJwt_thenReturnsUnauthorized() throws Exception {
+        void givenNoJwt_shouldReturnUnauthorized() throws Exception {
             UUID id = UUID.randomUUID();
 
             mockMvc.perform(get("/api/accounts/" + id))
@@ -461,7 +498,7 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        void givenAccountNotFound_thenReturnNotFound() throws Exception {
+        void givenNonExistentId_shouldReturnNotFound() throws Exception {
             UUID id = UUID.randomUUID();
 
             mockMvc.perform(get("/api/accounts/" + id)
@@ -476,7 +513,7 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        void givenAccountBelongsToOtherUser_thenReturnNotFound() throws Exception {
+        void givenAccountBelongsToOtherUser_shouldReturnNotFound() throws Exception {
             UUID otherUserId = UUID.randomUUID();
             AccountSummary accountSummary = accountService.createAccount(
                     CreateAccountCommand.builder()
@@ -502,7 +539,7 @@ class AccountControllerIntegrationTest {
     @Nested
     class PatchAccount {
         @Test
-        void givenFullPatchRequest_thenReturnsUpdatedAccount() throws Exception {
+        void givenFullPatchRequest_shouldReturnUpdatedAccount() throws Exception {
             AccountSummary accountSummary = accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")
@@ -545,7 +582,7 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        void givenPatchAccountWithTransactions_thenReturnsUpdatedAccountWithAggregatedData() throws Exception {
+        void givenPatchAccountWithTransactions_shouldReturnUpdatedAccountWithAggregatedData() throws Exception {
             AccountSummary accountSummary = accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")
@@ -633,7 +670,7 @@ class AccountControllerIntegrationTest {
 
         @ParameterizedTest
         @MethodSource("invalidPatchAccountRequestTestCases")
-        void givenInvalidPatchAccountRequest_thenReturnsBadRequest(String name, String currency, AccountType type) throws Exception {
+        void givenInvalidPatchAccountRequest_shouldReturnBadRequest(String name, String currency, AccountType type) throws Exception {
             AccountSummary accountSummary = accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")
@@ -670,7 +707,7 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        void givenNoJwt_thenReturnsUnauthorized() throws Exception {
+        void givenNoJwt_shouldReturnUnauthorized() throws Exception {
             UUID id = UUID.randomUUID();
 
             PatchAccountRequest request = PatchAccountRequest.builder()
@@ -684,7 +721,7 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        void givenAccountNotFound_thenReturnNotFound() throws Exception {
+        void givenNonExistentId_shouldReturnNotFound() throws Exception {
             UUID id = UUID.randomUUID();
 
             PatchAccountRequest request = PatchAccountRequest.builder()
@@ -705,7 +742,7 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        void givenPartialPatch_thenOnlyUpdatesProvidedFields() throws Exception {
+        void givenPartialPatchRequest_shouldReturnUpdatedAccountWithOnlyProvidedFields() throws Exception {
             AccountSummary accountSummary = accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")
@@ -740,7 +777,7 @@ class AccountControllerIntegrationTest {
     class DisableAccount {
 
         @Test
-        void givenAccountWithNoTransactions_thenHardDeletes() throws Exception {
+        void givenAccountWithNoTransactions_shouldReturnHardDeletedAccount() throws Exception {
             AccountSummary accountSummary = accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("BDO")
@@ -773,7 +810,7 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        void givenAccountWithTransactions_thenSoftDeletes() throws Exception {
+        void givenAccountWithTransactions_shouldReturnSoftDeletedAccount() throws Exception {
             AccountSummary accountSummary = accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")
@@ -825,7 +862,7 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        void givenNoJwt_thenReturnsUnauthorized() throws Exception {
+        void givenNoJwt_shouldReturnUnauthorized() throws Exception {
             UUID id = UUID.randomUUID();
 
             mockMvc.perform(post("/api/accounts/" + id + "/disable"))
@@ -833,7 +870,7 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        void givenAccountNotFound_thenReturnNotFound() throws Exception {
+        void givenNonExistentId_shouldReturnNotFound() throws Exception {
             UUID id = UUID.randomUUID();
 
             mockMvc.perform(post("/api/accounts/" + id + "/disable")
@@ -852,7 +889,7 @@ class AccountControllerIntegrationTest {
     class GetAccounts {
 
         @Test
-        void givenExistingUserAccounts_thenReturnsPagedSummaryResponse() throws Exception {
+        void givenExistingUserAccounts_shouldReturnPagedSummaryResponse() throws Exception {
             accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")
@@ -901,13 +938,13 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        void givenNoJwt_thenReturnsUnauthorized() throws Exception {
+        void givenNoJwt_shouldReturnUnauthorized() throws Exception {
             mockMvc.perform(get("/api/accounts?page=0&size=10&sort=name&direction=ASC"))
                     .andExpect(status().isUnauthorized());
         }
 
         @Test
-        void givenNoContent_thenReturnsEmptyPage() throws Exception {
+        void givenNoAccounts_shouldReturnEmptyPage() throws Exception {
             mockMvc.perform(get("/api/accounts?page=0&size=10&sort=name&direction=ASC")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -926,7 +963,7 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        void givenUserWithHouseholdMembers_thenReturnTheirCombinedListAccounts() throws Exception {
+        void givenUserWithHouseholdMembers_shouldReturnCombinedListAccounts() throws Exception {
             UUID leaderId = UUID.randomUUID();
             UUID inviteeId = UUID.randomUUID();
 
@@ -993,7 +1030,7 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        void givenAccountWithIncomeAndExpenseTransactions_thenReturnsCorrectBalance() throws Exception {
+        void givenAccountWithIncomeAndExpenseTransactions_shouldReturnCorrectBalance() throws Exception {
             AccountSummary accountSummary = accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")
@@ -1066,7 +1103,7 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        void givenTransactionsFromLastMonthAndCurrentMonth_thenOnlyCurrentMonthTransactionsReflectOnAccountBalance() throws Exception {
+        void givenTransactionsFromLastMonthAndCurrentMonth_shouldReturnOnlyCurrentMonthTransactionsInBalance() throws Exception {
             AccountSummary accountSummary = accountService.createAccount(
                     CreateAccountCommand.builder()
                             .name("GCASH")

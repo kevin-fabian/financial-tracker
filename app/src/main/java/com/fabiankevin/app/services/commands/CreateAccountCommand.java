@@ -7,6 +7,7 @@ import java.util.UUID;
 
 @Builder(toBuilder = true)
 public record CreateAccountCommand(
+        UUID id,
         String name,
         Currency currency,
         com.fabiankevin.app.models.enums.AccountType type,

@@ -86,6 +86,7 @@ public class DefaultAccountService implements AccountService {
 
     private Account createNewAccount(CreateAccountCommand command) {
         Account account = Account.builder()
+                .id(command.id())
                 .name(command.name())
                 .active(true)
                 .user(User.of(command.userId()))
@@ -134,7 +135,7 @@ public class DefaultAccountService implements AccountService {
         Optional.ofNullable(newType)
                 .ifPresent(builder::type);
 
-        Account updated = accountRepository.save(builder.build());
+        Account updated = accountRepository.update(builder.build());
         return getAccountById(updated.id(), userId);
     }
 
