@@ -22,6 +22,7 @@ import java.time.LocalDate;
 import java.util.Currency;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -44,6 +45,10 @@ public class DefaultAccountService implements AccountService {
     @Transactional
     @Override
     public void createBatchAccounts(List<CreateAccountCommand> commands, UUID userId) {
+        if (commands.isEmpty()) {
+            return;
+        }
+
         List<Account> existing = accountRepository.findByNameAndTypeAndUserIdBatch(commands, userId);
         Map<String, Account> existingByKey = existing.stream()
                 .collect(Collectors.toMap(
@@ -53,24 +58,23 @@ public class DefaultAccountService implements AccountService {
 
         List<Account> toSave = commands.stream()
                 .map(command -> {
-                    String key = command.name() + ":" + command.type().name();
-                    return Optional.ofNullable(existingByKey.get(key))
-                            .map(accountCommand -> accountCommand.toBuilder()
-                                    .active(true)
-                                    .updatedAt(Instant.now())
-                                    .build())
-                            .orElseGet(() -> Account.builder()
-                                    .name(command.name())
-                                    .active(true)
-                                    .user(User.of(command.userId()))
-                                    .currency(command.currency())
-                                    .type(command.type())
-                                    .localId(command.localId())
-                                    .createdAt(Instant.now())
-                                    .updatedAt(Instant.now())
-                                    .build());
+                    Account existingAccount = existingByKey.get(command.name() + ":" + command.type().name());
+                    if (existingAccount != null && existingAccount.id().equals(command.id())) {
+                        return null;
+                    }
+
+                    return Account.builder()
+                            .name(command.name())
+                            .active(true)
+                            .user(User.of(command.userId()))
+                            .currency(command.currency())
+                            .type(command.type())
+                            .createdAt(Instant.now())
+                            .updatedAt(Instant.now())
+                            .build();
                 })
-                .collect(Collectors.toList());
+                .filter(Objects::nonNull)
+                .toList();
 
         accountRepository.saveAll(toSave);
     }

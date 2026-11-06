@@ -71,6 +71,7 @@ class DefaultRecurringTransactionRepositoryTest {
         UUID userId = UUID.randomUUID();
         Instant now = Instant.now();
         AccountEntity account = jpaAccountRepository.saveAndFlush(AccountEntity.builder()
+                .id(UUID.randomUUID())
                 .name("Checking")
                 .userId(userId)
                 .currency("USD")
@@ -336,6 +337,7 @@ class DefaultRecurringTransactionRepositoryTest {
             Instant now = Instant.now();
 
             AccountEntity testAccount = jpaAccountRepository.saveAndFlush(AccountEntity.builder()
+                    .id(UUID.randomUUID())
                     .name("Test Checking")
                     .userId(userId)
                     .currency("USD")
@@ -392,6 +394,7 @@ class DefaultRecurringTransactionRepositoryTest {
             UUID otherUserId = UUID.randomUUID();
 
             AccountEntity otherAccount = jpaAccountRepository.saveAndFlush(AccountEntity.builder()
+                    .id(UUID.randomUUID())
                     .name("Other Checking")
                     .userId(otherUserId)
                     .currency("USD")

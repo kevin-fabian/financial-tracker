@@ -591,7 +591,7 @@ class DefaultAccountServiceTest {
 
         @Test
         @SuppressWarnings("unchecked")
-        void givenBatchWithExistingInactiveAccount_shouldReactivateWithSaveAll() {
+        void givenBatchWithReactivatedAccount_shouldNotSaveWithSaveAll() {
             UUID userId = UUID.randomUUID();
             UUID existingId = UUID.randomUUID();
 
@@ -611,29 +611,25 @@ class DefaultAccountServiceTest {
                     .currency(Currency.getInstance("PHP"))
                     .type(E_WALLET)
                     .userId(userId)
+                    .id(existingId)
                     .build();
 
             when(accountRepository.findByNameAndTypeAndUserIdBatch(List.of(cmd), userId))
                     .thenReturn(List.of(inactive));
             ArgumentCaptor<List<Account>> saveCaptor = ArgumentCaptor.forClass(List.class);
-            when(accountRepository.saveAll(saveCaptor.capture())).thenAnswer(invocation -> {
-                List<Account> accounts = invocation.getArgument(0);
-                return accounts.stream()
-                        .map(a -> a.toBuilder().active(true).build())
-                        .toList();
-            });
+            when(accountRepository.saveAll(saveCaptor.capture())).thenAnswer(invocation ->
+                    invocation.getArgument(0));
 
             accountService.createBatchAccounts(List.of(cmd), userId);
 
             verify(accountRepository, times(1)).findByNameAndTypeAndUserIdBatch(List.of(cmd), userId);
             List<Account> saved = saveCaptor.getValue();
-            assertEquals(1, saved.size(), "should save exactly 1 account");
-            assertTrue(saved.getFirst().active(), "account should be reactivated");
+            assertEquals(0, saved.size(), "should not save any accounts when all are reactivated");
         }
 
         @Test
         @SuppressWarnings("unchecked")
-        void givenBatchWithNewAndReactivated_shouldCreateAndReactivateWithSaveAll() {
+        void givenBatchWithNewAndReactivated_shouldSaveOnlyNewWithSaveAll() {
             UUID userId = UUID.randomUUID();
             UUID existingId = UUID.randomUUID();
             UUID newId = UUID.randomUUID();
@@ -654,6 +650,7 @@ class DefaultAccountServiceTest {
                     .currency(Currency.getInstance("PHP"))
                     .type(E_WALLET)
                     .userId(userId)
+                    .id(existingId)
                     .build();
 
             CreateAccountCommand cmd2 = CreateAccountCommand.builder()
@@ -669,7 +666,6 @@ class DefaultAccountServiceTest {
             when(accountRepository.saveAll(saveCaptor.capture())).thenAnswer(invocation -> {
                 List<Account> accounts = invocation.getArgument(0);
                 return accounts.stream().map(a -> {
-                    if ("GCASH".equals(a.name())) return a.toBuilder().id(existingId).active(true).build();
                     if ("BDO".equals(a.name())) return a.toBuilder().id(newId).build();
                     return a;
                 }).toList();
@@ -679,9 +675,20 @@ class DefaultAccountServiceTest {
 
             verify(accountRepository, times(1)).findByNameAndTypeAndUserIdBatch(List.of(cmd1, cmd2), userId);
             List<Account> saved = saveCaptor.getValue();
-            assertEquals(2, saved.size(), "should save exactly 2 accounts");
-            Account reactivated = saved.stream().filter(a -> "GCASH".equals(a.name())).findFirst().orElseThrow();
-            assertTrue(reactivated.active(), "reactivated account should be active");
+            assertEquals(1, saved.size(), "should save exactly 1 account (only the new one)");
+            Account newAccount = saved.getFirst();
+            assertEquals("BDO", newAccount.name(), "should only save the new account");
+        }
+
+        @Test
+        void givenEmptyList_shouldNotCallRepository() {
+            UUID userId = UUID.randomUUID();
+            List<CreateAccountCommand> commands = List.of();
+
+            accountService.createBatchAccounts(commands, userId);
+
+            verify(accountRepository, never()).findByNameAndTypeAndUserIdBatch(anyList(), any());
+            verify(accountRepository, never()).saveAll(anyList());
         }
     }
 
