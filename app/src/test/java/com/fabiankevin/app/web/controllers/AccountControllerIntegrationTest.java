@@ -48,7 +48,6 @@ import static com.fabiankevin.app.models.enums.AccountType.E_WALLET;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -280,7 +279,6 @@ class AccountControllerIntegrationTest {
 
     @Nested
     class CreateBatchAccounts {
-
         @Test
         void givenMultipleNewAccounts_shouldReturnOkAndCreatedAccounts() throws Exception {
             CreateBatchAccountsRequest request = CreateBatchAccountsRequest.builder()
@@ -320,75 +318,24 @@ class AccountControllerIntegrationTest {
         }
 
         @Test
-        void givenBatchWithExistingInactiveAccount_shouldReturnReactivatedAccount() throws Exception {
+        void givenBatchWithExistingAccount_shouldSkipExistingEntry() throws Exception {
+            UUID existingId = UUID.randomUUID();
+
+            // Pre-create an account with a specific ID
             accountService.createAccount(
                     CreateAccountCommand.builder()
-                            .name("MAYA")
+                            .id(existingId)
+                            .name("GCASH")
                             .userId(userId)
                             .currency(Currency.getInstance("PHP"))
                             .type(E_WALLET)
                             .build()
             );
-            jpaAccountRepository.findAll().forEach(entity -> {
-                if ("MAYA".equals(entity.getName())) {
-                    entity.setActive(false);
-                    jpaAccountRepository.saveAndFlush(entity);
-                }
-            });
 
             CreateBatchAccountsRequest request = CreateBatchAccountsRequest.builder()
                     .accounts(List.of(
                             CreateAccountRequest.builder()
-                                    .name("MAYA")
-                                    .currency("PHP")
-                                    .type(E_WALLET)
-                                    .build()
-                    ))
-                    .build();
-
-            when(userClient.getUsersByIds(List.of(userId)))
-                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
-
-            mockMvc.perform(post("/api/accounts/batch")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", userId)
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk());
-
-            List<AccountSummary> summaries = jpaAccountRepository.findAll().stream()
-                    .filter(a -> "MAYA".equals(a.getName()))
-                    .map(e -> AccountSummary.builder().account(e.toModel()).build())
-                    .toList();
-            assertEquals(1, summaries.size());
-            assertTrue(summaries.getFirst().account().active(), "account should be reactivated");
-        }
-
-        @Test
-        void givenBatchWithNewAndReactivatedAccounts_shouldReturnCreatedAndReactivatedAccounts() throws Exception {
-            accountService.createAccount(
-                    CreateAccountCommand.builder()
-                            .name("BDO")
-                            .userId(userId)
-                            .currency(Currency.getInstance("USD"))
-                            .type(CREDIT_CARD)
-                            .build()
-            );
-            jpaAccountRepository.findAll().forEach(entity -> {
-                if ("BDO".equals(entity.getName())) {
-                    entity.setActive(false);
-                    jpaAccountRepository.saveAndFlush(entity);
-                }
-            });
-
-            CreateBatchAccountsRequest request = CreateBatchAccountsRequest.builder()
-                    .accounts(List.of(
-                            CreateAccountRequest.builder()
+                                    .id(existingId)
                                     .name("GCASH")
                                     .currency("PHP")
                                     .type(E_WALLET)
