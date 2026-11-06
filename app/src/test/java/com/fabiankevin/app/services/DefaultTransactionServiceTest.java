@@ -131,6 +131,45 @@ class DefaultTransactionServiceTest {
        }
 
        @Test
+       void givenValidCommandWithExplicitId_thenShouldUseProvidedId() {
+           UUID userId = UUID.randomUUID();
+           UUID explicitId = UUID.randomUUID();
+           AddTransactionCommand command = AddTransactionCommand.builder()
+                   .id(explicitId)
+                   .userId(userId)
+                   .amount(100)
+                   .accountId(UUID.randomUUID())
+                   .description("Food and drinks")
+                   .categoryId(UUID.randomUUID())
+                   .transactionDate(LocalDate.now())
+                   .build();
+           when(accountRepository.findById(command.accountId())).thenReturn(Optional.ofNullable(Account.builder()
+                   .id(command.accountId())
+                   .name("GCASH")
+                   .currency(Currency.getInstance("PHP"))
+                   .user(User.of(userId))
+                   .build()));
+           when(categoryRepository.findById(command.categoryId())).thenReturn(Optional.of(Category.builder()
+                   .id(command.categoryId())
+                   .name("FOOD")
+                   .type(TransactionType.EXPENSE)
+                   .userId(userId)
+                   .build()));
+           when(transactionRepository.save(any())).then(invocationOnMock -> {
+               Transaction transaction = invocationOnMock.getArgument(0);
+               return transaction;
+           });
+
+           Transaction transaction = transactionService.addTransaction(command);
+
+           assertEquals(explicitId, transaction.id(), "id should match the provided explicit id");
+           assertEquals("Food and drinks", transaction.description(), "description should match");
+           verify(accountRepository, times(1)).findById(command.accountId());
+           verify(categoryRepository, times(1)).findById(command.categoryId());
+           verify(transactionRepository, times(1)).save(any());
+       }
+
+       @Test
        void givenAccountNotFound_thenShouldThrow() {
            UUID userId = UUID.randomUUID();
            AddTransactionCommand command = AddTransactionCommand.builder()

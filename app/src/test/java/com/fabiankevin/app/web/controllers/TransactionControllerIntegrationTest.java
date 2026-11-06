@@ -148,7 +148,7 @@ class TransactionControllerIntegrationTest {
     class CreateTransaction {
 
         @Test
-        void givenValidRequest_thenReturnsCreatedWithTransactionResponse() throws Exception {
+        void givenValidRequest_shouldReturnCreatedTransaction() throws Exception {
             User mockUser = User.builder()
                     .id(userId)
                     .firstName("John")
@@ -203,7 +203,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenNoJwt_thenReturnsUnauthorized() throws Exception {
+        void givenNoJwt_shouldReturnUnauthorized() throws Exception {
             CreateTransactionRequest request = CreateTransactionRequest.builder()
                     .amount(100)
                     .description("Dinner")
@@ -219,7 +219,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenNonExistentAccount_thenReturnsNotFound() throws Exception {
+        void givenNonExistentAccount_shouldReturnNotFound() throws Exception {
             CreateTransactionRequest request = CreateTransactionRequest.builder()
                     .amount(100)
                     .description("Dinner")
@@ -242,7 +242,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenNonExistentCategory_thenReturnsNotFound() throws Exception {
+        void givenNonExistentCategory_shouldReturnNotFound() throws Exception {
             CreateTransactionRequest request = CreateTransactionRequest.builder()
                     .amount(100)
                     .description("Dinner")
@@ -265,7 +265,7 @@ class TransactionControllerIntegrationTest {
         }
 
         @Test
-        void givenValidRequestWithMinimalFields_thenReturnsCreated() throws Exception {
+        void givenValidRequestWithMinimalFields_shouldReturnCreated() throws Exception {
             User mockUser = User.builder()
                     .id(userId)
                     .firstName("John")
@@ -295,6 +295,47 @@ class TransactionControllerIntegrationTest {
                     .andExpect(header().string("Location", matchesPattern("http://localhost/api/transactions/[-a-f0-9]{36}")))
                     .andExpect(jsonPath("$.id").isNotEmpty())
                     .andExpect(jsonPath("$.description").isEmpty())
+                    .andExpect(jsonPath("$.amount.value").value(100))
+                    .andExpect(jsonPath("$.type").value("EXPENSE"))
+                    .andExpect(jsonPath("$.transactionDate").value("2026-01-01"))
+                    .andExpect(jsonPath("$.account.id").value(account.id().toString()))
+                    .andExpect(jsonPath("$.category.id").value(category.id().toString()));
+        }
+
+        @Test
+        void givenValidRequestWithExplicitId_thenReturnsCreatedWithProvidedId() throws Exception {
+            User mockUser = User.builder()
+                    .id(userId)
+                    .firstName("John")
+                    .lastName("Doe")
+                    .build();
+
+            when(userClient.getUsersByIds(any())).thenReturn(List.of(mockUser));
+
+            UUID explicitTransactionId = UUID.randomUUID();
+            CreateTransactionRequest request = CreateTransactionRequest.builder()
+                    .id(explicitTransactionId)
+                    .amount(100)
+                    .description("Dinner with explicit id")
+                    .transactionDate(LocalDate.of(2026, 1, 1))
+                    .categoryId(category.id())
+                    .accountId(account.id())
+                    .build();
+
+            mockMvc.perform(post("/api/transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(header().string("Location", matchesPattern("http://localhost/api/transactions/[-a-f0-9]{36}")))
+                    .andExpect(jsonPath("$.id").value(explicitTransactionId.toString()))
+                    .andExpect(jsonPath("$.description").value("Dinner with explicit id"))
                     .andExpect(jsonPath("$.amount.value").value(100))
                     .andExpect(jsonPath("$.type").value("EXPENSE"))
                     .andExpect(jsonPath("$.transactionDate").value("2026-01-01"))

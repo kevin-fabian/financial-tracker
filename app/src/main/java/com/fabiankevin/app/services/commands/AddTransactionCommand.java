@@ -7,6 +7,7 @@ import java.util.UUID;
 
 @Builder(toBuilder = true)
 public record AddTransactionCommand(
+        UUID id,
         double amount,
         String description,
         LocalDate transactionDate,

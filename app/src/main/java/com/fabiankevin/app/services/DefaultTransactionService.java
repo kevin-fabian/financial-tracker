@@ -139,6 +139,7 @@ public class DefaultTransactionService implements TransactionService {
                 .orElseThrow(CategoryNotFoundException::new);
 
         Transaction transaction = Transaction.builder()
+                .id(command.id())
                 .category(category)
                 .account(account)
                 .description(command.description())

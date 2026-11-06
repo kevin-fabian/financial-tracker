@@ -12,6 +12,9 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 @Schema(description = "Request DTO for creating a transaction")
 public record CreateTransactionRequest(
+        @Schema(description = "Client-provided UUID for the transaction. If not provided, a server-generated UUID will be used", example = "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+        UUID id,
+
         @NotNull(message = "Amount is required")
         @Schema(description = "Transaction amount", example = "100.00")
         double amount,
@@ -34,6 +37,7 @@ public record CreateTransactionRequest(
 ) {
     public AddTransactionCommand toCommand(UUID userId) {
         return AddTransactionCommand.builder()
+                .id(this.id)
                 .amount(this.amount)
                 .description(this.description)
                 .transactionDate(this.transactionDate)
