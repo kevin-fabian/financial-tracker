@@ -126,17 +126,6 @@ class DefaultCategoryRepositoryTest {
     @Nested
     class Save {
         @Test
-        void givenExistingCategoryAndNewCategoryName_thenShouldUpdateCategoryName() {
-            Category saved = categoryRepository.save(category);
-            var found = categoryRepository.findByIdAndUserId(saved.id(), saved.userId()).orElseThrow();
-
-            Category updatedCategory = found.toBuilder()
-                    .name("Updated category")
-                    .build();
-            categoryRepository.update(updatedCategory);
-        }
-
-        @Test
         void givenValidCategory_shouldPersistAndRetrieve() {
             Category saved = categoryRepository.save(category);
 
@@ -220,6 +209,40 @@ class DefaultCategoryRepositoryTest {
             Assertions.assertThat(found).as("category should be deleted and retrieval should return empty optional").isEmpty();
 
             verify(jpaCategoryRepository, times(1)).deleteByIdAndUserId(saved.id(), saved.userId());
+        }
+    }
+
+    @Nested
+    class Update {
+        @Test
+        void givenExistingCategory_shouldUpdateAllFields() {
+            Category saved = categoryRepository.save(category);
+            UUID savedId = saved.id();
+            UUID savedUserId = saved.userId();
+
+            Category updated = saved.toBuilder()
+                    .name("GROCERIES")
+                    .icon("🛒")
+                    .active(false)
+                    .system(true)
+                    .updatedAt(Instant.now())
+                    .build();
+            Category result = categoryRepository.update(updated);
+
+            assertEquals("GROCERIES", result.name(), "category name should be updated");
+            assertEquals("🛒", result.icon(), "category icon should be updated");
+            Assertions.assertThat(result.active()).isFalse();
+            Assertions.assertThat(result.system()).isTrue();
+            assertEquals(savedId, result.id(), "category id should remain unchanged");
+            assertEquals(savedUserId, result.userId(), "category userId should remain unchanged");
+
+            CategoryEntity entity = jpaCategoryRepository.findById(savedId).orElseThrow();
+            assertEquals("GROCERIES", entity.getName(), "persistence layer should reflect updated name");
+            assertEquals("🛒", entity.getIcon(), "persistence layer should reflect updated icon");
+            Assertions.assertThat(entity.isActive()).isFalse();
+            Assertions.assertThat(entity.isSystem()).isTrue();
+
+            verify(jpaCategoryRepository, times(1)).save(any(CategoryEntity.class));
         }
     }
 
