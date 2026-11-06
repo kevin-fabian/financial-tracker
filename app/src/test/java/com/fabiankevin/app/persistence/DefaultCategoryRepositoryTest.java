@@ -577,6 +577,7 @@ class DefaultCategoryRepositoryTest {
             jpaCategoryRepository.flush();
 
             var account = AccountEntity.builder()
+                    .id(UUID.randomUUID())
                     .userId(userId)
                     .name("CASH")
                     .currency("PHP")
@@ -657,6 +658,7 @@ class DefaultCategoryRepositoryTest {
             jpaCategoryRepository.flush();
 
             var account = AccountEntity.builder()
+                    .id(UUID.randomUUID())
                     .userId(userId)
                     .name("CASH")
                     .currency("PHP")
@@ -733,6 +735,7 @@ class DefaultCategoryRepositoryTest {
             jpaCategoryRepository.flush();
 
             var account = AccountEntity.builder()
+                    .id(UUID.randomUUID())
                     .userId(userId)
                     .name("CASH")
                     .currency("PHP")
@@ -831,6 +834,7 @@ class DefaultCategoryRepositoryTest {
             assertTrue(insertedCategory.isSystem(), "system should be true");
 
             var currentAccount = AccountEntity.builder()
+                    .id(UUID.randomUUID())
                     .userId(currentUserId)
                     .name("CASH")
                     .currency("PHP")
@@ -840,6 +844,7 @@ class DefaultCategoryRepositoryTest {
             currentAccount = jpaAccountRepository.saveAndFlush(currentAccount);
 
             var otherAccount = AccountEntity.builder()
+                    .id(UUID.randomUUID())
                     .userId(otherUserId)
                     .name("CASH")
                     .currency("PHP")
