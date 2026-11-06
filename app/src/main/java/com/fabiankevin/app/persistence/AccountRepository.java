@@ -17,6 +17,8 @@ public interface AccountRepository {
 
     Account save(Account account);
 
+    Account update(Account account);
+
     List<Account> saveAll(List<Account> accounts);
 
     void deleteById(UUID id);

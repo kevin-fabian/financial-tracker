@@ -78,8 +78,8 @@ class DefaultTransactionRepositoryTest {
         }
 
         @Bean
-        public AccountRepository accountRepository(JpaAccountRepository jpaAccountRepository) {
-            return new DefaultAccountRepository(jpaAccountRepository);
+        public AccountRepository accountRepository(JpaAccountRepository jpaAccountRepository, EntityManager entityManager) {
+            return new DefaultAccountRepository(jpaAccountRepository, entityManager);
         }
 
         @Bean
@@ -974,6 +974,7 @@ class DefaultTransactionRepositoryTest {
 
     private AccountEntity createAccount(String name, UUID userId) {
         AccountEntity account = new AccountEntity();
+        account.setId(UUID.randomUUID());
         account.setUserId(userId);
         account.setName(name);
         account.setCurrency("PHP");

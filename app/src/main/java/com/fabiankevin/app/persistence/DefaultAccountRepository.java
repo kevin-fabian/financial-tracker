@@ -8,7 +8,10 @@ import com.fabiankevin.app.persistence.entities.AccountEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
@@ -23,6 +26,7 @@ import java.util.stream.Collectors;
 @Repository
 public class DefaultAccountRepository implements AccountRepository {
     private final JpaAccountRepository jpaAccountRepository;
+    private final EntityManager entityManager;
 
     @Override
     public Optional<Account> findById(UUID id) {
@@ -30,19 +34,38 @@ public class DefaultAccountRepository implements AccountRepository {
                 .map(AccountEntity::toModel);
     }
 
+    @Transactional
     @Override
     public Account save(Account account) {
-        AccountEntity saved = jpaAccountRepository.save(AccountEntity.from(account));
-        return saved.toModel();
+        if (account == null) {
+            throw new InvalidDataAccessApiUsageException("Account must not be null");
+        }
+        AccountEntity entity = AccountEntity.from(account);
+        entity.setId(Optional.ofNullable(entity.getId()).orElse(UUID.randomUUID()));
+        return entityManager.merge(entity).toModel();
     }
 
+    @Override
+    public Account update(Account account) {
+        if (account == null) {
+            throw new InvalidDataAccessApiUsageException("Account must not be null");
+        }
+        AccountEntity entity = AccountEntity.from(account);
+        return entityManager.merge(entity).toModel();
+    }
+
+    @Transactional
     @Override
     public List<Account> saveAll(List<Account> accounts) {
         List<AccountEntity> entities = accounts.stream()
                 .map(AccountEntity::from)
-                .collect(Collectors.toList());
-        List<AccountEntity> saved = jpaAccountRepository.saveAll(entities);
-        return saved.stream()
+                .map(entity -> {
+                    entity.setId(Optional.ofNullable(entity.getId()).orElse(UUID.randomUUID()));
+                    return entityManager.merge(entity);
+                })
+                .toList();
+
+        return entities.stream()
                 .map(AccountEntity::toModel)
                 .collect(Collectors.toList());
     }

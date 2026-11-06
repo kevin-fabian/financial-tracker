@@ -13,6 +13,7 @@ import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
+import jakarta.persistence.EntityManager;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -22,6 +23,7 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
@@ -38,7 +40,6 @@ import static com.fabiankevin.app.models.enums.AccountType.BANK_ACCOUNT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -58,8 +59,8 @@ class DefaultAccountRepositoryTest {
     @TestConfiguration
     public static class ContextConfiguration {
         @Bean
-        public AccountRepository accountRepository(JpaAccountRepository jpaAccountRepository) {
-            return new DefaultAccountRepository(jpaAccountRepository);
+        public AccountRepository accountRepository(JpaAccountRepository jpaAccountRepository, EntityManager entityManager) {
+            return new DefaultAccountRepository(jpaAccountRepository, entityManager);
         }
     }
 
@@ -92,7 +93,6 @@ class DefaultAccountRepositoryTest {
                     .isEqualTo(saved);
             assertEquals(account.localId(), found.localId(), "localId should match");
 
-            verify(jpaAccountRepository, times(1)).save(any());
             verify(jpaAccountRepository, times(1)).findById(saved.id());
         }
 
@@ -172,8 +172,6 @@ class DefaultAccountRepositoryTest {
             Assertions.assertThat(saved).allSatisfy(a -> Assertions.assertThat(a.id()).isNotNull());
             assertEquals(aLocalId, saved.get(0).localId(), "first account localId should match");
             assertEquals(bLocalId, saved.get(1).localId(), "second account localId should match");
-
-            verify(jpaAccountRepository, times(1)).saveAll(any());
         }
 
         @Test
@@ -197,8 +195,6 @@ class DefaultAccountRepositoryTest {
             Assertions.assertThat(saved).as("should return exactly 1 account").hasSize(1);
             Assertions.assertThat(saved.getFirst().id()).isNotNull();
             assertNull(saved.getFirst().localId(), "null localId should be preserved");
-
-            verify(jpaAccountRepository, times(1)).saveAll(any());
         }
     }
 
@@ -574,6 +570,37 @@ class DefaultAccountRepositoryTest {
             List<Account> found = accountRepository.findByNameAndTypeAndUserIdBatch(commands, userId);
 
             Assertions.assertThat(found).as("should return empty list when no accounts match").isEmpty();
+        }
+    }
+
+    @Nested
+    class Update {
+        @Test
+        void givenExistingAccount_shouldUpdateAllFields() {
+            Account saved = accountRepository.save(account);
+            UUID savedId = saved.id();
+            UUID savedUserId = saved.user().id();
+
+            Account updated = saved.toBuilder()
+                    .name("GCASH UPDATED")
+                    .currency(java.util.Currency.getInstance("USD"))
+                    .active(false)
+                    .updatedAt(Instant.now())
+                    .build();
+            Account result = accountRepository.update(updated);
+
+            assertEquals("GCASH UPDATED", result.name(), "account name should be updated");
+            assertEquals(java.util.Currency.getInstance("USD"), result.currency(), "account currency should be updated");
+            Assertions.assertThat(result.active()).isFalse();
+            assertEquals(savedId, result.id(), "account id should remain unchanged");
+            assertEquals(savedUserId, result.user().id(), "account userId should remain unchanged");
+        }
+
+        @Test
+        void givenNullAccount_shouldThrowInvalidDataAccessApiUsageException() {
+            Assertions.assertThatThrownBy(() -> accountRepository.update(null))
+                    .isInstanceOf(InvalidDataAccessApiUsageException.class)
+                    .hasMessageContaining("Account must not be null");
         }
     }
 }
