@@ -1,11 +1,10 @@
-package com.fabiankevin.app.persistence;
+package com.fabiankevin.app.sync_devices.persistence;
 
 import com.fabiankevin.app.models.enums.BootstrapDirection;
 import com.fabiankevin.app.models.enums.BootstrapStatus;
 import com.fabiankevin.app.sync_devices.domain.models.SyncDevice;
 import com.fabiankevin.app.sync_devices.domain.repositories.SyncDeviceRepository;
-import com.fabiankevin.app.sync_devices.persistence.DefaultSyncDeviceRepository;
-import com.fabiankevin.app.sync_devices.persistence.JpaSyncStateRepository;
+import com.fabiankevin.app.sync_devices.persistence.entities.SyncDeviceEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -81,7 +80,7 @@ class DefaultSyncDeviceRepositoryTest {
             assertNotNull(retrieved.createdAt(), "createdAt should be set");
             assertNotNull(retrieved.updatedAt(), "updatedAt should be set");
 
-            verify(jpaSyncStateRepository, times(1)).save(any());
+            verify(jpaSyncStateRepository, times(1)).save(any(SyncDeviceEntity.class));
             verify(jpaSyncStateRepository, times(1)).findById(saved.id());
         }
 
@@ -109,7 +108,7 @@ class DefaultSyncDeviceRepositoryTest {
             assertNotNull(retrieved.createdAt(), "createdAt should be set");
             assertNotNull(retrieved.updatedAt(), "updatedAt should be set");
 
-            verify(jpaSyncStateRepository, times(1)).save(any());
+            verify(jpaSyncStateRepository, times(1)).save(any(SyncDeviceEntity.class));
         }
     }
 

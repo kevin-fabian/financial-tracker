@@ -1,4 +1,4 @@
-package com.fabiankevin.app.web.controllers;
+package com.fabiankevin.app.sync_devices.web;
 
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.AccountSummary;
@@ -375,7 +375,7 @@ class SyncControllerIntegrationTest {
         @Test
         void givenSyncStateOwnedByDifferentUser_thenReturnsNotFound() throws Exception {
             UUID otherUserId = UUID.randomUUID();
-            UUID syncId = createSyncStateForUser(otherUserId, BootstrapStatus.IN_PROGRESS, BootstrapDirection.PULL);
+            UUID syncId = createSyncStateForUser(otherUserId, BootstrapStatus.IN_PROGRESS, BootstrapDirection.PULL, "test-device-001");
 
             PatchSyncDeviceRequest request = PatchSyncDeviceRequest.builder()
                     .status(BootstrapStatus.COMPLETED)
@@ -465,10 +465,6 @@ class SyncControllerIntegrationTest {
     private UUID createSyncState(BootstrapStatus status, BootstrapDirection direction) {
         String userDevice = "test-device-" + deviceCounter.getAndIncrement();
         return createSyncStateForUser(userId, status, direction, userDevice);
-    }
-
-    private UUID createSyncStateForUser(UUID uid, BootstrapStatus status, BootstrapDirection direction) {
-        return createSyncStateForUser(uid, status, direction, "test-device-001");
     }
 
     private UUID createSyncStateForUser(UUID uid, BootstrapStatus status, BootstrapDirection direction, String userDevice) {
