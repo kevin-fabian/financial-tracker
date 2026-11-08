@@ -1,6 +1,6 @@
-package com.fabiankevin.app.persistence.jpa_repositories;
+package com.fabiankevin.app.sync_devices.persistence;
 
-import com.fabiankevin.app.persistence.entities.SyncDeviceEntity;
+import com.fabiankevin.app.sync_devices.persistence.entities.SyncDeviceEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

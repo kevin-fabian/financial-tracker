@@ -1,9 +1,11 @@
 package com.fabiankevin.app.persistence;
 
-import com.fabiankevin.app.models.SyncDevice;
 import com.fabiankevin.app.models.enums.BootstrapDirection;
 import com.fabiankevin.app.models.enums.BootstrapStatus;
-import com.fabiankevin.app.persistence.jpa_repositories.JpaSyncStateRepository;
+import com.fabiankevin.app.sync_devices.domain.models.SyncDevice;
+import com.fabiankevin.app.sync_devices.domain.repositories.SyncDeviceRepository;
+import com.fabiankevin.app.sync_devices.persistence.DefaultSyncDeviceRepository;
+import com.fabiankevin.app.sync_devices.persistence.JpaSyncStateRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

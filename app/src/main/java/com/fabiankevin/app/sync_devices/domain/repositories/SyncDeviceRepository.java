@@ -1,6 +1,6 @@
-package com.fabiankevin.app.persistence;
+package com.fabiankevin.app.sync_devices.domain.repositories;
 
-import com.fabiankevin.app.models.SyncDevice;
+import com.fabiankevin.app.sync_devices.domain.models.SyncDevice;
 
 import java.util.List;
 import java.util.Optional;

@@ -1,8 +1,8 @@
-package com.fabiankevin.app.services;
+package com.fabiankevin.app.sync_devices.domain.services;
 
-import com.fabiankevin.app.models.SyncDevice;
 import com.fabiankevin.app.services.commands.CreateSyncStateCommand;
 import com.fabiankevin.app.services.commands.PatchSyncStateCommand;
+import com.fabiankevin.app.sync_devices.domain.models.SyncDevice;
 
 import java.util.List;
 import java.util.UUID;

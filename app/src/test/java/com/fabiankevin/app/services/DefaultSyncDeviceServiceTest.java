@@ -1,12 +1,13 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.exceptions.SyncStateNotFoundException;
-import com.fabiankevin.app.models.SyncDevice;
 import com.fabiankevin.app.models.enums.BootstrapDirection;
 import com.fabiankevin.app.models.enums.BootstrapStatus;
-import com.fabiankevin.app.persistence.SyncDeviceRepository;
 import com.fabiankevin.app.services.commands.CreateSyncStateCommand;
 import com.fabiankevin.app.services.commands.PatchSyncStateCommand;
+import com.fabiankevin.app.sync_devices.domain.models.SyncDevice;
+import com.fabiankevin.app.sync_devices.domain.repositories.SyncDeviceRepository;
+import com.fabiankevin.app.sync_devices.domain.services.DefaultSyncDeviceService;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

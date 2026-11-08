@@ -1,8 +1,8 @@
-package com.fabiankevin.app.persistence;
+package com.fabiankevin.app.sync_devices.persistence;
 
-import com.fabiankevin.app.models.SyncDevice;
-import com.fabiankevin.app.persistence.entities.SyncDeviceEntity;
-import com.fabiankevin.app.persistence.jpa_repositories.JpaSyncStateRepository;
+import com.fabiankevin.app.sync_devices.domain.models.SyncDevice;
+import com.fabiankevin.app.sync_devices.domain.repositories.SyncDeviceRepository;
+import com.fabiankevin.app.sync_devices.persistence.entities.SyncDeviceEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 

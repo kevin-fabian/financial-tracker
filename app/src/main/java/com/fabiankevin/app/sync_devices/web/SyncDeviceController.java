@@ -1,7 +1,7 @@
-package com.fabiankevin.app.web.controllers;
+package com.fabiankevin.app.sync_devices.web;
 
-import com.fabiankevin.app.models.SyncDevice;
-import com.fabiankevin.app.services.SyncDeviceService;
+import com.fabiankevin.app.sync_devices.domain.models.SyncDevice;
+import com.fabiankevin.app.sync_devices.domain.services.SyncDeviceService;
 import com.fabiankevin.app.web.controllers.dtos.CreateSyncDeviceRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchSyncDeviceRequest;
 import com.fabiankevin.app.web.controllers.dtos.SyncDeviceResponse;

@@ -1,8 +1,8 @@
 package com.fabiankevin.app.web.controllers.dtos;
 
-import com.fabiankevin.app.models.SyncDevice;
 import com.fabiankevin.app.models.enums.BootstrapDirection;
 import com.fabiankevin.app.models.enums.BootstrapStatus;
+import com.fabiankevin.app.sync_devices.domain.models.SyncDevice;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 
