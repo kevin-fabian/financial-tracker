@@ -1,7 +1,7 @@
 package com.fabiankevin.app.sync_devices.persistence.entities;
 
-import com.fabiankevin.app.models.enums.BootstrapDirection;
-import com.fabiankevin.app.models.enums.BootstrapStatus;
+import com.fabiankevin.app.sync_devices.domain.models.BootstrapDirection;
+import com.fabiankevin.app.sync_devices.domain.models.BootstrapStatus;
 import com.fabiankevin.app.sync_devices.domain.models.SyncDevice;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

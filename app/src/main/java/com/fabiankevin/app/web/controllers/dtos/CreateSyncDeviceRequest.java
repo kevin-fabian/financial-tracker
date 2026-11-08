@@ -1,8 +1,8 @@
 package com.fabiankevin.app.web.controllers.dtos;
 
-import com.fabiankevin.app.models.enums.BootstrapDirection;
-import com.fabiankevin.app.models.enums.BootstrapStatus;
 import com.fabiankevin.app.services.commands.CreateSyncStateCommand;
+import com.fabiankevin.app.sync_devices.domain.models.BootstrapDirection;
+import com.fabiankevin.app.sync_devices.domain.models.BootstrapStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;

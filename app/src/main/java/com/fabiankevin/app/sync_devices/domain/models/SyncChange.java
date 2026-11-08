@@ -1,7 +1,6 @@
 package com.fabiankevin.app.sync_devices.domain.models;
 
 import com.fabiankevin.app.models.enums.ResourceType;
-import com.fabiankevin.app.models.enums.SyncChangeOperationType;
 import lombok.Builder;
 import lombok.With;
 

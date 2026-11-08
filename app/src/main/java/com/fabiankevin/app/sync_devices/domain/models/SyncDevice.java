@@ -1,7 +1,5 @@
 package com.fabiankevin.app.sync_devices.domain.models;
 
-import com.fabiankevin.app.models.enums.BootstrapDirection;
-import com.fabiankevin.app.models.enums.BootstrapStatus;
 import lombok.Builder;
 import lombok.With;
 

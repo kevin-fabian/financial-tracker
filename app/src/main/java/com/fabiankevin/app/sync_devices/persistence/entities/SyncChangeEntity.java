@@ -1,8 +1,8 @@
 package com.fabiankevin.app.sync_devices.persistence.entities;
 
 import com.fabiankevin.app.models.enums.ResourceType;
-import com.fabiankevin.app.models.enums.SyncChangeOperationType;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
+import com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

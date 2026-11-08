@@ -1,8 +1,6 @@
 package com.fabiankevin.app.sync_devices.domain.services;
 
 import com.fabiankevin.app.exceptions.SyncStateNotFoundException;
-import com.fabiankevin.app.models.enums.BootstrapDirection;
-import com.fabiankevin.app.models.enums.BootstrapStatus;
 import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.BudgetService;
 import com.fabiankevin.app.services.CategoryService;
@@ -11,6 +9,8 @@ import com.fabiankevin.app.services.ShoppingListService;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.CreateSyncStateCommand;
 import com.fabiankevin.app.services.commands.PatchSyncStateCommand;
+import com.fabiankevin.app.sync_devices.domain.models.BootstrapDirection;
+import com.fabiankevin.app.sync_devices.domain.models.BootstrapStatus;
 import com.fabiankevin.app.sync_devices.domain.models.SyncDevice;
 import com.fabiankevin.app.sync_devices.domain.repositories.SyncDeviceRepository;
 import org.junit.jupiter.api.Nested;

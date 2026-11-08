@@ -1,7 +1,7 @@
 package com.fabiankevin.app.sync_devices.persistence;
 
-import com.fabiankevin.app.models.enums.BootstrapDirection;
-import com.fabiankevin.app.models.enums.BootstrapStatus;
+import com.fabiankevin.app.sync_devices.domain.models.BootstrapDirection;
+import com.fabiankevin.app.sync_devices.domain.models.BootstrapStatus;
 import com.fabiankevin.app.sync_devices.domain.models.SyncDevice;
 import com.fabiankevin.app.sync_devices.domain.repositories.SyncDeviceRepository;
 import com.fabiankevin.app.sync_devices.persistence.entities.SyncDeviceEntity;
