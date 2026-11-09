@@ -2,12 +2,15 @@ package com.fabiankevin.app.sync_devices.web;
 
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaHouseholdRepository;
+import com.fabiankevin.app.services.HouseholdService;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType;
+import com.fabiankevin.app.sync_devices.domain.repositories.SyncChangeRepository;
 import com.fabiankevin.app.sync_devices.domain.services.SyncDeviceService;
-import com.fabiankevin.app.sync_devices.domain.services.commands.SyncCursorQuery;
 import com.fabiankevin.app.sync_devices.web.dtos.SyncCursorQueryRequest;
 import com.fabiankevin.app.sync_devices.web.dtos.SyncPullChangesRequest;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,10 +28,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
-import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -45,8 +46,22 @@ class SyncPullChangesControllerTest {
     @Autowired
     private JsonMapper jsonMapper;
 
-    @MockitoBean
+    @Autowired
     private SyncDeviceService syncDeviceService;
+
+    @Autowired
+    private SyncChangeRepository syncChangeRepository;
+
+    @Autowired
+    private HouseholdService householdService;
+
+    @Autowired
+    private JpaHouseholdRepository jpaHouseholdRepository;
+
+    @BeforeEach
+    void cleanup() {
+        jpaHouseholdRepository.deleteAll();
+    }
 
     @MockitoBean
     private JwtDecoder jwtDecoder;
@@ -69,8 +84,9 @@ class SyncPullChangesControllerTest {
             UUID transactionId = UUID.randomUUID();
             Long primaryLastPulledSequence = 120L;
 
+            // Since user has no household, getHouseholdMembersUserIds returns just the user
+            // Insert a sync change with sequence > primaryLastPulledSequence
             SyncChange change = SyncChange.builder()
-                    .id(UUID.randomUUID())
                     .userId(userId)
                     .sequenceId(121L)
                     .entityType(ResourceType.TRANSACTIONS)
@@ -79,13 +95,7 @@ class SyncPullChangesControllerTest {
                     .payload("{}")
                     .createdAt(Instant.now())
                     .build();
-
-            when(syncDeviceService.pullChanges(userId, primaryLastPulledSequence, List.of(
-                    SyncCursorQuery.builder()
-                            .ownerId(userId)
-                            .lastPulledSequence(primaryLastPulledSequence)
-                            .build()
-            ))).thenReturn(Map.of(userId, List.of(change)));
+            syncChangeRepository.save(change);
 
             SyncPullChangesRequest request = SyncPullChangesRequest.builder()
                     .cursors(List.of(
@@ -126,12 +136,17 @@ class SyncPullChangesControllerTest {
             UUID userId = UUID.randomUUID();
             Long primaryLastPulledSequence = 85L;
 
-            when(syncDeviceService.pullChanges(userId, primaryLastPulledSequence, List.of(
-                    SyncCursorQuery.builder()
-                            .ownerId(userId)
-                            .lastPulledSequence(primaryLastPulledSequence)
-                            .build()
-            ))).thenReturn(Map.of());
+            // Insert a change with sequence <= lastPulledSequence, so it should be filtered out
+            SyncChange oldChange = SyncChange.builder()
+                    .userId(userId)
+                    .sequenceId(80L)
+                    .entityType(ResourceType.TRANSACTIONS)
+                    .entityId(UUID.randomUUID())
+                    .operation(SyncChangeOperationType.CREATE)
+                    .payload("{}")
+                    .createdAt(Instant.now())
+                    .build();
+            syncChangeRepository.save(oldChange);
 
             SyncPullChangesRequest request = SyncPullChangesRequest.builder()
                     .cursors(List.of(
@@ -169,8 +184,8 @@ class SyncPullChangesControllerTest {
             UUID transactionId = UUID.randomUUID();
             Long primaryLastPulledSequence = 100L;
 
+            // Insert changes for userIdA only
             SyncChange changeA = SyncChange.builder()
-                    .id(UUID.randomUUID())
                     .userId(userIdA)
                     .sequenceId(121L)
                     .entityType(ResourceType.TRANSACTIONS)
@@ -179,14 +194,7 @@ class SyncPullChangesControllerTest {
                     .payload("{}")
                     .createdAt(Instant.now())
                     .build();
-
-            when(syncDeviceService.pullChanges(userIdA, primaryLastPulledSequence, List.of(
-                    SyncCursorQuery.builder().ownerId(userIdA).lastPulledSequence(120L).build(),
-                    SyncCursorQuery.builder().ownerId(userIdB).lastPulledSequence(85L).build()
-            ))).thenReturn(Map.of(
-                    userIdA, List.of(changeA),
-                    userIdB, List.of()
-            ));
+            syncChangeRepository.save(changeA);
 
             SyncPullChangesRequest request = SyncPullChangesRequest.builder()
                     .cursors(List.of(
