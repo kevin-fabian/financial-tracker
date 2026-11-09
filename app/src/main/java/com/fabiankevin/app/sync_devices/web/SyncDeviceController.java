@@ -1,7 +1,14 @@
 package com.fabiankevin.app.sync_devices.web;
 
+import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
 import com.fabiankevin.app.sync_devices.domain.models.SyncDevice;
 import com.fabiankevin.app.sync_devices.domain.services.SyncDeviceService;
+import com.fabiankevin.app.sync_devices.domain.services.commands.SyncCursorQuery;
+import com.fabiankevin.app.sync_devices.web.dtos.SyncChangeDto;
+import com.fabiankevin.app.sync_devices.web.dtos.SyncCursorQueryRequest;
+import com.fabiankevin.app.sync_devices.web.dtos.SyncPullChangesRequest;
+import com.fabiankevin.app.sync_devices.web.dtos.SyncPullChangesResponse;
+import com.fabiankevin.app.sync_devices.web.dtos.SyncScope;
 import com.fabiankevin.app.web.controllers.dtos.CreateSyncDeviceRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchSyncDeviceRequest;
 import com.fabiankevin.app.web.controllers.dtos.SyncDeviceResponse;
@@ -24,7 +31,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -123,6 +132,77 @@ public class SyncDeviceController {
         return syncDeviceService.getAllByUserId(userId).stream()
                 .map(SyncDeviceResponse::from)
                 .toList();
+    }
+
+    @Operation(
+            summary = "Pull sync changes for multiple users",
+            description = "Pulls synchronization changes for the specified user cursors. Returns scoped lists of changes per user with pagination metadata.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "OK - Sync changes retrieved successfully"),
+                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized - Missing or invalid authentication",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+            }
+    )
+    @PostMapping("/pull")
+    public SyncPullChangesResponse pullChanges(
+            @Valid @RequestBody SyncPullChangesRequest request,
+            JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = getUserId(jwtAuthenticationToken);
+        log.debug("Sync pull changes requested by user: {} with {} cursors", userId, request.cursors().size());
+        List<SyncCursorQuery> cursorQueries = request.cursors().stream()
+                .map(this::toCursorQuery)
+                .toList();
+        Map<UUID, List<SyncChange>> changesByUser = syncDeviceService.pullChanges(cursorQueries);
+        List<SyncScope> scopes = buildScopes(cursorQueries, changesByUser);
+        return SyncPullChangesResponse.builder()
+                .scopes(scopes )
+                .build();
+    }
+
+    private SyncCursorQuery toCursorQuery(SyncCursorQueryRequest request) {
+        return SyncCursorQuery.builder()
+                .ownerId(request.ownerId())
+                .lastPulledSequence(request.lastPulledSequence())
+                .build();
+    }
+
+    private List<SyncScope> buildScopes(List<SyncCursorQuery> cursors,
+                                         Map<UUID, List<SyncChange>> changesByUser) {
+        List<SyncScope> scopes = new ArrayList<>();
+        for (SyncCursorQuery cursor : cursors) {
+            UUID ownerId = cursor.ownerId();
+            List<SyncChange> changes = changesByUser.getOrDefault(ownerId, List.of());
+
+            if (changes.isEmpty()) {
+                scopes.add(SyncScope.empty(ownerId, cursor.lastPulledSequence()));
+            } else {
+                List<SyncChangeDto> changeDtos = changes.stream()
+                        .map(change -> SyncChangeDto.builder()
+                                .sequenceId(change.sequenceId())
+                                .entityType(change.entityType())
+                                .entityId(change.entityId())
+                                .operation(change.operation())
+                                .build())
+                        .toList();
+
+                Long nextCursor = changes.stream()
+                        .mapToLong(SyncChange::sequenceId)
+                        .max()
+                        .orElse(cursor.lastPulledSequence());
+
+                scopes.add(SyncScope.builder()
+                        .userId(ownerId)
+                        .changes(changeDtos)
+                        .nextCursor(nextCursor)
+                        .hasMore(false)
+                        .build());
+            }
+        }
+        return scopes;
     }
 
     private UUID getUserId(JwtAuthenticationToken token) {

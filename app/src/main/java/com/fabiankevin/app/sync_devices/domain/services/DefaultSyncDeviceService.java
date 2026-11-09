@@ -9,8 +9,11 @@ import com.fabiankevin.app.services.ShoppingListService;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.CreateSyncStateCommand;
 import com.fabiankevin.app.services.commands.PatchSyncStateCommand;
+import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
 import com.fabiankevin.app.sync_devices.domain.models.SyncDevice;
+import com.fabiankevin.app.sync_devices.domain.repositories.SyncChangeRepository;
 import com.fabiankevin.app.sync_devices.domain.repositories.SyncDeviceRepository;
+import com.fabiankevin.app.sync_devices.domain.services.commands.SyncCursorQuery;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +21,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -31,6 +36,7 @@ public class DefaultSyncDeviceService implements SyncDeviceService {
     private final AccountService accountService;
     private final CategoryService categoryService;
     private final SyncDeviceRepository syncDeviceRepository;
+    private final SyncChangeRepository syncChangeRepository;
 
     @Transactional
     @Override
@@ -105,5 +111,18 @@ public class DefaultSyncDeviceService implements SyncDeviceService {
     @Override
     public List<SyncDevice> getAllByUserId(UUID userId) {
         return syncDeviceRepository.findAllByUserId(userId);
+    }
+
+    @Override
+    public Map<UUID, List<SyncChange>> pullChanges(List<SyncCursorQuery> cursors) {
+        return cursors.stream()
+                .filter(cursor -> cursor.lastPulledSequence() != null && cursor.lastPulledSequence() >= 0)
+                .collect(Collectors.groupingBy(
+                        SyncCursorQuery::ownerId,
+                        Collectors.flatMapping(
+                                cursor -> syncChangeRepository.findChangesAfter(cursor.ownerId(), cursor.lastPulledSequence()).stream(),
+                                Collectors.toList()
+                        )
+                ));
     }
 }

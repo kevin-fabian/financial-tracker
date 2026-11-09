@@ -12,6 +12,7 @@ import com.fabiankevin.app.services.commands.PatchSyncStateCommand;
 import com.fabiankevin.app.sync_devices.domain.models.BootstrapDirection;
 import com.fabiankevin.app.sync_devices.domain.models.BootstrapStatus;
 import com.fabiankevin.app.sync_devices.domain.models.SyncDevice;
+import com.fabiankevin.app.sync_devices.domain.repositories.SyncChangeRepository;
 import com.fabiankevin.app.sync_devices.domain.repositories.SyncDeviceRepository;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,7 @@ class DefaultSyncDeviceServiceTest {
     private final AccountService accountService = mock(AccountService.class);
     private final CategoryService categoryService = mock(CategoryService.class);
     private final SyncDeviceRepository syncDeviceRepository = mock(SyncDeviceRepository.class);
+    private final SyncChangeRepository syncChangeRepository = mock(SyncChangeRepository.class);
 
     private final DefaultSyncDeviceService syncService = new DefaultSyncDeviceService(
             transactionService,
@@ -48,7 +50,8 @@ class DefaultSyncDeviceServiceTest {
             shoppingListService,
             accountService,
             categoryService,
-            syncDeviceRepository
+            syncDeviceRepository,
+            syncChangeRepository
     );
 
     @Nested
