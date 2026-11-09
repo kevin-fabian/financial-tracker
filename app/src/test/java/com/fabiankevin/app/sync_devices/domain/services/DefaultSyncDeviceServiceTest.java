@@ -11,14 +11,17 @@ import com.fabiankevin.app.services.commands.CreateSyncStateCommand;
 import com.fabiankevin.app.services.commands.PatchSyncStateCommand;
 import com.fabiankevin.app.sync_devices.domain.models.BootstrapDirection;
 import com.fabiankevin.app.sync_devices.domain.models.BootstrapStatus;
+import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
 import com.fabiankevin.app.sync_devices.domain.models.SyncDevice;
 import com.fabiankevin.app.sync_devices.domain.repositories.SyncChangeRepository;
 import com.fabiankevin.app.sync_devices.domain.repositories.SyncDeviceRepository;
+import com.fabiankevin.app.sync_devices.domain.services.commands.SyncCursorQuery;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -324,6 +327,75 @@ class DefaultSyncDeviceServiceTest {
             when(syncDeviceRepository.findAllByUserId(userId)).thenReturn(List.of());
 
             List<SyncDevice> result = syncService.getAllByUserId(userId);
+
+            assertThat(result).isEmpty();
+        }
+    }
+
+    @Nested
+    class PullChanges {
+
+        @Test
+        void givenEmptyCursors_shouldReturnEmptyMapWithoutCallingRepository() {
+            List<SyncCursorQuery> cursors = List.of();
+
+            Map<UUID, List<SyncChange>> result = syncService.pullChanges(cursors);
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        void givenCursorsWithInvalidSequence_shouldFilterOutInvalidCursors() {
+            UUID userId = UUID.randomUUID();
+
+            SyncCursorQuery invalidCursor = SyncCursorQuery.builder()
+                    .ownerId(userId)
+                    .lastPulledSequence(-1L)
+                    .build();
+
+            List<SyncCursorQuery> cursors = List.of(invalidCursor);
+
+            Map<UUID, List<SyncChange>> result = syncService.pullChanges(cursors);
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        void givenCursorsWithNullSequence_shouldFilterOutNullCursors() {
+            UUID userId = UUID.randomUUID();
+
+            SyncCursorQuery nullSequenceCursor = SyncCursorQuery.builder()
+                    .ownerId(userId)
+                    .lastPulledSequence(null)
+                    .build();
+
+            List<SyncCursorQuery> cursors = List.of(nullSequenceCursor);
+
+            Map<UUID, List<SyncChange>> result = syncService.pullChanges(cursors);
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        void givenMixedValidAndInvalidCursors_shouldOnlyPassValidToRepository() {
+            UUID userId = UUID.randomUUID();
+
+            SyncCursorQuery validCursor = SyncCursorQuery.builder()
+                    .ownerId(userId)
+                    .lastPulledSequence(1L)
+                    .build();
+
+            SyncCursorQuery invalidCursor = SyncCursorQuery.builder()
+                    .ownerId(userId)
+                    .lastPulledSequence(-1L)
+                    .build();
+
+            List<SyncCursorQuery> cursors = List.of(validCursor, invalidCursor);
+
+            when(syncChangeRepository.findChangesAfterBatch(List.of(validCursor)))
+                    .thenReturn(Map.of());
+
+            Map<UUID, List<SyncChange>> result = syncService.pullChanges(cursors);
 
             assertThat(result).isEmpty();
         }

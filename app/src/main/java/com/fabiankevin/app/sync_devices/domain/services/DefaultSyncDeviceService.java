@@ -23,7 +23,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -115,14 +114,14 @@ public class DefaultSyncDeviceService implements SyncDeviceService {
 
     @Override
     public Map<UUID, List<SyncChange>> pullChanges(List<SyncCursorQuery> cursors) {
-        return cursors.stream()
+        List<SyncCursorQuery> validCursors = cursors.stream()
                 .filter(cursor -> cursor.lastPulledSequence() != null && cursor.lastPulledSequence() >= 0)
-                .collect(Collectors.groupingBy(
-                        SyncCursorQuery::ownerId,
-                        Collectors.flatMapping(
-                                cursor -> syncChangeRepository.findChangesAfter(cursor.ownerId(), cursor.lastPulledSequence()).stream(),
-                                Collectors.toList()
-                        )
-                ));
+                .toList();
+
+        if (validCursors.isEmpty()) {
+            return Map.of();
+        }
+
+        return syncChangeRepository.findChangesAfterBatch(validCursors);
     }
 }
