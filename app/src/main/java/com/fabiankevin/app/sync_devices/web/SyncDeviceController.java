@@ -157,7 +157,7 @@ public class SyncDeviceController {
                 .orElse(List.of());
         log.debug("Sync pull changes requested by user: {} with {} cursors", userId, cursorQueries.size());
         List<SyncScope> scopes = syncChangeService.pullChanges(userId, request.primaryLastPulledSequence(), cursorQueries);
-        return SyncPullChangesResponse.from(cursorQueries, scopes);
+        return SyncPullChangesResponse.from(scopes);
     }
 
     private UUID getUserId(JwtAuthenticationToken token) {

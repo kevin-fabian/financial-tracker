@@ -26,7 +26,10 @@ public record SyncChangeDto(
 
         @NotNull(message = "Operation is required")
         @Schema(description = "Type of operation performed", example = "CREATE")
-        SyncChangeOperationType operation) {
+        SyncChangeOperationType operation,
+
+        @Schema(description = "JSON payload containing entity data", example = "{\"name\":\"Test\"}")
+        String payload) {
 
     public static SyncChangeDto from(SyncChange syncChange) {
         return SyncChangeDto.builder()
@@ -34,6 +37,7 @@ public record SyncChangeDto(
                 .entityType(syncChange.entityType())
                 .entityId(syncChange.entityId())
                 .operation(syncChange.operation())
+                .payload(syncChange.payload())
                 .build();
     }
 }
