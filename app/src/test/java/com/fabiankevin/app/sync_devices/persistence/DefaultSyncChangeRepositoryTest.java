@@ -50,7 +50,6 @@ class DefaultSyncChangeRepositoryTest {
     void setUp() {
         syncChange = SyncChange.builder()
                 .userId(UUID.randomUUID())
-                .userDevice("test-device-001")
                 .sequenceId(1L)
                 .entityType(ResourceType.TRANSACTIONS)
                 .entityId(UUID.randomUUID())
@@ -69,7 +68,6 @@ class DefaultSyncChangeRepositoryTest {
 
             assertNotNull(saved.id(), "id should be generated");
             assertEquals(syncChange.userId(), saved.userId(), "userId should match");
-            assertEquals(syncChange.userDevice(), saved.userDevice(), "userDevice should match");
             assertEquals(syncChange.sequenceId(), saved.sequenceId(), "sequenceId should match");
             assertEquals(syncChange.entityType(), saved.entityType(), "entityType should match");
             assertEquals(syncChange.entityId(), saved.entityId(), "entityId should match");
@@ -84,7 +82,6 @@ class DefaultSyncChangeRepositoryTest {
         void givenSyncChangeWithComplexPayload_shouldPersistAndReturnWithPayload() {
             SyncChange complexChange = SyncChange.builder()
                     .userId(UUID.randomUUID())
-                    .userDevice("test-device-002")
                     .sequenceId(2L)
                     .entityType(ResourceType.ACCOUNTS)
                     .entityId(UUID.randomUUID())

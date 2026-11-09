@@ -27,7 +27,6 @@ import java.util.UUID;
 @Table(name = "sync_changes",
         indexes = {
                 @Index(name = "idx_sync_changes_user_id", columnList = "user_id"),
-                @Index(name = "idx_sync_changes_user_id_device", columnList = "user_id, user_device"),
                 @Index(name = "idx_sync_changes_user_id_sequence", columnList = "user_id, sequence_id")
         })
 @Entity
@@ -37,8 +36,6 @@ public class SyncChangeEntity {
     private UUID id;
     @Column(name = "user_id", nullable = false)
     private UUID userId;
-    @Column(name = "user_device", nullable = false)
-    private String userDevice;
     @Column(name = "sequence_id", nullable = false)
     private Long sequenceId;
     @Column(name = "entity_type", nullable = false)
@@ -59,7 +56,6 @@ public class SyncChangeEntity {
         return SyncChangeEntity.builder()
                 .id(syncChange.id())
                 .userId(syncChange.userId())
-                .userDevice(syncChange.userDevice())
                 .sequenceId(syncChange.sequenceId())
                 .entityType(syncChange.entityType())
                 .entityId(syncChange.entityId())
@@ -73,7 +69,6 @@ public class SyncChangeEntity {
         return SyncChange.builder()
                 .id(this.id)
                 .userId(this.userId)
-                .userDevice(this.userDevice)
                 .sequenceId(this.sequenceId)
                 .entityType(this.entityType)
                 .entityId(this.entityId)

@@ -23,7 +23,6 @@ public record SyncChange(
 
     public SyncChange {
         Objects.requireNonNull(userId, "User ID is required");
-        Objects.requireNonNull(userDevice, "User device identifier is required");
         Objects.requireNonNull(sequenceId, "Sequence ID is required");
         Objects.requireNonNull(entityType, "Entity type is required");
         Objects.requireNonNull(entityId, "Entity ID is required");
