@@ -4,6 +4,7 @@ import com.fabiankevin.app.exceptions.SyncStateNotFoundException;
 import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.BudgetService;
 import com.fabiankevin.app.services.CategoryService;
+import com.fabiankevin.app.services.HouseholdService;
 import com.fabiankevin.app.services.RecurringTransactionService;
 import com.fabiankevin.app.services.ShoppingListService;
 import com.fabiankevin.app.services.TransactionService;
@@ -34,6 +35,7 @@ public class DefaultSyncDeviceService implements SyncDeviceService {
     private final ShoppingListService shoppingListService;
     private final AccountService accountService;
     private final CategoryService categoryService;
+    private final HouseholdService householdService;
     private final SyncDeviceRepository syncDeviceRepository;
     private final SyncChangeRepository syncChangeRepository;
 
@@ -113,7 +115,16 @@ public class DefaultSyncDeviceService implements SyncDeviceService {
     }
 
     @Override
-    public Map<UUID, List<SyncChange>> pullChanges(List<SyncCursorQuery> cursors) {
+    public Map<UUID, List<SyncChange>> pullChanges(UUID requestingUserId, long lastSequenceId, List<SyncCursorQuery> cursors) {
+        List<UUID> householdMemberIds = householdService.getHouseholdMembersUserIds(requestingUserId);
+
+        for (SyncCursorQuery cursor : cursors) {
+            if (!householdMemberIds.contains(cursor.ownerId())) {
+                throw new com.fabiankevin.app.exceptions.party.ForbiddenException(
+                        "User is not a member of the household");
+            }
+        }
+
         List<SyncCursorQuery> validCursors = cursors.stream()
                 .filter(cursor -> cursor.lastPulledSequence() != null && cursor.lastPulledSequence() >= 0)
                 .toList();

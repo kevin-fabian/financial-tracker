@@ -139,6 +139,8 @@ public class SyncDeviceController {
                             content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
                     @ApiResponse(responseCode = "401", description = "Unauthorized - Missing or invalid authentication",
                             content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+                    @ApiResponse(responseCode = "403", description = "Forbidden - User is not a member of the household",
+                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
                     @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
                             content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
             }
@@ -152,7 +154,7 @@ public class SyncDeviceController {
         List<SyncCursorQuery> cursorQueries = request.cursors().stream()
                 .map(SyncCursorQuery::from)
                 .toList();
-        Map<UUID, List<SyncChange>> changesByUser = syncDeviceService.pullChanges(cursorQueries);
+        Map<UUID, List<SyncChange>> changesByUser = syncDeviceService.pullChanges(userId, request.primaryLastPulledSequence(), cursorQueries);
         return SyncPullChangesResponse.from(cursorQueries, changesByUser);
     }
 

@@ -21,5 +21,5 @@ public interface SyncDeviceService {
 
     List<SyncDevice> getAllByUserId(UUID userId);
 
-    Map<UUID, List<SyncChange>> pullChanges(List<SyncCursorQuery> cursors);
+    Map<UUID, List<SyncChange>> pullChanges(UUID requestingUserId, long lastSequenceId, List<SyncCursorQuery> cursors);
 }

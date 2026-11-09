@@ -67,8 +67,7 @@ class SyncPullChangesControllerTest {
         void givenValidCursorsWithChanges_shouldReturnScopedChanges() throws Exception {
             UUID userId = UUID.randomUUID();
             UUID transactionId = UUID.randomUUID();
-            Long lastPulledSequence = 120L;
-            Long nextCursor = 121L;
+            Long primaryLastPulledSequence = 120L;
 
             SyncChange change = SyncChange.builder()
                     .id(UUID.randomUUID())
@@ -81,10 +80,10 @@ class SyncPullChangesControllerTest {
                     .createdAt(Instant.now())
                     .build();
 
-            when(syncDeviceService.pullChanges(List.of(
+            when(syncDeviceService.pullChanges(userId, primaryLastPulledSequence, List.of(
                     SyncCursorQuery.builder()
                             .ownerId(userId)
-                            .lastPulledSequence(lastPulledSequence)
+                            .lastPulledSequence(primaryLastPulledSequence)
                             .build()
             ))).thenReturn(Map.of(userId, List.of(change)));
 
@@ -92,9 +91,10 @@ class SyncPullChangesControllerTest {
                     .cursors(List.of(
                             SyncCursorQueryRequest.builder()
                                     .ownerId(userId)
-                                    .lastPulledSequence(lastPulledSequence)
+                                    .lastPulledSequence(primaryLastPulledSequence)
                                     .build()
                     ))
+                    .primaryLastPulledSequence(primaryLastPulledSequence)
                     .build();
 
             mockMvc.perform(post("/api/sync-devices/pull")
@@ -124,12 +124,12 @@ class SyncPullChangesControllerTest {
         @Test
         void givenValidCursorsWithNoChanges_shouldReturnEmptyScopes() throws Exception {
             UUID userId = UUID.randomUUID();
-            Long lastPulledSequence = 85L;
+            Long primaryLastPulledSequence = 85L;
 
-            when(syncDeviceService.pullChanges(List.of(
+            when(syncDeviceService.pullChanges(userId, primaryLastPulledSequence, List.of(
                     SyncCursorQuery.builder()
                             .ownerId(userId)
-                            .lastPulledSequence(lastPulledSequence)
+                            .lastPulledSequence(primaryLastPulledSequence)
                             .build()
             ))).thenReturn(Map.of());
 
@@ -137,9 +137,10 @@ class SyncPullChangesControllerTest {
                     .cursors(List.of(
                             SyncCursorQueryRequest.builder()
                                     .ownerId(userId)
-                                    .lastPulledSequence(lastPulledSequence)
+                                    .lastPulledSequence(primaryLastPulledSequence)
                                     .build()
                     ))
+                    .primaryLastPulledSequence(primaryLastPulledSequence)
                     .build();
 
             mockMvc.perform(post("/api/sync-devices/pull")
@@ -166,6 +167,7 @@ class SyncPullChangesControllerTest {
             UUID userIdA = UUID.randomUUID();
             UUID userIdB = UUID.randomUUID();
             UUID transactionId = UUID.randomUUID();
+            Long primaryLastPulledSequence = 100L;
 
             SyncChange changeA = SyncChange.builder()
                     .id(UUID.randomUUID())
@@ -178,7 +180,7 @@ class SyncPullChangesControllerTest {
                     .createdAt(Instant.now())
                     .build();
 
-            when(syncDeviceService.pullChanges(List.of(
+            when(syncDeviceService.pullChanges(userIdA, primaryLastPulledSequence, List.of(
                     SyncCursorQuery.builder().ownerId(userIdA).lastPulledSequence(120L).build(),
                     SyncCursorQuery.builder().ownerId(userIdB).lastPulledSequence(85L).build()
             ))).thenReturn(Map.of(
@@ -191,6 +193,7 @@ class SyncPullChangesControllerTest {
                             SyncCursorQueryRequest.builder().ownerId(userIdA).lastPulledSequence(120L).build(),
                             SyncCursorQueryRequest.builder().ownerId(userIdB).lastPulledSequence(85L).build()
                     ))
+                    .primaryLastPulledSequence(primaryLastPulledSequence)
                     .build();
 
             mockMvc.perform(post("/api/sync-devices/pull")
@@ -213,6 +216,7 @@ class SyncPullChangesControllerTest {
         void givenNullCursors_shouldReturnBadRequest() throws Exception {
             SyncPullChangesRequest request = SyncPullChangesRequest.builder()
                     .cursors(null)
+                    .primaryLastPulledSequence(100L)
                     .build();
 
             mockMvc.perform(post("/api/sync-devices/pull")
@@ -232,6 +236,7 @@ class SyncPullChangesControllerTest {
         void givenEmptyCursors_shouldReturnBadRequest() throws Exception {
             SyncPullChangesRequest request = SyncPullChangesRequest.builder()
                     .cursors(List.of())
+                    .primaryLastPulledSequence(100L)
                     .build();
 
             mockMvc.perform(post("/api/sync-devices/pull")
@@ -256,6 +261,7 @@ class SyncPullChangesControllerTest {
                                     .lastPulledSequence(120L)
                                     .build()
                     ))
+                    .primaryLastPulledSequence(120L)
                     .build();
 
             mockMvc.perform(post("/api/sync-devices/pull")
@@ -272,15 +278,15 @@ class SyncPullChangesControllerTest {
         }
 
         @Test
-        void givenNullLastPulledSequence_shouldReturnBadRequest() throws Exception {
+        void givenNullPrimaryLastPulledSequence_shouldReturnBadRequest() throws Exception {
             UUID userId = UUID.randomUUID();
             SyncPullChangesRequest request = SyncPullChangesRequest.builder()
                     .cursors(List.of(
                             SyncCursorQueryRequest.builder()
                                     .ownerId(userId)
-                                    .lastPulledSequence(null)
                                     .build()
                     ))
+                    .primaryLastPulledSequence(null)
                     .build();
 
             mockMvc.perform(post("/api/sync-devices/pull")
@@ -297,15 +303,15 @@ class SyncPullChangesControllerTest {
         }
 
         @Test
-        void givenNegativeLastPulledSequence_shouldReturnBadRequest() throws Exception {
+        void givenNegativePrimaryLastPulledSequence_shouldReturnBadRequest() throws Exception {
             UUID userId = UUID.randomUUID();
             SyncPullChangesRequest request = SyncPullChangesRequest.builder()
                     .cursors(List.of(
                             SyncCursorQueryRequest.builder()
                                     .ownerId(userId)
-                                    .lastPulledSequence(-1L)
                                     .build()
                     ))
+                    .primaryLastPulledSequence(-1L)
                     .build();
 
             mockMvc.perform(post("/api/sync-devices/pull")
@@ -327,9 +333,9 @@ class SyncPullChangesControllerTest {
                     .cursors(List.of(
                             SyncCursorQueryRequest.builder()
                                     .ownerId(UUID.randomUUID())
-                                    .lastPulledSequence(120L)
                                     .build()
                     ))
+                    .primaryLastPulledSequence(120L)
                     .build();
 
             mockMvc.perform(post("/api/sync-devices/pull")
