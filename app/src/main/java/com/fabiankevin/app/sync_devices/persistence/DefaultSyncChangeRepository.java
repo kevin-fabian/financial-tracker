@@ -11,6 +11,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -50,5 +51,10 @@ public class DefaultSyncChangeRepository implements SyncChangeRepository {
                                         .toList())
                         )
                 ));
+    }
+
+    @Override
+    public Optional<Long> findMaxSequenceId(UUID userId) {
+        return jpaSyncChangeRepository.findMaxSequenceIdByUserId(userId);
     }
 }

@@ -4,11 +4,13 @@ import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.services.HouseholdService;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
 import com.fabiankevin.app.sync_devices.domain.repositories.SyncChangeRepository;
+import com.fabiankevin.app.sync_devices.domain.services.commands.CreateSyncChangeCommand;
 import com.fabiankevin.app.sync_devices.domain.services.commands.SyncCursorQuery;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -40,5 +42,27 @@ public class DefaultSyncChangeService implements SyncChangeService {
         }
 
         return syncChangeRepository.findChangesAfterBatch(validCursors);
+    }
+
+    @Override
+    public SyncChange create(CreateSyncChangeCommand command) {
+        long nextSequenceId = getNextSequenceId(command.userId());
+        SyncChange syncChange = SyncChange.builder()
+                .userId(command.userId())
+                .sequenceId(nextSequenceId)
+                .entityType(command.entityType())
+                .entityId(command.entityId())
+                .operation(command.operation())
+                .payload(command.payload())
+                .createdAt(Instant.now())
+                .build();
+
+        return syncChangeRepository.save(syncChange);
+    }
+
+    private long getNextSequenceId(UUID userId) {
+        return syncChangeRepository.findMaxSequenceId(userId)
+                .map(max -> max + 1)
+                .orElse(1L);
     }
 }

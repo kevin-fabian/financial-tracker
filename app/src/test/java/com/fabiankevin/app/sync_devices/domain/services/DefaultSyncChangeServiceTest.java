@@ -4,6 +4,7 @@ import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.services.HouseholdService;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
 import com.fabiankevin.app.sync_devices.domain.repositories.SyncChangeRepository;
+import com.fabiankevin.app.sync_devices.domain.services.commands.CreateSyncChangeCommand;
 import com.fabiankevin.app.sync_devices.domain.services.commands.SyncCursorQuery;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -11,10 +12,12 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -240,6 +243,126 @@ class DefaultSyncChangeServiceTest {
 
             assertThat(result).isEmpty();
             verifyNoInteractions(syncChangeRepository);
+        }
+    }
+
+    @Nested
+    class Create {
+
+        @Test
+        void givenValidCommand_shouldCreateSyncChangeWithSequenceIdOne() {
+            UUID userId = UUID.randomUUID();
+            UUID entityId = UUID.randomUUID();
+            com.fabiankevin.app.models.enums.ResourceType entityType = com.fabiankevin.app.models.enums.ResourceType.TRANSACTIONS;
+            com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType operation = com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType.CREATE;
+            String payload = "{\"amount\": 100.0}";
+
+            CreateSyncChangeCommand command = CreateSyncChangeCommand.builder()
+                    .userId(userId)
+                    .entityType(entityType)
+                    .entityId(entityId)
+                    .operation(operation)
+                    .payload(payload)
+                    .build();
+
+            when(syncChangeRepository.findMaxSequenceId(userId)).thenReturn(Optional.empty());
+
+            SyncChange expectedChange = SyncChange.builder()
+                    .id(UUID.randomUUID())
+                    .userId(userId)
+                    .sequenceId(1L)
+                    .entityType(entityType)
+                    .entityId(entityId)
+                    .operation(operation)
+                    .payload(payload)
+                    .createdAt(Instant.now())
+                    .build();
+
+            when(syncChangeRepository.save(any(SyncChange.class))).thenReturn(expectedChange);
+
+            SyncChange result = syncChangeService.create(command);
+
+            assertThat(result).isNotNull();
+            assertThat(result.userId()).isEqualTo(userId);
+            assertThat(result.sequenceId()).isEqualTo(1L);
+            assertThat(result.entityType()).isEqualTo(entityType);
+            assertThat(result.entityId()).isEqualTo(entityId);
+            assertThat(result.operation()).isEqualTo(operation);
+            assertThat(result.payload()).isEqualTo(payload);
+            assertThat(result.createdAt()).isNotNull();
+            verify(syncChangeRepository).save(any(SyncChange.class));
+        }
+
+        @Test
+        void givenExistingChanges_shouldCreateSyncChangeWithIncrementedSequenceId() {
+            UUID userId = UUID.randomUUID();
+            UUID entityId = UUID.randomUUID();
+            com.fabiankevin.app.models.enums.ResourceType entityType = com.fabiankevin.app.models.enums.ResourceType.CATEGORIES;
+            com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType operation = com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType.UPDATE;
+            String payload = "{\"name\": \"updated\"}";
+
+            CreateSyncChangeCommand command = CreateSyncChangeCommand.builder()
+                    .userId(userId)
+                    .entityType(entityType)
+                    .entityId(entityId)
+                    .operation(operation)
+                    .payload(payload)
+                    .build();
+
+            when(syncChangeRepository.findMaxSequenceId(userId)).thenReturn(Optional.of(5L));
+
+            SyncChange expectedChange = SyncChange.builder()
+                    .id(UUID.randomUUID())
+                    .userId(userId)
+                    .sequenceId(6L)
+                    .entityType(entityType)
+                    .entityId(entityId)
+                    .operation(operation)
+                    .payload(payload)
+                    .createdAt(Instant.now())
+                    .build();
+
+            when(syncChangeRepository.save(any(SyncChange.class))).thenReturn(expectedChange);
+
+            SyncChange result = syncChangeService.create(command);
+
+            assertThat(result).isNotNull();
+            assertThat(result.sequenceId()).isEqualTo(6L);
+            verify(syncChangeRepository).save(any(SyncChange.class));
+        }
+
+        @Test
+        void givenDeleteOperation_shouldCreateSyncChangeWithDeleteOperation() {
+            UUID userId = UUID.randomUUID();
+            UUID entityId = UUID.randomUUID();
+
+            CreateSyncChangeCommand command = CreateSyncChangeCommand.builder()
+                    .userId(userId)
+                    .entityType(com.fabiankevin.app.models.enums.ResourceType.ACCOUNTS)
+                    .entityId(entityId)
+                    .operation(com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType.DELETE)
+                    .payload("{}")
+                    .build();
+
+            when(syncChangeRepository.findMaxSequenceId(userId)).thenReturn(Optional.empty());
+
+            SyncChange expectedChange = SyncChange.builder()
+                    .id(UUID.randomUUID())
+                    .userId(userId)
+                    .sequenceId(1L)
+                    .entityType(com.fabiankevin.app.models.enums.ResourceType.ACCOUNTS)
+                    .entityId(entityId)
+                    .operation(com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType.DELETE)
+                    .payload("{}")
+                    .createdAt(Instant.now())
+                    .build();
+
+            when(syncChangeRepository.save(any(SyncChange.class))).thenReturn(expectedChange);
+
+            SyncChange result = syncChangeService.create(command);
+
+            assertThat(result.operation()).isEqualTo(com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType.DELETE);
+            verify(syncChangeRepository).save(any(SyncChange.class));
         }
     }
 }
