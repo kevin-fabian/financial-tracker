@@ -18,8 +18,8 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -38,11 +38,14 @@ import java.util.List;
 import java.util.UUID;
 
 @Slf4j
-@RequiredArgsConstructor
 @RestController
 @RequestMapping(value = "/api/categories", version = "v1")
 public class CategoryController {
     private final CategoryService categoryService;
+
+    public CategoryController(@Qualifier("syncChangeAwareCategoryService") CategoryService categoryService) {
+        this.categoryService = categoryService;
+    }
 
     @Operation(
             summary = "Retrieves paginated category summaries",

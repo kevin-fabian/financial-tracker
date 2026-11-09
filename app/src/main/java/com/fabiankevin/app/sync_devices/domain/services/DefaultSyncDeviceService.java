@@ -38,6 +38,7 @@ public class DefaultSyncDeviceService implements SyncDeviceService {
             ShoppingListService shoppingListService,
             @Qualifier("defaultAccountService")
             AccountService accountService,
+            @Qualifier("defaultCategoryService")
             CategoryService categoryService,
             SyncDeviceRepository syncDeviceRepository) {
         this.transactionService = transactionService;

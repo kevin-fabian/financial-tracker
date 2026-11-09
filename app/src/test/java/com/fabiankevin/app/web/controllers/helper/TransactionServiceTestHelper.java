@@ -36,6 +36,7 @@ public class TransactionServiceTestHelper {
 
     public TransactionServiceTestHelper(
             TransactionService transactionService,
+            @Qualifier("defaultCategoryService")
             CategoryService categoryService,
             @Qualifier("defaultAccountService")
             AccountService accountService,

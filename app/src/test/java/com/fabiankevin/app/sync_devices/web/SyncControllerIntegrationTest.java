@@ -94,6 +94,7 @@ class SyncControllerIntegrationTest {
     private TransactionService transactionService;
 
     @Autowired
+    @Qualifier("defaultCategoryService")
     private CategoryService categoryService;
 
     @MockitoBean
