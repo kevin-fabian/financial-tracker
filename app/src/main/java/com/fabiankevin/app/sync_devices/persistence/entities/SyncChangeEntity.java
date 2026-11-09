@@ -46,7 +46,7 @@ public class SyncChangeEntity {
     @Column(name = "operation", nullable = false)
     @Enumerated(EnumType.STRING)
     private SyncChangeOperationType operation;
-    @Column(name = "payload", nullable = false, columnDefinition = "json")
+    @Column(name = "payload", nullable = false, columnDefinition = "text")
     private String payload;
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;

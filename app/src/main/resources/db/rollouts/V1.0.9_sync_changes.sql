@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS sync_changes (
     entity_type VARCHAR(32) NOT NULL CHECK (entity_type IN ('ACCOUNTS', 'CATEGORIES', 'TRANSACTIONS')),
     entity_id UUID NOT NULL,
     operation VARCHAR(32) NOT NULL CHECK (operation IN ('CREATE', 'UPDATE', 'DELETE')),
-    payload JSON NOT NULL,
+    payload TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

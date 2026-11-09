@@ -269,7 +269,7 @@ class SyncPullChangesControllerTest {
         }
 
         @Test
-        void givenNullCursors_shouldReturnBadRequest() throws Exception {
+        void givenNullCursors_shouldReturnOkWithEmptyScopes() throws Exception {
             SyncPullChangesRequest request = SyncPullChangesRequest.builder()
                     .cursors(null)
                     .primaryLastPulledSequence(100L)
@@ -285,11 +285,13 @@ class SyncPullChangesControllerTest {
                                     ))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.scopes").isArray())
+                    .andExpect(jsonPath("$.scopes.length()").value(0));
         }
 
         @Test
-        void givenEmptyCursors_shouldReturnBadRequest() throws Exception {
+        void givenEmptyCursors_shouldReturnOkWithEmptyScopes() throws Exception {
             SyncPullChangesRequest request = SyncPullChangesRequest.builder()
                     .cursors(List.of())
                     .primaryLastPulledSequence(100L)
@@ -305,7 +307,9 @@ class SyncPullChangesControllerTest {
                                     ))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.scopes").isArray())
+                    .andExpect(jsonPath("$.scopes.length()").value(0));
         }
 
         @Test
