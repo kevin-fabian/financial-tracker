@@ -38,7 +38,8 @@ public class Oauth2ResourceServerConfig {
                                 "/api/stats", "/api/stats*",
                                 "/api/households", "/api/households/**",
                                 "/api/budgets", "/api/budgets/**",
-                                "/api/shopping-lists", "/api/shopping-lists/**"
+                                "/api/shopping-lists", "/api/shopping-lists/**",
+                                "/api/sync-devices", "/api/sync-devices/**"
                                 ).hasAnyAuthority(USER_ROLE)
                         .requestMatchers("/api/recurring-transactions/process-due").hasAnyAuthority("laan:operator")
                         .requestMatchers("/actuator/health", "/actuator/info", "/actuator/prometheus**").permitAll()
