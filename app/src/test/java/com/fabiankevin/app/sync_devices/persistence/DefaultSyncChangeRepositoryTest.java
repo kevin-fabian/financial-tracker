@@ -1,10 +1,11 @@
 package com.fabiankevin.app.sync_devices.persistence;
 
+import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType;
 import com.fabiankevin.app.sync_devices.domain.repositories.SyncChangeRepository;
-import com.fabiankevin.app.sync_devices.domain.services.queries.SyncCursorQuery;
 import com.fabiankevin.app.sync_devices.persistence.entities.SyncChangeEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -18,8 +19,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -145,11 +144,12 @@ class DefaultSyncChangeRepositoryTest {
             syncChangeRepository.save(change2);
             syncChangeRepository.save(change3);
 
-            List<SyncChange> result = syncChangeRepository.findChangesAfterBatch(userId, 1L, 100);
+            PageQuery pageQuery = PageQuery.builder().page(0).size(100).build();
+            Page<SyncChange> result = syncChangeRepository.findChangesAfterBatch(userId, 1L, pageQuery);
 
             assertNotNull(result);
-            assertEquals(3, result.size());
-            assertThat(result)
+            assertEquals(3, result.content().size());
+            assertThat(result.content())
                     .extracting(SyncChange::sequenceId)
                     .containsExactly(2L, 3L, 5L);
         }
@@ -170,10 +170,11 @@ class DefaultSyncChangeRepositoryTest {
 
             syncChangeRepository.save(change);
 
-            List<SyncChange> result = syncChangeRepository.findChangesAfterBatch(userId, 10L, 100);
+            PageQuery pageQuery = PageQuery.builder().page(0).size(100).build();
+            Page<SyncChange> result = syncChangeRepository.findChangesAfterBatch(userId, 10L, pageQuery);
 
             assertNotNull(result);
-            assertEquals(0, result.size());
+            assertEquals(0, result.content().size());
         }
 
         @Test
@@ -193,11 +194,12 @@ class DefaultSyncChangeRepositoryTest {
                 syncChangeRepository.save(change);
             }
 
-            List<SyncChange> result = syncChangeRepository.findChangesAfterBatch(userId, 0L, 3);
+            PageQuery pageQuery = PageQuery.builder().page(0).size(3).build();
+            Page<SyncChange> result = syncChangeRepository.findChangesAfterBatch(userId, 0L, pageQuery);
 
             assertNotNull(result);
-            assertEquals(3, result.size());
-            assertThat(result)
+            assertEquals(3, result.content().size());
+            assertThat(result.content())
                     .extracting(SyncChange::sequenceId)
                     .containsExactly(1L, 2L, 3L);
         }
@@ -206,10 +208,11 @@ class DefaultSyncChangeRepositoryTest {
         void givenUserIdWithNoChangesAtAll_shouldReturnEmptyList() {
             UUID userId = UUID.randomUUID();
 
-            List<SyncChange> result = syncChangeRepository.findChangesAfterBatch(userId, 0L, 100);
+            PageQuery pageQuery = PageQuery.builder().page(0).size(100).build();
+            Page<SyncChange> result = syncChangeRepository.findChangesAfterBatch(userId, 0L, pageQuery);
 
             assertNotNull(result);
-            assertEquals(0, result.size());
+            assertEquals(0, result.content().size());
         }
 
         @Test
@@ -240,108 +243,50 @@ class DefaultSyncChangeRepositoryTest {
             syncChangeRepository.save(change1);
             syncChangeRepository.save(change2);
 
-            List<SyncChange> result = syncChangeRepository.findChangesAfterBatch(userId1, 0L, 100);
+            PageQuery pageQuery = PageQuery.builder().page(0).size(100).build();
+            Page<SyncChange> result = syncChangeRepository.findChangesAfterBatch(userId1, 0L, pageQuery);
 
             assertNotNull(result);
-            assertEquals(1, result.size());
-            assertThat(result).allMatch(change -> change.userId().equals(userId1));
+            assertEquals(1, result.content().size());
+            assertThat(result.content()).allMatch(change -> change.userId().equals(userId1));
         }
     }
 
     @Nested
-    class FindChangesAfterBatch {
+    class FindChangesAfterBatchPageQuery {
 
         @Test
-        void givenMultipleCursors_shouldReturnChangesGroupedByOwnerId() {
-            UUID userId1 = UUID.randomUUID();
-            UUID userId2 = UUID.randomUUID();
-
-            SyncChange change1 = SyncChange.builder()
-                    .userId(userId1)
-                    .sequenceId(2L)
-                    .entityType(ResourceType.TRANSACTIONS)
-                    .entityId(UUID.randomUUID())
-                    .operation(SyncChangeOperationType.CREATE)
-                    .payload("{}")
-                    .createdAt(Instant.now())
-                    .build();
-
-            SyncChange change2 = SyncChange.builder()
-                    .userId(userId1)
-                    .sequenceId(3L)
-                    .entityType(ResourceType.ACCOUNTS)
-                    .entityId(UUID.randomUUID())
-                    .operation(SyncChangeOperationType.UPDATE)
-                    .payload("{}")
-                    .createdAt(Instant.now())
-                    .build();
-
-            SyncChange change3 = SyncChange.builder()
-                    .userId(userId2)
-                    .sequenceId(1L)
-                    .entityType(ResourceType.CATEGORIES)
-                    .entityId(UUID.randomUUID())
-                    .operation(SyncChangeOperationType.CREATE)
-                    .payload("{}")
-                    .createdAt(Instant.now())
-                    .build();
-
-            syncChangeRepository.save(change1);
-            syncChangeRepository.save(change2);
-            syncChangeRepository.save(change3);
-
-            List<SyncCursorQuery> cursors = List.of(
-                    SyncCursorQuery.builder().ownerId(userId1).lastPulledSequence(1L).build(),
-                    SyncCursorQuery.builder().ownerId(userId2).lastPulledSequence(0L).build()
-            );
-
-            Map<UUID, List<SyncChange>> result = syncChangeRepository.findChangesAfterBatch(cursors);
-
-            assertNotNull(result);
-            assertEquals(2, result.size());
-            assertEquals(2, result.get(userId1).size());
-            assertEquals(1, result.get(userId2).size());
-        }
-
-        @Test
-        void givenCursorsWithNoMatchingChanges_shouldReturnEmptyMap() {
+        void givenUserIdWithMoreChangesThanPageSize_shouldReturnPaginatedResultWithHasMore() {
             UUID userId = UUID.randomUUID();
 
-            SyncChange change = SyncChange.builder()
-                    .userId(userId)
-                    .sequenceId(5L)
-                    .entityType(ResourceType.TRANSACTIONS)
-                    .entityId(UUID.randomUUID())
-                    .operation(SyncChangeOperationType.CREATE)
-                    .payload("{}")
-                    .createdAt(Instant.now())
-                    .build();
+            for (long i = 1; i <= 15; i++) {
+                SyncChange change = SyncChange.builder()
+                        .userId(userId)
+                        .sequenceId(i)
+                        .entityType(ResourceType.TRANSACTIONS)
+                        .entityId(UUID.randomUUID())
+                        .operation(SyncChangeOperationType.CREATE)
+                        .payload("{}")
+                        .createdAt(Instant.now())
+                        .build();
+                syncChangeRepository.save(change);
+            }
 
-            syncChangeRepository.save(change);
+            PageQuery pageQuery = PageQuery.withDefaults();
 
-            // Cursor sequence is higher than any existing change
-            List<SyncCursorQuery> cursors = List.of(
-                    SyncCursorQuery.builder().ownerId(userId).lastPulledSequence(10L).build()
-            );
-
-            Map<UUID, List<SyncChange>> result = syncChangeRepository.findChangesAfterBatch(cursors);
+            Page<SyncChange> result = syncChangeRepository.findChangesAfterBatch(userId, 0L, pageQuery);
 
             assertNotNull(result);
-            assertEquals(0, result.size());
+            assertEquals(10, result.content().size(), "should return page size of 10");
+            assertEquals(15, result.totalElements());
+            assertEquals(2, result.totalPages());
+            assertThat(result.content())
+                    .extracting(SyncChange::sequenceId)
+                    .containsExactly(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L);
         }
 
         @Test
-        void givenEmptyCursors_shouldReturnEmptyMap() {
-            List<SyncCursorQuery> cursors = List.of();
-
-            Map<UUID, List<SyncChange>> result = syncChangeRepository.findChangesAfterBatch(cursors);
-
-            assertNotNull(result);
-            assertEquals(0, result.size());
-        }
-
-        @Test
-        void givenCursorsWithSameUserMultipleTimes_shouldUseMaxSequence() {
+        void givenUserIdWithFewerChangesThanPageSize_shouldReturnAllChangesAndMarkAsLast() {
             UUID userId = UUID.randomUUID();
 
             SyncChange change1 = SyncChange.builder()
@@ -356,7 +301,7 @@ class DefaultSyncChangeRepositoryTest {
 
             SyncChange change2 = SyncChange.builder()
                     .userId(userId)
-                    .sequenceId(4L)
+                    .sequenceId(5L)
                     .entityType(ResourceType.ACCOUNTS)
                     .entityId(UUID.randomUUID())
                     .operation(SyncChangeOperationType.UPDATE)
@@ -367,96 +312,18 @@ class DefaultSyncChangeRepositoryTest {
             syncChangeRepository.save(change1);
             syncChangeRepository.save(change2);
 
-            // Same user appears twice — max sequence (3) is used, so only seq 4 is returned
-            List<SyncCursorQuery> cursors = List.of(
-                    SyncCursorQuery.builder().ownerId(userId).lastPulledSequence(1L).build(),
-                    SyncCursorQuery.builder().ownerId(userId).lastPulledSequence(3L).build()
-            );
+            PageQuery pageQuery = PageQuery.withDefaults();
 
-            Map<UUID, List<SyncChange>> result = syncChangeRepository.findChangesAfterBatch(cursors);
+            Page<SyncChange> result = syncChangeRepository.findChangesAfterBatch(userId, 0L, pageQuery);
 
             assertNotNull(result);
-            assertEquals(1, result.get(userId).size());
-            assertEquals(4L, result.get(userId).getFirst().sequenceId());
-        }
-
-        @Test
-        void givenMultipleUsers_shouldReturnChangesOrderedByUserIdThenSequenceId() {
-            UUID userId1 = UUID.randomUUID();
-            UUID userId2 = UUID.randomUUID();
-
-            SyncChange changeA = SyncChange.builder()
-                    .userId(userId1)
-                    .sequenceId(5L)
-                    .entityType(ResourceType.TRANSACTIONS)
-                    .entityId(UUID.randomUUID())
-                    .operation(SyncChangeOperationType.CREATE)
-                    .payload("{}")
-                    .createdAt(Instant.now())
-                    .build();
-
-            SyncChange changeB = SyncChange.builder()
-                    .userId(userId1)
-                    .sequenceId(2L)
-                    .entityType(ResourceType.ACCOUNTS)
-                    .entityId(UUID.randomUUID())
-                    .operation(SyncChangeOperationType.UPDATE)
-                    .payload("{}")
-                    .createdAt(Instant.now())
-                    .build();
-
-            SyncChange changeC = SyncChange.builder()
-                    .userId(userId2)
-                    .sequenceId(3L)
-                    .entityType(ResourceType.CATEGORIES)
-                    .entityId(UUID.randomUUID())
-                    .operation(SyncChangeOperationType.CREATE)
-                    .payload("{}")
-                    .createdAt(Instant.now())
-                    .build();
-
-            SyncChange changeD = SyncChange.builder()
-                    .userId(userId2)
-                    .sequenceId(1L)
-                    .entityType(ResourceType.TRANSACTIONS)
-                    .entityId(UUID.randomUUID())
-                    .operation(SyncChangeOperationType.DELETE)
-                    .payload("{}")
-                    .createdAt(Instant.now())
-                    .build();
-
-            syncChangeRepository.save(changeA);
-            syncChangeRepository.save(changeB);
-            syncChangeRepository.save(changeC);
-            syncChangeRepository.save(changeD);
-
-            List<SyncCursorQuery> cursors = List.of(
-                    SyncCursorQuery.builder().ownerId(userId1).lastPulledSequence(0L).build(),
-                    SyncCursorQuery.builder().ownerId(userId2).lastPulledSequence(0L).build()
-            );
-
-            Map<UUID, List<SyncChange>> result = syncChangeRepository.findChangesAfterBatch(cursors);
-
-            // Verify ordering within each user's changes
-            assertThat(result)
-                    .as("User %s changes ordered by sequenceId", userId1)
-                    .satisfies(r -> {
-                        List<SyncChange> user1Changes = r.get(userId1);
-                        assertThat(user1Changes).hasSize(2);
-                        assertThat(user1Changes)
-                                .extracting(SyncChange::sequenceId)
-                                .containsExactly(2L, 5L);
-                    });
-
-            assertThat(result)
-                    .as("User %s changes ordered by sequenceId", userId2)
-                    .satisfies(r -> {
-                        List<SyncChange> user2Changes = r.get(userId2);
-                        assertThat(user2Changes).hasSize(2);
-                        assertThat(user2Changes)
-                                .extracting(SyncChange::sequenceId)
-                                .containsExactly(1L, 3L);
-                    });
+            assertEquals(2, result.content().size());
+            assertThat(result.content())
+                    .extracting(SyncChange::sequenceId)
+                    .containsExactly(2L, 5L);
+            assertEquals(2, result.totalElements());
+            assertEquals(1, result.totalPages());
+            assertThat(result.last()).isTrue();
         }
     }
 }

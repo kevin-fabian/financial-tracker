@@ -2,7 +2,9 @@ package com.fabiankevin.app.sync_devices.domain.services;
 
 import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.services.HouseholdService;
+import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
+import com.fabiankevin.app.sync_devices.domain.models.SyncScope;
 import com.fabiankevin.app.sync_devices.domain.repositories.SyncChangeRepository;
 import com.fabiankevin.app.sync_devices.domain.services.commands.CreateSyncChangeCommand;
 import com.fabiankevin.app.sync_devices.domain.services.queries.SyncCursorQuery;
@@ -12,9 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -22,13 +22,11 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 @Service
 public class DefaultSyncChangeService implements SyncChangeService {
-    private static final int DEFAULT_PAGE_SIZE = 100;
-
     private final HouseholdService householdService;
     private final SyncChangeRepository syncChangeRepository;
 
     @Override
-    public Map<UUID, List<SyncChange>> pullChanges(UUID requestingUserId, long lastSequenceId, List<SyncCursorQuery> cursors) {
+    public List<SyncScope> pullChanges(UUID requestingUserId, long lastSequenceId, List<SyncCursorQuery> cursors) {
         List<UUID> householdMemberIds = householdService.getHouseholdMembersUserIds(requestingUserId);
 
         for (SyncCursorQuery cursor : cursors) {
@@ -53,38 +51,39 @@ public class DefaultSyncChangeService implements SyncChangeService {
                 .toList();
 
         if (validCursors.isEmpty()) {
-            return Map.of();
+            return List.of();
         }
 
-        Map<UUID, List<SyncChange>> result = new HashMap<>();
+        PageQuery pageQuery = PageQuery.withDefaults();
+
+        List<SyncScope> scopes = new ArrayList<>();
 
         for (SyncCursorQuery cursor : validCursors) {
             UUID ownerId = cursor.ownerId();
-            Long lastPulledSequence = cursor.lastPulledSequence();
-            List<SyncChange> accumulatedChanges = new ArrayList<>();
 
-            while (true) {
-                List<SyncChange> page = syncChangeRepository.findChangesAfterBatch(
-                        ownerId, lastPulledSequence, DEFAULT_PAGE_SIZE);
+            var page = syncChangeRepository.findChangesAfterBatch(
+                    ownerId, cursor.lastPulledSequence(), pageQuery);
 
-                if (page.isEmpty()) {
-                    break;
-                }
-
-                accumulatedChanges.addAll(page);
-                lastPulledSequence = page.getLast().sequenceId();
-
-                if (page.size() < DEFAULT_PAGE_SIZE) {
-                    break;
-                }
+            if (page.content().isEmpty()) {
+                continue;
             }
 
-            if (!accumulatedChanges.isEmpty()) {
-                result.put(ownerId, accumulatedChanges);
-            }
+            Long nextCursor = page.content().stream()
+                    .mapToLong(SyncChange::sequenceId)
+                    .max()
+                    .orElse(cursor.lastPulledSequence());
+
+            boolean hasMore = !page.last();
+
+            scopes.add(SyncScope.builder()
+                    .userId(ownerId)
+                    .changes(page.content())
+                    .nextCursor(nextCursor)
+                    .hasMore(hasMore)
+                    .build());
         }
 
-        return result;
+        return scopes;
     }
 
     @Override

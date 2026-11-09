@@ -10,7 +10,7 @@ import java.util.UUID;
 
 @Builder(toBuilder = true)
 @Schema(description = "A scope of sync changes for a single user")
-public record SyncScope(
+public record SyncScopeDto(
         @NotNull(message = "User ID is required")
         @Schema(description = "User identifier this scope belongs to", example = "user-a-uuid")
         UUID userId,
@@ -25,7 +25,7 @@ public record SyncScope(
         @Schema(description = "Whether more changes are available", example = "false")
         boolean hasMore) {
 
-    public static SyncScope empty(UUID userId, Long nextCursor) {
+    public static SyncScopeDto empty(UUID userId, Long nextCursor) {
         return builder()
                 .userId(userId)
                 .changes(List.of())
