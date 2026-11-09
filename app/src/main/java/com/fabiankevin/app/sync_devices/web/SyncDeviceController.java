@@ -2,6 +2,7 @@ package com.fabiankevin.app.sync_devices.web;
 
 import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
 import com.fabiankevin.app.sync_devices.domain.models.SyncDevice;
+import com.fabiankevin.app.sync_devices.domain.services.SyncChangeService;
 import com.fabiankevin.app.sync_devices.domain.services.SyncDeviceService;
 import com.fabiankevin.app.sync_devices.domain.services.commands.SyncCursorQuery;
 import com.fabiankevin.app.sync_devices.web.dtos.SyncPullChangesRequest;
@@ -41,6 +42,7 @@ public class SyncDeviceController {
     private static final String USER_DEVICE_CLAIM = "userDevice";
 
     private final SyncDeviceService syncDeviceService;
+    private final SyncChangeService syncChangeService;
 
     @Operation(
             summary = "Prepare data synchronization",
@@ -154,7 +156,7 @@ public class SyncDeviceController {
         List<SyncCursorQuery> cursorQueries = request.cursors().stream()
                 .map(SyncCursorQuery::from)
                 .toList();
-        Map<UUID, List<SyncChange>> changesByUser = syncDeviceService.pullChanges(userId, request.primaryLastPulledSequence(), cursorQueries);
+        Map<UUID, List<SyncChange>> changesByUser = syncChangeService.pullChanges(userId, request.primaryLastPulledSequence(), cursorQueries);
         return SyncPullChangesResponse.from(cursorQueries, changesByUser);
     }
 

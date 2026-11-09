@@ -4,17 +4,13 @@ import com.fabiankevin.app.exceptions.SyncStateNotFoundException;
 import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.BudgetService;
 import com.fabiankevin.app.services.CategoryService;
-import com.fabiankevin.app.services.HouseholdService;
 import com.fabiankevin.app.services.RecurringTransactionService;
 import com.fabiankevin.app.services.ShoppingListService;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.CreateSyncStateCommand;
 import com.fabiankevin.app.services.commands.PatchSyncStateCommand;
-import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
 import com.fabiankevin.app.sync_devices.domain.models.SyncDevice;
-import com.fabiankevin.app.sync_devices.domain.repositories.SyncChangeRepository;
 import com.fabiankevin.app.sync_devices.domain.repositories.SyncDeviceRepository;
-import com.fabiankevin.app.sync_devices.domain.services.commands.SyncCursorQuery;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +18,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -35,9 +30,7 @@ public class DefaultSyncDeviceService implements SyncDeviceService {
     private final ShoppingListService shoppingListService;
     private final AccountService accountService;
     private final CategoryService categoryService;
-    private final HouseholdService householdService;
     private final SyncDeviceRepository syncDeviceRepository;
-    private final SyncChangeRepository syncChangeRepository;
 
     @Transactional
     @Override
@@ -112,27 +105,5 @@ public class DefaultSyncDeviceService implements SyncDeviceService {
     @Override
     public List<SyncDevice> getAllByUserId(UUID userId) {
         return syncDeviceRepository.findAllByUserId(userId);
-    }
-
-    @Override
-    public Map<UUID, List<SyncChange>> pullChanges(UUID requestingUserId, long lastSequenceId, List<SyncCursorQuery> cursors) {
-        List<UUID> householdMemberIds = householdService.getHouseholdMembersUserIds(requestingUserId);
-
-        for (SyncCursorQuery cursor : cursors) {
-            if (!householdMemberIds.contains(cursor.ownerId())) {
-                throw new com.fabiankevin.app.exceptions.party.ForbiddenException(
-                        "User is not a member of the household");
-            }
-        }
-
-        List<SyncCursorQuery> validCursors = cursors.stream()
-                .filter(cursor -> cursor.lastPulledSequence() != null && cursor.lastPulledSequence() >= 0)
-                .toList();
-
-        if (validCursors.isEmpty()) {
-            return Map.of();
-        }
-
-        return syncChangeRepository.findChangesAfterBatch(validCursors);
     }
 }

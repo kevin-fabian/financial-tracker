@@ -4,7 +4,6 @@ import com.fabiankevin.app.exceptions.SyncStateNotFoundException;
 import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.BudgetService;
 import com.fabiankevin.app.services.CategoryService;
-import com.fabiankevin.app.services.HouseholdService;
 import com.fabiankevin.app.services.RecurringTransactionService;
 import com.fabiankevin.app.services.ShoppingListService;
 import com.fabiankevin.app.services.TransactionService;
@@ -12,17 +11,13 @@ import com.fabiankevin.app.services.commands.CreateSyncStateCommand;
 import com.fabiankevin.app.services.commands.PatchSyncStateCommand;
 import com.fabiankevin.app.sync_devices.domain.models.BootstrapDirection;
 import com.fabiankevin.app.sync_devices.domain.models.BootstrapStatus;
-import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
 import com.fabiankevin.app.sync_devices.domain.models.SyncDevice;
-import com.fabiankevin.app.sync_devices.domain.repositories.SyncChangeRepository;
 import com.fabiankevin.app.sync_devices.domain.repositories.SyncDeviceRepository;
-import com.fabiankevin.app.sync_devices.domain.services.commands.SyncCursorQuery;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -44,9 +39,7 @@ class DefaultSyncDeviceServiceTest {
     private final ShoppingListService shoppingListService = mock(ShoppingListService.class);
     private final AccountService accountService = mock(AccountService.class);
     private final CategoryService categoryService = mock(CategoryService.class);
-    private final HouseholdService householdService = mock(HouseholdService.class);
     private final SyncDeviceRepository syncDeviceRepository = mock(SyncDeviceRepository.class);
-    private final SyncChangeRepository syncChangeRepository = mock(SyncChangeRepository.class);
 
     private final DefaultSyncDeviceService syncService = new DefaultSyncDeviceService(
             transactionService,
@@ -55,9 +48,7 @@ class DefaultSyncDeviceServiceTest {
             shoppingListService,
             accountService,
             categoryService,
-            householdService,
-            syncDeviceRepository,
-            syncChangeRepository
+            syncDeviceRepository
     );
 
     @Nested
@@ -332,120 +323,6 @@ class DefaultSyncDeviceServiceTest {
             List<SyncDevice> result = syncService.getAllByUserId(userId);
 
             assertThat(result).isEmpty();
-        }
-    }
-
-    @Nested
-    class PullChanges {
-
-        @Test
-        void givenEmptyCursors_shouldReturnEmptyMapWithoutCallingRepository() {
-            UUID userId = UUID.randomUUID();
-            when(householdService.getHouseholdMembersUserIds(userId)).thenReturn(List.of(userId));
-
-            List<SyncCursorQuery> cursors = List.of();
-
-            Map<UUID, List<SyncChange>> result = syncService.pullChanges(userId, 0L, cursors);
-
-            assertThat(result).isEmpty();
-        }
-
-        @Test
-        void givenCursorsWithInvalidSequence_shouldFilterOutInvalidCursors() {
-            UUID userId = UUID.randomUUID();
-            when(householdService.getHouseholdMembersUserIds(userId)).thenReturn(List.of(userId));
-
-            SyncCursorQuery invalidCursor = SyncCursorQuery.builder()
-                    .ownerId(userId)
-                    .lastPulledSequence(-1L)
-                    .build();
-
-            List<SyncCursorQuery> cursors = List.of(invalidCursor);
-
-            Map<UUID, List<SyncChange>> result = syncService.pullChanges(userId, 0L, cursors);
-
-            assertThat(result).isEmpty();
-        }
-
-        @Test
-        void givenCursorsWithNullSequence_shouldFilterOutNullCursors() {
-            UUID userId = UUID.randomUUID();
-            when(householdService.getHouseholdMembersUserIds(userId)).thenReturn(List.of(userId));
-
-            SyncCursorQuery nullSequenceCursor = SyncCursorQuery.builder()
-                    .ownerId(userId)
-                    .lastPulledSequence(null)
-                    .build();
-
-            List<SyncCursorQuery> cursors = List.of(nullSequenceCursor);
-
-            Map<UUID, List<SyncChange>> result = syncService.pullChanges(userId, 0L, cursors);
-
-            assertThat(result).isEmpty();
-        }
-
-        @Test
-        void givenMixedValidAndInvalidCursors_shouldOnlyPassValidToRepository() {
-            UUID userId = UUID.randomUUID();
-            when(householdService.getHouseholdMembersUserIds(userId)).thenReturn(List.of(userId));
-
-            SyncCursorQuery validCursor = SyncCursorQuery.builder()
-                    .ownerId(userId)
-                    .lastPulledSequence(1L)
-                    .build();
-
-            SyncCursorQuery invalidCursor = SyncCursorQuery.builder()
-                    .ownerId(userId)
-                    .lastPulledSequence(-1L)
-                    .build();
-
-            List<SyncCursorQuery> cursors = List.of(validCursor, invalidCursor);
-
-            when(syncChangeRepository.findChangesAfterBatch(List.of(validCursor)))
-                    .thenReturn(Map.of());
-
-            Map<UUID, List<SyncChange>> result = syncService.pullChanges(userId, 0L, cursors);
-
-            assertThat(result).isEmpty();
-        }
-
-        @Test
-        void givenNonHouseholdMember_shouldThrowForbiddenException() {
-            UUID requestingUserId = UUID.randomUUID();
-            UUID nonMemberId = UUID.randomUUID();
-
-            when(householdService.getHouseholdMembersUserIds(requestingUserId)).thenReturn(List.of(requestingUserId));
-
-            SyncCursorQuery cursor = SyncCursorQuery.builder()
-                    .ownerId(nonMemberId)
-                    .lastPulledSequence(1L)
-                    .build();
-
-            List<SyncCursorQuery> cursors = List.of(cursor);
-
-            assertThatThrownBy(() -> syncService.pullChanges(requestingUserId, 0L, cursors))
-                    .isInstanceOf(com.fabiankevin.app.exceptions.party.ForbiddenException.class);
-        }
-
-        @Test
-        void givenHouseholdMember_shouldPassValidation() {
-            UUID requestingUserId = UUID.randomUUID();
-            UUID memberId = UUID.randomUUID();
-
-            when(householdService.getHouseholdMembersUserIds(requestingUserId)).thenReturn(List.of(requestingUserId, memberId));
-
-            SyncCursorQuery cursor = SyncCursorQuery.builder()
-                    .ownerId(memberId)
-                    .lastPulledSequence(1L)
-                    .build();
-
-            when(syncChangeRepository.findChangesAfterBatch(List.of(cursor)))
-                    .thenReturn(Map.of());
-
-            Map<UUID, List<SyncChange>> result = syncService.pullChanges(requestingUserId, 0L, List.of(cursor));
-
-            assertThat(result).isEmpty();
-            verify(syncChangeRepository).findChangesAfterBatch(List.of(cursor));
         }
     }
 }
