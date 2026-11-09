@@ -7,6 +7,7 @@ import com.fabiankevin.app.sync_devices.persistence.entities.SyncChangeEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -42,7 +43,12 @@ public class DefaultSyncChangeRepository implements SyncChangeRepository {
                 .filter(entity -> entity.toModel().sequenceId() > cursorMap.getOrDefault(entity.toModel().userId(), 0L))
                 .collect(Collectors.groupingBy(
                         entity -> entity.toModel().userId(),
-                        Collectors.mapping(SyncChangeEntity::toModel, Collectors.toList())
+                        Collectors.mapping(
+                                SyncChangeEntity::toModel,
+                                Collectors.collectingAndThen(Collectors.toList(), list -> list.stream()
+                                        .sorted(Comparator.comparingLong(SyncChange::sequenceId))
+                                        .toList())
+                        )
                 ));
     }
 }

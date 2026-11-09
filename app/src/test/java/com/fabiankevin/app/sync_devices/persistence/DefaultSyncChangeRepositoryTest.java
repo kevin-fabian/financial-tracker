@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -232,7 +233,78 @@ class DefaultSyncChangeRepositoryTest {
 
             assertNotNull(result);
             assertEquals(1, result.get(userId).size());
-            assertEquals(4L, result.get(userId).get(0).sequenceId());
+            assertEquals(4L, result.get(userId).getFirst().sequenceId());
+        }
+
+        @Test
+        void givenMultipleUsers_shouldReturnChangesOrderedByUserIdThenSequenceId() {
+            UUID userId1 = UUID.randomUUID();
+            UUID userId2 = UUID.randomUUID();
+
+            SyncChange changeA = SyncChange.builder()
+                    .userId(userId1)
+                    .sequenceId(5L)
+                    .entityType(ResourceType.TRANSACTIONS)
+                    .entityId(UUID.randomUUID())
+                    .operation(SyncChangeOperationType.CREATE)
+                    .payload("{}")
+                    .createdAt(Instant.now())
+                    .build();
+
+            SyncChange changeB = SyncChange.builder()
+                    .userId(userId1)
+                    .sequenceId(2L)
+                    .entityType(ResourceType.ACCOUNTS)
+                    .entityId(UUID.randomUUID())
+                    .operation(SyncChangeOperationType.UPDATE)
+                    .payload("{}")
+                    .createdAt(Instant.now())
+                    .build();
+
+            SyncChange changeC = SyncChange.builder()
+                    .userId(userId2)
+                    .sequenceId(3L)
+                    .entityType(ResourceType.CATEGORIES)
+                    .entityId(UUID.randomUUID())
+                    .operation(SyncChangeOperationType.CREATE)
+                    .payload("{}")
+                    .createdAt(Instant.now())
+                    .build();
+
+            SyncChange changeD = SyncChange.builder()
+                    .userId(userId2)
+                    .sequenceId(1L)
+                    .entityType(ResourceType.TRANSACTIONS)
+                    .entityId(UUID.randomUUID())
+                    .operation(SyncChangeOperationType.DELETE)
+                    .payload("{}")
+                    .createdAt(Instant.now())
+                    .build();
+
+            syncChangeRepository.save(changeA);
+            syncChangeRepository.save(changeB);
+            syncChangeRepository.save(changeC);
+            syncChangeRepository.save(changeD);
+
+            List<SyncCursorQuery> cursors = List.of(
+                    SyncCursorQuery.builder().ownerId(userId1).lastPulledSequence(0L).build(),
+                    SyncCursorQuery.builder().ownerId(userId2).lastPulledSequence(0L).build()
+            );
+
+            Map<UUID, List<SyncChange>> result = syncChangeRepository.findChangesAfterBatch(cursors);
+
+            // Verify ordering within each user's changes
+            List<SyncChange> user1Changes = result.get(userId1);
+            assertThat(user1Changes).hasSize(2);
+            assertThat(user1Changes.get(0).sequenceId()).isLessThan(user1Changes.get(1).sequenceId());
+            assertThat(user1Changes.get(0).sequenceId()).isEqualTo(2L);
+            assertThat(user1Changes.get(1).sequenceId()).isEqualTo(5L);
+
+            List<SyncChange> user2Changes = result.get(userId2);
+            assertThat(user2Changes).hasSize(2);
+            assertThat(user2Changes.get(0).sequenceId()).isLessThan(user2Changes.get(1).sequenceId());
+            assertThat(user2Changes.get(0).sequenceId()).isEqualTo(1L);
+            assertThat(user2Changes.get(1).sequenceId()).isEqualTo(3L);
         }
     }
 }

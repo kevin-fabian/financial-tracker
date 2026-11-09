@@ -13,8 +13,7 @@ import java.util.UUID;
 public record SyncChange(
         UUID id,
         UUID userId,
-        String userDevice,
-        Long sequenceId,
+        long sequenceId,
         ResourceType entityType,
         UUID entityId,
         SyncChangeOperationType operation,
@@ -23,7 +22,6 @@ public record SyncChange(
 
     public SyncChange {
         Objects.requireNonNull(userId, "User ID is required");
-        Objects.requireNonNull(sequenceId, "Sequence ID is required");
         Objects.requireNonNull(entityType, "Entity type is required");
         Objects.requireNonNull(entityId, "Entity ID is required");
         Objects.requireNonNull(operation, "Operation is required");
