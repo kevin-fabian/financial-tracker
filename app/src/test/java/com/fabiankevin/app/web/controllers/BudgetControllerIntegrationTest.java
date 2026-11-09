@@ -24,6 +24,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -67,6 +68,7 @@ class BudgetControllerIntegrationTest {
     @MockitoBean
     private UserClient userClient;
     @Autowired
+    @Qualifier("defaultCategoryService")
     private CategoryService categoryService;
     @Autowired
     private BudgetService budgetService;

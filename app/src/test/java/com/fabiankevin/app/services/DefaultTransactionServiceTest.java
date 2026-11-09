@@ -375,7 +375,8 @@ class DefaultTransactionServiceTest {
         when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(existing));
         when(accountRepository.findById(newAccountId)).thenReturn(Optional.of(Account.builder().id(newAccountId).user(User.of(userId)).name("NEW").currency(Currency.getInstance("PHP")).build()));
         when(categoryRepository.findById(newCategoryId)).thenReturn(Optional.of(Category.builder().id(newCategoryId).type(TransactionType.EXPENSE).userId(userId).name("NEWCAT").build()));
-        when(transactionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(transactionRepository.update(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userClient.getUsersByIds(any())).thenReturn(List.of(User.of(userId)));
         Household household = mock(Household.class);
         when(household.id()).thenReturn(UUID.randomUUID());
         when(householdRepository.findByUserId(userId)).thenReturn(Optional.of(household));
@@ -386,7 +387,7 @@ class DefaultTransactionServiceTest {
         verify(transactionRepository, times(1)).findById(transactionId);
         verify(accountRepository, times(1)).findById(newAccountId);
         verify(categoryRepository, times(1)).findById(newCategoryId);
-        verify(transactionRepository, times(1)).save(any());
+        verify(transactionRepository, times(1)).update(any());
         verify(householdRepository, times(1)).findByUserId(userId);
         verify(eventPublisher, times(1)).publish(eq(household.id()), argThat(payload ->
                 payload instanceof TransactionEventPayload p

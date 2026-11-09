@@ -91,6 +91,7 @@ class SyncControllerIntegrationTest {
     private AccountService accountService;
 
     @Autowired
+    @Qualifier("defaultTransactionService")
     private TransactionService transactionService;
 
     @Autowired

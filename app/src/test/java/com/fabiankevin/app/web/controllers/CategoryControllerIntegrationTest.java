@@ -31,6 +31,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -86,15 +87,18 @@ class CategoryControllerIntegrationTest {
     private JpaCategoryRepository jpaCategoryRepository;
 
     @Autowired
+    @Qualifier("syncChangeAwareCategoryService")
     private CategoryService categoryService;
 
     @Autowired
     private AccountRepository accountRepository;
 
     @Autowired
+    @Qualifier("defaultTransactionService")
     private TransactionService transactionService;
 
     @Autowired
+    @Qualifier("defaultAccountService")
     private AccountService accountService;
 
     @Autowired

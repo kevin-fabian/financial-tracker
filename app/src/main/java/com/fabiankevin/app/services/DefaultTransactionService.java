@@ -254,7 +254,7 @@ public class DefaultTransactionService implements TransactionService {
         Optional.ofNullable(command.amount()).ifPresent(builder::amount);
         Optional.ofNullable(command.transactionDate()).ifPresent(builder::transactionDate);
 
-        Transaction saved = transactionRepository.save(builder.build());
+        Transaction saved = transactionRepository.update(builder.build());
 
         householdRepository.findByUserId(userId).ifPresent(household ->
                 transactionEventPublisher.publish(household.id(), new TransactionEventPayload(
