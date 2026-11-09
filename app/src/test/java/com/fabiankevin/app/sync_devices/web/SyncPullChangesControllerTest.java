@@ -1,6 +1,7 @@
 package com.fabiankevin.app.sync_devices.web;
 
 import com.fabiankevin.app.clients.UserClient;
+import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ResourceType;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaHouseholdRepository;
 import com.fabiankevin.app.services.HouseholdService;
@@ -10,6 +11,8 @@ import com.fabiankevin.app.sync_devices.domain.repositories.SyncChangeRepository
 import com.fabiankevin.app.sync_devices.domain.services.SyncDeviceService;
 import com.fabiankevin.app.sync_devices.web.dtos.SyncCursorQueryRequest;
 import com.fabiankevin.app.sync_devices.web.dtos.SyncPullChangesRequest;
+import com.fabiankevin.app.web.controllers.dtos.household.HouseholdResponse;
+import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -30,6 +33,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -74,6 +79,9 @@ class SyncPullChangesControllerTest {
 
     @MockitoBean
     private UserClient userClient;
+
+    @Autowired
+    private HouseholdServiceTestHelper householdServiceTestHelper;
 
     @Nested
     class PullChanges {
@@ -178,23 +186,58 @@ class SyncPullChangesControllerTest {
         }
 
         @Test
-        void givenMultipleCursors_shouldReturnMultipleScopes() throws Exception {
+        void givenValidHouseholdMembersAndCursorWithMemberUserIds_shouldReturnMultipleScopes() throws Exception {
             UUID userIdA = UUID.randomUUID();
             UUID userIdB = UUID.randomUUID();
-            UUID transactionId = UUID.randomUUID();
+            UUID transactionIdA = UUID.randomUUID();
+            UUID transactionIdB = UUID.randomUUID();
             Long primaryLastPulledSequence = 100L;
 
-            // Insert changes for userIdA only
+            // Mock user lookup for leader creating household
+            when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.size() == 1 && ids.get(0).equals(userIdA))))
+                    .thenReturn(List.of(User.builder().id(userIdA).firstName("Alice").lastName("Smith").build()));
+
+            // Create household with both users as members
+            HouseholdResponse household =
+                    householdServiceTestHelper.createHouseHold(userIdA);
+            UUID householdId = household.id();
+
+            // Mock user lookup for member email (invitation send)
+            when(userClient.getUserByEmail("userb@example.com"))
+                    .thenReturn(User.builder().id(userIdB).firstName("Bob").lastName("Jones").build());
+
+            // Mock user lookup for both users (for invitation accept)
+            when(userClient.getUsersByIds(argThat(ids -> ids != null && ids.contains(userIdA) && ids.contains(userIdB))))
+                    .thenReturn(List.of(
+                            User.builder().id(userIdA).firstName("Alice").lastName("Smith").build(),
+                            User.builder().id(userIdB).firstName("Bob").lastName("Jones").build()
+                    ));
+
+            // Invite and accept (uses helper internally)
+            householdServiceTestHelper.inviteAndAccept(householdId, userIdA, userIdB, "userb@example.com");
+
+            // Insert changes for both users
             SyncChange changeA = SyncChange.builder()
                     .userId(userIdA)
                     .sequenceId(121L)
                     .entityType(ResourceType.TRANSACTIONS)
-                    .entityId(transactionId)
+                    .entityId(transactionIdA)
                     .operation(SyncChangeOperationType.CREATE)
                     .payload("{}")
                     .createdAt(Instant.now())
                     .build();
             syncChangeRepository.save(changeA);
+
+            SyncChange changeB = SyncChange.builder()
+                    .userId(userIdB)
+                    .sequenceId(90L)
+                    .entityType(ResourceType.TRANSACTIONS)
+                    .entityId(transactionIdB)
+                    .operation(SyncChangeOperationType.CREATE)
+                    .payload("{}")
+                    .createdAt(Instant.now())
+                    .build();
+            syncChangeRepository.save(changeB);
 
             SyncPullChangesRequest request = SyncPullChangesRequest.builder()
                     .cursors(List.of(
@@ -215,9 +258,14 @@ class SyncPullChangesControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.scopes").isArray())
                     .andExpect(jsonPath("$.scopes.length()").value(2))
                     .andExpect(jsonPath("$.scopes[0].userId").value(userIdA.toString()))
-                    .andExpect(jsonPath("$.scopes[1].userId").value(userIdB.toString()));
+                    .andExpect(jsonPath("$.scopes[0].changes.length()").value(1))
+                    .andExpect(jsonPath("$.scopes[0].changes[0].sequenceId").value(121))
+                    .andExpect(jsonPath("$.scopes[1].userId").value(userIdB.toString()))
+                    .andExpect(jsonPath("$.scopes[1].changes.length()").value(1))
+                    .andExpect(jsonPath("$.scopes[1].changes[0].sequenceId").value(90));
         }
 
         @Test
@@ -350,6 +398,33 @@ class SyncPullChangesControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void givenCursorWithOtherUserIdsButNoHousehold_shouldReturnForbidden() throws Exception {
+            UUID userIdA = UUID.randomUUID();
+            UUID userIdB = UUID.randomUUID();
+            Long primaryLastPulledSequence = 100L;
+
+            SyncPullChangesRequest request = SyncPullChangesRequest.builder()
+                    .cursors(List.of(
+                            SyncCursorQueryRequest.builder().ownerId(userIdA).lastPulledSequence(120L).build(),
+                            SyncCursorQueryRequest.builder().ownerId(userIdB).lastPulledSequence(85L).build()
+                    ))
+                    .primaryLastPulledSequence(primaryLastPulledSequence)
+                    .build();
+
+            mockMvc.perform(post("/api/sync-devices/pull")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userIdA)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isForbidden());
         }
     }
 }
