@@ -1,6 +1,7 @@
 package com.fabiankevin.app.sync_devices.web.dtos;
 
 import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
@@ -26,4 +27,13 @@ public record SyncChangeDto(
         @NotNull(message = "Operation is required")
         @Schema(description = "Type of operation performed", example = "CREATE")
         SyncChangeOperationType operation) {
+
+    public static SyncChangeDto from(SyncChange syncChange) {
+        return SyncChangeDto.builder()
+                .sequenceId(syncChange.sequenceId())
+                .entityType(syncChange.entityType())
+                .entityId(syncChange.entityId())
+                .operation(syncChange.operation())
+                .build();
+    }
 }
