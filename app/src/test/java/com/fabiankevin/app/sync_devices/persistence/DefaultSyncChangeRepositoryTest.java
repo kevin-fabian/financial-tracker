@@ -294,17 +294,25 @@ class DefaultSyncChangeRepositoryTest {
             Map<UUID, List<SyncChange>> result = syncChangeRepository.findChangesAfterBatch(cursors);
 
             // Verify ordering within each user's changes
-            List<SyncChange> user1Changes = result.get(userId1);
-            assertThat(user1Changes).hasSize(2);
-            assertThat(user1Changes.get(0).sequenceId()).isLessThan(user1Changes.get(1).sequenceId());
-            assertThat(user1Changes.get(0).sequenceId()).isEqualTo(2L);
-            assertThat(user1Changes.get(1).sequenceId()).isEqualTo(5L);
+            assertThat(result)
+                    .as("User %s changes ordered by sequenceId", userId1)
+                    .satisfies(r -> {
+                        List<SyncChange> user1Changes = r.get(userId1);
+                        assertThat(user1Changes).hasSize(2);
+                        assertThat(user1Changes)
+                                .extracting(SyncChange::sequenceId)
+                                .containsExactly(2L, 5L);
+                    });
 
-            List<SyncChange> user2Changes = result.get(userId2);
-            assertThat(user2Changes).hasSize(2);
-            assertThat(user2Changes.get(0).sequenceId()).isLessThan(user2Changes.get(1).sequenceId());
-            assertThat(user2Changes.get(0).sequenceId()).isEqualTo(1L);
-            assertThat(user2Changes.get(1).sequenceId()).isEqualTo(3L);
+            assertThat(result)
+                    .as("User %s changes ordered by sequenceId", userId2)
+                    .satisfies(r -> {
+                        List<SyncChange> user2Changes = r.get(userId2);
+                        assertThat(user2Changes).hasSize(2);
+                        assertThat(user2Changes)
+                                .extracting(SyncChange::sequenceId)
+                                .containsExactly(1L, 3L);
+                    });
         }
     }
 }
