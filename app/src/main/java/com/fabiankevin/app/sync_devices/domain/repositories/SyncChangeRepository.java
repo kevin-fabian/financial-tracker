@@ -11,6 +11,8 @@ import java.util.UUID;
 public interface SyncChangeRepository {
     SyncChange save(SyncChange syncChange);
 
+    List<SyncChange> findChangesAfterBatch(UUID userId, Long lastSequenceId, int limit);
+
     Map<UUID, List<SyncChange>> findChangesAfterBatch(List<SyncCursorQuery> cursors);
 
     Optional<Long> findMaxSequenceId(UUID userId);

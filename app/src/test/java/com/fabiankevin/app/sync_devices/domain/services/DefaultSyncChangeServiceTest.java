@@ -18,6 +18,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -43,10 +44,13 @@ class DefaultSyncChangeServiceTest {
 
             List<SyncCursorQuery> cursors = List.of();
 
+            when(syncChangeRepository.findChangesAfterBatch(eq(userId), eq(0L), eq(100)))
+                    .thenReturn(List.of());
+
             Map<UUID, List<SyncChange>> result = syncChangeService.pullChanges(userId, 0L, cursors);
 
             assertThat(result).isEmpty();
-            verifyNoInteractions(syncChangeRepository);
+            verify(syncChangeRepository).findChangesAfterBatch(eq(userId), eq(0L), eq(100));
         }
 
         @Test
@@ -61,10 +65,13 @@ class DefaultSyncChangeServiceTest {
 
             List<SyncCursorQuery> cursors = List.of(invalidCursor);
 
+            when(syncChangeRepository.findChangesAfterBatch(eq(userId), eq(0L), eq(100)))
+                    .thenReturn(List.of());
+
             Map<UUID, List<SyncChange>> result = syncChangeService.pullChanges(userId, 0L, cursors);
 
             assertThat(result).isEmpty();
-            verifyNoInteractions(syncChangeRepository);
+            verify(syncChangeRepository).findChangesAfterBatch(eq(userId), eq(0L), eq(100));
         }
 
         @Test
@@ -79,14 +86,17 @@ class DefaultSyncChangeServiceTest {
 
             List<SyncCursorQuery> cursors = List.of(nullSequenceCursor);
 
+            when(syncChangeRepository.findChangesAfterBatch(eq(userId), eq(0L), eq(100)))
+                    .thenReturn(List.of());
+
             Map<UUID, List<SyncChange>> result = syncChangeService.pullChanges(userId, 0L, cursors);
 
             assertThat(result).isEmpty();
-            verifyNoInteractions(syncChangeRepository);
+            verify(syncChangeRepository).findChangesAfterBatch(eq(userId), eq(0L), eq(100));
         }
 
         @Test
-        void givenMixedValidAndInvalidCursors_shouldOnlyPassValidToRepository() {
+        void givenMixedValidAndInvalidCursors_shouldOnlyProcessValidCursors() {
             UUID userId = UUID.randomUUID();
             when(householdService.getHouseholdMembersUserIds(userId)).thenReturn(List.of(userId));
 
@@ -102,13 +112,14 @@ class DefaultSyncChangeServiceTest {
 
             List<SyncCursorQuery> cursors = List.of(validCursor, invalidCursor);
 
-            when(syncChangeRepository.findChangesAfterBatch(List.of(validCursor)))
-                    .thenReturn(Map.of());
+            when(syncChangeRepository.findChangesAfterBatch(eq(userId), eq(0L), eq(100)))
+                    .thenReturn(List.of());
 
             Map<UUID, List<SyncChange>> result = syncChangeService.pullChanges(userId, 0L, cursors);
 
             assertThat(result).isEmpty();
-            verify(syncChangeRepository).findChangesAfterBatch(List.of(validCursor));
+            verify(syncChangeRepository).findChangesAfterBatch(eq(userId), eq(0L), eq(100));
+            verify(syncChangeRepository).findChangesAfterBatch(eq(userId), eq(1L), eq(100));
         }
 
         @Test
@@ -144,13 +155,16 @@ class DefaultSyncChangeServiceTest {
                     .lastPulledSequence(1L)
                     .build();
 
-            when(syncChangeRepository.findChangesAfterBatch(List.of(cursor)))
-                    .thenReturn(Map.of());
+            when(syncChangeRepository.findChangesAfterBatch(eq(requestingUserId), eq(0L), eq(100)))
+                    .thenReturn(List.of());
+            when(syncChangeRepository.findChangesAfterBatch(eq(memberId), eq(1L), eq(100)))
+                    .thenReturn(List.of());
 
             Map<UUID, List<SyncChange>> result = syncChangeService.pullChanges(requestingUserId, 0L, List.of(cursor));
 
             assertThat(result).isEmpty();
-            verify(syncChangeRepository).findChangesAfterBatch(List.of(cursor));
+            verify(syncChangeRepository).findChangesAfterBatch(eq(requestingUserId), eq(0L), eq(100));
+            verify(syncChangeRepository).findChangesAfterBatch(eq(memberId), eq(1L), eq(100));
         }
 
         @Test
@@ -176,13 +190,14 @@ class DefaultSyncChangeServiceTest {
                     .createdAt(Instant.now())
                     .build();
 
-            Map<UUID, List<SyncChange>> expectedChanges = Map.of(changeUserId, List.of(change));
-            when(syncChangeRepository.findChangesAfterBatch(List.of(cursor)))
-                    .thenReturn(expectedChanges);
+            when(syncChangeRepository.findChangesAfterBatch(eq(userId), eq(0L), eq(100)))
+                    .thenReturn(List.of());
+            when(syncChangeRepository.findChangesAfterBatch(eq(changeUserId), eq(100L), eq(100)))
+                    .thenReturn(List.of(change));
 
             Map<UUID, List<SyncChange>> result = syncChangeService.pullChanges(userId, 0L, List.of(cursor));
 
-            assertThat(result).isEqualTo(expectedChanges);
+            assertThat(result).containsKey(changeUserId);
             assertThat(result.get(changeUserId)).hasSize(1);
             assertThat(result.get(changeUserId).getFirst().sequenceId()).isEqualTo(101L);
         }
@@ -239,10 +254,64 @@ class DefaultSyncChangeServiceTest {
 
             List<SyncCursorQuery> cursors = List.of(invalidCursor1, invalidCursor2);
 
+            when(syncChangeRepository.findChangesAfterBatch(eq(userId), eq(0L), eq(100)))
+                    .thenReturn(List.of());
+
             Map<UUID, List<SyncChange>> result = syncChangeService.pullChanges(userId, 0L, cursors);
 
             assertThat(result).isEmpty();
-            verifyNoInteractions(syncChangeRepository);
+            verify(syncChangeRepository).findChangesAfterBatch(eq(userId), eq(0L), eq(100));
+        }
+
+        @Test
+        void givenLargeNumberOfChanges_shouldPaginateThroughAllChanges() {
+            UUID userId = UUID.randomUUID();
+            when(householdService.getHouseholdMembersUserIds(userId)).thenReturn(List.of(userId));
+
+            // Build a page of exactly DEFAULT_PAGE_SIZE (100) items to trigger next page
+            List<SyncChange> page1 = java.util.stream.IntStream.rangeClosed(1, 100)
+                    .mapToObj(i -> SyncChange.builder()
+                            .id(UUID.randomUUID())
+                            .userId(userId)
+                            .sequenceId((long) i)
+                            .entityType(com.fabiankevin.app.models.enums.ResourceType.TRANSACTIONS)
+                            .entityId(UUID.randomUUID())
+                            .operation(com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType.CREATE)
+                            .payload("{}")
+                            .createdAt(Instant.now())
+                            .build())
+                    .toList();
+
+            // Second page returns fewer items (pagination complete)
+            List<SyncChange> page2 = List.of(
+                    SyncChange.builder().id(UUID.randomUUID()).userId(userId).sequenceId(101L).entityType(com.fabiankevin.app.models.enums.ResourceType.TRANSACTIONS).entityId(UUID.randomUUID()).operation(com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType.CREATE).payload("{}").createdAt(Instant.now()).build(),
+                    SyncChange.builder().id(UUID.randomUUID()).userId(userId).sequenceId(102L).entityType(com.fabiankevin.app.models.enums.ResourceType.TRANSACTIONS).entityId(UUID.randomUUID()).operation(com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType.CREATE).payload("{}").createdAt(Instant.now()).build()
+            );
+
+            // First call returns a full page (triggers next page)
+            when(syncChangeRepository.findChangesAfterBatch(eq(userId), eq(0L), eq(100)))
+                    .thenReturn(page1);
+            // Second call returns partial page (pagination complete)
+            when(syncChangeRepository.findChangesAfterBatch(eq(userId), eq(100L), eq(100)))
+                    .thenReturn(page2);
+
+            Map<UUID, List<SyncChange>> result = syncChangeService.pullChanges(userId, 0L, List.of());
+
+            assertThat(result).containsKey(userId);
+            assertThat(result.get(userId)).hasSize(102);
+            assertThat(result.get(userId))
+                    .extracting(SyncChange::sequenceId)
+                    .containsExactly(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L,
+                            11L, 12L, 13L, 14L, 15L, 16L, 17L, 18L, 19L, 20L,
+                            21L, 22L, 23L, 24L, 25L, 26L, 27L, 28L, 29L, 30L,
+                            31L, 32L, 33L, 34L, 35L, 36L, 37L, 38L, 39L, 40L,
+                            41L, 42L, 43L, 44L, 45L, 46L, 47L, 48L, 49L, 50L,
+                            51L, 52L, 53L, 54L, 55L, 56L, 57L, 58L, 59L, 60L,
+                            61L, 62L, 63L, 64L, 65L, 66L, 67L, 68L, 69L, 70L,
+                            71L, 72L, 73L, 74L, 75L, 76L, 77L, 78L, 79L, 80L,
+                            81L, 82L, 83L, 84L, 85L, 86L, 87L, 88L, 89L, 90L,
+                            91L, 92L, 93L, 94L, 95L, 96L, 97L, 98L, 99L, 100L,
+                            101L, 102L);
         }
     }
 

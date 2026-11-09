@@ -28,6 +28,7 @@ Follow these steps for every implementation task.
     - Run IntelliJ Lint on all modified files and fix any findings.
     - Run targeted tests for modified and new classes.
     - Run broader tests when practical.
+    - Run use-java-optional and use-imported-classees for modified and new classes.
 
 6. **Review**
     - Check architectural boundaries, error handling, and edge cases.

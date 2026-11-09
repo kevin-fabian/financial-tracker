@@ -5,6 +5,7 @@ import com.fabiankevin.app.sync_devices.domain.repositories.SyncChangeRepository
 import com.fabiankevin.app.sync_devices.domain.services.queries.SyncCursorQuery;
 import com.fabiankevin.app.sync_devices.persistence.entities.SyncChangeEntity;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 import java.util.Comparator;
@@ -25,6 +26,15 @@ public class DefaultSyncChangeRepository implements SyncChangeRepository {
     public SyncChange save(SyncChange syncChange) {
         SyncChangeEntity saved = jpaSyncChangeRepository.save(SyncChangeEntity.from(syncChange));
         return saved.toModel();
+    }
+
+    @Override
+    public List<SyncChange> findChangesAfterBatch(UUID userId, Long lastSequenceId, int limit) {
+        List<SyncChangeEntity> entities = jpaSyncChangeRepository.findByUserIdAndSequenceIdGreaterThanOrderBySequenceIdAsc(
+                userId, lastSequenceId, PageRequest.of(0, limit));
+        return entities.stream()
+                .map(SyncChangeEntity::toModel)
+                .toList();
     }
 
     @Override

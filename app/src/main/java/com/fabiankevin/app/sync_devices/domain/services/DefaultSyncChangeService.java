@@ -11,14 +11,19 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @Slf4j
 @RequiredArgsConstructor
 @Service
 public class DefaultSyncChangeService implements SyncChangeService {
+    private static final int DEFAULT_PAGE_SIZE = 100;
+
     private final HouseholdService householdService;
     private final SyncChangeRepository syncChangeRepository;
 
@@ -33,7 +38,17 @@ public class DefaultSyncChangeService implements SyncChangeService {
             }
         }
 
-        List<SyncCursorQuery> validCursors = cursors.stream()
+        SyncCursorQuery primaryCursor = SyncCursorQuery.builder()
+                .ownerId(requestingUserId)
+                .lastPulledSequence(lastSequenceId)
+                .build();
+
+        List<SyncCursorQuery> allCursors = Stream.concat(
+                        Stream.of(primaryCursor),
+                        cursors.stream())
+                .toList();
+
+        List<SyncCursorQuery> validCursors = allCursors.stream()
                 .filter(cursor -> cursor.lastPulledSequence() != null && cursor.lastPulledSequence() >= 0)
                 .toList();
 
@@ -41,7 +56,35 @@ public class DefaultSyncChangeService implements SyncChangeService {
             return Map.of();
         }
 
-        return syncChangeRepository.findChangesAfterBatch(validCursors);
+        Map<UUID, List<SyncChange>> result = new HashMap<>();
+
+        for (SyncCursorQuery cursor : validCursors) {
+            UUID ownerId = cursor.ownerId();
+            Long lastPulledSequence = cursor.lastPulledSequence();
+            List<SyncChange> accumulatedChanges = new ArrayList<>();
+
+            while (true) {
+                List<SyncChange> page = syncChangeRepository.findChangesAfterBatch(
+                        ownerId, lastPulledSequence, DEFAULT_PAGE_SIZE);
+
+                if (page.isEmpty()) {
+                    break;
+                }
+
+                accumulatedChanges.addAll(page);
+                lastPulledSequence = page.getLast().sequenceId();
+
+                if (page.size() < DEFAULT_PAGE_SIZE) {
+                    break;
+                }
+            }
+
+            if (!accumulatedChanges.isEmpty()) {
+                result.put(ownerId, accumulatedChanges);
+            }
+        }
+
+        return result;
     }
 
     @Override

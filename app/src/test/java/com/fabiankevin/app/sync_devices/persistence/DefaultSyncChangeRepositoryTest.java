@@ -105,7 +105,151 @@ class DefaultSyncChangeRepositoryTest {
     }
 
     @Nested
-    class PullChanges {
+    class FindChangesAfterBatchCursor {
+
+        @Test
+        void givenUserIdWithChanges_shouldReturnChangesOrderedBySequenceId() {
+            UUID userId = UUID.randomUUID();
+
+            SyncChange change1 = SyncChange.builder()
+                    .userId(userId)
+                    .sequenceId(2L)
+                    .entityType(ResourceType.TRANSACTIONS)
+                    .entityId(UUID.randomUUID())
+                    .operation(SyncChangeOperationType.CREATE)
+                    .payload("{}")
+                    .createdAt(Instant.now())
+                    .build();
+
+            SyncChange change2 = SyncChange.builder()
+                    .userId(userId)
+                    .sequenceId(3L)
+                    .entityType(ResourceType.ACCOUNTS)
+                    .entityId(UUID.randomUUID())
+                    .operation(SyncChangeOperationType.UPDATE)
+                    .payload("{}")
+                    .createdAt(Instant.now())
+                    .build();
+
+            SyncChange change3 = SyncChange.builder()
+                    .userId(userId)
+                    .sequenceId(5L)
+                    .entityType(ResourceType.CATEGORIES)
+                    .entityId(UUID.randomUUID())
+                    .operation(SyncChangeOperationType.CREATE)
+                    .payload("{}")
+                    .createdAt(Instant.now())
+                    .build();
+
+            syncChangeRepository.save(change1);
+            syncChangeRepository.save(change2);
+            syncChangeRepository.save(change3);
+
+            List<SyncChange> result = syncChangeRepository.findChangesAfterBatch(userId, 1L, 100);
+
+            assertNotNull(result);
+            assertEquals(3, result.size());
+            assertThat(result)
+                    .extracting(SyncChange::sequenceId)
+                    .containsExactly(2L, 3L, 5L);
+        }
+
+        @Test
+        void givenUserIdWithNoChangesAfterSequence_shouldReturnEmptyList() {
+            UUID userId = UUID.randomUUID();
+
+            SyncChange change = SyncChange.builder()
+                    .userId(userId)
+                    .sequenceId(5L)
+                    .entityType(ResourceType.TRANSACTIONS)
+                    .entityId(UUID.randomUUID())
+                    .operation(SyncChangeOperationType.CREATE)
+                    .payload("{}")
+                    .createdAt(Instant.now())
+                    .build();
+
+            syncChangeRepository.save(change);
+
+            List<SyncChange> result = syncChangeRepository.findChangesAfterBatch(userId, 10L, 100);
+
+            assertNotNull(result);
+            assertEquals(0, result.size());
+        }
+
+        @Test
+        void givenLimit_shouldRespectPageSize() {
+            UUID userId = UUID.randomUUID();
+
+            for (long i = 1; i <= 5; i++) {
+                SyncChange change = SyncChange.builder()
+                        .userId(userId)
+                        .sequenceId(i)
+                        .entityType(ResourceType.TRANSACTIONS)
+                        .entityId(UUID.randomUUID())
+                        .operation(SyncChangeOperationType.CREATE)
+                        .payload("{}")
+                        .createdAt(Instant.now())
+                        .build();
+                syncChangeRepository.save(change);
+            }
+
+            List<SyncChange> result = syncChangeRepository.findChangesAfterBatch(userId, 0L, 3);
+
+            assertNotNull(result);
+            assertEquals(3, result.size());
+            assertThat(result)
+                    .extracting(SyncChange::sequenceId)
+                    .containsExactly(1L, 2L, 3L);
+        }
+
+        @Test
+        void givenUserIdWithNoChangesAtAll_shouldReturnEmptyList() {
+            UUID userId = UUID.randomUUID();
+
+            List<SyncChange> result = syncChangeRepository.findChangesAfterBatch(userId, 0L, 100);
+
+            assertNotNull(result);
+            assertEquals(0, result.size());
+        }
+
+        @Test
+        void givenDifferentUsers_shouldReturnOnlyRequestedUserChanges() {
+            UUID userId1 = UUID.randomUUID();
+            UUID userId2 = UUID.randomUUID();
+
+            SyncChange change1 = SyncChange.builder()
+                    .userId(userId1)
+                    .sequenceId(2L)
+                    .entityType(ResourceType.TRANSACTIONS)
+                    .entityId(UUID.randomUUID())
+                    .operation(SyncChangeOperationType.CREATE)
+                    .payload("{}")
+                    .createdAt(Instant.now())
+                    .build();
+
+            SyncChange change2 = SyncChange.builder()
+                    .userId(userId2)
+                    .sequenceId(3L)
+                    .entityType(ResourceType.ACCOUNTS)
+                    .entityId(UUID.randomUUID())
+                    .operation(SyncChangeOperationType.UPDATE)
+                    .payload("{}")
+                    .createdAt(Instant.now())
+                    .build();
+
+            syncChangeRepository.save(change1);
+            syncChangeRepository.save(change2);
+
+            List<SyncChange> result = syncChangeRepository.findChangesAfterBatch(userId1, 0L, 100);
+
+            assertNotNull(result);
+            assertEquals(1, result.size());
+            assertThat(result).allMatch(change -> change.userId().equals(userId1));
+        }
+    }
+
+    @Nested
+    class FindChangesAfterBatch {
 
         @Test
         void givenMultipleCursors_shouldReturnChangesGroupedByOwnerId() {
