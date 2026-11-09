@@ -1,7 +1,7 @@
 package com.fabiankevin.app.sync_devices.web.dtos;
 
 import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
-import com.fabiankevin.app.sync_devices.domain.services.commands.SyncCursorQuery;
+import com.fabiankevin.app.sync_devices.domain.services.queries.SyncCursorQuery;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;

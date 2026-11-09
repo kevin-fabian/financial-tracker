@@ -4,7 +4,7 @@ import com.fabiankevin.app.models.enums.ResourceType;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType;
 import com.fabiankevin.app.sync_devices.domain.repositories.SyncChangeRepository;
-import com.fabiankevin.app.sync_devices.domain.services.commands.SyncCursorQuery;
+import com.fabiankevin.app.sync_devices.domain.services.queries.SyncCursorQuery;
 import com.fabiankevin.app.sync_devices.persistence.entities.SyncChangeEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;

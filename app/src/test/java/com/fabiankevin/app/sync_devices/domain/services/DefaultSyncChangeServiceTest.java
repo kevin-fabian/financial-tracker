@@ -5,7 +5,7 @@ import com.fabiankevin.app.services.HouseholdService;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
 import com.fabiankevin.app.sync_devices.domain.repositories.SyncChangeRepository;
 import com.fabiankevin.app.sync_devices.domain.services.commands.CreateSyncChangeCommand;
-import com.fabiankevin.app.sync_devices.domain.services.commands.SyncCursorQuery;
+import com.fabiankevin.app.sync_devices.domain.services.queries.SyncCursorQuery;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

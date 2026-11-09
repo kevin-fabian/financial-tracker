@@ -4,7 +4,7 @@ import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
 import com.fabiankevin.app.sync_devices.domain.models.SyncDevice;
 import com.fabiankevin.app.sync_devices.domain.services.SyncChangeService;
 import com.fabiankevin.app.sync_devices.domain.services.SyncDeviceService;
-import com.fabiankevin.app.sync_devices.domain.services.commands.SyncCursorQuery;
+import com.fabiankevin.app.sync_devices.domain.services.queries.SyncCursorQuery;
 import com.fabiankevin.app.sync_devices.web.dtos.SyncPullChangesRequest;
 import com.fabiankevin.app.sync_devices.web.dtos.SyncPullChangesResponse;
 import com.fabiankevin.app.web.controllers.dtos.CreateSyncDeviceRequest;

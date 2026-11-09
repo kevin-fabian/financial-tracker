@@ -2,7 +2,7 @@ package com.fabiankevin.app.sync_devices.persistence;
 
 import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
 import com.fabiankevin.app.sync_devices.domain.repositories.SyncChangeRepository;
-import com.fabiankevin.app.sync_devices.domain.services.commands.SyncCursorQuery;
+import com.fabiankevin.app.sync_devices.domain.services.queries.SyncCursorQuery;
 import com.fabiankevin.app.sync_devices.persistence.entities.SyncChangeEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;

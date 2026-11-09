@@ -1,4 +1,4 @@
-package com.fabiankevin.app.sync_devices.domain.services.commands;
+package com.fabiankevin.app.sync_devices.domain.services.queries;
 
 import com.fabiankevin.app.sync_devices.web.dtos.SyncCursorQueryRequest;
 import io.swagger.v3.oas.annotations.media.Schema;

@@ -2,7 +2,7 @@ package com.fabiankevin.app.sync_devices.domain.services;
 
 import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
 import com.fabiankevin.app.sync_devices.domain.services.commands.CreateSyncChangeCommand;
-import com.fabiankevin.app.sync_devices.domain.services.commands.SyncCursorQuery;
+import com.fabiankevin.app.sync_devices.domain.services.queries.SyncCursorQuery;
 
 import java.util.List;
 import java.util.Map;
