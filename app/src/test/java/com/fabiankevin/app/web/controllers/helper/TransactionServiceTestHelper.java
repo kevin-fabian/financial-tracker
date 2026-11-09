@@ -13,7 +13,7 @@ import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -22,7 +22,6 @@ import java.util.Currency;
 import java.util.Optional;
 import java.util.UUID;
 
-@RequiredArgsConstructor
 @Component
 public class TransactionServiceTestHelper {
     private static final String EXPENSE_CATEGORY_NAME = "Food";
@@ -34,6 +33,20 @@ public class TransactionServiceTestHelper {
     private final AccountService accountService;
     private final CategoryRepository categoryRepository;
     private final AccountRepository accountRepository;
+
+    public TransactionServiceTestHelper(
+            TransactionService transactionService,
+            CategoryService categoryService,
+            @Qualifier("defaultAccountService")
+            AccountService accountService,
+            CategoryRepository categoryRepository,
+            AccountRepository accountRepository) {
+        this.transactionService = transactionService;
+        this.categoryService = categoryService;
+        this.accountService = accountService;
+        this.categoryRepository = categoryRepository;
+        this.accountRepository = accountRepository;
+    }
 
     public Transaction createTransaction(UUID userId, TransactionType type, double amount) {
         return createTransaction(userId, type, amount, LocalDate.now());

@@ -12,8 +12,8 @@ import com.fabiankevin.app.services.commands.PatchSyncStateCommand;
 import com.fabiankevin.app.sync_devices.domain.models.SyncDevice;
 import com.fabiankevin.app.sync_devices.domain.repositories.SyncDeviceRepository;
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.UUID;
 
 @Slf4j
-@RequiredArgsConstructor
 @Service
 public class DefaultSyncDeviceService implements SyncDeviceService {
     private final TransactionService transactionService;
@@ -31,6 +30,24 @@ public class DefaultSyncDeviceService implements SyncDeviceService {
     private final AccountService accountService;
     private final CategoryService categoryService;
     private final SyncDeviceRepository syncDeviceRepository;
+
+    public DefaultSyncDeviceService(
+            TransactionService transactionService,
+            RecurringTransactionService recurringTransactionService,
+            BudgetService budgetService,
+            ShoppingListService shoppingListService,
+            @Qualifier("defaultAccountService")
+            AccountService accountService,
+            CategoryService categoryService,
+            SyncDeviceRepository syncDeviceRepository) {
+        this.transactionService = transactionService;
+        this.recurringTransactionService = recurringTransactionService;
+        this.budgetService = budgetService;
+        this.shoppingListService = shoppingListService;
+        this.accountService = accountService;
+        this.categoryService = categoryService;
+        this.syncDeviceRepository = syncDeviceRepository;
+    }
 
     @Transactional
     @Override

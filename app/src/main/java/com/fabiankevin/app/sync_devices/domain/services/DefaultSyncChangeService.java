@@ -47,6 +47,7 @@ public class DefaultSyncChangeService implements SyncChangeService {
     @Override
     public SyncChange create(CreateSyncChangeCommand command) {
         long nextSequenceId = getNextSequenceId(command.userId());
+
         SyncChange syncChange = SyncChange.builder()
                 .userId(command.userId())
                 .sequenceId(nextSequenceId)

@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
@@ -86,6 +87,7 @@ class SyncControllerIntegrationTest {
     private SyncDeviceService syncDeviceService;
 
     @Autowired
+    @Qualifier("defaultAccountService")
     private AccountService accountService;
 
     @Autowired
