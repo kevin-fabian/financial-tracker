@@ -3,27 +3,44 @@ package com.fabiankevin.app.web.controllers;
 import com.fabiankevin.app.services.ShoppingListService;
 import com.fabiankevin.app.services.shopping_list.commands.DeleteShoppingItemCommand;
 import com.fabiankevin.app.services.shopping_list.commands.DeleteShoppingListCommand;
-import com.fabiankevin.app.web.controllers.dtos.shopping_list.*;
+import com.fabiankevin.app.web.controllers.dtos.shopping_list.CompleteShoppingListRequest;
+import com.fabiankevin.app.web.controllers.dtos.shopping_list.CreateShoppingItemRequest;
+import com.fabiankevin.app.web.controllers.dtos.shopping_list.CreateShoppingListRequest;
+import com.fabiankevin.app.web.controllers.dtos.shopping_list.PatchShoppingItemRequest;
+import com.fabiankevin.app.web.controllers.dtos.shopping_list.PatchShoppingListRequest;
+import com.fabiankevin.app.web.controllers.dtos.shopping_list.ShoppingItemResponse;
+import com.fabiankevin.app.web.controllers.dtos.shopping_list.ShoppingListSummaryResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
 
-@RequiredArgsConstructor
 @RestController
 @RequestMapping(value = "/api/shopping-lists", version = "v1")
 public class ShoppingListController {
     private final ShoppingListService shoppingListService;
+
+    public ShoppingListController(@Qualifier("syncChangeAwareShoppingListService") ShoppingListService shoppingListService) {
+        this.shoppingListService = shoppingListService;
+    }
 
     @Operation(
             summary = "Retrieve shopping lists",

@@ -26,6 +26,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -79,6 +80,7 @@ class ShoppingListControllerIntegrationTest {
     private CategoryRepository categoryRepository;
 
     @Autowired
+    @Qualifier("syncChangeAwareShoppingListService")
     private ShoppingListService shoppingListService;
 
     @Autowired

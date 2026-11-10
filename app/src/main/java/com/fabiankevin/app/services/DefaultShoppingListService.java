@@ -40,7 +40,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
-@Service
+@Service("defaultShoppingListService")
 public class DefaultShoppingListService implements ShoppingListService {
     private final ShoppingListRepository shoppingListRepository;
     private final CategoryRepository categoryRepository;
