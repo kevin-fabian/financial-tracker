@@ -7,4 +7,7 @@ public record BudgetSummary(
         Budget budget,
         double spent,
         double spentPercentage) {
+    public Budget toBudget() {
+        return budget;
+    }
 }
