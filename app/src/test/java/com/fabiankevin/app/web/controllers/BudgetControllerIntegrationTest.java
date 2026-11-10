@@ -9,16 +9,22 @@ import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
+import com.fabiankevin.app.models.enums.ResourceType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.BudgetService;
 import com.fabiankevin.app.services.EntitlementService;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.budgets.CreateBudgetCommand;
+import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
+import com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType;
+import com.fabiankevin.app.sync_devices.persistence.JpaSyncChangeRepository;
+import com.fabiankevin.app.sync_devices.persistence.entities.SyncChangeEntity;
 import com.fabiankevin.app.web.controllers.dtos.budgets.CreateBudgetRequest;
 import com.fabiankevin.app.web.controllers.dtos.budgets.PatchBudgetRequest;
 import com.fabiankevin.app.web.controllers.dtos.household.HouseholdResponse;
 import com.fabiankevin.app.web.controllers.helper.HouseholdServiceTestHelper;
 import com.fabiankevin.app.web.controllers.helper.TransactionServiceTestHelper;
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -43,6 +49,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import static com.fabiankevin.app.models.enums.TransactionType.EXPENSE;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -76,6 +83,8 @@ class BudgetControllerIntegrationTest {
     private BudgetService budgetService;
     @Autowired
     private JpaCategoryRepository jpaCategoryRepository;
+    @Autowired
+    private JpaSyncChangeRepository jpaSyncChangeRepository;
     @Autowired
     private JsonMapper jsonMapper;
     @Autowired
@@ -407,6 +416,54 @@ class BudgetControllerIntegrationTest {
         }
 
         @Test
+        void givenValidCreateBudgetRequest_thenShouldCreateSyncChangeEntry() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+
+            CreateBudgetRequest request = CreateBudgetRequest.builder()
+                    .period(BudgetPeriod.MONTHLY)
+                    .categoryId(category.id())
+                    .allocated(500.0)
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            String responseBody = mockMvc.perform(post("/api/budgets")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andReturn()
+                    .getResponse()
+                    .getContentAsString();
+
+            UUID budgetId = UUID.fromString(JsonPath.read(responseBody, "$.id"));
+
+            List<SyncChange> syncChanges = jpaSyncChangeRepository.findAll().stream()
+                    .filter(change -> change.getUserId().equals(userId))
+                    .filter(change -> change.getEntityType() == ResourceType.BUDGETS)
+                    .filter(change -> change.getEntityId().equals(budgetId))
+                    .map(SyncChangeEntity::toModel)
+                    .toList();
+
+            assertThat(syncChanges).hasSize(1);
+
+            SyncChange syncChange = syncChanges.getFirst();
+            assertThat(syncChange.userId()).isEqualTo(userId);
+            assertThat(syncChange.entityType()).isEqualTo(ResourceType.BUDGETS);
+            assertThat(syncChange.operation()).isEqualTo(SyncChangeOperationType.CREATE);
+            assertThat(syncChange.payload()).isNotEmpty();
+            assertThat(syncChange.createdAt()).isNotNull();
+        }
+
+        @Test
         void givenCategoryNotFound_thenShouldReturnNotFound() throws Exception {
             UUID userId = UUID.randomUUID();
 
@@ -670,6 +727,50 @@ class BudgetControllerIntegrationTest {
                     .andExpect(jsonPath("$.allocated").value(1000.0))
                     .andExpect(jsonPath("$.spent").value(0.0))
                     .andExpect(jsonPath("$.spentPercentage").value(0.0));
+        }
+
+        @Test
+        void givenValidPatchBudgetRequest_thenShouldCreateSyncChangeEntry() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            BudgetSummary budgetSummary = createBudget(userId, category, 500.0);
+            Budget budget = budgetSummary.budget();
+
+            PatchBudgetRequest request = PatchBudgetRequest.builder()
+                    .allocated(1000.0)
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(patch("/api/budgets/" + budget.id())
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk());
+
+            List<SyncChange> syncChanges = jpaSyncChangeRepository.findAll().stream()
+                    .filter(change -> change.getUserId().equals(userId))
+                    .filter(change -> change.getEntityType() == ResourceType.BUDGETS)
+                    .filter(change -> change.getEntityId().equals(budget.id()))
+                    .filter(change -> change.getOperation() == SyncChangeOperationType.UPDATE)
+                    .map(SyncChangeEntity::toModel)
+                    .toList();
+
+            assertThat(syncChanges).hasSize(1);
+
+            SyncChange syncChange = syncChanges.getFirst();
+            assertThat(syncChange.userId()).isEqualTo(userId);
+            assertThat(syncChange.entityType()).isEqualTo(ResourceType.BUDGETS);
+            assertThat(syncChange.operation()).isEqualTo(SyncChangeOperationType.UPDATE);
+            assertThat(syncChange.payload()).isNotEmpty();
+            assertThat(syncChange.createdAt()).isNotNull();
         }
 
         @Test
@@ -992,6 +1093,41 @@ class BudgetControllerIntegrationTest {
                                             .claim("scope", List.of())
                                     )))
                     .andExpect(status().isNoContent());
+        }
+
+        @Test
+        void givenValidDeleteBudgetRequest_thenShouldCreateSyncChangeEntry() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            BudgetSummary summary = createBudget(userId, category, 500.0);
+            UUID budgetId = summary.budget().id();
+
+            mockMvc.perform(delete("/api/budgets/" + budgetId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isNoContent());
+
+            List<SyncChange> syncChanges = jpaSyncChangeRepository.findAll().stream()
+                    .filter(change -> change.getUserId().equals(userId))
+                    .filter(change -> change.getEntityType() == ResourceType.BUDGETS)
+                    .filter(change -> change.getEntityId().equals(budgetId))
+                    .filter(change -> change.getOperation() == SyncChangeOperationType.DELETE)
+                    .map(SyncChangeEntity::toModel)
+                    .toList();
+
+            assertThat(syncChanges).hasSize(1);
+
+            SyncChange syncChange = syncChanges.getFirst();
+            assertThat(syncChange.userId()).isEqualTo(userId);
+            assertThat(syncChange.entityType()).isEqualTo(ResourceType.BUDGETS);
+            assertThat(syncChange.operation()).isEqualTo(SyncChangeOperationType.DELETE);
+            assertThat(syncChange.payload()).isNotEmpty();
+            assertThat(syncChange.createdAt()).isNotNull();
         }
 
         @Test
