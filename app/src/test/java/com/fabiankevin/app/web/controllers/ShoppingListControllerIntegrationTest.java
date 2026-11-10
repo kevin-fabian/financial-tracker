@@ -5,6 +5,7 @@ import com.fabiankevin.app.categories.domain.repositories.CategoryRepository;
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ItemPriority;
+import com.fabiankevin.app.models.enums.ResourceType;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
@@ -13,6 +14,10 @@ import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
 import com.fabiankevin.app.services.ShoppingListService;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingListCommand;
+import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
+import com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType;
+import com.fabiankevin.app.sync_devices.persistence.JpaSyncChangeRepository;
+import com.fabiankevin.app.sync_devices.persistence.entities.SyncChangeEntity;
 import com.fabiankevin.app.web.controllers.dtos.shopping_list.CompleteShoppingListRequest;
 import com.fabiankevin.app.web.controllers.dtos.shopping_list.CreateShoppingItemRequest;
 import com.fabiankevin.app.web.controllers.dtos.shopping_list.CreateShoppingListRequest;
@@ -87,6 +92,9 @@ class ShoppingListControllerIntegrationTest {
     private ShoppingListRepository shoppingListRepository;
 
     @Autowired
+    private JpaSyncChangeRepository jpaSyncChangeRepository;
+
+    @Autowired
     private JsonMapper jsonMapper;
 
     @Nested
@@ -142,6 +150,57 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(jsonPath("$.updatedBy.initial").value("JD"))
                     .andExpect(jsonPath("$.createdAt").exists())
                     .andExpect(jsonPath("$.updatedAt").exists());
+        }
+
+        @Test
+        void givenValidCreateShoppingListRequest_thenShouldCreateSyncChangeEntry() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
+
+            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
+                    .name("Groceries")
+                    .description("Weekly groceries")
+                    .categoryId(category.id())
+                    .budget(200.0)
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            String responseBody = mockMvc.perform(post("/api/shopping-lists")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andReturn()
+                    .getResponse()
+                    .getContentAsString();
+
+            UUID shoppingListId = UUID.fromString(jsonMapper.readTree(responseBody).get("id").asText());
+
+            List<SyncChange> syncChanges = jpaSyncChangeRepository.findAll().stream()
+                    .filter(change -> change.getUserId().equals(userId))
+                    .filter(change -> change.getEntityType() == ResourceType.SHOPPING_LISTS)
+                    .filter(change -> change.getEntityId().equals(shoppingListId))
+                    .filter(change -> change.getOperation() == SyncChangeOperationType.CREATE)
+                    .map(SyncChangeEntity::toModel)
+                    .toList();
+
+            Assertions.assertThat(syncChanges).hasSize(1);
+
+            SyncChange syncChange = syncChanges.getFirst();
+            Assertions.assertThat(syncChange.userId()).isEqualTo(userId);
+            Assertions.assertThat(syncChange.entityType()).isEqualTo(ResourceType.SHOPPING_LISTS);
+            Assertions.assertThat(syncChange.operation()).isEqualTo(SyncChangeOperationType.CREATE);
+            Assertions.assertThat(syncChange.payload()).isNotEmpty();
+            Assertions.assertThat(syncChange.createdAt()).isNotNull();
         }
 
         @Test
@@ -627,6 +686,59 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(jsonPath("$.updatedBy.initial").value("JD"))
                     .andExpect(jsonPath("$.createdAt").exists())
                     .andExpect(jsonPath("$.updatedAt").exists());
+        }
+
+        @Test
+        void givenExistingList_thenShouldCreateSyncChangeEntry() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            ShoppingList shoppingList = ShoppingList.builder()
+                    .name("Groceries")
+                    .description("Weekly groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .budget(200.0)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            PatchShoppingListRequest request = PatchShoppingListRequest.builder()
+                    .name("Weekly Groceries")
+                    .budget(250.0)
+                    .build();
+
+            mockMvc.perform(patch("/api/shopping-lists/{id}", shoppingListId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk());
+
+            List<SyncChange> syncChanges = jpaSyncChangeRepository.findAll().stream()
+                    .filter(change -> change.getUserId().equals(userId))
+                    .filter(change -> change.getEntityType() == ResourceType.SHOPPING_LISTS)
+                    .filter(change -> change.getEntityId().equals(shoppingListId))
+                    .filter(change -> change.getOperation() == SyncChangeOperationType.UPDATE)
+                    .map(SyncChangeEntity::toModel)
+                    .toList();
+
+            Assertions.assertThat(syncChanges).hasSize(1);
+
+            SyncChange syncChange = syncChanges.getFirst();
+            Assertions.assertThat(syncChange.userId()).isEqualTo(userId);
+            Assertions.assertThat(syncChange.entityType()).isEqualTo(ResourceType.SHOPPING_LISTS);
+            Assertions.assertThat(syncChange.operation()).isEqualTo(SyncChangeOperationType.UPDATE);
+            Assertions.assertThat(syncChange.payload()).isNotEmpty();
+            Assertions.assertThat(syncChange.createdAt()).isNotNull();
         }
 
         @Test
@@ -1683,6 +1795,53 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(status().isNoContent());
 
             Assertions.assertThat(shoppingListRepository.findById(shoppingListId)).isEmpty();
+        }
+
+        @Test
+        void givenExistingList_thenShouldCreateSyncChangeEntry() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            ShoppingList shoppingList = ShoppingList.builder()
+                    .name("Groceries")
+                    .description("Weekly groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .budget(200.0)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
+
+            when(userClient.getUsersByIds(anyList()))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(delete("/api/shopping-lists/{id}", shoppingListId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json"))
+                    .andExpect(status().isNoContent());
+
+            List<SyncChange> syncChanges = jpaSyncChangeRepository.findAll().stream()
+                    .filter(change -> change.getUserId().equals(userId))
+                    .filter(change -> change.getEntityType() == ResourceType.SHOPPING_LISTS)
+                    .filter(change -> change.getEntityId().equals(shoppingListId))
+                    .filter(change -> change.getOperation() == SyncChangeOperationType.DELETE)
+                    .map(SyncChangeEntity::toModel)
+                    .toList();
+
+            Assertions.assertThat(syncChanges).hasSize(1);
+
+            SyncChange syncChange = syncChanges.getFirst();
+            Assertions.assertThat(syncChange.userId()).isEqualTo(userId);
+            Assertions.assertThat(syncChange.entityType()).isEqualTo(ResourceType.SHOPPING_LISTS);
+            Assertions.assertThat(syncChange.operation()).isEqualTo(SyncChangeOperationType.DELETE);
+            Assertions.assertThat(syncChange.payload()).isNotEmpty();
+            Assertions.assertThat(syncChange.createdAt()).isNotNull();
         }
 
         @Test

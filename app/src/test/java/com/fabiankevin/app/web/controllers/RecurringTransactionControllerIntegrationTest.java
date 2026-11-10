@@ -10,6 +10,7 @@ import com.fabiankevin.app.categories.domain.services.CategoryService;
 import com.fabiankevin.app.categories.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.User;
+import com.fabiankevin.app.models.enums.ResourceType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransaction;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus;
@@ -19,6 +20,10 @@ import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository
 import com.fabiankevin.app.services.EntitlementService;
 import com.fabiankevin.app.services.RecurringTransactionService;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
+import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
+import com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType;
+import com.fabiankevin.app.sync_devices.persistence.JpaSyncChangeRepository;
+import com.fabiankevin.app.sync_devices.persistence.entities.SyncChangeEntity;
 import com.fabiankevin.app.web.controllers.dtos.CreateRecurringTransactionRequest;
 import com.fabiankevin.app.web.controllers.dtos.PatchRecurringTransactionRequest;
 import com.fabiankevin.app.web.controllers.dtos.household.HouseholdResponse;
@@ -51,6 +56,7 @@ import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -107,6 +113,9 @@ class RecurringTransactionControllerIntegrationTest {
 
     @MockitoBean
     private EntitlementService entitlementService;
+
+    @Autowired
+    private JpaSyncChangeRepository jpaSyncChangeRepository;
 
     @Nested
     class CreateRecurringTransaction {
@@ -167,6 +176,61 @@ class RecurringTransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.updatedBy.firstName").value("John"))
                     .andExpect(jsonPath("$.updatedBy.lastName").value("Doe"))
                     .andExpect(jsonPath("$.updatedBy.initial").value("JD"));
+        }
+
+        @Test
+        void givenValidCreateRecurringTransactionRequest_thenShouldCreateSyncChangeEntry() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Account account = createAccount(userId, "Cash Wallet");
+
+            CreateRecurringTransactionRequest request = CreateRecurringTransactionRequest.builder()
+                    .description("Monthly subscription")
+                    .amount(15.99)
+                    .variableAmount(false)
+                    .categoryId(category.id())
+                    .accountId(account.id())
+                    .noEndDate(false)
+                    .dayOfMonth(15)
+                    .durationMonths(6)
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            String responseBody = mockMvc.perform(post("/api/recurring-transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andReturn()
+                    .getResponse()
+                    .getContentAsString();
+
+            UUID recurringTransactionId = UUID.fromString(jsonMapper.readTree(responseBody).get("id").asText());
+
+            List<SyncChange> syncChanges = jpaSyncChangeRepository.findAll().stream()
+                    .filter(change -> change.getUserId().equals(userId))
+                    .filter(change -> change.getEntityType() == ResourceType.RECURRING_TRANSACTIONS)
+                    .filter(change -> change.getEntityId().equals(recurringTransactionId))
+                    .filter(change -> change.getOperation() == SyncChangeOperationType.CREATE)
+                    .map(SyncChangeEntity::toModel)
+                    .toList();
+
+            assertThat(syncChanges).hasSize(1);
+
+            SyncChange syncChange = syncChanges.getFirst();
+            assertThat(syncChange.userId()).isEqualTo(userId);
+            assertThat(syncChange.entityType()).isEqualTo(ResourceType.RECURRING_TRANSACTIONS);
+            assertThat(syncChange.operation()).isEqualTo(SyncChangeOperationType.CREATE);
+            assertThat(syncChange.payload()).isNotEmpty();
+            assertThat(syncChange.createdAt()).isNotNull();
         }
 
         @Test
@@ -713,6 +777,66 @@ class RecurringTransactionControllerIntegrationTest {
         }
 
         @Test
+        void givenValidDeleteRecurringTransactionRequest_thenShouldCreateSyncChangeEntry() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Account account = createAccount(userId, "Cash Wallet");
+
+            CreateRecurringTransactionRequest request = CreateRecurringTransactionRequest.builder()
+                    .description("Monthly subscription")
+                    .amount(15.99)
+                    .variableAmount(false)
+                    .categoryId(category.id())
+                    .accountId(account.id())
+                    .noEndDate(false)
+                    .dayOfMonth(15)
+                    .durationMonths(6)
+                    .build();
+
+            MvcResult result = mockMvc.perform(post("/api/recurring-transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andReturn();
+
+            String id = jsonMapper.readTree(result.getResponse().getContentAsString()).get("id").asText();
+
+            mockMvc.perform(MockMvcRequestBuilders.delete("/api/recurring-transactions/{id}", id)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    )))
+                    .andExpect(status().isNoContent());
+
+            List<SyncChange> syncChanges = jpaSyncChangeRepository.findAll().stream()
+                    .filter(change -> change.getUserId().equals(userId))
+                    .filter(change -> change.getEntityType() == ResourceType.RECURRING_TRANSACTIONS)
+                    .filter(change -> change.getEntityId().equals(UUID.fromString(id)))
+                    .filter(change -> change.getOperation() == SyncChangeOperationType.DELETE)
+                    .map(SyncChangeEntity::toModel)
+                    .toList();
+
+            assertThat(syncChanges).hasSize(1);
+
+            SyncChange syncChange = syncChanges.getFirst();
+            assertThat(syncChange.userId()).isEqualTo(userId);
+            assertThat(syncChange.entityType()).isEqualTo(ResourceType.RECURRING_TRANSACTIONS);
+            assertThat(syncChange.operation()).isEqualTo(SyncChangeOperationType.DELETE);
+            assertThat(syncChange.payload()).isNotEmpty();
+            assertThat(syncChange.createdAt()).isNotNull();
+        }
+
+        @Test
         void givenNonExistentRecurringTransaction_thenReturnsNotFound() throws Exception {
             UUID userId = UUID.randomUUID();
 
@@ -801,6 +925,75 @@ class RecurringTransactionControllerIntegrationTest {
                     .andExpect(jsonPath("$.updatedBy.firstName").value("John"))
                     .andExpect(jsonPath("$.updatedBy.lastName").value("Doe"))
                     .andExpect(jsonPath("$.updatedBy.initial").value("JD"));
+        }
+
+        @Test
+        void givenValidPatchRecurringTransactionRequest_thenShouldCreateSyncChangeEntry() throws Exception {
+            UUID userId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+            Account account = createAccount(userId, "Cash Wallet");
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            CreateRecurringTransactionRequest createRequest = CreateRecurringTransactionRequest.builder()
+                    .description("Monthly subscription")
+                    .amount(15.99)
+                    .variableAmount(false)
+                    .categoryId(category.id())
+                    .accountId(account.id())
+                    .noEndDate(false)
+                    .dayOfMonth(15)
+                    .durationMonths(6)
+                    .build();
+
+            MvcResult createResult = mockMvc.perform(post("/api/recurring-transactions")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(createRequest)))
+                    .andExpect(status().isCreated())
+                    .andReturn();
+
+            String id = jsonMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asText();
+
+            PatchRecurringTransactionRequest patchRequest = PatchRecurringTransactionRequest.builder()
+                    .amount(25.99)
+                    .build();
+
+            mockMvc.perform(MockMvcRequestBuilders.patch("/api/recurring-transactions/{id}", id)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(patchRequest)))
+                    .andExpect(status().isOk());
+
+            List<SyncChange> syncChanges = jpaSyncChangeRepository.findAll().stream()
+                    .filter(change -> change.getUserId().equals(userId))
+                    .filter(change -> change.getEntityType() == ResourceType.RECURRING_TRANSACTIONS)
+                    .filter(change -> change.getEntityId().equals(UUID.fromString(id)))
+                    .filter(change -> change.getOperation() == SyncChangeOperationType.UPDATE)
+                    .map(SyncChangeEntity::toModel)
+                    .toList();
+
+            assertThat(syncChanges).hasSize(1);
+
+            SyncChange syncChange = syncChanges.getFirst();
+            assertThat(syncChange.userId()).isEqualTo(userId);
+            assertThat(syncChange.entityType()).isEqualTo(ResourceType.RECURRING_TRANSACTIONS);
+            assertThat(syncChange.operation()).isEqualTo(SyncChangeOperationType.UPDATE);
+            assertThat(syncChange.payload()).isNotEmpty();
+            assertThat(syncChange.createdAt()).isNotNull();
         }
 
         @Test
