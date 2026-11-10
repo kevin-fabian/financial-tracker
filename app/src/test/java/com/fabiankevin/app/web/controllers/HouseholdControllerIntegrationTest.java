@@ -2,6 +2,7 @@ package com.fabiankevin.app.web.controllers;
 
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.User;
+import com.fabiankevin.app.services.EntitlementService;
 import com.fabiankevin.app.services.HouseholdService;
 import com.fabiankevin.app.services.commands.household.OrganizeHouseholdCommand;
 import com.fabiankevin.app.web.controllers.dtos.household.HouseholdResponse;
@@ -69,6 +70,9 @@ class HouseholdControllerIntegrationTest {
 
     @Autowired
     private JsonMapper jsonMapper;
+
+    @MockitoBean
+    private EntitlementService entitlementService;
 
     @Nested
     class OrganizeHousehold {

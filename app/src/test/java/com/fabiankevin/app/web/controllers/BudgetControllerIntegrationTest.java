@@ -11,6 +11,7 @@ import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.BudgetService;
+import com.fabiankevin.app.services.EntitlementService;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.budgets.CreateBudgetCommand;
 import com.fabiankevin.app.web.controllers.dtos.budgets.CreateBudgetRequest;
@@ -81,6 +82,8 @@ class BudgetControllerIntegrationTest {
     private HouseholdServiceTestHelper householdHelper;
     @Autowired
     private TransactionServiceTestHelper transactionHelper;
+    @MockitoBean
+    private EntitlementService entitlementService;
 
     @Nested
     class GetBudgets {

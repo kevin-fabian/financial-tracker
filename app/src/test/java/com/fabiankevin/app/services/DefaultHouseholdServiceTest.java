@@ -61,6 +61,9 @@ class DefaultHouseholdServiceTest {
     private UserClient userClient;
 
     @Mock
+    private EntitlementService entitlementService;
+
+    @Mock
     private EventPublisher householdEventPublisher;
 
     @InjectMocks
@@ -317,6 +320,7 @@ class DefaultHouseholdServiceTest {
             assertEquals(1, saved.members().size());
             assertEquals(partyLeaderId, saved.members().getFirst().userId());
             assertTrue(saved.members().stream().noneMatch(p -> p.userId().equals(participantId)));
+            verify(entitlementService).revoke(participantId);
         }
 
         @Test
@@ -359,6 +363,7 @@ class DefaultHouseholdServiceTest {
             Household saved = captor.getValue();
             assertEquals(1, saved.members().size());
             assertEquals(partyLeaderId, saved.members().getFirst().userId());
+            verify(entitlementService).revoke(participantId);
         }
 
         @Test
@@ -527,6 +532,7 @@ class DefaultHouseholdServiceTest {
         @Test
         void givenHouseholdLeaderDisbandsHousehold_thenDeleteByIdIsCalled() {
             UUID partyLeaderId = UUID.randomUUID();
+            UUID participantId = UUID.randomUUID();
             UUID householdId = UUID.randomUUID();
             Household household = Household.builder()
                     .id(householdId)
@@ -535,6 +541,12 @@ class DefaultHouseholdServiceTest {
                     .members(new ArrayList<>(List.of(
                             HouseholdMember.builder()
                                     .userId(partyLeaderId)
+                                    .accessLevel(AccessLevel.VIEW_ONLY)
+                                    .status(HouseholdMemberStatus.ACTIVE)
+                                    .joinedAt(Instant.now())
+                                    .build(),
+                            HouseholdMember.builder()
+                                    .userId(participantId)
                                     .accessLevel(AccessLevel.VIEW_ONLY)
                                     .status(HouseholdMemberStatus.ACTIVE)
                                     .joinedAt(Instant.now())
@@ -550,6 +562,7 @@ class DefaultHouseholdServiceTest {
             service.disbandHousehold(householdId, partyLeaderId);
 
             verify(householdRepository).deleteById(householdId);
+            verify(entitlementService).revoke(participantId);
         }
 
         @Test

@@ -14,6 +14,7 @@ import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.persistence.entities.TransactionEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
+import com.fabiankevin.app.services.EntitlementService;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
@@ -118,6 +119,8 @@ class TransactionControllerIntegrationTest {
 
     @Autowired
     private TransactionServiceTestHelper transactionHelper;
+    @MockitoBean
+    private EntitlementService entitlementService;
 
     private UUID userId;
     private Account account;

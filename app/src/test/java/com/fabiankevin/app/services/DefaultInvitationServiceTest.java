@@ -55,6 +55,7 @@ class DefaultInvitationServiceTest {
     private final HouseholdRepository householdRepository = mock(HouseholdRepository.class);
     private final InvitationRepository invitationRepository = mock(InvitationRepository.class);
     private final UserClient userClient = mock(UserClient.class);
+    private final EntitlementService entitlementService = mock(EntitlementService.class);
     private final EventPublisher invitationEventPublisher = mock(EventPublisher.class);
     private final EventPublisher householdEventPublisher = mock(EventPublisher.class);
 
@@ -62,6 +63,7 @@ class DefaultInvitationServiceTest {
             invitationRepository,
             householdRepository,
             userClient,
+            entitlementService,
             invitationEventPublisher,
             householdEventPublisher
     );
@@ -354,6 +356,7 @@ class DefaultInvitationServiceTest {
             assertEquals(HouseholdMemberStatus.ACTIVE, addedParticipant.status());
             assertNotNull(addedParticipant.joinedAt());
             verify(householdRepository).save(any(Household.class));
+            verify(entitlementService).grant(inviteeUserId);
         }
 
         @Test

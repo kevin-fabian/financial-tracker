@@ -49,6 +49,7 @@ public class DefaultInvitationService implements InvitationService {
     private final InvitationRepository invitationRepository;
     private final HouseholdRepository householdRepository;
     private final UserClient userClient;
+    private final EntitlementService entitlementService;
     private final EventPublisher eventPublisher;
     private final EventPublisher householdEventPublisher;
 
@@ -56,6 +57,7 @@ public class DefaultInvitationService implements InvitationService {
             InvitationRepository invitationRepository,
             HouseholdRepository householdRepository,
             UserClient userClient,
+            EntitlementService entitlementService,
             @Qualifier("invitationEventPublisher")
             EventPublisher eventPublisher,
             @Qualifier("householdEventPublisher")
@@ -63,6 +65,7 @@ public class DefaultInvitationService implements InvitationService {
         this.invitationRepository = invitationRepository;
         this.householdRepository = householdRepository;
         this.userClient = userClient;
+        this.entitlementService = entitlementService;
         this.eventPublisher = eventPublisher;
         this.householdEventPublisher = householdEventPublisher;
     }
@@ -155,6 +158,7 @@ public class DefaultInvitationService implements InvitationService {
                 .build();
 
         Household savedHousehold = householdRepository.save(updatedHousehold);
+        entitlementService.grant(invitation.inviteeUserId());
 
         InvitationSummary summary = toSummary(updatedInvitation, command.acceptingUserId());
         householdEventPublisher.publish(savedHousehold.id(), new HouseholdEventPayload(

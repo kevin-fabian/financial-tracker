@@ -19,6 +19,7 @@ import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaBudgetRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaRecurringTransactionRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
+import com.fabiankevin.app.services.EntitlementService;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
@@ -118,6 +119,9 @@ class CategoryControllerIntegrationTest {
 
     @Autowired
     private HouseholdServiceTestHelper householdTestHelper;
+
+    @MockitoBean
+    private EntitlementService entitlementService;
 
     private UUID userId;
 

@@ -40,6 +40,7 @@ public class DefaultHouseholdService implements HouseholdService {
     private final HouseholdRepository householdRepository;
     private final InvitationRepository invitationRepository;
     private final UserClient userClient;
+    private final EntitlementService entitlementService;
     private final EventPublisher householdEventPublisher;
 
     private static final String DEFAULT_HOUSEHOLD_NAME = "New Household";
@@ -103,13 +104,15 @@ public class DefaultHouseholdService implements HouseholdService {
         }
 
         // Get the userId of the member being removed to check if they are the owner
-        UUID memberId = memberBeingRemoved
+        UUID memberUserId = memberBeingRemoved
                 .map(HouseholdMember::userId)
                 .orElse(householdMemberId);
 
-        if (memberId.equals(household.leaderId())) {
+        if (memberUserId.equals(household.leaderId())) {
             throw new CannotRemoveOwnerException();
         }
+
+        entitlementService.revoke(memberUserId);
 
         List<HouseholdMember> updatedMembers = household.members().stream()
                 .filter(m -> !m.id().equals(householdMemberId))
@@ -150,6 +153,11 @@ public class DefaultHouseholdService implements HouseholdService {
         if (!household.leaderId().equals(leaderId)) {
             throw new NotHouseholdLeaderException();
         }
+
+        household.members().stream()
+                .filter(m -> !m.userId().equals(leaderId))
+                .map(HouseholdMember::userId)
+                .forEach(entitlementService::revoke);
 
         householdRepository.deleteById(householdId);
     }

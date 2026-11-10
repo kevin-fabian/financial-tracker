@@ -7,6 +7,7 @@ import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ResourceType;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaHouseholdRepository;
+import com.fabiankevin.app.services.EntitlementService;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType;
 import com.fabiankevin.app.sync_devices.domain.repositories.SyncChangeRepository;
@@ -80,6 +81,9 @@ class SyncPullChangesControllerTest {
 
     @MockitoBean
     private UserClient userClient;
+
+    @MockitoBean
+    private EntitlementService entitlementService;
 
     @Autowired
     private HouseholdServiceTestHelper householdServiceTestHelper;

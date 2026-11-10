@@ -14,6 +14,7 @@ import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaRecurringTransactionRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
+import com.fabiankevin.app.services.EntitlementService;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
@@ -105,6 +106,9 @@ class AccountControllerIntegrationTest {
 
     @Autowired
     private HouseholdServiceTestHelper householdHelper;
+
+    @MockitoBean
+    private EntitlementService entitlementService;
 
     private UUID userId;
 

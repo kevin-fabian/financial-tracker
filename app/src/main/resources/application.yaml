@@ -39,7 +39,7 @@ spring:
             provider: identity
             client-id: financial-tracker-client
             authorization-grant-type: client_credentials
-            scope: user:read
+            scope: user:read,user:grant-entitlement,user:revoke-entitlement
         provider:
           identity:
             token-uri: http://localhost:9000/oauth2/token

@@ -16,6 +16,7 @@ import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionSta
 import com.fabiankevin.app.persistence.RecurringTransactionRepository;
 import com.fabiankevin.app.persistence.entities.TransactionEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
+import com.fabiankevin.app.services.EntitlementService;
 import com.fabiankevin.app.services.RecurringTransactionService;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.CreateRecurringTransactionRequest;
@@ -103,6 +104,9 @@ class RecurringTransactionControllerIntegrationTest {
 
     @Autowired
     private HouseholdServiceTestHelper householdHelper;
+
+    @MockitoBean
+    private EntitlementService entitlementService;
 
     @Nested
     class CreateRecurringTransaction {
