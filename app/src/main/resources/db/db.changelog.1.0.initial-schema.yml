@@ -100,6 +100,19 @@ databaseChangeLog:
 
   - changeSet:
       author: kevin.fabian
+      id: 1.0.8
+      sqlFile:
+        dbms: 'postgresql'
+        path: rollouts/V1.0.8_sync_devices.sql
+        relativeToChangelogFile: true
+      rollback:
+        sqlFile:
+          dbms: postgresql
+          path: rollbacks/U1.0.8_sync_devices.sql
+          relativeToChangelogFile: true
+
+  - changeSet:
+      author: kevin.fabian
       id: 1.0.9
       sqlFile:
         dbms: 'postgresql'
