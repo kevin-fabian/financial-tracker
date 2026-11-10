@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS sync_changes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
     user_id UUID NOT NULL,
     sequence_id BIGINT NOT NULL,
-    entity_type VARCHAR(32) NOT NULL CHECK (entity_type IN ('ACCOUNTS', 'CATEGORIES', 'TRANSACTIONS')),
+    entity_type VARCHAR(32) NOT NULL CHECK (entity_type IN ('ACCOUNTS', 'CATEGORIES', 'TRANSACTIONS', 'BUDGETS', 'RECURRING_TRANSACTIONS', 'SHOPPING_LISTS')),
     entity_id UUID NOT NULL,
     operation VARCHAR(32) NOT NULL CHECK (operation IN ('CREATE', 'UPDATE', 'DELETE')),
     payload TEXT NOT NULL,
