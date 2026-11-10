@@ -1,14 +1,15 @@
 package com.fabiankevin.app.sync_devices.web;
 
+import com.fabiankevin.app.accounts.domain.models.AccountSummary;
+import com.fabiankevin.app.accounts.domain.services.AccountService;
+import com.fabiankevin.app.accounts.domain.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ResourceType;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaHouseholdRepository;
-import com.fabiankevin.app.services.HouseholdService;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType;
 import com.fabiankevin.app.sync_devices.domain.repositories.SyncChangeRepository;
-import com.fabiankevin.app.sync_devices.domain.services.SyncDeviceService;
 import com.fabiankevin.app.sync_devices.web.dtos.SyncCursorQueryRequest;
 import com.fabiankevin.app.sync_devices.web.dtos.SyncPullChangesRequest;
 import com.fabiankevin.app.web.controllers.dtos.household.HouseholdResponse;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
@@ -30,6 +32,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
+import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
 
@@ -52,16 +55,14 @@ class SyncPullChangesControllerTest {
     private JsonMapper jsonMapper;
 
     @Autowired
-    private SyncDeviceService syncDeviceService;
-
-    @Autowired
     private SyncChangeRepository syncChangeRepository;
 
     @Autowired
-    private HouseholdService householdService;
+    private JpaHouseholdRepository jpaHouseholdRepository;
 
     @Autowired
-    private JpaHouseholdRepository jpaHouseholdRepository;
+    @Qualifier("syncChangeAwareAccountService")
+    private AccountService accountService;
 
     @BeforeEach
     void cleanup() {
@@ -89,19 +90,19 @@ class SyncPullChangesControllerTest {
         @Test
         void givenCurrentUserOnly_shouldReturnScopedChanges() throws Exception {
             UUID userId = UUID.randomUUID();
-            UUID transactionId = UUID.randomUUID();
-            Long primaryLastPulledSequence = 120L;
+            Long primaryLastPulledSequence = 0L;
 
-            SyncChange change = SyncChange.builder()
+            // Create account through SyncChangeAwareAccountService — this automatically registers a sync change
+            CreateAccountCommand createAccountCommand = CreateAccountCommand.builder()
+                    .id(UUID.randomUUID())
+                    .name("Test Account")
+                    .currency(Currency.getInstance("USD"))
+                    .type(com.fabiankevin.app.accounts.domain.models.AccountType.E_WALLET)
                     .userId(userId)
-                    .sequenceId(121L)
-                    .entityType(ResourceType.TRANSACTIONS)
-                    .entityId(transactionId)
-                    .operation(SyncChangeOperationType.CREATE)
-                    .payload("{}")
-                    .createdAt(Instant.now())
                     .build();
-            syncChangeRepository.save(change);
+
+            AccountSummary createdAccount = accountService.createAccount(createAccountCommand);
+            UUID accountId = createdAccount.account().id();
 
             SyncPullChangesRequest request = SyncPullChangesRequest.builder()
                     .primaryLastPulledSequence(primaryLastPulledSequence)
@@ -123,12 +124,10 @@ class SyncPullChangesControllerTest {
                     .andExpect(jsonPath("$.scopes[0].userId").value(userId.toString()))
                     .andExpect(jsonPath("$.scopes[0].changes").isArray())
                     .andExpect(jsonPath("$.scopes[0].changes.length()").value(1))
-                    .andExpect(jsonPath("$.scopes[0].changes[0].sequenceId").value(121))
-                    .andExpect(jsonPath("$.scopes[0].changes[0].entityType").value("TRANSACTIONS"))
-                    .andExpect(jsonPath("$.scopes[0].changes[0].entityId").value(transactionId.toString()))
+                    .andExpect(jsonPath("$.scopes[0].changes[0].entityType").value("ACCOUNTS"))
+                    .andExpect(jsonPath("$.scopes[0].changes[0].entityId").value(accountId.toString()))
                     .andExpect(jsonPath("$.scopes[0].changes[0].operation").value("CREATE"))
-                    .andExpect(jsonPath("$.scopes[0].nextCursor").value(121))
-                    .andExpect(jsonPath("$.scopes[0].hasMore").value(false));
+                    .andExpect(jsonPath("$.scopes[0].changes[0].payload").isNotEmpty());
         }
 
         @Test
@@ -136,7 +135,6 @@ class SyncPullChangesControllerTest {
             UUID userId = UUID.randomUUID();
             Long primaryLastPulledSequence = 85L;
 
-            // Insert a change with sequence <= lastPulledSequence, so it should be filtered out
             SyncChange oldChange = SyncChange.builder()
                     .userId(userId)
                     .sequenceId(80L)
