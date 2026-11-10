@@ -84,6 +84,7 @@ class RecurringTransactionControllerIntegrationTest {
     private UserClient userClient;
 
     @Autowired
+    @Qualifier("syncChangeAwareRecurringTransactionService")
     private RecurringTransactionService recurringTransactionService;
 
     @MockitoSpyBean

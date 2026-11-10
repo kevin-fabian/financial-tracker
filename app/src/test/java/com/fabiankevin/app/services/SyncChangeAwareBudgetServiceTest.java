@@ -353,14 +353,54 @@ class SyncChangeAwareBudgetServiceTest {
         }
 
         @Test
-        void deleteBudgetById_shouldDelegateWithoutRegisteringChange() {
+        void deleteBudgetById_shouldDelegateAndRegisterDeleteChange() {
             UUID id = UUID.randomUUID();
             UUID userId = UUID.randomUUID();
+            UUID categoryId = UUID.randomUUID();
+
+            Category category = Category.builder()
+                    .id(categoryId)
+                    .name("Food")
+                    .type(TransactionType.EXPENSE)
+                    .userId(userId)
+                    .active(true)
+                    .system(false)
+                    .createdAt(Instant.parse("2025-01-01T00:00:00Z"))
+                    .updatedAt(Instant.parse("2025-01-01T00:00:00Z"))
+                    .build();
+
+            Budget budget = Budget.builder()
+                    .id(id)
+                    .user(User.builder().id(userId).firstName("John").lastName("Doe").build())
+                    .updatedBy(User.builder().id(userId).firstName("John").lastName("Doe").build())
+                    .period(BudgetPeriod.MONTHLY)
+                    .category(category)
+                    .allocated(5000.0)
+                    .createdAt(Instant.parse("2025-01-01T00:00:00Z"))
+                    .updatedAt(Instant.parse("2025-01-01T00:00:00Z"))
+                    .build();
+
+            BudgetSummary existing = BudgetSummary.builder()
+                    .budget(budget)
+                    .spent(100.0)
+                    .spentPercentage(2.0)
+                    .build();
+
+            when(delegate.getBudgetSummaryByIdAndUserId(id, userId)).thenReturn(existing);
 
             service.deleteBudgetById(id, userId);
 
+            verify(delegate, times(1)).getBudgetSummaryByIdAndUserId(id, userId);
             verify(delegate, times(1)).deleteBudgetById(id, userId);
-            verify(syncChangeService, never()).create(any());
+            ArgumentCaptor<CreateSyncChangeCommand> captor = ArgumentCaptor.forClass(CreateSyncChangeCommand.class);
+            verify(syncChangeService, times(1)).create(captor.capture());
+            CreateSyncChangeCommand change = captor.getValue();
+            assertThat(change.userId()).isEqualTo(userId);
+            assertThat(change.entityType()).isEqualTo(ResourceType.BUDGETS);
+            assertThat(change.entityId()).isEqualTo(id);
+            assertThat(change.operation()).isEqualTo(SyncChangeOperationType.DELETE);
+            Budget capturedBudget = jsonMapper.readValue(change.payload(), Budget.class);
+            assertThat(capturedBudget).isEqualTo(existing.budget());
         }
 
         @Test

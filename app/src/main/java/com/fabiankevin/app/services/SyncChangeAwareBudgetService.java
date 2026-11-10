@@ -7,6 +7,7 @@ import com.fabiankevin.app.services.commands.budgets.PatchBudgetCommand;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType;
 import com.fabiankevin.app.sync_devices.domain.services.SyncChangeService;
 import com.fabiankevin.app.sync_devices.domain.services.commands.CreateSyncChangeCommand;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.json.JsonMapper;
@@ -34,6 +35,7 @@ public class SyncChangeAwareBudgetService implements BudgetService {
     }
 
     @Override
+    @Transactional
     public BudgetSummary createBudget(final CreateBudgetCommand command) {
         final BudgetSummary result = delegate.createBudget(command);
         syncChangeService.create(CreateSyncChangeCommand.builder()
@@ -52,6 +54,7 @@ public class SyncChangeAwareBudgetService implements BudgetService {
     }
 
     @Override
+    @Transactional
     public BudgetSummary patchBudget(final PatchBudgetCommand command) {
         final BudgetSummary result = delegate.patchBudget(command);
         syncChangeService.create(CreateSyncChangeCommand.builder()
@@ -65,8 +68,17 @@ public class SyncChangeAwareBudgetService implements BudgetService {
     }
 
     @Override
+    @Transactional
     public void deleteBudgetById(final UUID id, final UUID userId) {
+        final BudgetSummary existing = delegate.getBudgetSummaryByIdAndUserId(id, userId);
         delegate.deleteBudgetById(id, userId);
+        syncChangeService.create(CreateSyncChangeCommand.builder()
+                .userId(userId)
+                .entityType(ResourceType.BUDGETS)
+                .entityId(id)
+                .operation(SyncChangeOperationType.DELETE)
+                .payload(jsonMapper.writeValueAsString(existing.toBudget()))
+                .build());
     }
 
     @Override

@@ -34,7 +34,9 @@ public class DefaultSyncDeviceService implements SyncDeviceService {
     public DefaultSyncDeviceService(
             @Qualifier("defaultTransactionService")
             TransactionService transactionService,
+            @Qualifier("defaultRecurringTransactionService")
             RecurringTransactionService recurringTransactionService,
+            @Qualifier("defaultBudgetService")
             BudgetService budgetService,
             ShoppingListService shoppingListService,
             @Qualifier("defaultAccountService")

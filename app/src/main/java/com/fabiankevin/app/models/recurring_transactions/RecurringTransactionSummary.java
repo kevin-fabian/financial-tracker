@@ -27,4 +27,21 @@ public record RecurringTransactionSummary(
         Instant createdAt,
         Instant updatedAt
 ) {
+    public RecurringTransaction toRecurringTransaction() {
+        return new RecurringTransaction(
+                id,
+                null,
+                description,
+                amount,
+                variableAmount,
+                category,
+                account,
+                dayOfMonth,
+                nextOccurrenceDate,
+                endDate,
+                status,
+                createdAt,
+                updatedAt
+        );
+    }
 }

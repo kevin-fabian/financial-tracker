@@ -71,6 +71,7 @@ class BudgetControllerIntegrationTest {
     @Qualifier("defaultCategoryService")
     private CategoryService categoryService;
     @Autowired
+    @Qualifier("syncChangeAwareBudgetService")
     private BudgetService budgetService;
     @Autowired
     private JpaCategoryRepository jpaCategoryRepository;

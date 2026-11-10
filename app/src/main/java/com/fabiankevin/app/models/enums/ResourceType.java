@@ -4,5 +4,6 @@ public enum ResourceType {
     ACCOUNTS,
     CATEGORIES,
     TRANSACTIONS,
-    BUDGETS
+    BUDGETS,
+    RECURRING_TRANSACTIONS
 }
