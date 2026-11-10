@@ -56,7 +56,8 @@ com.fabiankevin.app.<feature>/
 ├── domain/
 │   ├── models/             # Domain entities and enums
 │   ├── repositories/       # Domain repository interfaces
-│   └── services/           # Service interfaces + implementations (commands/queries subfolders)
+│   ├── services/           # Service interfaces + implementations (commands/queries subfolders)
+│   └── exceptions/         # Domain-driven exceptions that name the broken business rule
 └── persistence/
     ├── entities/           # JPA entities
     ├── Jpa*Repository.java # Spring Data JPA repositories
