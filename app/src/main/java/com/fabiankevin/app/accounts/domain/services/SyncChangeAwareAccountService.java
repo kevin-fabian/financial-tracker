@@ -44,7 +44,7 @@ public class SyncChangeAwareAccountService implements AccountService {
                 .entityType(ResourceType.ACCOUNTS)
                 .entityId(result.account().id())
                 .operation(SyncChangeOperationType.CREATE)
-                .payload(jsonMapper.writeValueAsString(result))
+                .payload(jsonMapper.writeValueAsString(result.account()))
                 .build());
         return result;
     }
@@ -62,7 +62,7 @@ public class SyncChangeAwareAccountService implements AccountService {
                 .entityType(ResourceType.ACCOUNTS)
                 .entityId(result.account().id())
                 .operation(SyncChangeOperationType.UPDATE)
-                .payload(jsonMapper.writeValueAsString(result))
+                .payload(jsonMapper.writeValueAsString(result.account()))
                 .build());
         return result;
     }

@@ -8,6 +8,7 @@ import com.fabiankevin.app.accounts.domain.services.SyncChangeAwareAccountServic
 import com.fabiankevin.app.accounts.domain.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.accounts.domain.services.commands.PatchAccountCommand;
 import com.fabiankevin.app.models.User;
+import com.fabiankevin.app.models.enums.ResourceType;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType;
 import com.fabiankevin.app.sync_devices.domain.services.SyncChangeService;
 import com.fabiankevin.app.sync_devices.domain.services.commands.CreateSyncChangeCommand;
@@ -78,10 +79,11 @@ class SyncChangeAwareAccountServiceTest {
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
             assertThat(change.userId()).isEqualTo(userId);
-            assertThat(change.entityType()).isEqualTo(com.fabiankevin.app.models.enums.ResourceType.ACCOUNTS);
+            assertThat(change.entityType()).isEqualTo(ResourceType.ACCOUNTS);
             assertThat(change.entityId()).isEqualTo(accountId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.CREATE);
-            assertThat(change.payload()).isNotNull();
+            Account capturedAccount = jsonMapper.readValue(change.payload(), Account.class);
+            assertThat(capturedAccount).isEqualTo(expected.account());
             verify(delegate, never()).getAccountById(any(), any());
         }
 
@@ -119,9 +121,8 @@ class SyncChangeAwareAccountServiceTest {
             assertThat(result).isSameAs(expected);
             ArgumentCaptor<CreateSyncChangeCommand> captor = ArgumentCaptor.forClass(CreateSyncChangeCommand.class);
             verify(syncChangeService, times(1)).create(captor.capture());
-            String payload = captor.getValue().payload();
-            assertThat(payload).contains("\"name\":\"GCASH\"");
-            assertThat(payload).contains("\"totalBalance\":0.0");
+            Account capturedAccount = jsonMapper.readValue(captor.getValue().payload(), Account.class);
+            assertThat(capturedAccount).isEqualTo(expected.account());
         }
     }
 
@@ -162,12 +163,8 @@ class SyncChangeAwareAccountServiceTest {
             assertThat(result).isSameAs(expected);
             ArgumentCaptor<CreateSyncChangeCommand> captor = ArgumentCaptor.forClass(CreateSyncChangeCommand.class);
             verify(syncChangeService, times(1)).create(captor.capture());
-            CreateSyncChangeCommand change = captor.getValue();
-            assertThat(change.userId()).isEqualTo(userId);
-            assertThat(change.entityType()).isEqualTo(com.fabiankevin.app.models.enums.ResourceType.ACCOUNTS);
-            assertThat(change.entityId()).isEqualTo(accountId);
-            assertThat(change.operation()).isEqualTo(SyncChangeOperationType.UPDATE);
-            assertThat(change.payload()).isNotNull();
+            Account capturedAccount = jsonMapper.readValue(captor.getValue().payload(), Account.class);
+            assertThat(capturedAccount).isEqualTo(expected.account());
         }
 
         @Test
@@ -204,9 +201,8 @@ class SyncChangeAwareAccountServiceTest {
             assertThat(result).isSameAs(expected);
             ArgumentCaptor<CreateSyncChangeCommand> captor = ArgumentCaptor.forClass(CreateSyncChangeCommand.class);
             verify(syncChangeService, times(1)).create(captor.capture());
-            String payload = captor.getValue().payload();
-            assertThat(payload).contains("\"name\":\"PAYMAY_PREMIUM\"");
-            assertThat(payload).contains("\"totalBalance\":9876.54");
+            Account capturedAccount = jsonMapper.readValue(captor.getValue().payload(), Account.class);
+            assertThat(capturedAccount).isEqualTo(expected.account());
         }
     }
 
@@ -243,10 +239,11 @@ class SyncChangeAwareAccountServiceTest {
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
             assertThat(change.userId()).isEqualTo(userId);
-            assertThat(change.entityType()).isEqualTo(com.fabiankevin.app.models.enums.ResourceType.ACCOUNTS);
+            assertThat(change.entityType()).isEqualTo(ResourceType.ACCOUNTS);
             assertThat(change.entityId()).isEqualTo(accountId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.DELETE);
-            assertThat(change.payload()).isNotNull();
+            AccountSummary capturedSummary = jsonMapper.readValue(change.payload(), AccountSummary.class);
+            assertThat(capturedSummary).isEqualTo(existing);
         }
 
         @Test
@@ -275,9 +272,8 @@ class SyncChangeAwareAccountServiceTest {
 
             ArgumentCaptor<CreateSyncChangeCommand> captor = ArgumentCaptor.forClass(CreateSyncChangeCommand.class);
             verify(syncChangeService, times(1)).create(captor.capture());
-            String payload = captor.getValue().payload();
-            assertThat(payload).contains("\"name\":\"BDO\"");
-            assertThat(payload).contains("\"totalBalance\":12345.67");
+            AccountSummary capturedSummary = jsonMapper.readValue(captor.getValue().payload(), AccountSummary.class);
+            assertThat(capturedSummary).isEqualTo(existing);
         }
     }
 
