@@ -1,17 +1,17 @@
 package com.fabiankevin.app.web.controllers.helper;
 
-import com.fabiankevin.app.models.Account;
-import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.accounts.domain.models.Account;
+import com.fabiankevin.app.accounts.domain.models.AccountType;
+import com.fabiankevin.app.accounts.domain.repositories.AccountRepository;
+import com.fabiankevin.app.accounts.domain.services.AccountService;
+import com.fabiankevin.app.accounts.domain.services.commands.CreateAccountCommand;
+import com.fabiankevin.app.categories.domain.models.Category;
+import com.fabiankevin.app.categories.domain.repositories.CategoryRepository;
+import com.fabiankevin.app.categories.domain.services.CategoryService;
 import com.fabiankevin.app.models.Transaction;
-import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
-import com.fabiankevin.app.persistence.AccountRepository;
-import com.fabiankevin.app.persistence.CategoryRepository;
-import com.fabiankevin.app.services.AccountService;
-import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
-import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;

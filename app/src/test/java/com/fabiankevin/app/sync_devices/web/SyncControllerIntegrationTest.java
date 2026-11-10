@@ -1,17 +1,17 @@
 package com.fabiankevin.app.sync_devices.web;
 
+import com.fabiankevin.app.accounts.domain.models.AccountSummary;
+import com.fabiankevin.app.accounts.domain.services.AccountService;
+import com.fabiankevin.app.accounts.domain.services.commands.CreateAccountCommand;
+import com.fabiankevin.app.accounts.persistence.JpaAccountRepository;
+import com.fabiankevin.app.categories.domain.models.Category;
+import com.fabiankevin.app.categories.domain.services.CategoryService;
+import com.fabiankevin.app.categories.persistence.JpaCategoryRepository;
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.models.AccountSummary;
-import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
-import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
-import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
-import com.fabiankevin.app.services.AccountService;
-import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
-import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.CreateSyncStateCommand;
 import com.fabiankevin.app.sync_devices.domain.models.BootstrapDirection;
@@ -48,7 +48,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-import static com.fabiankevin.app.models.enums.AccountType.E_WALLET;
+import static com.fabiankevin.app.accounts.domain.models.AccountType.E_WALLET;
 import static com.fabiankevin.app.models.enums.TransactionType.EXPENSE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doThrow;

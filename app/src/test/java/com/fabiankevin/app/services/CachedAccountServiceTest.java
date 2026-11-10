@@ -1,10 +1,10 @@
 //package com.fabiankevin.app.services;
 //
-//import com.fabiankevin.app.models.Account;
+//import com.fabiankevin.app.accounts.domain.models.Account;
 //import com.fabiankevin.app.models.Page;
-//import com.fabiankevin.app.models.enums.AccountType;
-//import com.fabiankevin.app.services.commands.CreateAccountCommand;
-//import com.fabiankevin.app.services.commands.PatchAccountCommand;
+//import com.fabiankevin.app.accounts.domain.models.AccountType;
+//import com.fabiankevin.app.accounts.domain.services.commands.CreateAccountCommand;
+//import com.fabiankevin.app.accounts.domain.services.commands.PatchAccountCommand;
 //import com.fabiankevin.app.services.queries.PageQuery;
 //import org.junit.jupiter.api.BeforeEach;
 //import org.junit.jupiter.api.Test;

@@ -1,6 +1,8 @@
 package com.fabiankevin.app.persistence.entities;
 
-import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.accounts.persistence.entities.AccountEntity;
+import com.fabiankevin.app.categories.domain.models.Category;
+import com.fabiankevin.app.categories.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.models.User;
 import jakarta.persistence.Column;

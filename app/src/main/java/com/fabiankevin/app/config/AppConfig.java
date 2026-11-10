@@ -1,9 +1,9 @@
 package com.fabiankevin.app.config;
 
+import com.fabiankevin.app.accounts.domain.repositories.AccountRepository;
+import com.fabiankevin.app.categories.domain.repositories.CategoryRepository;
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.events.EventPublisher;
-import com.fabiankevin.app.persistence.AccountRepository;
-import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.HouseholdRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.DefaultStatsService;

@@ -1,6 +1,6 @@
 package com.fabiankevin.app.models.budgets;
 
-import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.categories.domain.models.Category;
 import com.fabiankevin.app.models.User;
 import lombok.Builder;
 

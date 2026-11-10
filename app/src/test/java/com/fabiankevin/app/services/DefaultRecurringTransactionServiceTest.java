@@ -1,20 +1,20 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.accounts.domain.exceptions.AccountNotFoundException;
+import com.fabiankevin.app.accounts.domain.models.Account;
+import com.fabiankevin.app.accounts.domain.models.AccountType;
+import com.fabiankevin.app.accounts.domain.repositories.AccountRepository;
+import com.fabiankevin.app.categories.domain.models.Category;
+import com.fabiankevin.app.categories.domain.repositories.CategoryRepository;
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.exceptions.AccountNotFoundException;
 import com.fabiankevin.app.exceptions.InvalidAmountException;
-import com.fabiankevin.app.models.Account;
-import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.models.User;
-import com.fabiankevin.app.models.enums.AccountType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransaction;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionSummary;
 import com.fabiankevin.app.models.recurring_transactions.TransactionStatus;
-import com.fabiankevin.app.persistence.AccountRepository;
-import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.RecurringTransactionRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.recurring_transactions.commands.CreateRecurringTransactionCommand;

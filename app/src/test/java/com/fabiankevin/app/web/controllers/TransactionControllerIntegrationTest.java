@@ -1,21 +1,21 @@
 package com.fabiankevin.app.web.controllers;
 
+import com.fabiankevin.app.accounts.domain.models.Account;
+import com.fabiankevin.app.accounts.domain.repositories.AccountRepository;
+import com.fabiankevin.app.accounts.domain.services.AccountService;
+import com.fabiankevin.app.accounts.domain.services.commands.CreateAccountCommand;
+import com.fabiankevin.app.categories.domain.models.Category;
+import com.fabiankevin.app.categories.domain.repositories.CategoryRepository;
+import com.fabiankevin.app.categories.domain.services.CategoryService;
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.models.Account;
-import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.TransactionType;
-import com.fabiankevin.app.persistence.AccountRepository;
-import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.persistence.entities.TransactionEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
-import com.fabiankevin.app.services.AccountService;
-import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
-import com.fabiankevin.app.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.web.controllers.dtos.household.HouseholdResponse;
 import com.fabiankevin.app.web.controllers.dtos.transactions.CreateBatchTransactionsRequest;
@@ -50,7 +50,7 @@ import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
 
-import static com.fabiankevin.app.models.enums.AccountType.E_WALLET;
+import static com.fabiankevin.app.accounts.domain.models.AccountType.E_WALLET;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.matchesPattern;

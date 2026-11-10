@@ -1,5 +1,13 @@
 package com.fabiankevin.app.persistence;
 
+import com.fabiankevin.app.accounts.domain.repositories.AccountRepository;
+import com.fabiankevin.app.accounts.persistence.DefaultAccountRepository;
+import com.fabiankevin.app.accounts.persistence.JpaAccountRepository;
+import com.fabiankevin.app.accounts.persistence.entities.AccountEntity;
+import com.fabiankevin.app.categories.domain.repositories.CategoryRepository;
+import com.fabiankevin.app.categories.persistence.DefaultCategoryRepository;
+import com.fabiankevin.app.categories.persistence.JpaCategoryRepository;
+import com.fabiankevin.app.categories.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.events.DefaultHouseholdEventPublisher;
 import com.fabiankevin.app.models.Page;
@@ -7,11 +15,7 @@ import com.fabiankevin.app.models.SummaryPoint;
 import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.TransactionType;
-import com.fabiankevin.app.persistence.entities.AccountEntity;
-import com.fabiankevin.app.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.persistence.entities.TransactionEntity;
-import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
-import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import com.fabiankevin.app.services.DefaultTransactionService;
 import com.fabiankevin.app.services.HouseholdService;

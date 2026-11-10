@@ -1,7 +1,7 @@
 package com.fabiankevin.app.persistence.entities.projections;
 
-import com.fabiankevin.app.persistence.entities.AccountEntity;
-import com.fabiankevin.app.persistence.entities.CategoryEntity;
+import com.fabiankevin.app.accounts.persistence.entities.AccountEntity;
+import com.fabiankevin.app.categories.persistence.entities.CategoryEntity;
 import lombok.Builder;
 
 import java.time.Instant;

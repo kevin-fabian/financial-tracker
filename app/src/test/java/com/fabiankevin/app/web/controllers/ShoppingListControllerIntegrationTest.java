@@ -1,7 +1,8 @@
 package com.fabiankevin.app.web.controllers;
 
+import com.fabiankevin.app.categories.domain.models.Category;
+import com.fabiankevin.app.categories.domain.repositories.CategoryRepository;
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ItemPriority;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
@@ -9,7 +10,6 @@ import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
-import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
 import com.fabiankevin.app.services.ShoppingListService;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingListCommand;

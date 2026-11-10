@@ -1,6 +1,6 @@
 package com.fabiankevin.app.persistence;
 
-import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.categories.domain.models.Category;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
 
 import java.util.List;

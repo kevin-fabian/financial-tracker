@@ -49,6 +49,20 @@ This project follows light hexagonal architecture principles with DDD-light mode
 **Architecture reference**
 controllers -> services -> repositories -> jpa_repositories -> entities
 
+**Package structure** (feature-based modules)
+```
+com.fabiankevin.app.<feature>/
+├── web/                    # REST controllers and DTOs
+├── domain/
+│   ├── models/             # Domain entities and enums
+│   ├── repositories/       # Domain repository interfaces
+│   └── services/           # Service interfaces + implementations (commands/queries subfolders)
+└── persistence/
+    ├── entities/           # JPA entities
+    ├── Jpa*Repository.java # Spring Data JPA repositories
+    └── Default*Repository.java # Repository adapters
+```
+
 This file is intentionally repo agnostic. For concrete package names, module layout, infrastructure choices, profiles, and known exceptions in the current repository, consult `AGENTS.md`.
 
 ---

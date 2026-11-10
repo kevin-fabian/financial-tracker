@@ -1,7 +1,9 @@
 package com.fabiankevin.app.services;
 
-import com.fabiankevin.app.models.Category;
-import com.fabiankevin.app.models.CategorySummary;
+import com.fabiankevin.app.categories.domain.models.Category;
+import com.fabiankevin.app.categories.domain.models.CategorySummary;
+import com.fabiankevin.app.categories.domain.services.CategoryService;
+import com.fabiankevin.app.categories.domain.services.SyncChangeAwareCategoryService;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.enums.ResourceType;
 import com.fabiankevin.app.models.enums.TransactionType;

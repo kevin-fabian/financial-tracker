@@ -1,11 +1,13 @@
 package com.fabiankevin.app.services;
 
-import com.fabiankevin.app.models.Account;
-import com.fabiankevin.app.models.AccountSummary;
+import com.fabiankevin.app.accounts.domain.models.Account;
+import com.fabiankevin.app.accounts.domain.models.AccountSummary;
+import com.fabiankevin.app.accounts.domain.models.AccountType;
+import com.fabiankevin.app.accounts.domain.services.AccountService;
+import com.fabiankevin.app.accounts.domain.services.SyncChangeAwareAccountService;
+import com.fabiankevin.app.accounts.domain.services.commands.CreateAccountCommand;
+import com.fabiankevin.app.accounts.domain.services.commands.PatchAccountCommand;
 import com.fabiankevin.app.models.User;
-import com.fabiankevin.app.models.enums.AccountType;
-import com.fabiankevin.app.services.commands.CreateAccountCommand;
-import com.fabiankevin.app.services.commands.PatchAccountCommand;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType;
 import com.fabiankevin.app.sync_devices.domain.services.SyncChangeService;
 import com.fabiankevin.app.sync_devices.domain.services.commands.CreateSyncChangeCommand;
@@ -18,7 +20,7 @@ import java.time.Instant;
 import java.util.Currency;
 import java.util.UUID;
 
-import static com.fabiankevin.app.models.enums.AccountType.E_WALLET;
+import static com.fabiankevin.app.accounts.domain.models.AccountType.E_WALLET;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;

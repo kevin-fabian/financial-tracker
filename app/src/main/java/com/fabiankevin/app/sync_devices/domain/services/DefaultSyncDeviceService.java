@@ -1,9 +1,9 @@
 package com.fabiankevin.app.sync_devices.domain.services;
 
+import com.fabiankevin.app.accounts.domain.services.AccountService;
+import com.fabiankevin.app.categories.domain.services.CategoryService;
 import com.fabiankevin.app.exceptions.SyncStateNotFoundException;
-import com.fabiankevin.app.services.AccountService;
 import com.fabiankevin.app.services.BudgetService;
-import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.services.RecurringTransactionService;
 import com.fabiankevin.app.services.ShoppingListService;
 import com.fabiankevin.app.services.TransactionService;

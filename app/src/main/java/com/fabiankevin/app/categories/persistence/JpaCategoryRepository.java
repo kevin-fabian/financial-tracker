@@ -1,0 +1,93 @@
+package com.fabiankevin.app.categories.persistence;
+
+import com.fabiankevin.app.categories.persistence.entities.CategoryEntity;
+import com.fabiankevin.app.categories.persistence.entities.CategorySummaryProjection;
+import com.fabiankevin.app.models.enums.TransactionType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+public interface JpaCategoryRepository extends JpaRepository<CategoryEntity, UUID> {
+    @Query("""
+            SELECT c FROM CategoryEntity c
+            WHERE c.id = :id
+            AND (c.userId = :userId OR c.system = true)
+            """)
+    Optional<CategoryEntity> findByIdAndUserId(@Param("id") UUID id, @Param("userId") UUID userId);
+
+    @Query("""
+            SELECT c,
+            COALESCE(SUM(t.amount), 0.0),
+            CAST(COALESCE(COUNT(t.id), 0) AS int)
+            FROM CategoryEntity c
+            LEFT JOIN TransactionEntity t ON t.category.id = c.id
+                AND t.account.userId = :userId
+            WHERE c.id = :id
+            AND (c.userId = :userId OR c.system = true)
+            GROUP BY c
+            """)
+    Optional<CategorySummaryProjection> findByIdAndUserIdWithSummary(@Param("id") UUID id, @Param("userId") UUID userId);
+
+    @Query("""
+            SELECT COALESCE(SUM(t.amount), 0.0)
+            FROM CategoryEntity c
+            LEFT JOIN TransactionEntity t ON t.category.id = c.id
+                AND t.account.userId = :userId
+            WHERE (c.userId = :userId OR c.system = true)
+            AND c.transactionType = :type
+            """)
+    double findTotalAmountByType(@Param("type") TransactionType type, @Param("userId") UUID userId);
+
+    boolean existsByNameAndTransactionTypeAndUserId(String name, TransactionType type, UUID userId);
+    int deleteByIdAndUserId(UUID id, UUID userId);
+
+    long deleteAllByUserId(UUID userId);
+
+    Page<CategoryEntity> findAllByUserId(UUID userId, Pageable pageable);
+    Page<CategoryEntity> findAllByUserIdAndTransactionType(UUID userId, TransactionType type, Pageable pageable);
+    Optional<CategoryEntity> findFirstByActiveFalseAndNameAndTransactionTypeAndUserId(String name, TransactionType type, UUID userId);
+    Optional<CategoryEntity> findFirstByNameAndTransactionTypeAndUserId(String name, TransactionType type, UUID userId);
+
+    @Query("""
+            SELECT c FROM CategoryEntity c
+            WHERE c.name IN :names
+            AND c.userId = :userId
+            """)
+    List<CategoryEntity> findAllByNamesAndUserId(@Param("names") List<String> names, @Param("userId") UUID userId);
+
+    List<CategoryEntity> findAllByNameIn(List<String> names);
+
+    @Query("""
+            SELECT c,
+                COALESCE(SUM(t.amount), 0.0),
+                CAST(COALESCE(COUNT(t.id), 0) AS int)
+            FROM CategoryEntity c
+            LEFT JOIN TransactionEntity t ON t.category.id = c.id
+                AND t.transactionDate >= :monthStart
+                AND t.transactionDate <= :monthEnd
+                AND t.account.userId IN :userIds
+            WHERE (c.userId = :userId OR c.system = true)
+            AND (:type IS NULL OR c.transactionType = :type)
+            GROUP BY c
+            """)
+    Page<CategorySummaryProjection> findAllByUserIdAndTransactionTypeWithSummary(
+            @Param("userIds") List<UUID> userIds,
+            @Param("userId") UUID userId,
+            @Param("type") TransactionType type,
+            @Param("monthStart") LocalDate monthStart,
+            @Param("monthEnd") LocalDate monthEnd,
+            Pageable pageable);
+
+    @Query("""
+            SELECT c FROM CategoryEntity c
+            WHERE c.userId = :userId OR c.system = true
+            """)
+    List<CategoryEntity> findAllByUserId(@Param("userId") UUID userId);
+}

@@ -1,5 +1,7 @@
 package com.fabiankevin.app.models;
 
+import com.fabiankevin.app.accounts.domain.models.Account;
+import com.fabiankevin.app.categories.domain.models.Category;
 import com.fabiankevin.app.models.enums.TransactionType;
 import lombok.Builder;
 

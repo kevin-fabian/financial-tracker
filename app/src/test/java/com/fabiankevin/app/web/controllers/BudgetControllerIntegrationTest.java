@@ -1,16 +1,16 @@
 package com.fabiankevin.app.web.controllers;
 
+import com.fabiankevin.app.categories.domain.models.Category;
+import com.fabiankevin.app.categories.domain.services.CategoryService;
+import com.fabiankevin.app.categories.persistence.JpaCategoryRepository;
+import com.fabiankevin.app.categories.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.clients.UserClient;
-import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.models.enums.TransactionType;
-import com.fabiankevin.app.persistence.entities.CategoryEntity;
-import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.services.BudgetService;
-import com.fabiankevin.app.services.CategoryService;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.budgets.CreateBudgetCommand;
 import com.fabiankevin.app.web.controllers.dtos.budgets.CreateBudgetRequest;

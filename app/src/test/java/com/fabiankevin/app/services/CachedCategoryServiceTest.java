@@ -1,6 +1,6 @@
 //package com.fabiankevin.app.services;
 //
-//import com.fabiankevin.app.models.Category;
+//import com.fabiankevin.app.categories.domain.models.Category;
 //import com.fabiankevin.app.models.Page;
 //import com.fabiankevin.app.models.enums.TransactionType;
 //import com.fabiankevin.app.services.commands.CreateCategoryCommand;

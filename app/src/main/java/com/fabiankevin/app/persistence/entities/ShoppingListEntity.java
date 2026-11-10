@@ -1,5 +1,6 @@
 package com.fabiankevin.app.persistence.entities;
 
+import com.fabiankevin.app.categories.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;

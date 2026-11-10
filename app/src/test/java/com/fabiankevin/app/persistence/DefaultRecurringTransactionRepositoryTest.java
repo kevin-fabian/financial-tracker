@@ -1,19 +1,19 @@
 package com.fabiankevin.app.persistence;
 
-import com.fabiankevin.app.models.Account;
-import com.fabiankevin.app.models.Category;
-import com.fabiankevin.app.models.enums.AccountType;
+import com.fabiankevin.app.accounts.domain.models.Account;
+import com.fabiankevin.app.accounts.domain.models.AccountType;
+import com.fabiankevin.app.accounts.persistence.JpaAccountRepository;
+import com.fabiankevin.app.accounts.persistence.entities.AccountEntity;
+import com.fabiankevin.app.categories.domain.models.Category;
+import com.fabiankevin.app.categories.persistence.JpaCategoryRepository;
+import com.fabiankevin.app.categories.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransaction;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionSummary;
 import com.fabiankevin.app.models.recurring_transactions.TransactionStatus;
-import com.fabiankevin.app.persistence.entities.AccountEntity;
-import com.fabiankevin.app.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.persistence.entities.RecurringTransactionEntity;
 import com.fabiankevin.app.persistence.entities.TransactionEntity;
-import com.fabiankevin.app.persistence.jpa_repositories.JpaAccountRepository;
-import com.fabiankevin.app.persistence.jpa_repositories.JpaCategoryRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaRecurringTransactionRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaTransactionRepository;
 import org.assertj.core.api.Assertions;

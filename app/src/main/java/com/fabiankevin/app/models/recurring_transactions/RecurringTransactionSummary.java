@@ -1,7 +1,7 @@
 package com.fabiankevin.app.models.recurring_transactions;
 
-import com.fabiankevin.app.models.Account;
-import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.accounts.domain.models.Account;
+import com.fabiankevin.app.categories.domain.models.Category;
 import com.fabiankevin.app.models.User;
 import lombok.Builder;
 

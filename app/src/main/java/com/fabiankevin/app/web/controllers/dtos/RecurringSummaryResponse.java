@@ -1,7 +1,9 @@
 package com.fabiankevin.app.web.controllers.dtos;
 
-import com.fabiankevin.app.models.Account;
-import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.accounts.domain.models.Account;
+import com.fabiankevin.app.accounts.web.dtos.AccountResponse;
+import com.fabiankevin.app.categories.domain.models.Category;
+import com.fabiankevin.app.categories.web.dtos.CategoryResponse;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionSummary;

@@ -1,10 +1,10 @@
 package com.fabiankevin.app.web.controllers.dtos.shopping_list;
 
-import com.fabiankevin.app.models.Category;
+import com.fabiankevin.app.categories.domain.models.Category;
+import com.fabiankevin.app.categories.web.dtos.CategoryResponse;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
-import com.fabiankevin.app.web.controllers.dtos.CategoryResponse;
 import com.fabiankevin.app.web.controllers.dtos.UserResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;

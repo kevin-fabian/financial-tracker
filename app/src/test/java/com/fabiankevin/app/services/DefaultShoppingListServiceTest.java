@@ -1,5 +1,7 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.categories.domain.models.Category;
+import com.fabiankevin.app.categories.domain.repositories.CategoryRepository;
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.events.EventPublisher;
 import com.fabiankevin.app.events.dtos.ShoppingListEventPayload;
@@ -8,7 +10,6 @@ import com.fabiankevin.app.exceptions.InvalidNotesException;
 import com.fabiankevin.app.exceptions.ShoppingItemNotFoundException;
 import com.fabiankevin.app.exceptions.ShoppingListNotFoundException;
 import com.fabiankevin.app.exceptions.UnpurchasedItemsException;
-import com.fabiankevin.app.models.Category;
 import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.EventAction;
 import com.fabiankevin.app.models.enums.ItemPriority;
@@ -18,7 +19,6 @@ import com.fabiankevin.app.models.shopping_list.ShoppingItem;
 import com.fabiankevin.app.models.shopping_list.ShoppingItemSummary;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
-import com.fabiankevin.app.persistence.CategoryRepository;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
 import com.fabiankevin.app.services.shopping_list.commands.CompleteShoppingListCommand;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingItemCommand;

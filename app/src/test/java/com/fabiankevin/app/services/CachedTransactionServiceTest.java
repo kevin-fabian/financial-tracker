@@ -7,9 +7,9 @@
 //import com.fabiankevin.app.services.commands.PatchTransactionCommand;
 //import com.fabiankevin.app.services.queries.PageQuery;
 //import com.fabiankevin.app.services.queries.SummaryQuery;
-//import com.fabiankevin.app.web.controllers.dtos.AccountResponse;
+//import com.fabiankevin.app.accounts.web.dtos.AccountResponse;
 //import com.fabiankevin.app.web.controllers.dtos.AmountResponse;
-//import com.fabiankevin.app.web.controllers.dtos.CategoryResponse;
+//import com.fabiankevin.app.categories.web.dtos.CategoryResponse;
 //import com.fabiankevin.app.web.controllers.dtos.transactions.TransactionResponse;
 //import org.junit.jupiter.api.BeforeEach;
 //import org.junit.jupiter.api.Test;
