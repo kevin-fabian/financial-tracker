@@ -76,7 +76,7 @@ These skills activate automatically on every turn:
 |---|---|
 | **use-java-optional** | Replace manual null checks with `Optional` |
 | **use-imported-classes** | Use direct imports instead of fully qualified class names |
-| **modern-java-best-practices** | Apply modern Java idioms — records, sealed types, pattern matching, text blocks, switch expressions |
+| **java-coding-styles** | Apply modern Java idioms — records, sealed types, pattern matching, text blocks, switch expressions |
 
 ---
 
@@ -129,5 +129,5 @@ Before marking work complete, confirm:
 - [ ] All test cases are passing
 - [ ] Code complies with `use-imported-classes` (direct imports, no fully qualified names)
 - [ ] Code complies with `use-java-optional` (no manual null checks, use `Optional`)
-- [ ] Code complies with `modern-java-best-practices` (records, sealed types, pattern matching, text blocks, switch expressions)
+- [ ] Code complies with `java-coding-styles` (records, sealed types, pattern matching, text blocks, switch expressions)
 - [ ] IntelliJ Lint passes on all modified files (mandatory — run `lint_files` before marking work complete)
