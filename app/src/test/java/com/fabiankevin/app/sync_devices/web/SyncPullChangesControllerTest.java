@@ -87,13 +87,11 @@ class SyncPullChangesControllerTest {
     class PullChanges {
 
         @Test
-        void givenValidCursorsWithChanges_shouldReturnScopedChanges() throws Exception {
+        void givenCurrentUserOnly_shouldReturnScopedChanges() throws Exception {
             UUID userId = UUID.randomUUID();
             UUID transactionId = UUID.randomUUID();
             Long primaryLastPulledSequence = 120L;
 
-            // Since user has no household, getHouseholdMembersUserIds returns just the user
-            // Insert a sync change with sequence > primaryLastPulledSequence
             SyncChange change = SyncChange.builder()
                     .userId(userId)
                     .sequenceId(121L)
@@ -106,12 +104,6 @@ class SyncPullChangesControllerTest {
             syncChangeRepository.save(change);
 
             SyncPullChangesRequest request = SyncPullChangesRequest.builder()
-                    .cursors(List.of(
-                            SyncCursorQueryRequest.builder()
-                                    .ownerId(userId)
-                                    .lastPulledSequence(primaryLastPulledSequence)
-                                    .build()
-                    ))
                     .primaryLastPulledSequence(primaryLastPulledSequence)
                     .build();
 
@@ -157,12 +149,6 @@ class SyncPullChangesControllerTest {
             syncChangeRepository.save(oldChange);
 
             SyncPullChangesRequest request = SyncPullChangesRequest.builder()
-                    .cursors(List.of(
-                            SyncCursorQueryRequest.builder()
-                                    .ownerId(userId)
-                                    .lastPulledSequence(primaryLastPulledSequence)
-                                    .build()
-                    ))
                     .primaryLastPulledSequence(primaryLastPulledSequence)
                     .build();
 
@@ -177,12 +163,7 @@ class SyncPullChangesControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.scopes.length()").value(1))
-                    .andExpect(jsonPath("$.scopes[0].userId").value(userId.toString()))
-                    .andExpect(jsonPath("$.scopes[0].changes").isArray())
-                    .andExpect(jsonPath("$.scopes[0].changes.length()").value(0))
-                    .andExpect(jsonPath("$.scopes[0].nextCursor").value(85))
-                    .andExpect(jsonPath("$.scopes[0].hasMore").value(false));
+                    .andExpect(jsonPath("$.scopes.length()").value(0));
         }
 
         @Test
@@ -241,7 +222,6 @@ class SyncPullChangesControllerTest {
 
             SyncPullChangesRequest request = SyncPullChangesRequest.builder()
                     .cursors(List.of(
-                            SyncCursorQueryRequest.builder().ownerId(userIdA).lastPulledSequence(120L).build(),
                             SyncCursorQueryRequest.builder().ownerId(userIdB).lastPulledSequence(85L).build()
                     ))
                     .primaryLastPulledSequence(primaryLastPulledSequence)
