@@ -424,4 +424,34 @@ class DefaultSyncChangeServiceTest {
             verify(syncChangeRepository).save(any(SyncChange.class));
         }
     }
+
+    @Nested
+    class GetLatestCursor {
+
+        @Test
+        void givenUserWithSyncChanges_shouldReturnMaxSequenceId() {
+            UUID userId = UUID.randomUUID();
+            Long expectedCursor = 150L;
+
+            when(syncChangeRepository.findMaxSequenceId(userId)).thenReturn(Optional.of(expectedCursor));
+
+            Optional<Long> result = syncChangeService.getLatestCursor(userId);
+
+            assertThat(result).isPresent();
+            assertThat(result.get()).isEqualTo(expectedCursor);
+            verify(syncChangeRepository).findMaxSequenceId(userId);
+        }
+
+        @Test
+        void givenUserWithNoSyncChanges_shouldReturnEmpty() {
+            UUID userId = UUID.randomUUID();
+
+            when(syncChangeRepository.findMaxSequenceId(userId)).thenReturn(Optional.empty());
+
+            Optional<Long> result = syncChangeService.getLatestCursor(userId);
+
+            assertThat(result).isEmpty();
+            verify(syncChangeRepository).findMaxSequenceId(userId);
+        }
+    }
 }
