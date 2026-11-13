@@ -6,9 +6,11 @@ import com.fabiankevin.app.sync_devices.domain.services.commands.CreateSyncChang
 import com.fabiankevin.app.sync_devices.domain.services.queries.SyncCursorQuery;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface SyncChangeService {
     List<SyncScope> pullChanges(UUID requestingUserId, long lastSequenceId, List<SyncCursorQuery> cursors);
     SyncChange create(CreateSyncChangeCommand command);
+    Optional<Long> getLatestCursor(UUID userId);
 }

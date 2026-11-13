@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -84,6 +85,11 @@ public class DefaultSyncChangeService implements SyncChangeService {
         }
 
         return scopes;
+    }
+
+    @Override
+    public Optional<Long> getLatestCursor(UUID userId) {
+        return syncChangeRepository.findMaxSequenceId(userId);
     }
 
     @Override

@@ -40,6 +40,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -411,6 +412,58 @@ class SyncChangesControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isForbidden());
+        }
+    }
+
+    @Nested
+    class GetLatestCursor {
+
+        @Test
+        void givenUserWithSyncChanges_shouldReturnLatestCursor() throws Exception {
+            UUID userId = UUID.randomUUID();
+            long expectedCursor = 150L; // non-null cursor value
+
+            SyncChange latestChange = SyncChange.builder()
+                    .userId(userId)
+                    .sequenceId(expectedCursor)
+                    .entityType(ResourceType.ACCOUNTS)
+                    .entityId(UUID.randomUUID())
+                    .operation(SyncChangeOperationType.CREATE)
+                    .payload("{}")
+                    .createdAt(Instant.now())
+                    .build();
+            syncChangeRepository.save(latestChange);
+
+            mockMvc.perform(get("/api/sync-changes/latest-cursor")
+                            .param("userDeviceName", "device-1")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.latestCursor").value(expectedCursor));
+        }
+
+        @Test
+        void givenUserWithNoSyncChanges_shouldReturnZeroCursor() throws Exception {
+            UUID userId = UUID.randomUUID();
+
+            mockMvc.perform(get("/api/sync-changes/latest-cursor")
+                            .param("userDeviceName", "device-2")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.latestCursor").value(0));
         }
     }
 }
