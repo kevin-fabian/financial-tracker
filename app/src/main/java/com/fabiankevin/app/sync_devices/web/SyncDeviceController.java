@@ -33,8 +33,6 @@ import java.util.UUID;
 @RequestMapping(value = "/api/sync-devices", version = "v1")
 public class SyncDeviceController {
 
-    private static final String USER_DEVICE_CLAIM = "userDevice";
-
     private final SyncDeviceService syncDeviceService;
 
     @Operation(
@@ -50,7 +48,7 @@ public class SyncDeviceController {
     )
     @PostMapping("/prepare")
     public ResponseEntity<Void> prepareSync(JwtAuthenticationToken jwtAuthenticationToken) {
-        UUID userId = getUserId(jwtAuthenticationToken);
+        UUID userId = JwtTokenUtil.getUserId(jwtAuthenticationToken);
         log.debug("Sync prepare requested by user: {}", userId);
         syncDeviceService.prepare(userId);
         return ResponseEntity.ok().build();
@@ -72,8 +70,8 @@ public class SyncDeviceController {
     )
     @PostMapping
     public ResponseEntity<SyncDeviceResponse> createSyncDevice(@Valid @RequestBody CreateSyncDeviceRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
-        UUID userId = getUserId(jwtAuthenticationToken);
-        String userDevice = getUserDevice(jwtAuthenticationToken);
+        UUID userId = JwtTokenUtil.getUserId(jwtAuthenticationToken);
+        String userDevice = JwtTokenUtil.getUserDevice(jwtAuthenticationToken);
         log.debug("Sync state creation requested by user: {}, device: {}", userId, userDevice);
         SyncDevice created = syncDeviceService.create(request.toCommand(userId, userDevice));
         return ResponseEntity.created(URI.create("/api/sync-devices/" + created.id()))
@@ -98,7 +96,7 @@ public class SyncDeviceController {
     )
     @PatchMapping("/{syncId}")
     public SyncDeviceResponse patchSyncDevice(@PathVariable UUID syncId, @Valid @RequestBody PatchSyncDeviceRequest request, JwtAuthenticationToken jwtAuthenticationToken) {
-        UUID userId = getUserId(jwtAuthenticationToken);
+        UUID userId = JwtTokenUtil.getUserId(jwtAuthenticationToken);
         log.debug("Sync state patch requested by user: {} for syncId: {}", userId, syncId);
         SyncDevice updated = syncDeviceService.patch(request.toCommand(syncId, userId));
         return SyncDeviceResponse.from(updated);
@@ -118,18 +116,10 @@ public class SyncDeviceController {
     )
     @GetMapping
     public List<SyncDeviceResponse> getAllSyncDevices(JwtAuthenticationToken jwtAuthenticationToken) {
-        UUID userId = getUserId(jwtAuthenticationToken);
+        UUID userId = JwtTokenUtil.getUserId(jwtAuthenticationToken);
         log.debug("Sync states retrieval requested by user: {}", userId);
         return syncDeviceService.getAllByUserId(userId).stream()
                 .map(SyncDeviceResponse::from)
                 .toList();
-    }
-
-    private UUID getUserId(JwtAuthenticationToken token) {
-        return UUID.fromString(token.getToken().getSubject());
-    }
-
-    private String getUserDevice(JwtAuthenticationToken token) {
-        return token.getToken().getClaimAsString(USER_DEVICE_CLAIM);
     }
 }

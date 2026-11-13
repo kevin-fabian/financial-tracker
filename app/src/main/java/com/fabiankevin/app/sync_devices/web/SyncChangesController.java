@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -53,7 +52,7 @@ public class SyncChangesController {
     public SyncPullChangesResponse pullChanges(
             @Valid @RequestBody SyncPullChangesRequest request,
             JwtAuthenticationToken jwtAuthenticationToken) {
-        UUID userId = getUserId(jwtAuthenticationToken);
+        UUID userId = JwtTokenUtil.getUserId(jwtAuthenticationToken);
         List<SyncCursorQuery> cursorQueries = Optional.ofNullable(request.cursors())
                 .map(cursors -> cursors.stream().map(SyncCursorQuery::from).toList())
                 .orElse(List.of());
@@ -62,17 +61,11 @@ public class SyncChangesController {
         return SyncPullChangesResponse.from(scopes);
     }
 
-    private UUID getUserId(JwtAuthenticationToken token) {
-        return UUID.fromString(token.getToken().getSubject());
-    }
-
     @Operation(
             summary = "Get latest sync cursor for a device",
-            description = "Retrieves the latest cursor (sequence ID) for the specified user device. The userId is extracted from the access token.",
+            description = "Retrieves the latest cursor (sequence ID) for the authenticated user's device. The userId and device are extracted from the access token.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "OK - Latest cursor retrieved successfully"),
-                    @ApiResponse(responseCode = "400", description = "Bad Request - Invalid input",
-                            content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
                     @ApiResponse(responseCode = "401", description = "Unauthorized - Missing or invalid authentication",
                             content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
                     @ApiResponse(responseCode = "500", description = "Internal Server Error - Service failure",
@@ -80,11 +73,10 @@ public class SyncChangesController {
             }
     )
     @GetMapping("/latest-cursor")
-    public LatestCursorResponse getLatestCursor(
-            @RequestParam(name = "userDeviceName") String userDeviceName,
-            JwtAuthenticationToken jwtAuthenticationToken) {
-        UUID userId = getUserId(jwtAuthenticationToken);
-        log.debug("Latest cursor requested for user: {} device: {}", userId, userDeviceName);
+    public LatestCursorResponse getLatestCursor(JwtAuthenticationToken jwtAuthenticationToken) {
+        UUID userId = JwtTokenUtil.getUserId(jwtAuthenticationToken);
+        String userDevice = JwtTokenUtil.getUserDevice(jwtAuthenticationToken);
+        log.debug("Latest cursor requested for user: {} device: {}", userId, userDevice);
         Optional<Long> latestCursor = syncChangeService.getLatestCursor(userId);
         return latestCursor.map(LatestCursorResponse::from).orElse(LatestCursorResponse.empty());
     }

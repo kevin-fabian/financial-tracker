@@ -435,12 +435,12 @@ class SyncChangesControllerTest {
             syncChangeRepository.save(latestChange);
 
             mockMvc.perform(get("/api/sync-changes/latest-cursor")
-                            .param("userDeviceName", "device-1")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
                                             .audience(List.of("financial-tracker-test"))
                                             .claim("sub", userId)
+                                            .claim("userDevice", "device-1")
                                             .claim("scope", List.of())
                                     ))
                             .contentType(MediaType.APPLICATION_JSON))
@@ -453,12 +453,12 @@ class SyncChangesControllerTest {
             UUID userId = UUID.randomUUID();
 
             mockMvc.perform(get("/api/sync-changes/latest-cursor")
-                            .param("userDeviceName", "device-2")
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
                                     .jwt(jwt -> jwt
                                             .audience(List.of("financial-tracker-test"))
                                             .claim("sub", userId)
+                                            .claim("userDevice", "device-2")
                                             .claim("scope", List.of())
                                     ))
                             .contentType(MediaType.APPLICATION_JSON))
