@@ -12,8 +12,6 @@ import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -39,7 +37,6 @@ import java.util.UUID;
 @Entity
 public class ShoppingListEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(name = "name")
@@ -113,7 +110,11 @@ public class ShoppingListEntity {
                 .items(new HashSet<>())
                 .build();
         for (ShoppingItem item : shoppingList.items()) {
-            entity.addItem(ShoppingItemEntity.from(item));
+            ShoppingItemEntity itemEntity = ShoppingItemEntity.from(item);
+            if (itemEntity.getId() == null) {
+                itemEntity = itemEntity.toBuilder().id(UUID.randomUUID()).build();
+            }
+            entity.addItem(itemEntity);
         }
         return entity;
     }

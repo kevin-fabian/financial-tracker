@@ -68,6 +68,7 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
         Instant instantNow = Instant.now();
 
         RecurringTransaction recurringTransaction = RecurringTransaction.builder()
+                .id(command.id() != null ? command.id() : UUID.randomUUID())
                 .updatedById(command.userId())
                 .description(command.description())
                 .amount(command.amount())
@@ -212,7 +213,7 @@ public class DefaultRecurringTransactionService implements RecurringTransactionS
                 .updatedAt(Instant.now())
                 .build();
 
-        RecurringTransaction saved = recurringTransactionRepository.save(updated);
+        RecurringTransaction saved = recurringTransactionRepository.update(updated);
 
         User user = userClient.getUsersByIds(List.of(command.userId())).stream().findFirst().orElse(null);
         int remainingDays = getRemainingDays(saved.nextOccurrenceDate(), today);

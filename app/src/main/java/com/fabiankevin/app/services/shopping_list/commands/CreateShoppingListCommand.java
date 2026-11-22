@@ -9,6 +9,7 @@ import java.util.UUID;
 @With
 @Builder(toBuilder = true)
 public record CreateShoppingListCommand(
+        UUID id,
         String name,
         String description,
         UUID categoryId,

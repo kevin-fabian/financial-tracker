@@ -4,6 +4,7 @@ import com.fabiankevin.app.models.enums.ItemPriority;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
+import com.fabiankevin.app.persistence.entities.ShoppingListEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaShoppingListRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -59,7 +60,7 @@ class DefaultShoppingListRepositoryTest {
         Instant now = Instant.now();
 
         ShoppingItem item = ShoppingItem.builder()
-                .id(null)
+                .id(UUID.randomUUID())
                 .name("Milk")
                 .category("Groceries")
                 .quantity(2.0)
@@ -74,7 +75,7 @@ class DefaultShoppingListRepositoryTest {
                 .build();
 
         shoppingList = ShoppingList.builder()
-                .id(null)
+                .id(UUID.randomUUID())
                 .name("Weekly Groceries")
                 .description("Weekly grocery run")
                 .status(ShoppingListStatus.ACTIVE)
@@ -122,7 +123,7 @@ class DefaultShoppingListRepositoryTest {
             Instant now = Instant.now();
 
             ShoppingList emptyList = ShoppingList.builder()
-                    .id(null)
+                    .id(UUID.randomUUID())
                     .name("Empty List")
                     .status(ShoppingListStatus.ACTIVE)
                     .items(List.of())
@@ -144,8 +145,70 @@ class DefaultShoppingListRepositoryTest {
         void givenNullShoppingList_thenThrowsInvalidDataAccessApiUsageException() {
             assertThatThrownBy(() -> shoppingListRepository.save(null))
                     .isInstanceOf(InvalidDataAccessApiUsageException.class);
+        }
+    }
 
-            verify(jpaShoppingListRepository, times(1)).save(any());
+    @Nested
+    class Update {
+
+        @Test
+        void givenExistingShoppingList_shouldUpdateAndReturn() {
+            UUID userId = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            ShoppingItem item = ShoppingItem.builder()
+                    .id(UUID.randomUUID())
+                    .name("Milk")
+                    .category("Groceries")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.50)
+                    .purchased(false)
+                    .priority(ItemPriority.HIGH)
+                    .notes("Whole milk")
+                    .addedBy(userId)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingList shoppingList = ShoppingList.builder()
+                    .id(UUID.randomUUID())
+                    .name("Weekly Groceries")
+                    .description("Weekly grocery run")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .items(List.of(item))
+                    .userId(userId)
+                    .budget(100.00)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingListEntity savedEntity = jpaShoppingListRepository.save(ShoppingListEntity.from(shoppingList));
+
+            ShoppingList updated = ShoppingList.builder()
+                    .id(savedEntity.getId())
+                    .name("Updated Groceries")
+                    .description("Updated description")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .items(List.of())
+                    .userId(shoppingList.userId())
+                    .budget(150.00)
+                    .createdAt(savedEntity.getCreatedAt())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            ShoppingList result = shoppingListRepository.update(updated);
+
+            assertThat(result.id()).isEqualTo(savedEntity.getId());
+            assertThat(result.name()).isEqualTo("Updated Groceries");
+            assertThat(result.description()).isEqualTo("Updated description");
+            assertThat(result.budget()).isEqualTo(150.00);
+        }
+
+        @Test
+        void givenNullShoppingList_thenThrowsInvalidDataAccessApiUsageException() {
+            assertThatThrownBy(() -> shoppingListRepository.update(null))
+                    .isInstanceOf(InvalidDataAccessApiUsageException.class);
         }
     }
 
@@ -199,7 +262,7 @@ class DefaultShoppingListRepositoryTest {
             Instant now = Instant.now();
 
             ShoppingList ownedList = ShoppingList.builder()
-                    .id(null)
+                    .id(UUID.randomUUID())
                     .name("Owned List")
                     .status(ShoppingListStatus.ACTIVE)
                     .items(List.of())
@@ -231,7 +294,7 @@ class DefaultShoppingListRepositoryTest {
             Instant now = Instant.now();
 
             ShoppingList sharedList = ShoppingList.builder()
-                    .id(null)
+                    .id(UUID.randomUUID())
                     .name("Shared List")
                     .status(ShoppingListStatus.ACTIVE)
                     .items(List.of())
@@ -260,7 +323,7 @@ class DefaultShoppingListRepositoryTest {
             Instant now = Instant.now();
 
             ShoppingList ownedList = ShoppingList.builder()
-                    .id(null)
+                    .id(UUID.randomUUID())
                     .name("My List")
                     .status(ShoppingListStatus.ACTIVE)
                     .items(List.of())
@@ -270,7 +333,7 @@ class DefaultShoppingListRepositoryTest {
                     .build();
 
             ShoppingList sharedList = ShoppingList.builder()
-                    .id(null)
+                    .id(UUID.randomUUID())
                     .name("Shared With Me")
                     .status(ShoppingListStatus.ACTIVE)
                     .items(List.of())
@@ -329,7 +392,7 @@ class DefaultShoppingListRepositoryTest {
             Instant now = Instant.now();
 
             ShoppingList list1 = ShoppingList.builder()
-                    .id(null)
+                    .id(UUID.randomUUID())
                     .name("List 1")
                     .status(ShoppingListStatus.ACTIVE)
                     .items(List.of())
@@ -339,7 +402,7 @@ class DefaultShoppingListRepositoryTest {
                     .build();
 
             ShoppingList list2 = ShoppingList.builder()
-                    .id(null)
+                    .id(UUID.randomUUID())
                     .name("List 2")
                     .status(ShoppingListStatus.ARCHIVED)
                     .items(List.of())
@@ -365,7 +428,7 @@ class DefaultShoppingListRepositoryTest {
             Instant now = Instant.now();
 
             ShoppingItem item1 = ShoppingItem.builder()
-                    .id(null)
+                    .id(UUID.randomUUID())
                     .name("Item 1")
                     .category("Category A")
                     .quantity(1.0)
@@ -380,7 +443,7 @@ class DefaultShoppingListRepositoryTest {
                     .build();
 
             ShoppingItem item2 = ShoppingItem.builder()
-                    .id(null)
+                    .id(UUID.randomUUID())
                     .name("Item 2")
                     .category("Category B")
                     .quantity(2.0)
@@ -395,7 +458,7 @@ class DefaultShoppingListRepositoryTest {
                     .build();
 
             ShoppingList listWithItems = ShoppingList.builder()
-                    .id(null)
+                    .id(UUID.randomUUID())
                     .name("List With Items")
                     .status(ShoppingListStatus.ACTIVE)
                     .items(List.of(item1, item2))

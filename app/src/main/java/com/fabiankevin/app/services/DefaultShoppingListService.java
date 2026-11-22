@@ -59,6 +59,7 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .orElseThrow(CategoryNotFoundException::new);
 
         ShoppingList shoppingList = ShoppingList.builder()
+                .id(command.id() != null ? command.id() : UUID.randomUUID())
                 .name(command.name())
                 .description(command.description())
                 .category(category)
@@ -137,7 +138,7 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .updatedBy(User.of(command.userId()))
                 .build();
 
-        ShoppingList saved = shoppingListRepository.save(patched);
+        ShoppingList saved = shoppingListRepository.update(patched);
         ShoppingListSummary summary = toSummary(saved, category);
         publishEvent(saved, EventAction.SHOPPING_LIST_UPDATED, saved.userId().toString(), summary);
         return summary;
@@ -151,6 +152,7 @@ public class DefaultShoppingListService implements ShoppingListService {
 
         Instant now = Instant.now();
         ShoppingItem item = ShoppingItem.builder()
+                .id(command.id() != null ? command.id() : UUID.randomUUID())
                 .name(command.name())
                 .category(command.category())
                 .quantity(command.quantity())

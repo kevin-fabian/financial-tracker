@@ -12,6 +12,8 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 @Schema(description = "Request to create a budget")
 public record CreateBudgetRequest(
+        @Schema(description = "Client-provided UUID for the budget. If not provided, a server-generated UUID will be used", example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
+        UUID id,
         @NotNull(message = "period is required")
         @Schema(description = "Budget period", example = "MONTHLY")
         BudgetPeriod period,
@@ -24,6 +26,7 @@ public record CreateBudgetRequest(
 ) {
     public CreateBudgetCommand toCommand(UUID userId) {
         return CreateBudgetCommand.builder()
+                .id(this.id)
                 .userId(userId)
                 .period(this.period)
                 .categoryId(this.categoryId)

@@ -376,6 +376,40 @@ class BudgetControllerIntegrationTest {
         }
 
         @Test
+        void givenValidRequestWithExplicitId_thenShouldReturnCreatedWithProvidedId() throws Exception {
+            UUID userId = UUID.randomUUID();
+            UUID providedId = UUID.randomUUID();
+            Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");
+
+            CreateBudgetRequest request = CreateBudgetRequest.builder()
+                    .id(providedId)
+                    .period(BudgetPeriod.MONTHLY)
+                    .categoryId(category.id())
+                    .allocated(500.0)
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(post("/api/budgets")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("zeny-app-password"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("http://localhost/api/budgets/" + providedId)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").value(providedId.toString()))
+                    .andExpect(jsonPath("$.user.id").value(userId.toString()))
+                    .andExpect(jsonPath("$.period").value("MONTHLY"))
+                    .andExpect(jsonPath("$.allocated").value(500.0));
+        }
+
+        @Test
         void givenCategoryWithExistingTransactions_thenShouldReturnSummaryWithSpent() throws Exception {
             UUID userId = UUID.randomUUID();
             Category category = createCategory(userId, "GROCERIES", TransactionType.EXPENSE, "local_grocery_store");

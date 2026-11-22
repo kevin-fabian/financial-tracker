@@ -6,6 +6,7 @@ import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.persistence.entities.ShoppingListEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaShoppingListRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,23 @@ public class DefaultShoppingListRepository implements ShoppingListRepository {
 
     @Override
     public ShoppingList save(ShoppingList shoppingList) {
+        if (shoppingList == null) {
+            throw new InvalidDataAccessApiUsageException("ShoppingList must not be null");
+        }
+        ShoppingList listWithId = Optional.ofNullable(shoppingList.id())
+                .map(id -> shoppingList)
+                .orElseGet(() -> shoppingList.toBuilder().id(UUID.randomUUID()).build());
+        ShoppingListEntity saved = jpaShoppingListRepository.save(ShoppingListEntity.from(listWithId));
+        return saved.toModel();
+    }
+
+    @Override
+    public ShoppingList update(ShoppingList shoppingList) {
+        if (shoppingList == null) {
+            throw new InvalidDataAccessApiUsageException("ShoppingList must not be null");
+        }
+        Optional.ofNullable(shoppingList.id())
+                .orElseThrow(() -> new IllegalArgumentException("ShoppingList id must not be null for update"));
         ShoppingListEntity saved = jpaShoppingListRepository.save(ShoppingListEntity.from(shoppingList));
         return saved.toModel();
     }

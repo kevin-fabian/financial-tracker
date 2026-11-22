@@ -474,6 +474,39 @@ class ShoppingListControllerIntegrationTest {
                             .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest());
         }
+
+        @Test
+        void givenRequestWithExplicitId_thenUsesProvidedId() throws Exception {
+            UUID userId = UUID.randomUUID();
+            UUID explicitId = UUID.randomUUID();
+
+            Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
+
+            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
+                    .id(explicitId)
+                    .name("Groceries")
+                    .description("Weekly groceries")
+                    .categoryId(category.id())
+                    .budget(200.0)
+                    .build();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            mockMvc.perform(post("/api/shopping-lists")
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").value(explicitId.toString()))
+                    .andExpect(jsonPath("$.name").value("Groceries"));
+        }
     }
 
     @Nested

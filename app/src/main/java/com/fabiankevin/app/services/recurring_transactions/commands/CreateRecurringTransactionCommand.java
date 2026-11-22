@@ -6,6 +6,7 @@ import java.util.UUID;
 
 @Builder(toBuilder = true)
 public record CreateRecurringTransactionCommand(
+        UUID id,
         UUID userId,
         String description,
         double amount,

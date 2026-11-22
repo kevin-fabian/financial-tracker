@@ -425,7 +425,7 @@ class DefaultBudgetServiceTest {
 
             when(budgetRepository.findByIdAndUserId(id, userId)).thenReturn(Optional.of(existing));
             when(categoryRepository.findById(newCategoryId)).thenReturn(Optional.of(newCategory));
-            when(budgetRepository.save(any())).thenAnswer(invocation -> {
+            when(budgetRepository.update(any())).thenAnswer(invocation -> {
                 Budget original = invocation.getArgument(0);
                 Budget saved = Budget.builder()
                         .id(original.id())
@@ -474,7 +474,7 @@ class DefaultBudgetServiceTest {
 
             verify(budgetRepository, times(1)).findByIdAndUserId(id, userId);
             verify(categoryRepository, times(1)).findById(newCategoryId);
-            verify(budgetRepository, times(1)).save(any());
+            verify(budgetRepository, times(1)).update(any());
             verify(budgetRepository, times(1)).findBudgetSummaryById(any());
             verify(userClient, times(1)).getUsersByIds(List.of(userId));
         }
@@ -495,7 +495,7 @@ class DefaultBudgetServiceTest {
                     .isInstanceOf(BudgetNotFoundException.class);
 
             verify(budgetRepository, times(1)).findByIdAndUserId(id, userId);
-            verify(budgetRepository, never()).save(any());
+            verify(budgetRepository, never()).update(any());
         }
     }
 

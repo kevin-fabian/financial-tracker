@@ -8,6 +8,7 @@ import com.fabiankevin.app.persistence.entities.RecurringTransactionEntity;
 import com.fabiankevin.app.persistence.entities.projections.RecurringTransactionSummaryProjection;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaRecurringTransactionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -23,6 +24,22 @@ public class DefaultRecurringTransactionRepository implements RecurringTransacti
 
     @Override
     public RecurringTransaction save(RecurringTransaction recurringTransaction) {
+        if (recurringTransaction == null) {
+            throw new InvalidDataAccessApiUsageException("RecurringTransaction must not be null");
+        }
+        RecurringTransaction transactionWithId = Optional.ofNullable(recurringTransaction.id())
+                .map(_ -> recurringTransaction)
+                .orElseGet(() -> recurringTransaction.toBuilder().id(UUID.randomUUID()).build());
+        return jpaRecurringTransactionRepository.save(RecurringTransactionEntity.from(transactionWithId)).toModel();
+    }
+
+    @Override
+    public RecurringTransaction update(RecurringTransaction recurringTransaction) {
+        if (recurringTransaction == null) {
+            throw new InvalidDataAccessApiUsageException("RecurringTransaction must not be null");
+        }
+        Optional.ofNullable(recurringTransaction.id())
+                .orElseThrow(() -> new IllegalArgumentException("RecurringTransaction id must not be null for update"));
         return jpaRecurringTransactionRepository.save(RecurringTransactionEntity.from(recurringTransaction)).toModel();
     }
 

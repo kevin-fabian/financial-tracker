@@ -91,6 +91,7 @@ class DefaultRecurringTransactionRepositoryTest {
                 .build());
 
         recurringTransaction = RecurringTransaction.builder()
+                .id(UUID.randomUUID())
                 .updatedById(userId)
                 .description("Monthly subscription")
                 .amount(15.99)
@@ -133,8 +134,56 @@ class DefaultRecurringTransactionRepositoryTest {
             Assertions.assertThatThrownBy(() -> recurringTransactionRepository.save(null))
                     .as("saving null should throw InvalidDataAccessApiUsageException")
                     .isInstanceOf(InvalidDataAccessApiUsageException.class);
+        }
+    }
 
-            verify(jpaRecurringTransactionRepository, times(1)).save(any());
+    @Nested
+    class Update {
+        @Test
+        void givenExistingRecurringTransaction_shouldUpdateAndReturn() {
+            RecurringTransactionEntity savedEntity = jpaRecurringTransactionRepository.save(RecurringTransactionEntity.builder()
+                    .id(recurringTransaction.id())
+                    .updatedBy(recurringTransaction.updatedById())
+                    .description("Monthly subscription")
+                    .amount(15.99)
+                    .dayOfMonth(15)
+                    .nextOccurrenceDate(LocalDate.of(2026, 8, 15))
+                    .endDate(null)
+                    .status(RecurringTransactionStatus.ACTIVE)
+                    .category(jpaCategoryRepository.findAll().getFirst())
+                    .account(jpaAccountRepository.findAll().getFirst())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build());
+
+            RecurringTransaction updated = RecurringTransaction.builder()
+                    .id(savedEntity.getId())
+                    .updatedById(savedEntity.getUpdatedBy())
+                    .description("Updated subscription")
+                    .amount(25.99)
+                    .category(savedEntity.getCategory().toModel())
+                    .account(savedEntity.getAccount().toModel())
+                    .dayOfMonth(20)
+                    .nextOccurrenceDate(savedEntity.getNextOccurrenceDate())
+                    .endDate(savedEntity.getEndDate())
+                    .status(RecurringTransactionStatus.ACTIVE)
+                    .createdAt(savedEntity.getCreatedAt())
+                    .updatedAt(Instant.now())
+                    .build();
+
+            RecurringTransaction result = recurringTransactionRepository.update(updated);
+
+            assertEquals(result.id(), savedEntity.getId(), "id should be preserved");
+            assertEquals("Updated subscription", result.description(), "description should be updated");
+            assertEquals(25.99, result.amount(), "amount should be updated");
+            assertEquals(20, result.dayOfMonth(), "dayOfMonth should be updated");
+        }
+
+        @Test
+        void givenNull_shouldThrowInvalidDataAccessApiUsageException() {
+            Assertions.assertThatThrownBy(() -> recurringTransactionRepository.update(null))
+                    .as("updating null should throw InvalidDataAccessApiUsageException")
+                    .isInstanceOf(InvalidDataAccessApiUsageException.class);
         }
     }
 
@@ -357,6 +406,7 @@ class DefaultRecurringTransactionRepositoryTest {
                     .updatedAt(now)
                     .build());
             jpaRecurringTransactionRepository.saveAndFlush(RecurringTransactionEntity.builder()
+                    .id(UUID.randomUUID())
                     .updatedBy(userId)
                     .description("Test recurring")
                     .amount(10.0)
@@ -415,6 +465,7 @@ class DefaultRecurringTransactionRepositoryTest {
                     .build());
 
             RecurringTransaction otherRecurring = RecurringTransaction.builder()
+                    .id(UUID.randomUUID())
                     .updatedById(otherUserId)
                     .description("Other user subscription")
                     .amount(29.99)

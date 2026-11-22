@@ -48,6 +48,7 @@ public class DefaultBudgetService implements BudgetService {
                 .orElseThrow(CategoryNotFoundException::new);
         User user = User.of(command.userId());
         Budget budget = Budget.builder()
+                .id(command.id() != null ? command.id() : UUID.randomUUID())
                 .user(user)
                 .updatedBy(user)
                 .period(command.period())
@@ -140,7 +141,7 @@ public class DefaultBudgetService implements BudgetService {
         Optional.ofNullable(command.allocated())
                 .ifPresent(builder::allocated);
 
-        Budget saved = budgetRepository.save(builder.build());
+        Budget saved = budgetRepository.update(builder.build());
         return getBudgetSummaryByIdAndUserId(saved.id(), saved.user().id());
     }
 

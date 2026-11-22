@@ -18,6 +18,7 @@ import com.fabiankevin.app.models.recurring_transactions.TransactionStatus;
 import com.fabiankevin.app.persistence.RecurringTransactionRepository;
 import com.fabiankevin.app.persistence.TransactionRepository;
 import com.fabiankevin.app.services.recurring_transactions.commands.CreateRecurringTransactionCommand;
+import com.fabiankevin.app.services.recurring_transactions.commands.UpdateRecurringTransactionCommand;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -281,6 +282,87 @@ class DefaultRecurringTransactionServiceTest {
 
             verify(accountRepository, never()).findById(any());
             verify(categoryRepository, never()).findById(any());
+            verify(recurringTransactionRepository, never()).save(any());
+        }
+
+        @Test
+        void givenCommandWithExplicitId_thenUsesProvidedId() {
+            UUID explicitId = UUID.randomUUID();
+            CreateRecurringTransactionCommand commandWithId = command.toBuilder().id(explicitId).build();
+
+            when(accountRepository.findById(account.id())).thenReturn(Optional.of(account));
+            when(categoryRepository.findById(category.id())).thenReturn(Optional.of(category));
+            when(recurringTransactionRepository.save(any())).thenAnswer(invocation -> {
+                RecurringTransaction input = invocation.getArgument(0);
+                return input.toBuilder().createdAt(Instant.now()).updatedAt(Instant.now()).build();
+            });
+            when(userClient.getUsersByIds(List.of(commandWithId.userId()))).thenReturn(List.of(
+                    User.builder().id(commandWithId.userId()).firstName("John").lastName("Doe").build()
+            ));
+
+            RecurringTransactionSummary summary = service.create(commandWithId);
+
+            assertEquals(explicitId, summary.id(), "id should be the explicit id from command");
+            verify(accountRepository).findById(account.id());
+            verify(categoryRepository).findById(category.id());
+            ArgumentCaptor<RecurringTransaction> captor = ArgumentCaptor.forClass(RecurringTransaction.class);
+            verify(recurringTransactionRepository).save(captor.capture());
+            assertEquals(explicitId, captor.getValue().id(), "saved recurring transaction should have explicit id");
+        }
+    }
+
+    @Nested
+    class Update {
+        @Test
+        void givenValidCommand_shouldUseUpdateAndReturnSummary() {
+            UUID userId = account.user().id();
+            UUID recurringId = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            RecurringTransaction existing = RecurringTransaction.builder()
+                    .id(recurringId)
+                    .updatedById(userId)
+                    .description("Monthly subscription")
+                    .amount(15.99)
+                    .variableAmount(false)
+                    .category(category)
+                    .account(account)
+                    .dayOfMonth(15)
+                    .nextOccurrenceDate(LocalDate.of(2026, 8, 15))
+                    .endDate(LocalDate.of(2027, 8, 15))
+                    .status(RecurringTransactionStatus.ACTIVE)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            UpdateRecurringTransactionCommand updateCommand = UpdateRecurringTransactionCommand.builder()
+                    .id(recurringId)
+                    .userId(userId)
+                    .description("Updated subscription")
+                    .amount(25.99)
+                    .build();
+
+            when(recurringTransactionRepository.findByIdAndUserId(recurringId, userId))
+                    .thenReturn(Optional.of(existing));
+            when(recurringTransactionRepository.update(any())).thenAnswer(invocation ->
+                    ((RecurringTransaction) invocation.getArgument(0)).toBuilder().updatedAt(Instant.now()).build()
+            );
+            when(userClient.getUsersByIds(List.of(userId))).thenReturn(List.of(
+                    User.builder().id(userId).firstName("John").lastName("Doe").build()
+            ));
+
+            RecurringTransactionSummary summary = service.updateRecurringTransaction(updateCommand);
+
+            assertEquals(recurringId, summary.id(), "id should be preserved");
+            assertEquals("Updated subscription", summary.description(), "description should be updated");
+            assertEquals(25.99, summary.amount(), "amount should be updated");
+
+            ArgumentCaptor<RecurringTransaction> captor = ArgumentCaptor.forClass(RecurringTransaction.class);
+            verify(recurringTransactionRepository, times(1)).update(captor.capture());
+            RecurringTransaction saved = captor.getValue();
+            assertEquals("Updated subscription", saved.description(), "saved description should be updated");
+            assertEquals(25.99, saved.amount(), "saved amount should be updated");
+
             verify(recurringTransactionRepository, never()).save(any());
         }
     }

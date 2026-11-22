@@ -12,6 +12,8 @@ import java.util.UUID;
 public interface BudgetRepository {
     Budget save(Budget budget);
 
+    Budget update(Budget budget);
+
     Optional<Budget> findById(UUID id);
 
     Optional<Budget> findByIdAndUserId(UUID id, UUID userId);

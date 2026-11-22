@@ -10,6 +10,8 @@ import java.util.UUID;
 public interface ShoppingListRepository {
     ShoppingList save(ShoppingList shoppingList);
 
+    ShoppingList update(ShoppingList shoppingList);
+
     Optional<ShoppingList> findById(UUID id);
 
     Optional<Category> findCategoryById(UUID id);

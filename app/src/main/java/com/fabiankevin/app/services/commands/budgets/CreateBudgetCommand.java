@@ -7,6 +7,7 @@ import java.util.UUID;
 
 @Builder(toBuilder = true)
 public record CreateBudgetCommand(
+        UUID id,
         UUID userId,
         BudgetPeriod period,
         UUID categoryId,

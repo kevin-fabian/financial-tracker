@@ -13,6 +13,10 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 @Schema(description = "Request to create a recurring transaction")
 public record CreateRecurringTransactionRequest(
+        @Schema(description = "Recurring transaction ID (optional, client-provided UUID)",
+                example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
+        UUID id,
+
         @NotBlank(message = "description is required")
         @Schema(description = "Recurring transaction description", example = "Monthly subscription")
         String description,
@@ -46,6 +50,7 @@ public record CreateRecurringTransactionRequest(
 ) {
     public CreateRecurringTransactionCommand toCommand(UUID userId) {
         return CreateRecurringTransactionCommand.builder()
+                .id(id())
                 .userId(userId)
                 .description(description())
                 .amount(amount())

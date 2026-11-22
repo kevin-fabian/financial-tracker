@@ -6,6 +6,7 @@ import com.fabiankevin.app.persistence.entities.BudgetEntity;
 import com.fabiankevin.app.persistence.entities.projections.BudgetSummaryProjection;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaBudgetRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -21,6 +22,22 @@ public class DefaultBudgetRepository implements BudgetRepository {
 
     @Override
     public Budget save(Budget budget) {
+        if (budget == null) {
+            throw new InvalidDataAccessApiUsageException("Budget must not be null");
+        }
+        Budget budgetWithId = Optional.ofNullable(budget.id())
+                .map(id -> budget)
+                .orElseGet(() -> budget.toBuilder().id(UUID.randomUUID()).build());
+        return jpaBudgetRepository.save(BudgetEntity.from(budgetWithId)).toModel();
+    }
+
+    @Override
+    public Budget update(Budget budget) {
+        if (budget == null) {
+            throw new InvalidDataAccessApiUsageException("Budget must not be null");
+        }
+        Optional.ofNullable(budget.id())
+                .orElseThrow(() -> new IllegalArgumentException("Budget id must not be null for update"));
         return jpaBudgetRepository.save(BudgetEntity.from(budget)).toModel();
     }
 

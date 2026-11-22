@@ -14,6 +14,10 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 @Schema(description = "Request to create a shopping list")
 public record CreateShoppingListRequest(
+        @Schema(description = "Shopping list ID (optional, client-provided UUID)",
+                example = "d290f1ee-6c54-4b01-90e6-d701748f0851")
+        UUID id,
+
         @NotBlank(message = "name is required")
         @Size(max = 64, message = "name must not exceed 64 characters")
         @Schema(description = "Shopping list name", example = "Groceries")
@@ -37,6 +41,7 @@ public record CreateShoppingListRequest(
 ) {
     public CreateShoppingListCommand toCommand(UUID userId) {
         return CreateShoppingListCommand.builder()
+                .id(id())
                 .name(name())
                 .description(description())
                 .categoryId(categoryId())

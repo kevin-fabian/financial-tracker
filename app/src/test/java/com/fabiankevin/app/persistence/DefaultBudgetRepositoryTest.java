@@ -55,27 +55,32 @@ class DefaultBudgetRepositoryTest {
     private BudgetRepository budgetRepository;
 
     private Budget budget;
+    private CategoryEntity savedCategoryEntity;
 
     @BeforeEach
     void setUp() {
         UUID userId = UUID.randomUUID();
+        Instant now = Instant.now();
         Category category = Category.builder()
+                .id(UUID.randomUUID())
                 .name("GROCERIES")
                 .type(TransactionType.EXPENSE)
                 .userId(userId)
                 .icon("local_grocery_store")
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
+                .createdAt(now)
+                .updatedAt(now)
                 .build();
+        savedCategoryEntity = jpaCategoryRepository.save(CategoryEntity.from(category));
 
         budget = Budget.builder()
+                .id(UUID.randomUUID())
                 .user(User.of(userId))
                 .updatedBy(User.of(userId))
                 .period(BudgetPeriod.MONTHLY)
-                .category(category)
+                .category(savedCategoryEntity.toModel())
                 .allocated(500.0)
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now())
+                .createdAt(now)
+                .updatedAt(now)
                 .build();
 
         Mockito.reset(jpaBudgetRepository);
@@ -105,6 +110,44 @@ class DefaultBudgetRepositoryTest {
         void givenNull_shouldThrowInvalidDataAccessApiUsageException() {
             Assertions.assertThatThrownBy(() -> budgetRepository.save(null))
                     .as("saving null should throw InvalidDataAccessApiUsageException")
+                    .isInstanceOf(org.springframework.dao.InvalidDataAccessApiUsageException.class);
+        }
+    }
+
+    @Nested
+    class Update {
+        @Test
+        void givenExistingBudget_shouldUpdateAndReturn() {
+            BudgetEntity savedEntity = jpaBudgetRepository.save(BudgetEntity.builder()
+                    .id(budget.id())
+                    .userId(budget.user().id())
+                    .updatedBy(budget.updatedBy() != null ? budget.updatedBy().id() : null)
+                    .period(BudgetPeriod.MONTHLY)
+                    .category(savedCategoryEntity)
+                    .allocated(500.0)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build());
+
+            Budget updated = budgetRepository.update(Budget.builder()
+                    .id(savedEntity.getId())
+                    .user(budget.user())
+                    .updatedBy(budget.updatedBy())
+                    .period(BudgetPeriod.MONTHLY)
+                    .category(savedCategoryEntity.toModel())
+                    .allocated(750.0)
+                    .createdAt(savedEntity.getCreatedAt())
+                    .updatedAt(Instant.now())
+                    .build());
+
+            assertNotNull(updated.id(), "budget id should be preserved");
+            assertEquals(750.0, updated.allocated(), "allocated should be updated");
+        }
+
+        @Test
+        void givenNull_shouldThrowInvalidDataAccessApiUsageException() {
+            Assertions.assertThatThrownBy(() -> budgetRepository.update(null))
+                    .as("updating null should throw InvalidDataAccessApiUsageException")
                     .isInstanceOf(org.springframework.dao.InvalidDataAccessApiUsageException.class);
         }
     }
@@ -145,18 +188,13 @@ class DefaultBudgetRepositoryTest {
     class FindBudgetSummaryById {
         @Test
         void givenExistingIdWithTransactions_returnsSummaryWithSpent() {
-            // Arrange: save category entity first, then budget, then transactions
-            Category categoryWithId = budget.category().toBuilder()
-                    .id(UUID.randomUUID())
-                    .build();
-            CategoryEntity savedCategory = jpaCategoryRepository.save(CategoryEntity.from(categoryWithId));
-
+            // Arrange: use saved category from @BeforeEach, then budget, then transactions
             BudgetEntity savedBudgetEntity = jpaBudgetRepository.save(BudgetEntity.builder()
                     .id(budget.id())
                     .userId(budget.user().id())
                     .updatedBy(budget.updatedBy() != null ? budget.updatedBy().id() : null)
                     .period(BudgetPeriod.MONTHLY)
-                    .category(savedCategory)
+                    .category(savedCategoryEntity)
                     .allocated(500.0)
                     .createdAt(Instant.now())
                     .updatedAt(Instant.now())
@@ -171,7 +209,7 @@ class DefaultBudgetRepositoryTest {
                     .id(UUID.randomUUID())
                     .amount(150.0)
                     .transactionDate(monthStart.plusDays(5))
-                    .category(savedCategory)
+                    .category(savedCategoryEntity)
                     .addedBy(budget.user().id())
                     .createdAt(now)
                     .updatedAt(now)
@@ -181,7 +219,7 @@ class DefaultBudgetRepositoryTest {
                     .id(UUID.randomUUID())
                     .amount(200.0)
                     .transactionDate(monthStart.plusDays(10))
-                    .category(savedCategory)
+                    .category(savedCategoryEntity)
                     .addedBy(budget.user().id())
                     .createdAt(now)
                     .updatedAt(now)
@@ -210,16 +248,12 @@ class DefaultBudgetRepositoryTest {
         void givenExistingIdWithoutTransactions_returnsSummaryWithZeroSpent() {
             // Arrange: save budget directly via JPA without any transactions
             Instant now = Instant.now();
-            Category categoryWithId = budget.category().toBuilder()
-                    .id(UUID.randomUUID())
-                    .build();
-            CategoryEntity savedCategory = jpaCategoryRepository.save(CategoryEntity.from(categoryWithId));
             BudgetEntity savedBudgetEntity = jpaBudgetRepository.save(BudgetEntity.builder()
                     .id(budget.id())
                     .userId(budget.user().id())
                     .updatedBy(budget.updatedBy() != null ? budget.updatedBy().id() : null)
                     .period(BudgetPeriod.MONTHLY)
-                    .category(savedCategory)
+                    .category(savedCategoryEntity)
                     .allocated(500.0)
                     .createdAt(now)
                     .updatedAt(now)
@@ -273,6 +307,7 @@ class DefaultBudgetRepositoryTest {
                     .updatedAt(now)
                     .build());
             jpaBudgetRepository.saveAndFlush(BudgetEntity.builder()
+                    .id(UUID.randomUUID())
                     .userId(userId)
                     .updatedBy(userId)
                     .period(BudgetPeriod.MONTHLY)
@@ -331,6 +366,7 @@ class DefaultBudgetRepositoryTest {
                     .updatedAt(now)
                     .build());
             jpaBudgetRepository.saveAndFlush(BudgetEntity.builder()
+                    .id(UUID.randomUUID())
                     .userId(userId)
                     .updatedBy(userId)
                     .period(BudgetPeriod.MONTHLY)
@@ -372,6 +408,7 @@ class DefaultBudgetRepositoryTest {
                     .updatedAt(now)
                     .build());
             jpaBudgetRepository.saveAndFlush(BudgetEntity.builder()
+                    .id(UUID.randomUUID())
                     .userId(userId)
                     .updatedBy(userId)
                     .period(BudgetPeriod.MONTHLY)
@@ -440,6 +477,7 @@ class DefaultBudgetRepositoryTest {
                     .build());
 
             jpaBudgetRepository.saveAndFlush(BudgetEntity.builder()
+                    .id(UUID.randomUUID())
                     .userId(userId)
                     .updatedBy(userId)
                     .period(BudgetPeriod.MONTHLY)
