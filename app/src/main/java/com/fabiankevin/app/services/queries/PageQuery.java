@@ -1,8 +1,10 @@
 package com.fabiankevin.app.services.queries;
 
 import lombok.Builder;
+import lombok.With;
 
-@Builder
+@With
+@Builder(toBuilder = true)
 public record PageQuery(
         int page,
         int size,

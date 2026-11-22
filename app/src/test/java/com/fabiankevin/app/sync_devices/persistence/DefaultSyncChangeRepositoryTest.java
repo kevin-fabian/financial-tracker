@@ -272,7 +272,7 @@ class DefaultSyncChangeRepositoryTest {
                 syncChangeRepository.save(change);
             }
 
-            PageQuery pageQuery = PageQuery.withDefaults();
+            PageQuery pageQuery = PageQuery.withDefaults().withSize(10);
 
             Page<SyncChange> result = syncChangeRepository.findChangesAfterBatch(userId, 0L, pageQuery);
 
