@@ -3,7 +3,9 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.models.enums.EntityType;
 import com.fabiankevin.app.models.enums.ItemPriority;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
+import com.fabiankevin.app.models.shopping_list.ShoppingItem;
 import com.fabiankevin.app.models.shopping_list.ShoppingItemSummary;
+import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
 import com.fabiankevin.app.services.shopping_list.commands.CompleteShoppingListCommand;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingItemCommand;
@@ -83,8 +85,9 @@ class SyncChangeAwareShoppingListServiceTest {
             assertThat(change.entityType()).isEqualTo(EntityType.SHOPPING_LISTS);
             assertThat(change.entityId()).isEqualTo(listId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.CREATE);
-            ShoppingListSummary capturedSummary = jsonMapper.readValue(change.payload(), ShoppingListSummary.class);
-            assertThat(capturedSummary).isEqualTo(expected);
+            ShoppingList expectedModel = jsonMapper.readValue(change.payload(), ShoppingList.class);
+            ShoppingList expectedModelFromSummary = expected.toModel();
+            assertThat(expectedModel).isEqualTo(expectedModelFromSummary);
         }
 
         @Test
@@ -115,8 +118,9 @@ class SyncChangeAwareShoppingListServiceTest {
             assertThat(result).isSameAs(expected);
             ArgumentCaptor<CreateSyncChangeCommand> captor = ArgumentCaptor.forClass(CreateSyncChangeCommand.class);
             verify(syncChangeService, times(1)).create(captor.capture());
-            ShoppingListSummary capturedSummary = jsonMapper.readValue(captor.getValue().payload(), ShoppingListSummary.class);
-            assertThat(capturedSummary).isEqualTo(expected);
+            ShoppingList expectedModel = jsonMapper.readValue(captor.getValue().payload(), ShoppingList.class);
+            ShoppingList expectedModelFromSummary = expected.toModel();
+            assertThat(expectedModel).isEqualTo(expectedModelFromSummary);
         }
     }
 
@@ -154,8 +158,9 @@ class SyncChangeAwareShoppingListServiceTest {
             assertThat(result).isSameAs(expected);
             ArgumentCaptor<CreateSyncChangeCommand> captor = ArgumentCaptor.forClass(CreateSyncChangeCommand.class);
             verify(syncChangeService, times(1)).create(captor.capture());
-            ShoppingListSummary capturedSummary = jsonMapper.readValue(captor.getValue().payload(), ShoppingListSummary.class);
-            assertThat(capturedSummary).isEqualTo(expected);
+            ShoppingList expectedModel = jsonMapper.readValue(captor.getValue().payload(), ShoppingList.class);
+            ShoppingList expectedModelFromSummary = expected.toModel();
+            assertThat(expectedModel).isEqualTo(expectedModelFromSummary);
         }
 
         @Test
@@ -187,8 +192,9 @@ class SyncChangeAwareShoppingListServiceTest {
             assertThat(result).isSameAs(expected);
             ArgumentCaptor<CreateSyncChangeCommand> captor = ArgumentCaptor.forClass(CreateSyncChangeCommand.class);
             verify(syncChangeService, times(1)).create(captor.capture());
-            ShoppingListSummary capturedSummary = jsonMapper.readValue(captor.getValue().payload(), ShoppingListSummary.class);
-            assertThat(capturedSummary).isEqualTo(expected);
+            ShoppingList expectedModel = jsonMapper.readValue(captor.getValue().payload(), ShoppingList.class);
+            ShoppingList expectedModelFromSummary = expected.toModel();
+            assertThat(expectedModel).isEqualTo(expectedModelFromSummary);
         }
     }
 
@@ -229,8 +235,9 @@ class SyncChangeAwareShoppingListServiceTest {
             assertThat(change.entityType()).isEqualTo(EntityType.SHOPPING_LISTS);
             assertThat(change.entityId()).isEqualTo(listId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.UPDATE);
-            ShoppingListSummary capturedSummary = jsonMapper.readValue(change.payload(), ShoppingListSummary.class);
-            assertThat(capturedSummary).isEqualTo(expected);
+            ShoppingList expectedModel = jsonMapper.readValue(change.payload(), ShoppingList.class);
+            ShoppingList expectedModelFromSummary = expected.toModel();
+            assertThat(expectedModel).isEqualTo(expectedModelFromSummary);
         }
     }
 
@@ -238,7 +245,7 @@ class SyncChangeAwareShoppingListServiceTest {
     class AddShoppingItem {
 
         @Test
-        void givenExistingList_shouldDelegateAndRegisterUpdateChange() {
+        void givenExistingList_shouldDelegateAndRegisterCreateChange() {
             UUID userId = UUID.randomUUID();
             UUID listId = UUID.randomUUID();
             UUID itemId = UUID.randomUUID();
@@ -278,9 +285,12 @@ class SyncChangeAwareShoppingListServiceTest {
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
             assertThat(change.userId()).isEqualTo(userId);
-            assertThat(change.entityType()).isEqualTo(EntityType.SHOPPING_LISTS);
-            assertThat(change.entityId()).isEqualTo(listId);
-            assertThat(change.operation()).isEqualTo(SyncChangeOperationType.UPDATE);
+            assertThat(change.entityType()).isEqualTo(EntityType.SHOPPING_LIST_ITEMS);
+            assertThat(change.entityId()).isEqualTo(itemId);
+            assertThat(change.operation()).isEqualTo(SyncChangeOperationType.CREATE);
+            ShoppingItem expectedItem = jsonMapper.readValue(change.payload(), ShoppingItem.class);
+            ShoppingItem expectedItemFromSummary = itemSummary.toModel();
+            assertThat(expectedItem).isEqualTo(expectedItemFromSummary);
         }
     }
 
@@ -323,8 +333,12 @@ class SyncChangeAwareShoppingListServiceTest {
             ArgumentCaptor<CreateSyncChangeCommand> captor = ArgumentCaptor.forClass(CreateSyncChangeCommand.class);
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
-            assertThat(change.entityId()).isEqualTo(listId);
+            assertThat(change.entityType()).isEqualTo(EntityType.SHOPPING_LIST_ITEMS);
+            assertThat(change.entityId()).isEqualTo(itemId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.UPDATE);
+            ShoppingItem expectedItem = jsonMapper.readValue(change.payload(), ShoppingItem.class);
+            ShoppingItem expectedItemFromSummary = itemSummary.toModel();
+            assertThat(expectedItem).isEqualTo(expectedItemFromSummary);
         }
     }
 
@@ -332,16 +346,41 @@ class SyncChangeAwareShoppingListServiceTest {
     class DeleteShoppingItem {
 
         @Test
-        void givenExistingItem_shouldDelegateAndRegisterUpdateChange() {
+        void givenExistingItem_shouldDelegateAndRegisterDeleteChange() {
             UUID userId = UUID.randomUUID();
             UUID listId = UUID.randomUUID();
+            UUID itemId = UUID.randomUUID();
             DeleteShoppingItemCommand command = DeleteShoppingItemCommand.builder()
                     .shoppingListId(listId)
-                    .itemId(UUID.randomUUID())
+                    .itemId(itemId)
                     .userId(userId)
                     .build();
 
-            ShoppingListSummary listSummary = buildSummary(listId, userId);
+            ShoppingItemSummary existingItem = ShoppingItemSummary.builder()
+                    .id(itemId)
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .purchased(false)
+                    .priority(ItemPriority.HIGH)
+                    .addedBy(com.fabiankevin.app.models.User.builder().id(userId).firstName("John").lastName("Doe").build())
+                    .createdAt(Instant.parse("2025-06-01T10:00:00Z"))
+                    .updatedAt(Instant.parse("2025-06-01T10:00:00Z"))
+                    .build();
+
+            ShoppingListSummary listSummary = ShoppingListSummary.builder()
+                    .id(listId)
+                    .name("Groceries")
+                    .description("Test list")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .items(List.of(existingItem))
+                    .user(com.fabiankevin.app.models.User.builder().id(userId).firstName("John").lastName("Doe").build())
+                    .budget(200.0)
+                    .createdAt(Instant.parse("2025-01-01T00:00:00Z"))
+                    .updatedAt(Instant.parse("2025-01-01T00:00:00Z"))
+                    .build();
 
             when(delegate.getShoppingListsByUserId(userId)).thenReturn(List.of(listSummary));
 
@@ -351,8 +390,12 @@ class SyncChangeAwareShoppingListServiceTest {
             ArgumentCaptor<CreateSyncChangeCommand> captor = ArgumentCaptor.forClass(CreateSyncChangeCommand.class);
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
-            assertThat(change.entityId()).isEqualTo(listId);
-            assertThat(change.operation()).isEqualTo(SyncChangeOperationType.UPDATE);
+            assertThat(change.entityType()).isEqualTo(EntityType.SHOPPING_LIST_ITEMS);
+            assertThat(change.entityId()).isEqualTo(itemId);
+            assertThat(change.operation()).isEqualTo(SyncChangeOperationType.DELETE);
+            ShoppingItem expectedItem = jsonMapper.readValue(change.payload(), ShoppingItem.class);
+            ShoppingItem expectedItemFromSummary = existingItem.toModel();
+            assertThat(expectedItem).isEqualTo(expectedItemFromSummary);
         }
     }
 
@@ -382,8 +425,9 @@ class SyncChangeAwareShoppingListServiceTest {
             assertThat(change.entityType()).isEqualTo(EntityType.SHOPPING_LISTS);
             assertThat(change.entityId()).isEqualTo(listId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.DELETE);
-            ShoppingListSummary capturedSummary = jsonMapper.readValue(change.payload(), ShoppingListSummary.class);
-            assertThat(capturedSummary).isEqualTo(existing);
+            ShoppingList expectedModel = jsonMapper.readValue(change.payload(), ShoppingList.class);
+            ShoppingList expectedModelFromSummary = existing.toModel();
+            assertThat(expectedModel).isEqualTo(expectedModelFromSummary);
         }
 
         @Test
@@ -414,8 +458,9 @@ class SyncChangeAwareShoppingListServiceTest {
 
             ArgumentCaptor<CreateSyncChangeCommand> captor = ArgumentCaptor.forClass(CreateSyncChangeCommand.class);
             verify(syncChangeService, times(1)).create(captor.capture());
-            ShoppingListSummary capturedSummary = jsonMapper.readValue(captor.getValue().payload(), ShoppingListSummary.class);
-            assertThat(capturedSummary).isEqualTo(existing);
+            ShoppingList expectedModel = jsonMapper.readValue(captor.getValue().payload(), ShoppingList.class);
+            ShoppingList expectedModelFromSummary = existing.toModel();
+            assertThat(expectedModel).isEqualTo(expectedModelFromSummary);
         }
     }
 

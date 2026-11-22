@@ -376,7 +376,7 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
-            when(shoppingListRepository.save(any())).thenAnswer(invocation -> {
+            when(shoppingListRepository.update(any())).thenAnswer(invocation -> {
                 ShoppingList s = invocation.getArgument(0);
                 List<ShoppingItem> items = new ArrayList<>(s.items());
                 ShoppingItem last = items.getLast();
@@ -405,7 +405,7 @@ class DefaultShoppingListServiceTest {
             assertNotNull(added.updatedAt(), "updatedAt should not be null");
 
             ArgumentCaptor<ShoppingList> captor = ArgumentCaptor.forClass(ShoppingList.class);
-            verify(shoppingListRepository, times(1)).save(captor.capture());
+            verify(shoppingListRepository, times(1)).update(captor.capture());
             assertEquals(1, captor.getValue().items().size(), "list should contain the added item");
             assertEquals("Milk", captor.getValue().items().getFirst().name());
             verify(shoppingListEventPublisher, never()).publish(any(), any());
@@ -440,7 +440,7 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
-            when(shoppingListRepository.save(any())).thenAnswer(invocation -> {
+            when(shoppingListRepository.update(any())).thenAnswer(invocation -> {
                 ShoppingList s = invocation.getArgument(0);
                 List<ShoppingItem> items = new ArrayList<>(s.items());
                 ShoppingItem last = items.getLast();
@@ -511,7 +511,7 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
-            when(shoppingListRepository.save(any())).thenAnswer(invocation -> {
+            when(shoppingListRepository.update(any())).thenAnswer(invocation -> {
                 ShoppingList s = invocation.getArgument(0);
                 return s.toBuilder().items(new ArrayList<>(s.items())).build();
             });
@@ -536,7 +536,7 @@ class DefaultShoppingListServiceTest {
             assertNotNull(added.updatedAt(), "updatedAt should not be null");
 
             ArgumentCaptor<ShoppingList> captor = ArgumentCaptor.forClass(ShoppingList.class);
-            verify(shoppingListRepository, times(1)).save(captor.capture());
+            verify(shoppingListRepository, times(1)).update(captor.capture());
             ShoppingList savedList = captor.getValue();
             assertEquals(2, savedList.items().size(), "list should contain both existing and new item");
 
@@ -1185,7 +1185,7 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
-            when(shoppingListRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(shoppingListRepository.update(any())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(any())).thenReturn(List.of(
                     User.builder().id(addedBy).firstName("Jane").lastName("Smith").build(),
                     User.builder().id(userId).firstName("John").lastName("Doe").build()
@@ -1211,7 +1211,7 @@ class DefaultShoppingListServiceTest {
             assertNotNull(updated.updatedAt(), "updatedAt should be updated");
 
             ArgumentCaptor<ShoppingList> captor = ArgumentCaptor.forClass(ShoppingList.class);
-            verify(shoppingListRepository, times(1)).save(captor.capture());
+            verify(shoppingListRepository, times(1)).update(captor.capture());
             ShoppingList savedList = captor.getValue();
             ShoppingItem savedItem = savedList.items().stream()
                     .filter(i -> i.id().equals(itemId))
@@ -1268,7 +1268,7 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
-            when(shoppingListRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(shoppingListRepository.update(any())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(any())).thenReturn(List.of(
                     User.builder().id(sharedUser).firstName("Jane").lastName("Smith").build(),
                     User.builder().id(listOwner).firstName("John").lastName("Doe").build()
@@ -1290,7 +1290,7 @@ class DefaultShoppingListServiceTest {
             assertNotNull(updated.updatedAt(), "updatedAt should be updated");
 
             ArgumentCaptor<ShoppingList> captor = ArgumentCaptor.forClass(ShoppingList.class);
-            verify(shoppingListRepository, times(1)).save(captor.capture());
+            verify(shoppingListRepository, times(1)).update(captor.capture());
             ShoppingList savedList = captor.getValue();
             ShoppingItem savedItem = savedList.items().stream()
                     .filter(i -> i.id().equals(itemId))
@@ -1367,7 +1367,7 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
-            when(shoppingListRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(shoppingListRepository.update(any())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(any())).thenReturn(List.of(
                     User.builder().id(addedBy).firstName("Jane").lastName("Smith").build(),
                     User.builder().id(userId).firstName("John").lastName("Doe").build()
@@ -1449,7 +1449,7 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
-            when(shoppingListRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(shoppingListRepository.update(any())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(any())).thenReturn(List.of(
                     User.builder().id(addedBy).firstName("Jane").lastName("Smith").build(),
                     User.builder().id(userId).firstName("John").lastName("Doe").build()
@@ -1645,7 +1645,7 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
-            when(shoppingListRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(shoppingListRepository.update(any())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(any())).thenReturn(List.of(
                     User.builder().id(userId).firstName("John").lastName("Doe").build(),
                     User.builder().id(addedBy).firstName("Jane").lastName("Smith").build()
@@ -1655,7 +1655,7 @@ class DefaultShoppingListServiceTest {
 
             // verify repository save with updated items
             ArgumentCaptor<ShoppingList> captor = ArgumentCaptor.forClass(ShoppingList.class);
-            verify(shoppingListRepository, times(1)).save(captor.capture());
+            verify(shoppingListRepository, times(1)).update(captor.capture());
             ShoppingList savedList = captor.getValue();
             assertEquals(1, savedList.items().size(), "list should contain remaining item");
             assertEquals("Bread", savedList.items().getFirst().name(), "remaining item should be Bread");
@@ -1725,7 +1725,7 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
-            when(shoppingListRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(shoppingListRepository.update(any())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(any())).thenReturn(List.of(
                     User.builder().id(userId).firstName("John").lastName("Doe").build(),
                     User.builder().id(addedBy).firstName("Jane").lastName("Smith").build()
@@ -1735,7 +1735,7 @@ class DefaultShoppingListServiceTest {
 
             // Verify repository save with remaining items
             ArgumentCaptor<ShoppingList> captor = ArgumentCaptor.forClass(ShoppingList.class);
-            verify(shoppingListRepository, times(1)).save(captor.capture());
+            verify(shoppingListRepository, times(1)).update(captor.capture());
             ShoppingList savedList = captor.getValue();
             assertEquals(1, savedList.items().size(), "list should contain remaining item");
             assertEquals("Bread", savedList.items().getFirst().name(), "remaining item should be Bread");
@@ -1807,7 +1807,7 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
-            when(shoppingListRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+            when(shoppingListRepository.update(any())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(any())).thenReturn(List.of(
                     User.builder().id(userId).firstName("John").lastName("Doe").build(),
                     User.builder().id(addedBy).firstName("Jane").lastName("Smith").build()
@@ -1817,7 +1817,7 @@ class DefaultShoppingListServiceTest {
 
             // Verify repository save with remaining items
             ArgumentCaptor<ShoppingList> captor = ArgumentCaptor.forClass(ShoppingList.class);
-            verify(shoppingListRepository, times(1)).save(captor.capture());
+            verify(shoppingListRepository, times(1)).update(captor.capture());
             ShoppingList savedList = captor.getValue();
             assertEquals(1, savedList.items().size(), "list should contain remaining item");
             assertEquals("Bread", savedList.items().getFirst().name(), "remaining item should be Bread");

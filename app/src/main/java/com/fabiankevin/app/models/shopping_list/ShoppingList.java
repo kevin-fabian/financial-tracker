@@ -35,7 +35,6 @@ public record ShoppingList(
                 .filter(n -> !n.isBlank())
                 .orElseThrow(() -> new IllegalArgumentException("Shopping list name is required"));
         Objects.requireNonNull(status, "Status is required");
-        Objects.requireNonNull(userId, "User ID is required");
         Objects.requireNonNull(createdAt, "Created at is required");
         Objects.requireNonNull(updatedAt, "Updated at is required");
         items = Optional.ofNullable(items).orElse(new ArrayList<>());

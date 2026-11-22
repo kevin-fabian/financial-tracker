@@ -28,7 +28,6 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -49,8 +48,8 @@ class DefaultShoppingListRepositoryTest {
     @TestConfiguration
     public static class ContextConfiguration {
         @Bean
-        public ShoppingListRepository shoppingListRepository(JpaShoppingListRepository jpaShoppingListRepository) {
-            return new DefaultShoppingListRepository(jpaShoppingListRepository);
+        public ShoppingListRepository shoppingListRepository(JpaShoppingListRepository jpaShoppingListRepository, jakarta.persistence.EntityManager entityManager) {
+            return new DefaultShoppingListRepository(jpaShoppingListRepository, entityManager);
         }
     }
 
@@ -113,8 +112,6 @@ class DefaultShoppingListRepositoryTest {
             assertThat(savedItem.priority()).isEqualTo(ItemPriority.HIGH);
             assertThat(savedItem.notes()).isEqualTo("Whole milk");
             assertThat(savedItem.addedBy()).isNotNull();
-
-            verify(jpaShoppingListRepository, times(1)).save(any());
         }
 
         @Test
@@ -137,8 +134,6 @@ class DefaultShoppingListRepositoryTest {
             assertThat(saved.id()).isNotNull();
             assertThat(saved.name()).isEqualTo("Empty List");
             assertThat(saved.items()).isEmpty();
-
-            verify(jpaShoppingListRepository, times(1)).save(any());
         }
 
         @Test

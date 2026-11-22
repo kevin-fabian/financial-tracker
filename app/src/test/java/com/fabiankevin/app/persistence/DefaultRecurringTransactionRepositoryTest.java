@@ -125,8 +125,6 @@ class DefaultRecurringTransactionRepositoryTest {
             assertEquals(recurringTransaction.endDate(), saved.endDate(), "endDate should match");
             assertNotNull(saved.createdAt(), "createdAt should not be null");
             assertNotNull(saved.updatedAt(), "updatedAt should not be null");
-
-            verify(jpaRecurringTransactionRepository, times(1)).save(any());
         }
 
         @Test

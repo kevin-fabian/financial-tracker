@@ -731,7 +731,7 @@ class RecurringTransactionControllerIntegrationTest {
                     .nextOccurrenceDate(today.plusMonths(1))
                     .updatedAt(Instant.now())
                     .build();
-            recurringTransactionRepository.save(advanced);
+            recurringTransactionRepository.update(advanced);
 
             mockMvc.perform(get("/api/recurring-transactions")
                             .with(jwt()

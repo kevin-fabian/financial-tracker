@@ -62,30 +62,24 @@ public class SyncChangeAwareShoppingListService implements ShoppingListService {
 
     @Override
     public ShoppingItemSummary addShoppingItem(CreateShoppingItemCommand command) {
-        ShoppingListSummary listSummary = retrieveListSummary(command.shoppingListId(), command.addedBy());
         ShoppingItemSummary result = delegate.addShoppingItem(command);
-        if (listSummary != null) {
-            registerUpdateChange(listSummary, command.addedBy());
-        }
+        registerItemCreateChange(result, command.addedBy());
         return result;
     }
 
     @Override
     public ShoppingItemSummary updateShoppingItem(UpdateShoppingItemCommand command) {
-        ShoppingListSummary listSummary = retrieveListSummary(command.shoppingListId(), command.userId());
         ShoppingItemSummary result = delegate.updateShoppingItem(command);
-        if (listSummary != null) {
-            registerUpdateChange(listSummary, command.userId());
-        }
+        registerItemUpdateChange(result, command.userId());
         return result;
     }
 
     @Override
     public void deleteShoppingItem(DeleteShoppingItemCommand command) {
-        ShoppingListSummary listSummary = retrieveListSummary(command.shoppingListId(), command.userId());
+        ShoppingItemSummary existingItem = retrieveItemSummary(command.itemId(), command.userId());
         delegate.deleteShoppingItem(command);
-        if (listSummary != null) {
-            registerUpdateChange(listSummary, command.userId());
+        if (existingItem != null) {
+            registerItemDeleteChange(existingItem, command.userId());
         }
     }
 
@@ -107,7 +101,7 @@ public class SyncChangeAwareShoppingListService implements ShoppingListService {
                 .entityType(EntityType.SHOPPING_LISTS)
                 .entityId(summary.id())
                 .operation(SyncChangeOperationType.CREATE)
-                .payload(toJson(summary))
+                .payload(toJson(summary.toModel()))
                 .build());
     }
 
@@ -117,7 +111,7 @@ public class SyncChangeAwareShoppingListService implements ShoppingListService {
                 .entityType(EntityType.SHOPPING_LISTS)
                 .entityId(summary.id())
                 .operation(SyncChangeOperationType.UPDATE)
-                .payload(toJson(summary))
+                .payload(toJson(summary.toModel()))
                 .build());
     }
 
@@ -127,8 +121,47 @@ public class SyncChangeAwareShoppingListService implements ShoppingListService {
                 .entityType(EntityType.SHOPPING_LISTS)
                 .entityId(summary.id())
                 .operation(SyncChangeOperationType.DELETE)
-                .payload(toJson(summary))
+                .payload(toJson(summary.toModel()))
                 .build());
+    }
+
+    private void registerItemCreateChange(ShoppingItemSummary summary, UUID userId) {
+        syncChangeService.create(CreateSyncChangeCommand.builder()
+                .userId(userId)
+                .entityType(EntityType.SHOPPING_LIST_ITEMS)
+                .entityId(summary.id())
+                .operation(SyncChangeOperationType.CREATE)
+                .payload(toJson(summary.toModel()))
+                .build());
+    }
+
+    private void registerItemUpdateChange(ShoppingItemSummary summary, UUID userId) {
+        syncChangeService.create(CreateSyncChangeCommand.builder()
+                .userId(userId)
+                .entityType(EntityType.SHOPPING_LIST_ITEMS)
+                .entityId(summary.id())
+                .operation(SyncChangeOperationType.UPDATE)
+                .payload(toJson(summary.toModel()))
+                .build());
+    }
+
+    private void registerItemDeleteChange(ShoppingItemSummary summary, UUID userId) {
+        syncChangeService.create(CreateSyncChangeCommand.builder()
+                .userId(userId)
+                .entityType(EntityType.SHOPPING_LIST_ITEMS)
+                .entityId(summary.id())
+                .operation(SyncChangeOperationType.DELETE)
+                .payload(toJson(summary.toModel()))
+                .build());
+    }
+
+    private ShoppingItemSummary retrieveItemSummary(UUID itemId, UUID userId) {
+        List<ShoppingListSummary> lists = delegate.getShoppingListsByUserId(userId);
+        return lists.stream()
+                .flatMap(list -> list.items().stream())
+                .filter(item -> item.id().equals(itemId))
+                .findFirst()
+                .orElse(null);
     }
 
     private ShoppingListSummary retrieveListSummary(UUID shoppingListId, UUID userId) {

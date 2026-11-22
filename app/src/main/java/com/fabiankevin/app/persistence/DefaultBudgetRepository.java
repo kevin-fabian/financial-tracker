@@ -5,9 +5,11 @@ import com.fabiankevin.app.models.budgets.BudgetSummary;
 import com.fabiankevin.app.persistence.entities.BudgetEntity;
 import com.fabiankevin.app.persistence.entities.projections.BudgetSummaryProjection;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaBudgetRepository;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -19,16 +21,18 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class DefaultBudgetRepository implements BudgetRepository {
     private final JpaBudgetRepository jpaBudgetRepository;
+    private final EntityManager entityManager;
 
+    @Transactional
     @Override
     public Budget save(Budget budget) {
         if (budget == null) {
             throw new InvalidDataAccessApiUsageException("Budget must not be null");
         }
-        Budget budgetWithId = Optional.ofNullable(budget.id())
-                .map(id -> budget)
-                .orElseGet(() -> budget.toBuilder().id(UUID.randomUUID()).build());
-        return jpaBudgetRepository.save(BudgetEntity.from(budgetWithId)).toModel();
+        BudgetEntity entity = BudgetEntity.from(budget);
+        entity.setId(Optional.ofNullable(entity.getId()).orElse(UUID.randomUUID()));
+        entityManager.persist(entity);
+        return entity.toModel();
     }
 
     @Override

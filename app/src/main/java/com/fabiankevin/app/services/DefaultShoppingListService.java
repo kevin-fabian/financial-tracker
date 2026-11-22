@@ -171,7 +171,7 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .updatedAt(now)
                 .build();
 
-        ShoppingList saved = shoppingListRepository.save(updated);
+        ShoppingList saved = shoppingListRepository.update(updated);
 
         ShoppingItem savedItem = saved.items().stream()
                 .filter(i -> i.createdAt().equals(item.createdAt()))
@@ -239,7 +239,7 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .updatedAt(Instant.now())
                 .build();
 
-        ShoppingList saved = shoppingListRepository.save(updated);
+        ShoppingList saved = shoppingListRepository.update(updated);
         ShoppingItem savedItem = saved.items().stream()
                 .filter(item -> item.id().equals(command.itemId()))
                 .findFirst()
@@ -275,7 +275,7 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .updatedAt(Instant.now())
                 .build();
 
-        ShoppingList saved = shoppingListRepository.save(updated);
+        ShoppingList saved = shoppingListRepository.update(updated);
 
         publishEvent(saved, EventAction.ITEM_REMOVED, saved.userId().toString(),
                 toSummary(saved));

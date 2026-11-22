@@ -102,8 +102,6 @@ class DefaultBudgetRepositoryTest {
             assertNotNull(saved.updatedAt(), "updatedAt should not be null");
             assertNotNull(saved.category(), "category should not be null");
             assertEquals(budget.category().name(), saved.category().name(), "category name should match");
-
-            verify(jpaBudgetRepository, times(1)).save(any());
         }
 
         @Test

@@ -5,6 +5,7 @@ import com.fabiankevin.app.categories.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.persistence.entities.ShoppingListEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaShoppingListRepository;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.stereotype.Repository;
@@ -18,17 +19,18 @@ import java.util.UUID;
 @Repository
 public class DefaultShoppingListRepository implements ShoppingListRepository {
     private final JpaShoppingListRepository jpaShoppingListRepository;
+    private final EntityManager entityManager;
 
+    @Transactional
     @Override
     public ShoppingList save(ShoppingList shoppingList) {
         if (shoppingList == null) {
             throw new InvalidDataAccessApiUsageException("ShoppingList must not be null");
         }
-        ShoppingList listWithId = Optional.ofNullable(shoppingList.id())
-                .map(id -> shoppingList)
-                .orElseGet(() -> shoppingList.toBuilder().id(UUID.randomUUID()).build());
-        ShoppingListEntity saved = jpaShoppingListRepository.save(ShoppingListEntity.from(listWithId));
-        return saved.toModel();
+        ShoppingListEntity entity = ShoppingListEntity.from(shoppingList);
+        entity.setId(Optional.ofNullable(entity.getId()).orElse(UUID.randomUUID()));
+        entityManager.persist(entity);
+        return entity.toModel();
     }
 
     @Override

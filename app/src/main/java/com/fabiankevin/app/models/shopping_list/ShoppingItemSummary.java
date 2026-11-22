@@ -30,7 +30,23 @@ public record ShoppingItemSummary(
                 .filter(n -> !n.isBlank())
                 .orElseThrow(() -> new IllegalArgumentException("Item name is required"));
         Objects.requireNonNull(priority, "Priority is required");
-        Objects.requireNonNull(addedBy, "Added by is required");
         Objects.requireNonNull(createdAt, "Created at is required");
+    }
+
+    public ShoppingItem toModel() {
+        return ShoppingItem.builder()
+                .id(id)
+                .name(name)
+                .category(category)
+                .quantity(quantity)
+                .unit(unit)
+                .price(price)
+                .purchased(purchased)
+                .priority(priority)
+                .notes(notes)
+                .addedBy(Optional.ofNullable(addedBy).map(User::id).orElse(null))
+                .createdAt(createdAt)
+                .updatedAt(updatedAt)
+                .build();
     }
 }
