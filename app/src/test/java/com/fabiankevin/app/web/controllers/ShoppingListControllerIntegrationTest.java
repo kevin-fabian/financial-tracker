@@ -29,7 +29,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -101,7 +100,7 @@ class ShoppingListControllerIntegrationTest {
     class CreateShoppingList {
 
         @Test
-        void givenValidRequest_thenReturnsCreatedWithSummary() throws Exception {
+        void givenValidRequest_thenReturnCreatedWithSummary() throws Exception {
             UUID userId = UUID.randomUUID();
 
             Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
@@ -153,7 +152,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenValidCreateShoppingListRequest_thenShouldCreateSyncChangeEntry() throws Exception {
+        void givenValidRequest_thenCreatesSyncChangeEntry() throws Exception {
             UUID userId = UUID.randomUUID();
 
             Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
@@ -204,7 +203,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenZeroBudget_thenReturnsCreatedWithZeroBudget() throws Exception {
+        void givenZeroBudget_thenReturnCreatedWithZeroBudget() throws Exception {
             UUID userId = UUID.randomUUID();
 
             Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
@@ -234,7 +233,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenMinimalRequest_thenReturnsCreatedWithDefaults() throws Exception {
+        void givenMinimalRequest_thenReturnCreatedWithDefaults() throws Exception {
             UUID userId = UUID.randomUUID();
 
             Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
@@ -278,7 +277,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenNoJwt_thenReturnsForbidden() throws Exception {
+        void givenNoJwt_thenReturnForbidden() throws Exception {
             CreateShoppingListRequest request = CreateShoppingListRequest.builder()
                     .name("Groceries")
                     .description("Weekly groceries")
@@ -308,7 +307,7 @@ class ShoppingListControllerIntegrationTest {
 
         @ParameterizedTest(name = "{0}")
         @MethodSource("validationErrorCases")
-        void givenValidationErrorCase_thenReturnsBadRequest(
+        void givenValidationErrorCase_thenReturnBadRequest(
                 String label,
                 CreateShoppingListRequest request) throws Exception {
 
@@ -326,7 +325,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenCategoryBelongsToDifferentUser_thenReturnsNotFound() throws Exception {
+        void givenCategoryBelongsToDifferentUser_thenReturnNotFound() throws Exception {
             UUID currentUserId = UUID.randomUUID();
             UUID otherUserId = UUID.randomUUID();
 
@@ -353,7 +352,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenNegativeBudget_thenReturnsBadRequest() throws Exception {
+        void givenNegativeBudget_thenReturnBadRequest() throws Exception {
             UUID userId = UUID.randomUUID();
 
             Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
@@ -379,7 +378,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenNonExistentCategoryId_thenReturnsNotFound() throws Exception {
+        void givenNonExistentCategoryId_thenReturnNotFound() throws Exception {
             UUID userId = UUID.randomUUID();
 
             CreateShoppingListRequest request = CreateShoppingListRequest.builder()
@@ -403,7 +402,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenSharedWithUserIdsButUserClientReturnsEmpty_thenReturnsCreatedWithNullUser() throws Exception {
+        void givenSharedWithUserIdsButUserClientReturnsEmpty_thenReturnCreatedWithNullUser() throws Exception {
             UUID userId = UUID.randomUUID();
 
             Category category = createCategory(userId, "Food", TransactionType.EXPENSE, "shopping-cart");
@@ -431,48 +430,6 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.id").isNotEmpty())
                     .andExpect(jsonPath("$.name").value("Groceries"));
-        }
-
-        @Test
-        void givenNameExceeds64Chars_thenReturnsBadRequest() throws Exception {
-            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
-                    .name("a".repeat(65))
-                    .description("Weekly groceries")
-                    .budget(200.0)
-                    .build();
-
-            mockMvc.perform(post("/api/shopping-lists")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", UUID.randomUUID())
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
-        }
-
-        @Test
-        void givenDescriptionExceeds128Chars_thenReturnsBadRequest() throws Exception {
-            CreateShoppingListRequest request = CreateShoppingListRequest.builder()
-                    .name("Groceries")
-                    .description("a".repeat(129))
-                    .budget(200.0)
-                    .build();
-
-            mockMvc.perform(post("/api/shopping-lists")
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", UUID.randomUUID())
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
         }
 
         @Test
@@ -513,7 +470,7 @@ class ShoppingListControllerIntegrationTest {
     class CompleteShoppingList {
 
         @Test
-        void givenExistingList_thenReturnsOkWithCompletedList() throws Exception {
+        void givenExistingList_thenReturnOkWithCompletedList() throws Exception {
             UUID userId = UUID.randomUUID();
 
             ShoppingItem milk = ShoppingItem.builder()
@@ -570,7 +527,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenNonExistentList_thenReturnsNotFound() throws Exception {
+        void givenNonExistentList_thenReturnNotFound() throws Exception {
             UUID userId = UUID.randomUUID();
 
             CompleteShoppingListRequest request = CompleteShoppingListRequest.builder()
@@ -591,7 +548,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenListWithNoItems_thenReturnsBadRequest() throws Exception {
+        void givenListWithNoItems_thenReturnBadRequest() throws Exception {
             UUID userId = UUID.randomUUID();
 
             ShoppingList shoppingList = ShoppingList.builder()
@@ -622,7 +579,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenListWithUnpurchasedItems_thenReturnsBadRequest() throws Exception {
+        void givenListWithUnpurchasedItems_thenReturnBadRequest() throws Exception {
             UUID userId = UUID.randomUUID();
 
             ShoppingItem milk = ShoppingItem.builder()
@@ -670,7 +627,7 @@ class ShoppingListControllerIntegrationTest {
     class UpdateShoppingList {
 
         @Test
-        void givenExistingList_thenReturnsOkWithUpdatedList() throws Exception {
+        void givenExistingList_thenReturnOkWithUpdatedList() throws Exception {
             UUID userId = UUID.randomUUID();
 
             ShoppingList shoppingList = ShoppingList.builder()
@@ -775,7 +732,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenExistingList_thenReturnsUpdatedCategoryFields() throws Exception {
+        void givenExistingList_thenReturnUpdatedCategoryFields() throws Exception {
             UUID userId = UUID.randomUUID();
             Category shopping = createCategory(userId, "Shopping", TransactionType.EXPENSE, "shopping-cart");
 
@@ -825,7 +782,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenNonExistentList_thenReturnsNotFound() throws Exception {
+        void givenNonExistentList_thenReturnNotFound() throws Exception {
             UUID userId = UUID.randomUUID();
 
             PatchShoppingListRequest request = PatchShoppingListRequest.builder()
@@ -846,7 +803,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenListNotOwnedByUser_thenReturnsNotFound() throws Exception {
+        void givenListNotOwnedByUser_thenReturnNotFound() throws Exception {
             UUID listOwnerId = UUID.randomUUID();
             UUID unauthorizedUserId = UUID.randomUUID();
 
@@ -879,7 +836,7 @@ class ShoppingListControllerIntegrationTest {
 
         @ParameterizedTest(name = "[{index}] {0}")
         @MethodSource("oversizedUpdateListFieldRequests")
-        void givenFieldExceedsMaxLength_thenReturnsBadRequest(String label, PatchShoppingListRequest request) throws Exception {
+        void givenFieldExceedsMaxLength_thenReturnBadRequest(String label, PatchShoppingListRequest request) throws Exception {
             mockMvc.perform(patch("/api/shopping-lists/{id}", UUID.randomUUID())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -911,7 +868,7 @@ class ShoppingListControllerIntegrationTest {
     class GetShoppingLists {
 
         @Test
-        void givenExistingListsWithItems_thenReturnsListOfSummaries() throws Exception {
+        void givenExistingListsWithItems_thenReturnListOfSummaries() throws Exception {
             UUID userId = UUID.randomUUID();
             UUID addedBy = UUID.randomUUID();
 
@@ -1006,7 +963,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenListsWithoutItems_thenReturnsEmptyItemsForAll() throws Exception {
+        void givenListsWithoutItems_thenReturnEmptyItemsForAll() throws Exception {
             UUID userId = UUID.randomUUID();
 
             ShoppingList list1 = ShoppingList.builder()
@@ -1053,7 +1010,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenNoLists_thenReturnsEmptyList() throws Exception {
+        void givenNoLists_thenReturnEmptyList() throws Exception {
             UUID userId = UUID.randomUUID();
 
             when(userClient.getUsersByIds(List.of(userId)))
@@ -1074,7 +1031,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenListSharedWithUser_thenReturnsSharedList() throws Exception {
+        void givenListSharedWithUser_thenReturnSharedList() throws Exception {
             UUID userIdA = UUID.randomUUID();
             UUID userIdB = UUID.randomUUID();
 
@@ -1145,7 +1102,7 @@ class ShoppingListControllerIntegrationTest {
     class AddShoppingItem {
 
         @Test
-        void givenExistingList_thenReturnsCreatedWithItem() throws Exception {
+        void givenExistingList_thenReturnCreatedWithItem() throws Exception {
             UUID userId = UUID.randomUUID();
 
             // provision a list first by persisting it through the repository; capture the generated id
@@ -1201,7 +1158,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenExistingListWithItems_thenReturnsCreatedWithNewItem() throws Exception {
+        void givenExistingListWithItems_thenReturnCreatedWithNewItem() throws Exception {
             UUID userId = UUID.randomUUID();
 
             // Create a list that already has existing items
@@ -1269,7 +1226,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenNonExistentList_thenReturnsNotFound() throws Exception {
+        void givenNonExistentList_thenReturnNotFound() throws Exception {
             UUID userId = UUID.randomUUID();
 
             CreateShoppingItemRequest request = CreateShoppingItemRequest.builder()
@@ -1294,17 +1251,9 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(status().isNotFound());
         }
 
-        @ParameterizedTest
-        @NullAndEmptySource
-        void givenBlankName_thenReturnsBadRequest(String name) throws Exception {
-            CreateShoppingItemRequest request = CreateShoppingItemRequest.builder()
-                    .name(name)
-                    .quantity(2.0)
-                    .unit("liters")
-                    .price(3.5)
-                    .priority(ItemPriority.HIGH)
-                    .build();
-
+        @ParameterizedTest(name = "{0}")
+        @MethodSource("invalidFieldRequests")
+        void givenInvalidField_thenReturnBadRequest(String label, CreateShoppingItemRequest request) throws Exception {
             mockMvc.perform(post("/api/shopping-lists/{id}/items", UUID.randomUUID())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -1318,49 +1267,44 @@ class ShoppingListControllerIntegrationTest {
                     .andExpect(status().isBadRequest());
         }
 
-        @ParameterizedTest
-        @NullAndEmptySource
-        void givenBlankCategory_thenReturnsBadRequest(String category) throws Exception {
-            CreateShoppingItemRequest request = CreateShoppingItemRequest.builder()
-                    .name("Milk")
-                    .quantity(2.0)
-                    .unit("liters")
-                    .category(category)
-                    .price(3.5)
-                    .priority(ItemPriority.HIGH)
-                    .build();
-
-            mockMvc.perform(post("/api/shopping-lists/{id}/items", UUID.randomUUID())
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", UUID.randomUUID())
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
-        }
-
-        @ParameterizedTest(name = "[{index}] {0}")
-        @MethodSource("oversizedFieldRequests")
-        void givenFieldExceedsMaxLength_thenReturnsBadRequest(String label, CreateShoppingItemRequest request) throws Exception {
-            mockMvc.perform(post("/api/shopping-lists/{id}/items", UUID.randomUUID())
-                            .with(jwt()
-                                    .authorities(new SimpleGrantedAuthority("USER"))
-                                    .jwt(jwt -> jwt
-                                            .audience(List.of("financial-tracker-test"))
-                                            .claim("sub", UUID.randomUUID())
-                                            .claim("scope", List.of())
-                                    ))
-                            .contentType("application/json")
-                            .content(jsonMapper.writeValueAsString(request)))
-                    .andExpect(status().isBadRequest());
-        }
-
-        static Stream<Arguments> oversizedFieldRequests() {
+        static Stream<Arguments> invalidFieldRequests() {
             return Stream.of(
+                    Arguments.of("blank name",
+                            CreateShoppingItemRequest.builder()
+                                    .name(null)
+                                    .category("Dairy")
+                                    .quantity(2.0)
+                                    .unit("liters")
+                                    .price(3.5)
+                                    .priority(ItemPriority.HIGH)
+                                    .build()),
+                    Arguments.of("empty name",
+                            CreateShoppingItemRequest.builder()
+                                    .name("")
+                                    .category("Dairy")
+                                    .quantity(2.0)
+                                    .unit("liters")
+                                    .price(3.5)
+                                    .priority(ItemPriority.HIGH)
+                                    .build()),
+                    Arguments.of("blank category",
+                            CreateShoppingItemRequest.builder()
+                                    .name("Milk")
+                                    .category(null)
+                                    .quantity(2.0)
+                                    .unit("liters")
+                                    .price(3.5)
+                                    .priority(ItemPriority.HIGH)
+                                    .build()),
+                    Arguments.of("empty category",
+                            CreateShoppingItemRequest.builder()
+                                    .name("Milk")
+                                    .category("")
+                                    .quantity(2.0)
+                                    .unit("liters")
+                                    .price(3.5)
+                                    .priority(ItemPriority.HIGH)
+                                    .build()),
                     Arguments.of("name exceeds 128 chars",
                             CreateShoppingItemRequest.builder()
                                     .name("a".repeat(129))
@@ -1400,13 +1344,70 @@ class ShoppingListControllerIntegrationTest {
                                     .build())
             );
         }
+
+        @Test
+        void givenRequestWithExplicitId_thenReturnCreatedWithProvidedId() throws Exception {
+            UUID userId = UUID.randomUUID();
+            UUID explicitItemId = UUID.randomUUID();
+
+            var shoppingList = ShoppingList.builder()
+                    .name("Groceries")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
+                    .build();
+            UUID shoppingListId = shoppingListRepository.save(shoppingList).id();
+
+            when(userClient.getUsersByIds(List.of(userId)))
+                    .thenReturn(List.of(User.builder().id(userId).firstName("John").lastName("Doe").build()));
+
+            CreateShoppingItemRequest request = CreateShoppingItemRequest.builder()
+                    .id(explicitItemId)
+                    .name("Milk")
+                    .category("Dairy")
+                    .quantity(2.0)
+                    .unit("liters")
+                    .price(3.5)
+                    .notes("Whole milk")
+                    .priority(ItemPriority.HIGH)
+                    .build();
+
+            mockMvc.perform(post("/api/shopping-lists/{id}/items", shoppingListId)
+                            .with(jwt()
+                                    .authorities(new SimpleGrantedAuthority("USER"))
+                                    .jwt(jwt -> jwt
+                                            .audience(List.of("financial-tracker-test"))
+                                            .claim("sub", userId)
+                                            .claim("scope", List.of())
+                                    ))
+                            .contentType("application/json")
+                            .content(jsonMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.id").value(explicitItemId.toString()))
+                    .andExpect(jsonPath("$.name").value("Milk"))
+                    .andExpect(jsonPath("$.category").value("Dairy"))
+                    .andExpect(jsonPath("$.quantity").value(2.0))
+                    .andExpect(jsonPath("$.unit").value("liters"))
+                    .andExpect(jsonPath("$.price").value(3.5))
+                    .andExpect(jsonPath("$.purchased").value(false))
+                    .andExpect(jsonPath("$.priority").value("HIGH"))
+                    .andExpect(jsonPath("$.notes").value("Whole milk"))
+                    .andExpect(jsonPath("$.addedBy").exists())
+                    .andExpect(jsonPath("$.addedBy.id").isNotEmpty())
+                    .andExpect(jsonPath("$.addedBy.firstName").value("John"))
+                    .andExpect(jsonPath("$.addedBy.lastName").value("Doe"))
+                    .andExpect(jsonPath("$.addedBy.initial").value("JD"))
+                    .andExpect(jsonPath("$.createdAt").exists())
+                    .andExpect(jsonPath("$.updatedAt").exists());
+        }
     }
 
     @Nested
     class UpdateShoppingItem {
 
         @Test
-        void givenExistingItem_thenReturnsOkWithUpdatedItem() throws Exception {
+        void givenExistingItem_thenReturnOkWithUpdatedItem() throws Exception {
             UUID userId = UUID.randomUUID();
             UUID addedBy = UUID.randomUUID();
 
@@ -1474,7 +1475,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenNonExistentList_thenReturnsNotFound() throws Exception {
+        void givenNonExistentList_thenReturnNotFound() throws Exception {
             UUID userId = UUID.randomUUID();
 
             PatchShoppingItemRequest request = PatchShoppingItemRequest.builder()
@@ -1495,7 +1496,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenNonExistentItem_thenReturnsNotFound() throws Exception {
+        void givenNonExistentItem_thenReturnNotFound() throws Exception {
             UUID userId = UUID.randomUUID();
 
             ShoppingList shoppingList = ShoppingList.builder()
@@ -1525,7 +1526,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenExistingItem_whenPatchPurchasedTrue_thenReturnsPurchasedTrue() throws Exception {
+        void givenPurchasedTrue_thenReturnPurchasedTrue() throws Exception {
             UUID userId = UUID.randomUUID();
 
             ShoppingItem milk = ShoppingItem.builder()
@@ -1575,7 +1576,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenListNotOwnedOrSharedWithUser_thenReturnsNotFound() throws Exception {
+        void givenListNotOwnedOrSharedWithUser_thenReturnNotFound() throws Exception {
             UUID listOwnerId = UUID.randomUUID();
             UUID unauthorizedUserId = UUID.randomUUID();
 
@@ -1620,7 +1621,7 @@ class ShoppingListControllerIntegrationTest {
 
         @ParameterizedTest(name = "[{index}] {0}")
         @MethodSource("oversizedFieldRequests")
-        void givenFieldExceedsMaxLength_thenReturnsBadRequest(String label, PatchShoppingItemRequest request) throws Exception {
+        void givenFieldExceedsMaxLength_thenReturnBadRequest(String label, PatchShoppingItemRequest request) throws Exception {
             mockMvc.perform(patch("/api/shopping-lists/{id}/items/{itemId}", UUID.randomUUID(), UUID.randomUUID())
                             .with(jwt()
                                     .authorities(new SimpleGrantedAuthority("USER"))
@@ -1660,7 +1661,7 @@ class ShoppingListControllerIntegrationTest {
     class DeleteShoppingItem {
 
         @Test
-        void givenExistingItem_thenReturnsNoContent() throws Exception {
+        void givenExistingItem_thenReturnNoContent() throws Exception {
             UUID userId = UUID.randomUUID();
 
             ShoppingItem milk = ShoppingItem.builder()
@@ -1703,7 +1704,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenNonExistentList_thenReturnsNotFound() throws Exception {
+        void givenNonExistentList_thenReturnNotFound() throws Exception {
             UUID userId = UUID.randomUUID();
 
             mockMvc.perform(delete("/api/shopping-lists/{id}/items/{itemId}", UUID.randomUUID(), UUID.randomUUID())
@@ -1719,7 +1720,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenNonExistentItem_thenReturnsNotFound() throws Exception {
+        void givenNonExistentItem_thenReturnNotFound() throws Exception {
             UUID userId = UUID.randomUUID();
 
             ShoppingList shoppingList = ShoppingList.builder()
@@ -1744,7 +1745,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenListNotOwnedOrSharedWithUser_thenReturnsNotFound() throws Exception {
+        void givenListNotOwnedOrSharedWithUser_thenReturnNotFound() throws Exception {
             UUID listOwnerId = UUID.randomUUID();
             UUID unauthorizedUserId = UUID.randomUUID();
 
@@ -1789,7 +1790,7 @@ class ShoppingListControllerIntegrationTest {
     class DeleteShoppingList {
 
         @Test
-        void givenExistingListWithItems_thenReturnsNoContentAndDeletesListAndItems() throws Exception {
+        void givenExistingListWithItems_thenReturnNoContent() throws Exception {
             UUID userId = UUID.randomUUID();
 
             ShoppingItem milk = ShoppingItem.builder()
@@ -1878,7 +1879,7 @@ class ShoppingListControllerIntegrationTest {
         }
 
         @Test
-        void givenNonExistentList_thenReturnsNotFound() throws Exception {
+        void givenNonExistentList_thenReturnNotFound() throws Exception {
             UUID userId = UUID.randomUUID();
 
             mockMvc.perform(delete("/api/shopping-lists/{id}", UUID.randomUUID())
