@@ -1,7 +1,7 @@
 package com.fabiankevin.app.services;
 
 import com.fabiankevin.app.models.budgets.BudgetSummary;
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.EntityType;
 import com.fabiankevin.app.services.commands.budgets.CreateBudgetCommand;
 import com.fabiankevin.app.services.commands.budgets.PatchBudgetCommand;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType;
@@ -40,7 +40,7 @@ public class SyncChangeAwareBudgetService implements BudgetService {
         final BudgetSummary result = delegate.createBudget(command);
         syncChangeService.create(CreateSyncChangeCommand.builder()
                 .userId(command.userId())
-                .entityType(ResourceType.BUDGETS)
+                .entityType(EntityType.BUDGETS)
                 .entityId(result.budget().id())
                 .operation(SyncChangeOperationType.CREATE)
                 .payload(jsonMapper.writeValueAsString(result.toBudget()))
@@ -59,7 +59,7 @@ public class SyncChangeAwareBudgetService implements BudgetService {
         final BudgetSummary result = delegate.patchBudget(command);
         syncChangeService.create(CreateSyncChangeCommand.builder()
                 .userId(command.userId())
-                .entityType(ResourceType.BUDGETS)
+                .entityType(EntityType.BUDGETS)
                 .entityId(result.budget().id())
                 .operation(SyncChangeOperationType.UPDATE)
                 .payload(jsonMapper.writeValueAsString(result.toBudget()))
@@ -74,7 +74,7 @@ public class SyncChangeAwareBudgetService implements BudgetService {
         delegate.deleteBudgetById(id, userId);
         syncChangeService.create(CreateSyncChangeCommand.builder()
                 .userId(userId)
-                .entityType(ResourceType.BUDGETS)
+                .entityType(EntityType.BUDGETS)
                 .entityId(id)
                 .operation(SyncChangeOperationType.DELETE)
                 .payload(jsonMapper.writeValueAsString(existing.toBudget()))

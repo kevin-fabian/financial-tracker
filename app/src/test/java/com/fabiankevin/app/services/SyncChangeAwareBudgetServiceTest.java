@@ -5,7 +5,7 @@ import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.EntityType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.commands.budgets.CreateBudgetCommand;
 import com.fabiankevin.app.services.commands.budgets.PatchBudgetCommand;
@@ -91,7 +91,7 @@ class SyncChangeAwareBudgetServiceTest {
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
             assertThat(change.userId()).isEqualTo(userId);
-            assertThat(change.entityType()).isEqualTo(ResourceType.BUDGETS);
+            assertThat(change.entityType()).isEqualTo(EntityType.BUDGETS);
             assertThat(change.entityId()).isEqualTo(budgetId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.CREATE);
             Budget capturedBudget = jsonMapper.readValue(change.payload(), Budget.class);
@@ -203,7 +203,7 @@ class SyncChangeAwareBudgetServiceTest {
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
             assertThat(change.userId()).isEqualTo(userId);
-            assertThat(change.entityType()).isEqualTo(ResourceType.BUDGETS);
+            assertThat(change.entityType()).isEqualTo(EntityType.BUDGETS);
             assertThat(change.entityId()).isEqualTo(budgetId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.UPDATE);
             Budget capturedBudget = jsonMapper.readValue(captor.getValue().payload(), Budget.class);
@@ -396,7 +396,7 @@ class SyncChangeAwareBudgetServiceTest {
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
             assertThat(change.userId()).isEqualTo(userId);
-            assertThat(change.entityType()).isEqualTo(ResourceType.BUDGETS);
+            assertThat(change.entityType()).isEqualTo(EntityType.BUDGETS);
             assertThat(change.entityId()).isEqualTo(id);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.DELETE);
             Budget capturedBudget = jsonMapper.readValue(change.payload(), Budget.class);

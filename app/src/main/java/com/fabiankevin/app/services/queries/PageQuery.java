@@ -13,7 +13,7 @@ public record PageQuery(
     public static PageQuery withDefaults() {
         return PageQuery.builder()
                 .page(0)
-                .size(10)
+                .size(500)
                 .sort("id")
                 .direction("DESC")
                 .build();

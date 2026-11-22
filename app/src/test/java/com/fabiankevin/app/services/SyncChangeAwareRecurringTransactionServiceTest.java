@@ -4,7 +4,7 @@ import com.fabiankevin.app.accounts.domain.models.Account;
 import com.fabiankevin.app.accounts.domain.models.AccountType;
 import com.fabiankevin.app.categories.domain.models.Category;
 import com.fabiankevin.app.models.User;
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.EntityType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionSummary;
@@ -113,7 +113,7 @@ class SyncChangeAwareRecurringTransactionServiceTest {
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
             assertThat(change.userId()).isEqualTo(userId);
-            assertThat(change.entityType()).isEqualTo(ResourceType.RECURRING_TRANSACTIONS);
+            assertThat(change.entityType()).isEqualTo(EntityType.RECURRING_TRANSACTIONS);
             assertThat(change.entityId()).isEqualTo(recurringTransactionId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.CREATE);
             assertThat(change.payload()).isNotNull();
@@ -262,7 +262,7 @@ class SyncChangeAwareRecurringTransactionServiceTest {
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
             assertThat(change.userId()).isEqualTo(userId);
-            assertThat(change.entityType()).isEqualTo(ResourceType.RECURRING_TRANSACTIONS);
+            assertThat(change.entityType()).isEqualTo(EntityType.RECURRING_TRANSACTIONS);
             assertThat(change.entityId()).isEqualTo(recurringTransactionId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.UPDATE);
             assertThat(change.payload()).isNotNull();
@@ -456,7 +456,7 @@ class SyncChangeAwareRecurringTransactionServiceTest {
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
             assertThat(change.userId()).isEqualTo(userId);
-            assertThat(change.entityType()).isEqualTo(ResourceType.RECURRING_TRANSACTIONS);
+            assertThat(change.entityType()).isEqualTo(EntityType.RECURRING_TRANSACTIONS);
             assertThat(change.entityId()).isEqualTo(id);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.DELETE);
             assertThat(change.payload()).isNotNull();

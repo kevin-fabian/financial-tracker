@@ -1,6 +1,6 @@
 package com.fabiankevin.app.services;
 
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.EntityType;
 import com.fabiankevin.app.models.shopping_list.ShoppingItemSummary;
 import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
 import com.fabiankevin.app.services.shopping_list.commands.CompleteShoppingListCommand;
@@ -104,7 +104,7 @@ public class SyncChangeAwareShoppingListService implements ShoppingListService {
     private void registerCreateChange(ShoppingListSummary summary, UUID userId) {
         syncChangeService.create(CreateSyncChangeCommand.builder()
                 .userId(userId)
-                .entityType(ResourceType.SHOPPING_LISTS)
+                .entityType(EntityType.SHOPPING_LISTS)
                 .entityId(summary.id())
                 .operation(SyncChangeOperationType.CREATE)
                 .payload(toJson(summary))
@@ -114,7 +114,7 @@ public class SyncChangeAwareShoppingListService implements ShoppingListService {
     private void registerUpdateChange(ShoppingListSummary summary, UUID userId) {
         syncChangeService.create(CreateSyncChangeCommand.builder()
                 .userId(userId)
-                .entityType(ResourceType.SHOPPING_LISTS)
+                .entityType(EntityType.SHOPPING_LISTS)
                 .entityId(summary.id())
                 .operation(SyncChangeOperationType.UPDATE)
                 .payload(toJson(summary))
@@ -124,7 +124,7 @@ public class SyncChangeAwareShoppingListService implements ShoppingListService {
     private void registerDeleteChange(ShoppingListSummary summary, UUID userId) {
         syncChangeService.create(CreateSyncChangeCommand.builder()
                 .userId(userId)
-                .entityType(ResourceType.SHOPPING_LISTS)
+                .entityType(EntityType.SHOPPING_LISTS)
                 .entityId(summary.id())
                 .operation(SyncChangeOperationType.DELETE)
                 .payload(toJson(summary))

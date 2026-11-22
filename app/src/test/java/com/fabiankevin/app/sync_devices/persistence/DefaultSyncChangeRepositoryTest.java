@@ -1,7 +1,7 @@
 package com.fabiankevin.app.sync_devices.persistence;
 
 import com.fabiankevin.app.models.Page;
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.EntityType;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType;
@@ -54,7 +54,7 @@ class DefaultSyncChangeRepositoryTest {
         syncChange = SyncChange.builder()
                 .userId(UUID.randomUUID())
                 .sequenceId(1L)
-                .entityType(ResourceType.TRANSACTIONS)
+                .entityType(EntityType.TRANSACTIONS)
                 .entityId(UUID.randomUUID())
                 .operation(SyncChangeOperationType.CREATE)
                 .payload("{\"amount\": 100.0}")
@@ -86,7 +86,7 @@ class DefaultSyncChangeRepositoryTest {
             SyncChange complexChange = SyncChange.builder()
                     .userId(UUID.randomUUID())
                     .sequenceId(2L)
-                    .entityType(ResourceType.ACCOUNTS)
+                    .entityType(EntityType.ACCOUNTS)
                     .entityId(UUID.randomUUID())
                     .operation(SyncChangeOperationType.UPDATE)
                     .payload("{\"name\": \"Checking\", \"balance\": 5000.75, \"currency\": \"USD\"}")
@@ -96,7 +96,7 @@ class DefaultSyncChangeRepositoryTest {
             SyncChange saved = syncChangeRepository.save(complexChange);
 
             assertEquals(complexChange.payload(), saved.payload(), "complex payload should match");
-            assertEquals(ResourceType.ACCOUNTS, saved.entityType(), "entityType should match");
+            assertEquals(EntityType.ACCOUNTS, saved.entityType(), "entityType should match");
             assertEquals(SyncChangeOperationType.UPDATE, saved.operation(), "operation should match");
 
             verify(jpaSyncChangeRepository, times(1)).save(any(SyncChangeEntity.class));
@@ -113,7 +113,7 @@ class DefaultSyncChangeRepositoryTest {
             SyncChange change1 = SyncChange.builder()
                     .userId(userId)
                     .sequenceId(2L)
-                    .entityType(ResourceType.TRANSACTIONS)
+                    .entityType(EntityType.TRANSACTIONS)
                     .entityId(UUID.randomUUID())
                     .operation(SyncChangeOperationType.CREATE)
                     .payload("{}")
@@ -123,7 +123,7 @@ class DefaultSyncChangeRepositoryTest {
             SyncChange change2 = SyncChange.builder()
                     .userId(userId)
                     .sequenceId(3L)
-                    .entityType(ResourceType.ACCOUNTS)
+                    .entityType(EntityType.ACCOUNTS)
                     .entityId(UUID.randomUUID())
                     .operation(SyncChangeOperationType.UPDATE)
                     .payload("{}")
@@ -133,7 +133,7 @@ class DefaultSyncChangeRepositoryTest {
             SyncChange change3 = SyncChange.builder()
                     .userId(userId)
                     .sequenceId(5L)
-                    .entityType(ResourceType.CATEGORIES)
+                    .entityType(EntityType.CATEGORIES)
                     .entityId(UUID.randomUUID())
                     .operation(SyncChangeOperationType.CREATE)
                     .payload("{}")
@@ -161,7 +161,7 @@ class DefaultSyncChangeRepositoryTest {
             SyncChange change = SyncChange.builder()
                     .userId(userId)
                     .sequenceId(5L)
-                    .entityType(ResourceType.TRANSACTIONS)
+                    .entityType(EntityType.TRANSACTIONS)
                     .entityId(UUID.randomUUID())
                     .operation(SyncChangeOperationType.CREATE)
                     .payload("{}")
@@ -185,7 +185,7 @@ class DefaultSyncChangeRepositoryTest {
                 SyncChange change = SyncChange.builder()
                         .userId(userId)
                         .sequenceId(i)
-                        .entityType(ResourceType.TRANSACTIONS)
+                        .entityType(EntityType.TRANSACTIONS)
                         .entityId(UUID.randomUUID())
                         .operation(SyncChangeOperationType.CREATE)
                         .payload("{}")
@@ -223,7 +223,7 @@ class DefaultSyncChangeRepositoryTest {
             SyncChange change1 = SyncChange.builder()
                     .userId(userId1)
                     .sequenceId(2L)
-                    .entityType(ResourceType.TRANSACTIONS)
+                    .entityType(EntityType.TRANSACTIONS)
                     .entityId(UUID.randomUUID())
                     .operation(SyncChangeOperationType.CREATE)
                     .payload("{}")
@@ -233,7 +233,7 @@ class DefaultSyncChangeRepositoryTest {
             SyncChange change2 = SyncChange.builder()
                     .userId(userId2)
                     .sequenceId(3L)
-                    .entityType(ResourceType.ACCOUNTS)
+                    .entityType(EntityType.ACCOUNTS)
                     .entityId(UUID.randomUUID())
                     .operation(SyncChangeOperationType.UPDATE)
                     .payload("{}")
@@ -263,7 +263,7 @@ class DefaultSyncChangeRepositoryTest {
                 SyncChange change = SyncChange.builder()
                         .userId(userId)
                         .sequenceId(i)
-                        .entityType(ResourceType.TRANSACTIONS)
+                        .entityType(EntityType.TRANSACTIONS)
                         .entityId(UUID.randomUUID())
                         .operation(SyncChangeOperationType.CREATE)
                         .payload("{}")
@@ -292,7 +292,7 @@ class DefaultSyncChangeRepositoryTest {
             SyncChange change1 = SyncChange.builder()
                     .userId(userId)
                     .sequenceId(2L)
-                    .entityType(ResourceType.TRANSACTIONS)
+                    .entityType(EntityType.TRANSACTIONS)
                     .entityId(UUID.randomUUID())
                     .operation(SyncChangeOperationType.CREATE)
                     .payload("{}")
@@ -302,7 +302,7 @@ class DefaultSyncChangeRepositoryTest {
             SyncChange change2 = SyncChange.builder()
                     .userId(userId)
                     .sequenceId(5L)
-                    .entityType(ResourceType.ACCOUNTS)
+                    .entityType(EntityType.ACCOUNTS)
                     .entityId(UUID.randomUUID())
                     .operation(SyncChangeOperationType.UPDATE)
                     .payload("{}")

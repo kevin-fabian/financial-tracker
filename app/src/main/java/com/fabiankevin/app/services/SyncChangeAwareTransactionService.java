@@ -3,7 +3,7 @@ package com.fabiankevin.app.services;
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.SummarySeries;
 import com.fabiankevin.app.models.Transaction;
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.EntityType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.commands.AddTransactionCommand;
 import com.fabiankevin.app.services.commands.PatchTransactionCommand;
@@ -49,7 +49,7 @@ public class SyncChangeAwareTransactionService implements TransactionService {
         final Transaction result = delegate.addTransaction(command);
         syncChangeService.create(CreateSyncChangeCommand.builder()
                 .userId(command.userId())
-                .entityType(ResourceType.TRANSACTIONS)
+                .entityType(EntityType.TRANSACTIONS)
                 .entityId(result.id())
                 .operation(SyncChangeOperationType.CREATE)
                 .payload(jsonMapper.writeValueAsString(result))
@@ -73,7 +73,7 @@ public class SyncChangeAwareTransactionService implements TransactionService {
         final Transaction result = delegate.patchTransaction(command);
         syncChangeService.create(CreateSyncChangeCommand.builder()
                 .userId(command.userId())
-                .entityType(ResourceType.TRANSACTIONS)
+                .entityType(EntityType.TRANSACTIONS)
                 .entityId(result.id())
                 .operation(SyncChangeOperationType.UPDATE)
                 .payload(jsonMapper.writeValueAsString(result))

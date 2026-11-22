@@ -5,7 +5,7 @@ import com.fabiankevin.app.accounts.domain.services.AccountService;
 import com.fabiankevin.app.accounts.domain.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.User;
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.EntityType;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaHouseholdRepository;
 import com.fabiankevin.app.services.EntitlementService;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
@@ -143,7 +143,7 @@ class SyncChangesControllerTest {
             SyncChange oldChange = SyncChange.builder()
                     .userId(userId)
                     .sequenceId(80L)
-                    .entityType(ResourceType.TRANSACTIONS)
+                    .entityType(EntityType.TRANSACTIONS)
                     .entityId(UUID.randomUUID())
                     .operation(SyncChangeOperationType.CREATE)
                     .payload("{}")
@@ -204,7 +204,7 @@ class SyncChangesControllerTest {
             SyncChange changeA = SyncChange.builder()
                     .userId(userIdA)
                     .sequenceId(121L)
-                    .entityType(ResourceType.TRANSACTIONS)
+                    .entityType(EntityType.TRANSACTIONS)
                     .entityId(transactionIdA)
                     .operation(SyncChangeOperationType.CREATE)
                     .payload("{}")
@@ -215,7 +215,7 @@ class SyncChangesControllerTest {
             SyncChange changeB = SyncChange.builder()
                     .userId(userIdB)
                     .sequenceId(90L)
-                    .entityType(ResourceType.TRANSACTIONS)
+                    .entityType(EntityType.TRANSACTIONS)
                     .entityId(transactionIdB)
                     .operation(SyncChangeOperationType.CREATE)
                     .payload("{}")
@@ -426,7 +426,7 @@ class SyncChangesControllerTest {
             SyncChange latestChange = SyncChange.builder()
                     .userId(userId)
                     .sequenceId(expectedCursor)
-                    .entityType(ResourceType.ACCOUNTS)
+                    .entityType(EntityType.ACCOUNTS)
                     .entityId(UUID.randomUUID())
                     .operation(SyncChangeOperationType.CREATE)
                     .payload("{}")

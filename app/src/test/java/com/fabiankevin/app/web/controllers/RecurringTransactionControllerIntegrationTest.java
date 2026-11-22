@@ -10,7 +10,7 @@ import com.fabiankevin.app.categories.domain.services.CategoryService;
 import com.fabiankevin.app.categories.persistence.entities.CategoryEntity;
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.User;
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.EntityType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransaction;
 import com.fabiankevin.app.models.recurring_transactions.RecurringTransactionStatus;
@@ -217,7 +217,7 @@ class RecurringTransactionControllerIntegrationTest {
 
             List<SyncChange> syncChanges = jpaSyncChangeRepository.findAll().stream()
                     .filter(change -> change.getUserId().equals(userId))
-                    .filter(change -> change.getEntityType() == ResourceType.RECURRING_TRANSACTIONS)
+                    .filter(change -> change.getEntityType() == EntityType.RECURRING_TRANSACTIONS)
                     .filter(change -> change.getEntityId().equals(recurringTransactionId))
                     .filter(change -> change.getOperation() == SyncChangeOperationType.CREATE)
                     .map(SyncChangeEntity::toModel)
@@ -227,7 +227,7 @@ class RecurringTransactionControllerIntegrationTest {
 
             SyncChange syncChange = syncChanges.getFirst();
             assertThat(syncChange.userId()).isEqualTo(userId);
-            assertThat(syncChange.entityType()).isEqualTo(ResourceType.RECURRING_TRANSACTIONS);
+            assertThat(syncChange.entityType()).isEqualTo(EntityType.RECURRING_TRANSACTIONS);
             assertThat(syncChange.operation()).isEqualTo(SyncChangeOperationType.CREATE);
             assertThat(syncChange.payload()).isNotEmpty();
             assertThat(syncChange.createdAt()).isNotNull();
@@ -820,7 +820,7 @@ class RecurringTransactionControllerIntegrationTest {
 
             List<SyncChange> syncChanges = jpaSyncChangeRepository.findAll().stream()
                     .filter(change -> change.getUserId().equals(userId))
-                    .filter(change -> change.getEntityType() == ResourceType.RECURRING_TRANSACTIONS)
+                    .filter(change -> change.getEntityType() == EntityType.RECURRING_TRANSACTIONS)
                     .filter(change -> change.getEntityId().equals(UUID.fromString(id)))
                     .filter(change -> change.getOperation() == SyncChangeOperationType.DELETE)
                     .map(SyncChangeEntity::toModel)
@@ -830,7 +830,7 @@ class RecurringTransactionControllerIntegrationTest {
 
             SyncChange syncChange = syncChanges.getFirst();
             assertThat(syncChange.userId()).isEqualTo(userId);
-            assertThat(syncChange.entityType()).isEqualTo(ResourceType.RECURRING_TRANSACTIONS);
+            assertThat(syncChange.entityType()).isEqualTo(EntityType.RECURRING_TRANSACTIONS);
             assertThat(syncChange.operation()).isEqualTo(SyncChangeOperationType.DELETE);
             assertThat(syncChange.payload()).isNotEmpty();
             assertThat(syncChange.createdAt()).isNotNull();
@@ -980,7 +980,7 @@ class RecurringTransactionControllerIntegrationTest {
 
             List<SyncChange> syncChanges = jpaSyncChangeRepository.findAll().stream()
                     .filter(change -> change.getUserId().equals(userId))
-                    .filter(change -> change.getEntityType() == ResourceType.RECURRING_TRANSACTIONS)
+                    .filter(change -> change.getEntityType() == EntityType.RECURRING_TRANSACTIONS)
                     .filter(change -> change.getEntityId().equals(UUID.fromString(id)))
                     .filter(change -> change.getOperation() == SyncChangeOperationType.UPDATE)
                     .map(SyncChangeEntity::toModel)
@@ -990,7 +990,7 @@ class RecurringTransactionControllerIntegrationTest {
 
             SyncChange syncChange = syncChanges.getFirst();
             assertThat(syncChange.userId()).isEqualTo(userId);
-            assertThat(syncChange.entityType()).isEqualTo(ResourceType.RECURRING_TRANSACTIONS);
+            assertThat(syncChange.entityType()).isEqualTo(EntityType.RECURRING_TRANSACTIONS);
             assertThat(syncChange.operation()).isEqualTo(SyncChangeOperationType.UPDATE);
             assertThat(syncChange.payload()).isNotEmpty();
             assertThat(syncChange.createdAt()).isNotNull();

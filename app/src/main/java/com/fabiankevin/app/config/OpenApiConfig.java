@@ -97,4 +97,13 @@ public class OpenApiConfig {
                 .pathsToMatch("/api/sync-devices/**")
                 .build();
     }
+
+    @Bean
+    public GroupedOpenApi syncChangesApi() {
+        return GroupedOpenApi.builder()
+                .group("sync-changes")
+                .displayName("Sync Changes API")
+                .pathsToMatch("/api/sync-changes/**")
+                .build();
+    }
 }

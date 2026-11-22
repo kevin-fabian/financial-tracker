@@ -4,7 +4,7 @@ import com.fabiankevin.app.accounts.domain.models.AccountSummary;
 import com.fabiankevin.app.accounts.domain.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.accounts.domain.services.commands.PatchAccountCommand;
 import com.fabiankevin.app.models.Page;
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.EntityType;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType;
 import com.fabiankevin.app.sync_devices.domain.services.SyncChangeService;
@@ -41,7 +41,7 @@ public class SyncChangeAwareAccountService implements AccountService {
         final AccountSummary result = delegate.createAccount(command);
         syncChangeService.create(CreateSyncChangeCommand.builder()
                 .userId(command.userId())
-                .entityType(ResourceType.ACCOUNTS)
+                .entityType(EntityType.ACCOUNTS)
                 .entityId(result.account().id())
                 .operation(SyncChangeOperationType.CREATE)
                 .payload(jsonMapper.writeValueAsString(result.account()))
@@ -59,7 +59,7 @@ public class SyncChangeAwareAccountService implements AccountService {
         final AccountSummary result = delegate.patchAccount(command);
         syncChangeService.create(CreateSyncChangeCommand.builder()
                 .userId(command.userId())
-                .entityType(ResourceType.ACCOUNTS)
+                .entityType(EntityType.ACCOUNTS)
                 .entityId(result.account().id())
                 .operation(SyncChangeOperationType.UPDATE)
                 .payload(jsonMapper.writeValueAsString(result.account()))
@@ -78,7 +78,7 @@ public class SyncChangeAwareAccountService implements AccountService {
         delegate.disableAccount(id, userId);
         syncChangeService.create(CreateSyncChangeCommand.builder()
                 .userId(userId)
-                .entityType(ResourceType.ACCOUNTS)
+                .entityType(EntityType.ACCOUNTS)
                 .entityId(id)
                 .operation(SyncChangeOperationType.DELETE)
                 .payload(jsonMapper.writeValueAsString(existing))

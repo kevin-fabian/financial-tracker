@@ -7,7 +7,7 @@ import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.SummarySeries;
 import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.models.User;
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.EntityType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.SyncChangeAwareTransactionService;
 import com.fabiankevin.app.services.TransactionService;
@@ -112,7 +112,7 @@ class SyncChangeAwareTransactionServiceTest {
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
             assertThat(change.userId()).isEqualTo(userId);
-            assertThat(change.entityType()).isEqualTo(ResourceType.TRANSACTIONS);
+            assertThat(change.entityType()).isEqualTo(EntityType.TRANSACTIONS);
             assertThat(change.entityId()).isEqualTo(transactionId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.CREATE);
             assertThat(change.payload()).isNotNull();
@@ -247,7 +247,7 @@ class SyncChangeAwareTransactionServiceTest {
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
             assertThat(change.userId()).isEqualTo(userId);
-            assertThat(change.entityType()).isEqualTo(ResourceType.TRANSACTIONS);
+            assertThat(change.entityType()).isEqualTo(EntityType.TRANSACTIONS);
             assertThat(change.entityId()).isEqualTo(transactionId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.UPDATE);
             assertThat(change.payload()).isNotNull();

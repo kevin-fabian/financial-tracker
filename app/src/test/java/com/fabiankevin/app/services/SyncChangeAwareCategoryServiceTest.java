@@ -5,7 +5,7 @@ import com.fabiankevin.app.categories.domain.models.CategorySummary;
 import com.fabiankevin.app.categories.domain.services.CategoryService;
 import com.fabiankevin.app.categories.domain.services.SyncChangeAwareCategoryService;
 import com.fabiankevin.app.models.Page;
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.EntityType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.PatchCategoryCommand;
@@ -76,7 +76,7 @@ class SyncChangeAwareCategoryServiceTest {
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
             assertThat(change.userId()).isEqualTo(userId);
-            assertThat(change.entityType()).isEqualTo(ResourceType.CATEGORIES);
+            assertThat(change.entityType()).isEqualTo(EntityType.CATEGORIES);
             assertThat(change.entityId()).isEqualTo(categoryId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.CREATE);
             assertThat(change.payload()).isNotNull();
@@ -162,7 +162,7 @@ class SyncChangeAwareCategoryServiceTest {
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
             assertThat(change.userId()).isEqualTo(userId);
-            assertThat(change.entityType()).isEqualTo(ResourceType.CATEGORIES);
+            assertThat(change.entityType()).isEqualTo(EntityType.CATEGORIES);
             assertThat(change.entityId()).isEqualTo(categoryId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.UPDATE);
             assertThat(change.payload()).isNotNull();
@@ -249,7 +249,7 @@ class SyncChangeAwareCategoryServiceTest {
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
             assertThat(change.userId()).isEqualTo(userId);
-            assertThat(change.entityType()).isEqualTo(ResourceType.CATEGORIES);
+            assertThat(change.entityType()).isEqualTo(EntityType.CATEGORIES);
             assertThat(change.entityId()).isEqualTo(categoryId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.DELETE);
             assertThat(change.payload()).isNotNull();

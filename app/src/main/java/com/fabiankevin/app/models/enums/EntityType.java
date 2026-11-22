@@ -1,6 +1,6 @@
 package com.fabiankevin.app.models.enums;
 
-public enum ResourceType {
+public enum EntityType {
     ACCOUNTS,
     CATEGORIES,
     TRANSACTIONS,

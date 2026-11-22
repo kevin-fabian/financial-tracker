@@ -2,6 +2,7 @@ package com.fabiankevin.app.sync_devices.domain.services;
 
 import com.fabiankevin.app.exceptions.party.ForbiddenException;
 import com.fabiankevin.app.models.Page;
+import com.fabiankevin.app.models.enums.EntityType;
 import com.fabiankevin.app.services.HouseholdService;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
@@ -189,7 +190,7 @@ class DefaultSyncChangeServiceTest {
                     .id(UUID.randomUUID())
                     .userId(changeUserId)
                     .sequenceId(101L)
-                    .entityType(com.fabiankevin.app.models.enums.ResourceType.TRANSACTIONS)
+                    .entityType(EntityType.TRANSACTIONS)
                     .entityId(UUID.randomUUID())
                     .operation(com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType.CREATE)
                     .payload("{}")
@@ -283,7 +284,7 @@ class DefaultSyncChangeServiceTest {
                             .id(UUID.randomUUID())
                             .userId(userId)
                             .sequenceId(i)
-                            .entityType(com.fabiankevin.app.models.enums.ResourceType.TRANSACTIONS)
+                            .entityType(EntityType.TRANSACTIONS)
                             .entityId(UUID.randomUUID())
                             .operation(com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType.CREATE)
                             .payload("{}")
@@ -312,7 +313,7 @@ class DefaultSyncChangeServiceTest {
         void givenValidCommand_shouldCreateSyncChangeWithSequenceIdOne() {
             UUID userId = UUID.randomUUID();
             UUID entityId = UUID.randomUUID();
-            com.fabiankevin.app.models.enums.ResourceType entityType = com.fabiankevin.app.models.enums.ResourceType.TRANSACTIONS;
+            EntityType entityType = EntityType.TRANSACTIONS;
             com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType operation = com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType.CREATE;
             String payload = "{\"amount\": 100.0}";
 
@@ -356,7 +357,7 @@ class DefaultSyncChangeServiceTest {
         void givenExistingChanges_shouldCreateSyncChangeWithIncrementedSequenceId() {
             UUID userId = UUID.randomUUID();
             UUID entityId = UUID.randomUUID();
-            com.fabiankevin.app.models.enums.ResourceType entityType = com.fabiankevin.app.models.enums.ResourceType.CATEGORIES;
+            EntityType entityType = EntityType.CATEGORIES;
             com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType operation = com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType.UPDATE;
             String payload = "{\"name\": \"updated\"}";
 
@@ -397,7 +398,7 @@ class DefaultSyncChangeServiceTest {
 
             CreateSyncChangeCommand command = CreateSyncChangeCommand.builder()
                     .userId(userId)
-                    .entityType(com.fabiankevin.app.models.enums.ResourceType.ACCOUNTS)
+                    .entityType(EntityType.ACCOUNTS)
                     .entityId(entityId)
                     .operation(com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType.DELETE)
                     .payload("{}")
@@ -409,7 +410,7 @@ class DefaultSyncChangeServiceTest {
                     .id(UUID.randomUUID())
                     .userId(userId)
                     .sequenceId(1L)
-                    .entityType(com.fabiankevin.app.models.enums.ResourceType.ACCOUNTS)
+                    .entityType(EntityType.ACCOUNTS)
                     .entityId(entityId)
                     .operation(com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType.DELETE)
                     .payload("{}")

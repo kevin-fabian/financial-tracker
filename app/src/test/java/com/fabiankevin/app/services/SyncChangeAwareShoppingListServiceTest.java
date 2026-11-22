@@ -1,7 +1,7 @@
 package com.fabiankevin.app.services;
 
+import com.fabiankevin.app.models.enums.EntityType;
 import com.fabiankevin.app.models.enums.ItemPriority;
-import com.fabiankevin.app.models.enums.ResourceType;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.shopping_list.ShoppingItemSummary;
 import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
@@ -80,7 +80,7 @@ class SyncChangeAwareShoppingListServiceTest {
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
             assertThat(change.userId()).isEqualTo(userId);
-            assertThat(change.entityType()).isEqualTo(ResourceType.SHOPPING_LISTS);
+            assertThat(change.entityType()).isEqualTo(EntityType.SHOPPING_LISTS);
             assertThat(change.entityId()).isEqualTo(listId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.CREATE);
             ShoppingListSummary capturedSummary = jsonMapper.readValue(change.payload(), ShoppingListSummary.class);
@@ -226,7 +226,7 @@ class SyncChangeAwareShoppingListServiceTest {
             ArgumentCaptor<CreateSyncChangeCommand> captor = ArgumentCaptor.forClass(CreateSyncChangeCommand.class);
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
-            assertThat(change.entityType()).isEqualTo(ResourceType.SHOPPING_LISTS);
+            assertThat(change.entityType()).isEqualTo(EntityType.SHOPPING_LISTS);
             assertThat(change.entityId()).isEqualTo(listId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.UPDATE);
             ShoppingListSummary capturedSummary = jsonMapper.readValue(change.payload(), ShoppingListSummary.class);
@@ -278,7 +278,7 @@ class SyncChangeAwareShoppingListServiceTest {
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
             assertThat(change.userId()).isEqualTo(userId);
-            assertThat(change.entityType()).isEqualTo(ResourceType.SHOPPING_LISTS);
+            assertThat(change.entityType()).isEqualTo(EntityType.SHOPPING_LISTS);
             assertThat(change.entityId()).isEqualTo(listId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.UPDATE);
         }
@@ -379,7 +379,7 @@ class SyncChangeAwareShoppingListServiceTest {
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
             assertThat(change.userId()).isEqualTo(userId);
-            assertThat(change.entityType()).isEqualTo(ResourceType.SHOPPING_LISTS);
+            assertThat(change.entityType()).isEqualTo(EntityType.SHOPPING_LISTS);
             assertThat(change.entityId()).isEqualTo(listId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.DELETE);
             ShoppingListSummary capturedSummary = jsonMapper.readValue(change.payload(), ShoppingListSummary.class);

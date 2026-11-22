@@ -9,7 +9,7 @@ import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.budgets.Budget;
 import com.fabiankevin.app.models.budgets.BudgetPeriod;
 import com.fabiankevin.app.models.budgets.BudgetSummary;
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.EntityType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.BudgetService;
 import com.fabiankevin.app.services.EntitlementService;
@@ -448,7 +448,7 @@ class BudgetControllerIntegrationTest {
 
             List<SyncChange> syncChanges = jpaSyncChangeRepository.findAll().stream()
                     .filter(change -> change.getUserId().equals(userId))
-                    .filter(change -> change.getEntityType() == ResourceType.BUDGETS)
+                    .filter(change -> change.getEntityType() == EntityType.BUDGETS)
                     .filter(change -> change.getEntityId().equals(budgetId))
                     .map(SyncChangeEntity::toModel)
                     .toList();
@@ -457,7 +457,7 @@ class BudgetControllerIntegrationTest {
 
             SyncChange syncChange = syncChanges.getFirst();
             assertThat(syncChange.userId()).isEqualTo(userId);
-            assertThat(syncChange.entityType()).isEqualTo(ResourceType.BUDGETS);
+            assertThat(syncChange.entityType()).isEqualTo(EntityType.BUDGETS);
             assertThat(syncChange.operation()).isEqualTo(SyncChangeOperationType.CREATE);
             assertThat(syncChange.payload()).isNotEmpty();
             assertThat(syncChange.createdAt()).isNotNull();
@@ -757,7 +757,7 @@ class BudgetControllerIntegrationTest {
 
             List<SyncChange> syncChanges = jpaSyncChangeRepository.findAll().stream()
                     .filter(change -> change.getUserId().equals(userId))
-                    .filter(change -> change.getEntityType() == ResourceType.BUDGETS)
+                    .filter(change -> change.getEntityType() == EntityType.BUDGETS)
                     .filter(change -> change.getEntityId().equals(budget.id()))
                     .filter(change -> change.getOperation() == SyncChangeOperationType.UPDATE)
                     .map(SyncChangeEntity::toModel)
@@ -767,7 +767,7 @@ class BudgetControllerIntegrationTest {
 
             SyncChange syncChange = syncChanges.getFirst();
             assertThat(syncChange.userId()).isEqualTo(userId);
-            assertThat(syncChange.entityType()).isEqualTo(ResourceType.BUDGETS);
+            assertThat(syncChange.entityType()).isEqualTo(EntityType.BUDGETS);
             assertThat(syncChange.operation()).isEqualTo(SyncChangeOperationType.UPDATE);
             assertThat(syncChange.payload()).isNotEmpty();
             assertThat(syncChange.createdAt()).isNotNull();
@@ -1114,7 +1114,7 @@ class BudgetControllerIntegrationTest {
 
             List<SyncChange> syncChanges = jpaSyncChangeRepository.findAll().stream()
                     .filter(change -> change.getUserId().equals(userId))
-                    .filter(change -> change.getEntityType() == ResourceType.BUDGETS)
+                    .filter(change -> change.getEntityType() == EntityType.BUDGETS)
                     .filter(change -> change.getEntityId().equals(budgetId))
                     .filter(change -> change.getOperation() == SyncChangeOperationType.DELETE)
                     .map(SyncChangeEntity::toModel)
@@ -1124,7 +1124,7 @@ class BudgetControllerIntegrationTest {
 
             SyncChange syncChange = syncChanges.getFirst();
             assertThat(syncChange.userId()).isEqualTo(userId);
-            assertThat(syncChange.entityType()).isEqualTo(ResourceType.BUDGETS);
+            assertThat(syncChange.entityType()).isEqualTo(EntityType.BUDGETS);
             assertThat(syncChange.operation()).isEqualTo(SyncChangeOperationType.DELETE);
             assertThat(syncChange.payload()).isNotEmpty();
             assertThat(syncChange.createdAt()).isNotNull();

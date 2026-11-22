@@ -1,6 +1,6 @@
 package com.fabiankevin.app.sync_devices.domain.models;
 
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.EntityType;
 import lombok.Builder;
 import lombok.With;
 
@@ -14,7 +14,7 @@ public record SyncChange(
         UUID id,
         UUID userId,
         long sequenceId,
-        ResourceType entityType,
+        EntityType entityType,
         UUID entityId,
         SyncChangeOperationType operation,
         String payload,

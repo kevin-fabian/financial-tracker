@@ -4,8 +4,8 @@ import com.fabiankevin.app.categories.domain.models.Category;
 import com.fabiankevin.app.categories.domain.repositories.CategoryRepository;
 import com.fabiankevin.app.clients.UserClient;
 import com.fabiankevin.app.models.User;
+import com.fabiankevin.app.models.enums.EntityType;
 import com.fabiankevin.app.models.enums.ItemPriority;
-import com.fabiankevin.app.models.enums.ResourceType;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
@@ -187,7 +187,7 @@ class ShoppingListControllerIntegrationTest {
 
             List<SyncChange> syncChanges = jpaSyncChangeRepository.findAll().stream()
                     .filter(change -> change.getUserId().equals(userId))
-                    .filter(change -> change.getEntityType() == ResourceType.SHOPPING_LISTS)
+                    .filter(change -> change.getEntityType() == EntityType.SHOPPING_LISTS)
                     .filter(change -> change.getEntityId().equals(shoppingListId))
                     .filter(change -> change.getOperation() == SyncChangeOperationType.CREATE)
                     .map(SyncChangeEntity::toModel)
@@ -197,7 +197,7 @@ class ShoppingListControllerIntegrationTest {
 
             SyncChange syncChange = syncChanges.getFirst();
             Assertions.assertThat(syncChange.userId()).isEqualTo(userId);
-            Assertions.assertThat(syncChange.entityType()).isEqualTo(ResourceType.SHOPPING_LISTS);
+            Assertions.assertThat(syncChange.entityType()).isEqualTo(EntityType.SHOPPING_LISTS);
             Assertions.assertThat(syncChange.operation()).isEqualTo(SyncChangeOperationType.CREATE);
             Assertions.assertThat(syncChange.payload()).isNotEmpty();
             Assertions.assertThat(syncChange.createdAt()).isNotNull();
@@ -725,7 +725,7 @@ class ShoppingListControllerIntegrationTest {
 
             List<SyncChange> syncChanges = jpaSyncChangeRepository.findAll().stream()
                     .filter(change -> change.getUserId().equals(userId))
-                    .filter(change -> change.getEntityType() == ResourceType.SHOPPING_LISTS)
+                    .filter(change -> change.getEntityType() == EntityType.SHOPPING_LISTS)
                     .filter(change -> change.getEntityId().equals(shoppingListId))
                     .filter(change -> change.getOperation() == SyncChangeOperationType.UPDATE)
                     .map(SyncChangeEntity::toModel)
@@ -735,7 +735,7 @@ class ShoppingListControllerIntegrationTest {
 
             SyncChange syncChange = syncChanges.getFirst();
             Assertions.assertThat(syncChange.userId()).isEqualTo(userId);
-            Assertions.assertThat(syncChange.entityType()).isEqualTo(ResourceType.SHOPPING_LISTS);
+            Assertions.assertThat(syncChange.entityType()).isEqualTo(EntityType.SHOPPING_LISTS);
             Assertions.assertThat(syncChange.operation()).isEqualTo(SyncChangeOperationType.UPDATE);
             Assertions.assertThat(syncChange.payload()).isNotEmpty();
             Assertions.assertThat(syncChange.createdAt()).isNotNull();
@@ -1828,7 +1828,7 @@ class ShoppingListControllerIntegrationTest {
 
             List<SyncChange> syncChanges = jpaSyncChangeRepository.findAll().stream()
                     .filter(change -> change.getUserId().equals(userId))
-                    .filter(change -> change.getEntityType() == ResourceType.SHOPPING_LISTS)
+                    .filter(change -> change.getEntityType() == EntityType.SHOPPING_LISTS)
                     .filter(change -> change.getEntityId().equals(shoppingListId))
                     .filter(change -> change.getOperation() == SyncChangeOperationType.DELETE)
                     .map(SyncChangeEntity::toModel)
@@ -1838,7 +1838,7 @@ class ShoppingListControllerIntegrationTest {
 
             SyncChange syncChange = syncChanges.getFirst();
             Assertions.assertThat(syncChange.userId()).isEqualTo(userId);
-            Assertions.assertThat(syncChange.entityType()).isEqualTo(ResourceType.SHOPPING_LISTS);
+            Assertions.assertThat(syncChange.entityType()).isEqualTo(EntityType.SHOPPING_LISTS);
             Assertions.assertThat(syncChange.operation()).isEqualTo(SyncChangeOperationType.DELETE);
             Assertions.assertThat(syncChange.payload()).isNotEmpty();
             Assertions.assertThat(syncChange.createdAt()).isNotNull();

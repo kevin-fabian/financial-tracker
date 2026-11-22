@@ -1,6 +1,6 @@
 package com.fabiankevin.app.sync_devices.persistence.entities;
 
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.EntityType;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChange;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType;
 import jakarta.persistence.Column;
@@ -40,7 +40,7 @@ public class SyncChangeEntity {
     private Long sequenceId;
     @Column(name = "entity_type", nullable = false)
     @Enumerated(EnumType.STRING)
-    private ResourceType entityType;
+    private EntityType entityType;
     @Column(name = "entity_id", nullable = false)
     private UUID entityId;
     @Column(name = "operation", nullable = false)

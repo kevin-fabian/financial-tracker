@@ -8,7 +8,7 @@ import com.fabiankevin.app.accounts.domain.services.SyncChangeAwareAccountServic
 import com.fabiankevin.app.accounts.domain.services.commands.CreateAccountCommand;
 import com.fabiankevin.app.accounts.domain.services.commands.PatchAccountCommand;
 import com.fabiankevin.app.models.User;
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.EntityType;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType;
 import com.fabiankevin.app.sync_devices.domain.services.SyncChangeService;
 import com.fabiankevin.app.sync_devices.domain.services.commands.CreateSyncChangeCommand;
@@ -79,7 +79,7 @@ class SyncChangeAwareAccountServiceTest {
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
             assertThat(change.userId()).isEqualTo(userId);
-            assertThat(change.entityType()).isEqualTo(ResourceType.ACCOUNTS);
+            assertThat(change.entityType()).isEqualTo(EntityType.ACCOUNTS);
             assertThat(change.entityId()).isEqualTo(accountId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.CREATE);
             Account capturedAccount = jsonMapper.readValue(change.payload(), Account.class);
@@ -239,7 +239,7 @@ class SyncChangeAwareAccountServiceTest {
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
             assertThat(change.userId()).isEqualTo(userId);
-            assertThat(change.entityType()).isEqualTo(ResourceType.ACCOUNTS);
+            assertThat(change.entityType()).isEqualTo(EntityType.ACCOUNTS);
             assertThat(change.entityId()).isEqualTo(accountId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.DELETE);
             AccountSummary capturedSummary = jsonMapper.readValue(change.payload(), AccountSummary.class);

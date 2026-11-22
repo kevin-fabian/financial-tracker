@@ -3,7 +3,7 @@ package com.fabiankevin.app.categories.domain.services;
 import com.fabiankevin.app.categories.domain.models.Category;
 import com.fabiankevin.app.categories.domain.models.CategorySummary;
 import com.fabiankevin.app.models.Page;
-import com.fabiankevin.app.models.enums.ResourceType;
+import com.fabiankevin.app.models.enums.EntityType;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.commands.CreateCategoryCommand;
 import com.fabiankevin.app.services.commands.PatchCategoryCommand;
@@ -42,7 +42,7 @@ public class SyncChangeAwareCategoryService implements CategoryService {
         final Category result = delegate.createCategory(command);
         syncChangeService.create(CreateSyncChangeCommand.builder()
                 .userId(command.userId())
-                .entityType(ResourceType.CATEGORIES)
+                .entityType(EntityType.CATEGORIES)
                 .entityId(result.id())
                 .operation(SyncChangeOperationType.CREATE)
                 .payload(jsonMapper.writeValueAsString(result))
@@ -60,7 +60,7 @@ public class SyncChangeAwareCategoryService implements CategoryService {
         final CategorySummary result = delegate.patchCategory(command);
         syncChangeService.create(CreateSyncChangeCommand.builder()
                 .userId(command.userId())
-                .entityType(ResourceType.CATEGORIES)
+                .entityType(EntityType.CATEGORIES)
                 .entityId(result.category().id())
                 .operation(SyncChangeOperationType.UPDATE)
                 .payload(jsonMapper.writeValueAsString(result))
@@ -79,7 +79,7 @@ public class SyncChangeAwareCategoryService implements CategoryService {
         delegate.disableCategory(id, userId);
         syncChangeService.create(CreateSyncChangeCommand.builder()
                 .userId(userId)
-                .entityType(ResourceType.CATEGORIES)
+                .entityType(EntityType.CATEGORIES)
                 .entityId(id)
                 .operation(SyncChangeOperationType.DELETE)
                 .payload(jsonMapper.writeValueAsString(existing))
