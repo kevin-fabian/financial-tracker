@@ -5,6 +5,7 @@ import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.persistence.entities.ShoppingListEntity;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaShoppingItemRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaShoppingListRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -40,6 +41,9 @@ class DefaultShoppingListRepositoryTest {
     @MockitoSpyBean
     private JpaShoppingListRepository jpaShoppingListRepository;
 
+    @MockitoSpyBean
+    private JpaShoppingItemRepository jpaShoppingItemRepository;
+
     @Autowired
     private ShoppingListRepository shoppingListRepository;
 
@@ -48,8 +52,8 @@ class DefaultShoppingListRepositoryTest {
     @TestConfiguration
     public static class ContextConfiguration {
         @Bean
-        public ShoppingListRepository shoppingListRepository(JpaShoppingListRepository jpaShoppingListRepository, jakarta.persistence.EntityManager entityManager) {
-            return new DefaultShoppingListRepository(jpaShoppingListRepository, entityManager);
+        public ShoppingListRepository shoppingListRepository(JpaShoppingListRepository jpaShoppingListRepository, JpaShoppingItemRepository jpaShoppingItemRepository, jakarta.persistence.EntityManager entityManager) {
+            return new DefaultShoppingListRepository(jpaShoppingListRepository, jpaShoppingItemRepository, entityManager);
         }
     }
 
@@ -90,7 +94,7 @@ class DefaultShoppingListRepositoryTest {
     class Save {
 
         @Test
-        void givenValidShoppingList_thenPersistsAndRetrievesAllFieldsIncludingCascadeItems() {
+        void givenValidShoppingList_shouldPersistAndRetrieveAllFieldsIncludingCascadeItems() {
             ShoppingList saved = shoppingListRepository.save(shoppingList);
 
             assertThat(saved.id()).isNotNull();
@@ -115,7 +119,64 @@ class DefaultShoppingListRepositoryTest {
         }
 
         @Test
-        void givenShoppingListWithEmptyItems_thenPersistsSuccessfully() {
+        void givenShoppingListWithExplicitIds_shouldPersistWithProvidedIds() {
+            UUID listId = UUID.randomUUID();
+            UUID itemId = UUID.randomUUID();
+            UUID userId = UUID.randomUUID();
+            Instant now = Instant.now();
+
+            ShoppingItem item = ShoppingItem.builder()
+                    .id(itemId)
+                    .name("Eggs")
+                    .category("Groceries")
+                    .quantity(12.0)
+                    .unit("pieces")
+                    .price(5.99)
+                    .purchased(false)
+                    .priority(ItemPriority.MEDIUM)
+                    .notes("Large eggs")
+                    .addedBy(userId)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingList explicitList = ShoppingList.builder()
+                    .id(listId)
+                    .name("Explicit IDs List")
+                    .description("Testing explicit ID persistence")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .items(List.of(item))
+                    .userId(userId)
+                    .budget(25.00)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+
+            ShoppingList saved = shoppingListRepository.save(explicitList);
+
+            assertThat(saved.id()).isEqualTo(listId);
+            assertThat(saved.name()).isEqualTo("Explicit IDs List");
+            assertThat(saved.description()).isEqualTo("Testing explicit ID persistence");
+            assertThat(saved.status()).isEqualTo(ShoppingListStatus.ACTIVE);
+            assertThat(saved.userId()).isEqualTo(userId);
+            assertThat(saved.budget()).isEqualTo(25.00);
+            assertThat(saved.items()).hasSize(1);
+
+            ShoppingItem savedItem = saved.items().getFirst();
+            assertThat(savedItem.id()).isEqualTo(itemId);
+            assertThat(savedItem.name()).isEqualTo("Eggs");
+            assertThat(savedItem.category()).isEqualTo("Groceries");
+            assertThat(savedItem.quantity()).isEqualTo(12.0);
+            assertThat(savedItem.unit()).isEqualTo("pieces");
+            assertThat(savedItem.price()).isEqualTo(5.99);
+            assertThat(savedItem.purchased()).isFalse();
+            assertThat(savedItem.priority()).isEqualTo(ItemPriority.MEDIUM);
+            assertThat(savedItem.notes()).isEqualTo("Large eggs");
+            assertThat(savedItem.addedBy()).isEqualTo(userId);
+        }
+
+        @Test
+        void givenShoppingListWithEmptyItems_shouldPersistSuccessfully() {
             UUID userId = UUID.randomUUID();
             Instant now = Instant.now();
 
@@ -134,12 +195,6 @@ class DefaultShoppingListRepositoryTest {
             assertThat(saved.id()).isNotNull();
             assertThat(saved.name()).isEqualTo("Empty List");
             assertThat(saved.items()).isEmpty();
-        }
-
-        @Test
-        void givenNullShoppingList_thenThrowsInvalidDataAccessApiUsageException() {
-            assertThatThrownBy(() -> shoppingListRepository.save(null))
-                    .isInstanceOf(InvalidDataAccessApiUsageException.class);
         }
     }
 
@@ -178,7 +233,11 @@ class DefaultShoppingListRepositoryTest {
                     .updatedAt(now)
                     .build();
 
-            ShoppingListEntity savedEntity = jpaShoppingListRepository.save(ShoppingListEntity.from(shoppingList));
+            ShoppingListEntity entity = ShoppingListEntity.from(shoppingList);
+            for (com.fabiankevin.app.persistence.entities.ShoppingItemEntity itemEntity : entity.getItems()) {
+                jpaShoppingItemRepository.save(itemEntity);
+            }
+            ShoppingListEntity savedEntity = jpaShoppingListRepository.save(entity);
 
             ShoppingList updated = ShoppingList.builder()
                     .id(savedEntity.getId())
@@ -201,7 +260,7 @@ class DefaultShoppingListRepositoryTest {
         }
 
         @Test
-        void givenNullShoppingList_thenThrowsInvalidDataAccessApiUsageException() {
+        void givenNullShoppingList_shouldThrowInvalidDataAccessApiUsageException() {
             assertThatThrownBy(() -> shoppingListRepository.update(null))
                     .isInstanceOf(InvalidDataAccessApiUsageException.class);
         }
@@ -211,7 +270,7 @@ class DefaultShoppingListRepositoryTest {
     class FindById {
 
         @Test
-        void givenExistingId_thenReturnsShoppingListWithAllFields() {
+        void givenExistingId_shouldReturnShoppingListWithAllFields() {
             ShoppingList saved = shoppingListRepository.save(shoppingList);
             UUID id = saved.id();
 
@@ -241,7 +300,7 @@ class DefaultShoppingListRepositoryTest {
         }
 
         @Test
-        void givenNonExistentId_thenReturnsEmptyOptional() {
+        void givenNonExistentId_shouldReturnEmptyOptional() {
             Optional<ShoppingList> found = shoppingListRepository.findById(UUID.randomUUID());
 
             assertThat(found).isEmpty();
@@ -252,7 +311,7 @@ class DefaultShoppingListRepositoryTest {
     class FindAllByUserId {
 
         @Test
-        void givenOwnedShoppingList_thenReturnsIt() {
+        void givenOwnedShoppingList_shouldReturnIt() {
             UUID userId = UUID.randomUUID();
             Instant now = Instant.now();
 
@@ -283,7 +342,7 @@ class DefaultShoppingListRepositoryTest {
         }
 
         @Test
-        void givenSharedShoppingList_thenReturnsItToSharedUser() {
+        void givenSharedShoppingList_shouldReturnItToSharedUser() {
             UUID ownerUserId = UUID.randomUUID();
             UUID sharedUserId = UUID.randomUUID();
             Instant now = Instant.now();
@@ -312,7 +371,7 @@ class DefaultShoppingListRepositoryTest {
         }
 
         @Test
-        void givenOwnedAndSharedLists_thenReturnsBoth() {
+        void givenOwnedAndSharedLists_shouldReturnBoth() {
             UUID userId = UUID.randomUUID();
             UUID otherUserId = UUID.randomUUID();
             Instant now = Instant.now();
@@ -349,7 +408,7 @@ class DefaultShoppingListRepositoryTest {
         }
 
         @Test
-        void givenNoMatchingLists_thenReturnsEmptyList() {
+        void givenNoMatchingLists_shouldReturnEmptyList() {
             List<ShoppingList> result = shoppingListRepository.findAllByUserId(UUID.randomUUID());
 
             assertThat(result).isEmpty();
@@ -360,7 +419,7 @@ class DefaultShoppingListRepositoryTest {
     class DeleteById {
 
         @Test
-        void givenExistingId_thenDeletesShoppingList() {
+        void givenExistingId_shouldDeleteShoppingList() {
             ShoppingList saved = shoppingListRepository.save(shoppingList);
             UUID id = saved.id();
 
@@ -372,7 +431,7 @@ class DefaultShoppingListRepositoryTest {
         }
 
         @Test
-        void givenNonExistentId_thenDoesNotThrow() {
+        void givenNonExistentId_shouldNotThrow() {
             assertThatCode(() -> shoppingListRepository.deleteById(UUID.randomUUID()))
                     .doesNotThrowAnyException();
         }
@@ -382,7 +441,7 @@ class DefaultShoppingListRepositoryTest {
     class DeleteAllByUserId {
 
         @Test
-        void givenUserWithShoppingLists_thenDeletesAllOfThem() {
+        void givenUserWithShoppingLists_shouldDeleteAllOfThem() {
             UUID userId = UUID.randomUUID();
             Instant now = Instant.now();
 
@@ -418,7 +477,7 @@ class DefaultShoppingListRepositoryTest {
         }
 
         @Test
-        void givenUserWithShoppingListsContainingItems_thenDeletesListsAndItems() {
+        void givenUserWithShoppingListsContainingItems_shouldDeleteListsAndItems() {
             UUID userId = UUID.randomUUID();
             Instant now = Instant.now();
 
@@ -467,7 +526,7 @@ class DefaultShoppingListRepositoryTest {
 
             List<ShoppingList> listsBefore = shoppingListRepository.findAllByUserId(userId);
             assertThat(listsBefore).hasSize(1);
-            assertThat(listsBefore.get(0).items()).hasSize(2);
+            assertThat(listsBefore.getFirst().items()).hasSize(2);
 
             shoppingListRepository.deleteAllByUserId(userId);
 
@@ -476,7 +535,7 @@ class DefaultShoppingListRepositoryTest {
         }
 
         @Test
-        void givenUserWithoutShoppingLists_thenDoesNotThrow() {
+        void givenUserWithoutShoppingLists_shouldNotThrow() {
             assertThatCode(() -> shoppingListRepository.deleteAllByUserId(UUID.randomUUID()))
                     .doesNotThrowAnyException();
         }

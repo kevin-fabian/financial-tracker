@@ -5,7 +5,6 @@ import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -26,6 +25,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -82,14 +82,8 @@ public class ShoppingListEntity {
     @Column(name = "updated_by")
     private UUID updatedBy;
 
-    @OneToMany(mappedBy = "shoppingList", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany
     private Set<ShoppingItemEntity> items = new HashSet<>();
-
-    public void addItem(ShoppingItemEntity item) {
-        if (item == null) return;
-        item.setShoppingList(this);
-        this.items.add(item);
-    }
 
     public static ShoppingListEntity from(ShoppingList shoppingList) {
         if (shoppingList == null) return null;
@@ -110,11 +104,9 @@ public class ShoppingListEntity {
                 .items(new HashSet<>())
                 .build();
         for (ShoppingItem item : shoppingList.items()) {
-            ShoppingItemEntity itemEntity = ShoppingItemEntity.from(item);
-            if (itemEntity.getId() == null) {
-                itemEntity = itemEntity.toBuilder().id(UUID.randomUUID()).build();
-            }
-            entity.addItem(itemEntity);
+            ShoppingItemEntity itemEntity = ShoppingItemEntity.from(item, shoppingList.id());
+            itemEntity.setId(Optional.ofNullable(itemEntity.getId()).orElse(UUID.randomUUID()));
+            entity.getItems().add(itemEntity);
         }
         return entity;
     }

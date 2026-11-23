@@ -19,6 +19,7 @@ import com.fabiankevin.app.models.shopping_list.ShoppingItem;
 import com.fabiankevin.app.models.shopping_list.ShoppingItemSummary;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
+import com.fabiankevin.app.persistence.ShoppingItemRepository;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
 import com.fabiankevin.app.services.shopping_list.commands.CompleteShoppingListCommand;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingItemCommand;
@@ -55,12 +56,14 @@ import static org.mockito.Mockito.when;
 
 class DefaultShoppingListServiceTest {
     private final ShoppingListRepository shoppingListRepository = mock(ShoppingListRepository.class);
+    private final ShoppingItemRepository shoppingItemRepository = mock(ShoppingItemRepository.class);
     private final CategoryRepository categoryRepository = mock(CategoryRepository.class);
     private final UserClient userClient = mock(UserClient.class);
     private final EventPublisher shoppingListEventPublisher = mock(EventPublisher.class);
 
     private final ShoppingListService shoppingListService = new DefaultShoppingListService(
             shoppingListRepository,
+            shoppingItemRepository,
             categoryRepository,
             userClient,
             shoppingListEventPublisher

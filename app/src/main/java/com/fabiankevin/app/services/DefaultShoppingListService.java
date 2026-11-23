@@ -17,6 +17,7 @@ import com.fabiankevin.app.models.shopping_list.ShoppingItem;
 import com.fabiankevin.app.models.shopping_list.ShoppingItemSummary;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.models.shopping_list.ShoppingListSummary;
+import com.fabiankevin.app.persistence.ShoppingItemRepository;
 import com.fabiankevin.app.persistence.ShoppingListRepository;
 import com.fabiankevin.app.services.shopping_list.commands.CompleteShoppingListCommand;
 import com.fabiankevin.app.services.shopping_list.commands.CreateShoppingItemCommand;
@@ -43,6 +44,7 @@ import java.util.stream.Collectors;
 @Service("defaultShoppingListService")
 public class DefaultShoppingListService implements ShoppingListService {
     private final ShoppingListRepository shoppingListRepository;
+    private final ShoppingItemRepository shoppingItemRepository;
     private final CategoryRepository categoryRepository;
     private final UserClient userClient;
     private final EventPublisher shoppingListEventPublisher;
@@ -167,16 +169,8 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .build();
 
         existing.addItem(item);
-        ShoppingList updated = existing.toBuilder()
-                .updatedAt(now)
-                .build();
 
-        ShoppingList saved = shoppingListRepository.update(updated);
-
-        ShoppingItem savedItem = saved.items().stream()
-                .filter(i -> i.createdAt().equals(item.createdAt()))
-                .findFirst()
-                .orElse(item);
+        ShoppingItem savedItem = shoppingItemRepository.save(item, existing.id());
 
         User user = userClient.getUsersByIds(List.of(savedItem.addedBy()))
                 .stream()
@@ -198,8 +192,8 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .updatedAt(savedItem.updatedAt())
                 .build();
 
-        publishEvent(saved, EventAction.ITEM_ADDED, saved.userId().toString(),
-                toSummary(saved));
+        publishEvent(existing, EventAction.ITEM_ADDED, existing.userId().toString(),
+                toSummary(existing));
         return result;
     }
 

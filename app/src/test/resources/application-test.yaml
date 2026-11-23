@@ -14,3 +14,8 @@ spring:
       client:
         registration:
         provider:
+
+logging:
+  level:
+    com.fabiankevin.app: DEBUG
+    com.github.fabiankevin: DEBUG
