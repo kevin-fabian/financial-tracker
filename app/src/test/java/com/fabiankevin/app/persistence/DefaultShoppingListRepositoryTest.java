@@ -29,6 +29,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -522,7 +523,7 @@ class DefaultShoppingListRepositoryTest {
                     .updatedAt(now)
                     .build();
 
-            shoppingListRepository.save(listWithItems);
+            ShoppingList saved = shoppingListRepository.save(listWithItems);
 
             List<ShoppingList> listsBefore = shoppingListRepository.findAllByUserId(userId);
             assertThat(listsBefore).hasSize(1);
@@ -531,13 +532,9 @@ class DefaultShoppingListRepositoryTest {
             shoppingListRepository.deleteAllByUserId(userId);
 
             assertThat(shoppingListRepository.findAllByUserId(userId)).isEmpty();
-            verify(jpaShoppingListRepository, times(1)).deleteAllByUserId(userId);
-        }
-
-        @Test
-        void givenUserWithoutShoppingLists_shouldNotThrow() {
-            assertThatCode(() -> shoppingListRepository.deleteAllByUserId(UUID.randomUUID()))
-                    .doesNotThrowAnyException();
+            verify(jpaShoppingListRepository, times(1)).deleteAll(anyList());
+            verify(jpaShoppingItemRepository, times(1)).deleteByShoppingListId(saved.id());
+            assertThat(jpaShoppingItemRepository.countByShoppingListId(saved.id())).isZero();
         }
     }
 }

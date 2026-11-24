@@ -107,7 +107,7 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .updatedBy(User.of(command.userId()))
                 .build();
 
-        ShoppingList saved = shoppingListRepository.save(completed);
+        ShoppingList saved = shoppingListRepository.update(completed);
         ShoppingListSummary summary = toSummary(saved);
         publishEvent(saved, EventAction.SHOPPING_LIST_COMPLETED, command.userId().toString(), summary);
         return summary;
@@ -141,7 +141,7 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .build();
 
         ShoppingList saved = shoppingListRepository.update(patched);
-        ShoppingListSummary summary = toSummary(saved, category);
+        ShoppingListSummary summary = toSummary(saved);
         publishEvent(saved, EventAction.SHOPPING_LIST_UPDATED, saved.userId().toString(), summary);
         return summary;
     }
@@ -228,16 +228,10 @@ public class DefaultShoppingListService implements ShoppingListService {
                 .map(item -> item.id().equals(command.itemId()) ? patched : item)
                 .toList();
 
-        ShoppingList updated = existing.toBuilder()
+        ShoppingList shoppingListWithUpdateItems = existing.toBuilder()
                 .items(updatedItems)
-                .updatedAt(Instant.now())
                 .build();
-
-        ShoppingList saved = shoppingListRepository.update(updated);
-        ShoppingItem savedItem = saved.items().stream()
-                .filter(item -> item.id().equals(command.itemId()))
-                .findFirst()
-                .orElseThrow();
+        ShoppingItem savedItem = shoppingItemRepository.update(patched, existing.id());
 
         User user = userClient.getUsersByIds(List.of(savedItem.addedBy()))
                 .stream()
@@ -246,8 +240,8 @@ public class DefaultShoppingListService implements ShoppingListService {
 
         ShoppingItemSummary result = toItemSummary(savedItem, user);
 
-        publishEvent(saved, EventAction.ITEM_UPDATED, saved.userId().toString(),
-                toSummary(saved));
+        publishEvent(shoppingListWithUpdateItems, EventAction.ITEM_UPDATED, shoppingListWithUpdateItems.userId().toString(),
+                toSummary(shoppingListWithUpdateItems));
         return result;
     }
 
@@ -256,6 +250,7 @@ public class DefaultShoppingListService implements ShoppingListService {
     public void deleteShoppingItem(DeleteShoppingItemCommand command) {
         ShoppingList existing = shoppingListRepository.findById(command.shoppingListId())
                 .orElseThrow(ShoppingListNotFoundException::new);
+        UUID itemId = command.itemId();
 
         if (!existing.userId().equals(command.userId())) {
             throw new ShoppingListNotFoundException();
@@ -265,14 +260,10 @@ public class DefaultShoppingListService implements ShoppingListService {
             throw new ShoppingItemNotFoundException();
         }
 
-        ShoppingList updated = existing.toBuilder()
-                .updatedAt(Instant.now())
-                .build();
+        shoppingItemRepository.deleteById(itemId);
 
-        ShoppingList saved = shoppingListRepository.update(updated);
-
-        publishEvent(saved, EventAction.ITEM_REMOVED, saved.userId().toString(),
-                toSummary(saved));
+        publishEvent(existing, EventAction.ITEM_REMOVED, existing.userId().toString(),
+                toSummary(existing));
     }
 
     @Transactional
@@ -372,16 +363,6 @@ public class DefaultShoppingListService implements ShoppingListService {
         Map<UUID, User> usersById = userClient.getUsersByIds(new ArrayList<>(userIds)).stream()
                 .collect(Collectors.toMap(User::id, Function.identity()));
         return toSummary(shoppingList, usersById, usersById.get(shoppingList.userId()));
-    }
-
-    private ShoppingListSummary toSummary(ShoppingList shoppingList, Category category) {
-        Set<UUID> userIds = new java.util.HashSet<>();
-        shoppingList.items().forEach(item -> userIds.add(item.addedBy()));
-        userIds.add(shoppingList.userId());
-        Map<UUID, User> usersById = userClient.getUsersByIds(new ArrayList<>(userIds)).stream()
-                .collect(Collectors.toMap(User::id, Function.identity()));
-        ShoppingList restored = shoppingList.toBuilder().category(category).build();
-        return toSummary(restored, usersById, usersById.get(shoppingList.userId()));
     }
 
     private void publishEvent(ShoppingList shoppingList, EventAction action, String actorId, ShoppingListSummary summary) {

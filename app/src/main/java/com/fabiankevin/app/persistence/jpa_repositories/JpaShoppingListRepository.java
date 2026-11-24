@@ -20,6 +20,9 @@ public interface JpaShoppingListRepository extends JpaRepository<ShoppingListEnt
             """)
     List<ShoppingListEntity> findAllByUserId(@Param("userId") UUID userId);
 
+    @Query("SELECT sl FROM ShoppingListEntity sl WHERE sl.userId = :userId")
+    List<ShoppingListEntity> findOwnedByUserId(@Param("userId") UUID userId);
+
     @EntityGraph(attributePaths = {"items", "category"})
     @Query("""
             SELECT DISTINCT sl FROM ShoppingListEntity sl

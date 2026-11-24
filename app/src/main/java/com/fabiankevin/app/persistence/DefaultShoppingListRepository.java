@@ -35,6 +35,7 @@ public class DefaultShoppingListRepository implements ShoppingListRepository {
         entity.setId(Optional.ofNullable(shoppingList.id()).orElse(UUID.randomUUID()));
         entityManager.persist(entity);
         for (ShoppingItemEntity item : entity.getItems()) {
+            item.setShoppingListId(Optional.ofNullable(shoppingList.id()).orElse(UUID.randomUUID()));
             entityManager.persist(item);
         }
 
@@ -96,6 +97,11 @@ public class DefaultShoppingListRepository implements ShoppingListRepository {
     @Override
     @Transactional
     public void deleteAllByUserId(UUID userId) {
+        List<ShoppingListEntity> ownedLists = jpaShoppingListRepository.findOwnedByUserId(userId);
+        for (ShoppingListEntity entity : ownedLists) {
+            jpaShoppingItemRepository.deleteByShoppingListId(entity.getId());
+        }
+        jpaShoppingListRepository.deleteAll(ownedLists);
         jpaShoppingListRepository.deleteAllByUserId(userId);
     }
 }

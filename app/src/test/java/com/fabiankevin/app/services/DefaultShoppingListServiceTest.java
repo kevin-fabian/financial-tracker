@@ -379,6 +379,9 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
+            when(shoppingItemRepository.save(any(ShoppingItem.class), any(UUID.class))).thenAnswer(invocation ->
+                    ((ShoppingItem) invocation.getArgument(0)).toBuilder().id(UUID.randomUUID()).build()
+            );
             when(shoppingListRepository.update(any())).thenAnswer(invocation -> {
                 ShoppingList s = invocation.getArgument(0);
                 List<ShoppingItem> items = new ArrayList<>(s.items());
@@ -407,10 +410,10 @@ class DefaultShoppingListServiceTest {
             assertNotNull(added.createdAt(), "createdAt should not be null");
             assertNotNull(added.updatedAt(), "updatedAt should not be null");
 
-            ArgumentCaptor<ShoppingList> captor = ArgumentCaptor.forClass(ShoppingList.class);
-            verify(shoppingListRepository, times(1)).update(captor.capture());
-            assertEquals(1, captor.getValue().items().size(), "list should contain the added item");
-            assertEquals("Milk", captor.getValue().items().getFirst().name());
+            ArgumentCaptor<ShoppingItem> captor = ArgumentCaptor.forClass(ShoppingItem.class);
+            verify(shoppingItemRepository, times(1)).save(captor.capture(), eq(shoppingListId));
+            ShoppingItem savedItem = captor.getValue();
+            assertEquals("Milk", savedItem.name(), "saved item name should match");
             verify(shoppingListEventPublisher, never()).publish(any(), any());
         }
 
@@ -443,6 +446,9 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
+            when(shoppingItemRepository.save(any(ShoppingItem.class), any(UUID.class))).thenAnswer(invocation ->
+                    ((ShoppingItem) invocation.getArgument(0)).toBuilder().id(UUID.randomUUID()).build()
+            );
             when(shoppingListRepository.update(any())).thenAnswer(invocation -> {
                 ShoppingList s = invocation.getArgument(0);
                 List<ShoppingItem> items = new ArrayList<>(s.items());
@@ -514,6 +520,9 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
+            when(shoppingItemRepository.save(any(ShoppingItem.class), any(UUID.class))).thenAnswer(invocation ->
+                    ((ShoppingItem) invocation.getArgument(0)).toBuilder().id(UUID.randomUUID()).build()
+            );
             when(shoppingListRepository.update(any())).thenAnswer(invocation -> {
                 ShoppingList s = invocation.getArgument(0);
                 return s.toBuilder().items(new ArrayList<>(s.items())).build();
@@ -538,10 +547,9 @@ class DefaultShoppingListServiceTest {
             assertNotNull(added.createdAt(), "createdAt should not be null");
             assertNotNull(added.updatedAt(), "updatedAt should not be null");
 
-            ArgumentCaptor<ShoppingList> captor = ArgumentCaptor.forClass(ShoppingList.class);
-            verify(shoppingListRepository, times(1)).update(captor.capture());
-            ShoppingList savedList = captor.getValue();
-            assertEquals(2, savedList.items().size(), "list should contain both existing and new item");
+            ArgumentCaptor<ShoppingItem> captor = ArgumentCaptor.forClass(ShoppingItem.class);
+            verify(shoppingItemRepository, times(1)).save(captor.capture(), eq(shoppingListId));
+            assertEquals("Milk", captor.getValue().name(), "saved item name should match");
 
             // Event publisher should receive the full list summary (all items) for shared users
             verify(shoppingListEventPublisher, times(1)).publish(
@@ -1648,7 +1656,6 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
-            when(shoppingListRepository.update(any())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(any())).thenReturn(List.of(
                     User.builder().id(userId).firstName("John").lastName("Doe").build(),
                     User.builder().id(addedBy).firstName("Jane").lastName("Smith").build()
@@ -1656,12 +1663,8 @@ class DefaultShoppingListServiceTest {
 
             shoppingListService.deleteShoppingItem(command);
 
-            // verify repository save with updated items
-            ArgumentCaptor<ShoppingList> captor = ArgumentCaptor.forClass(ShoppingList.class);
-            verify(shoppingListRepository, times(1)).update(captor.capture());
-            ShoppingList savedList = captor.getValue();
-            assertEquals(1, savedList.items().size(), "list should contain remaining item");
-            assertEquals("Bread", savedList.items().getFirst().name(), "remaining item should be Bread");
+            // verify item was deleted from item repository
+            verify(shoppingItemRepository, times(1)).deleteById(itemId);
 
             // verify event published with ITEM_REMOVED action
             verify(shoppingListEventPublisher, times(1)).publish(
@@ -1728,7 +1731,6 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
-            when(shoppingListRepository.update(any())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(any())).thenReturn(List.of(
                     User.builder().id(userId).firstName("John").lastName("Doe").build(),
                     User.builder().id(addedBy).firstName("Jane").lastName("Smith").build()
@@ -1736,12 +1738,8 @@ class DefaultShoppingListServiceTest {
 
             shoppingListService.deleteShoppingItem(command);
 
-            // Verify repository save with remaining items
-            ArgumentCaptor<ShoppingList> captor = ArgumentCaptor.forClass(ShoppingList.class);
-            verify(shoppingListRepository, times(1)).update(captor.capture());
-            ShoppingList savedList = captor.getValue();
-            assertEquals(1, savedList.items().size(), "list should contain remaining item");
-            assertEquals("Bread", savedList.items().getFirst().name(), "remaining item should be Bread");
+            // verify item was deleted from item repository
+            verify(shoppingItemRepository, times(1)).deleteById(itemId);
 
             // Event publisher should receive the full list summary (all remaining items) for shared users
             verify(shoppingListEventPublisher, times(1)).publish(
@@ -1810,7 +1808,6 @@ class DefaultShoppingListServiceTest {
                     .build();
 
             when(shoppingListRepository.findById(shoppingListId)).thenReturn(Optional.of(existing));
-            when(shoppingListRepository.update(any())).thenAnswer(invocation -> invocation.getArgument(0));
             when(userClient.getUsersByIds(any())).thenReturn(List.of(
                     User.builder().id(userId).firstName("John").lastName("Doe").build(),
                     User.builder().id(addedBy).firstName("Jane").lastName("Smith").build()
@@ -1818,12 +1815,8 @@ class DefaultShoppingListServiceTest {
 
             shoppingListService.deleteShoppingItem(command);
 
-            // Verify repository save with remaining items
-            ArgumentCaptor<ShoppingList> captor = ArgumentCaptor.forClass(ShoppingList.class);
-            verify(shoppingListRepository, times(1)).update(captor.capture());
-            ShoppingList savedList = captor.getValue();
-            assertEquals(1, savedList.items().size(), "list should contain remaining item");
-            assertEquals("Bread", savedList.items().getFirst().name(), "remaining item should be Bread");
+            // verify item was deleted from item repository
+            verify(shoppingItemRepository, times(1)).deleteById(itemId);
 
             // Event published to all shared users
             verify(shoppingListEventPublisher, times(2)).publish(any(), any());
