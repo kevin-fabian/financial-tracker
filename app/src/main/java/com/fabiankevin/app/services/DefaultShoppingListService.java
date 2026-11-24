@@ -260,6 +260,7 @@ public class DefaultShoppingListService implements ShoppingListService {
             throw new ShoppingItemNotFoundException();
         }
 
+        shoppingListRepository.update(existing);
         shoppingItemRepository.deleteById(itemId);
 
         publishEvent(existing, EventAction.ITEM_REMOVED, existing.userId().toString(),
