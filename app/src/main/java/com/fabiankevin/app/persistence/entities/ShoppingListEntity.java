@@ -5,6 +5,7 @@ import com.fabiankevin.app.models.User;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
 import com.fabiankevin.app.models.shopping_list.ShoppingList;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -19,13 +20,13 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -37,6 +38,7 @@ import java.util.UUID;
 @Entity
 public class ShoppingListEntity {
     @Id
+    @EqualsAndHashCode.Include
     private UUID id;
 
     @Column(name = "name")
@@ -82,7 +84,7 @@ public class ShoppingListEntity {
     @Column(name = "updated_by")
     private UUID updatedBy;
 
-    @OneToMany
+    @OneToMany(mappedBy = "shoppingList", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ShoppingItemEntity> items = new HashSet<>();
 
     public static ShoppingListEntity from(ShoppingList shoppingList) {
@@ -103,12 +105,16 @@ public class ShoppingListEntity {
                 .updatedBy(shoppingList.updatedBy() != null ? shoppingList.updatedBy().id() : null)
                 .items(new HashSet<>())
                 .build();
+
         for (ShoppingItem item : shoppingList.items()) {
-            ShoppingItemEntity itemEntity = ShoppingItemEntity.from(item, shoppingList.id());
-            itemEntity.setId(Optional.ofNullable(itemEntity.getId()).orElse(UUID.randomUUID()));
-            entity.getItems().add(itemEntity);
+            entity.addItem(ShoppingItemEntity.from(item));
         }
         return entity;
+    }
+
+    public void addItem(ShoppingItemEntity item) {
+        items.add(item);
+        item.setShoppingList(this);
     }
 
     public ShoppingList toModel() {

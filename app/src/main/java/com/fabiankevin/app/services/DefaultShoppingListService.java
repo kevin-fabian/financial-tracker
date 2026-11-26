@@ -170,7 +170,7 @@ public class DefaultShoppingListService implements ShoppingListService {
 
         existing.addItem(item);
 
-        ShoppingItem savedItem = shoppingItemRepository.save(item, existing.id());
+        ShoppingItem savedItem = shoppingItemRepository.save(item, existing);
 
         User user = userClient.getUsersByIds(List.of(savedItem.addedBy()))
                 .stream()
@@ -231,7 +231,7 @@ public class DefaultShoppingListService implements ShoppingListService {
         ShoppingList shoppingListWithUpdateItems = existing.toBuilder()
                 .items(updatedItems)
                 .build();
-        ShoppingItem savedItem = shoppingItemRepository.update(patched, existing.id());
+        ShoppingItem savedItem = shoppingItemRepository.update(patched, shoppingListWithUpdateItems);
 
         User user = userClient.getUsersByIds(List.of(savedItem.addedBy()))
                 .stream()

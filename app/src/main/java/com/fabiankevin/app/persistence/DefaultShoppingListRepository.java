@@ -33,11 +33,10 @@ public class DefaultShoppingListRepository implements ShoppingListRepository {
         }
         ShoppingListEntity entity = ShoppingListEntity.from(shoppingList);
         entity.setId(Optional.ofNullable(shoppingList.id()).orElse(UUID.randomUUID()));
-        entityManager.persist(entity);
         for (ShoppingItemEntity item : entity.getItems()) {
-            item.setShoppingListId(Optional.ofNullable(shoppingList.id()).orElse(UUID.randomUUID()));
-            entityManager.persist(item);
+            item.setId(Optional.ofNullable(shoppingList.id()).orElse(UUID.randomUUID()));
         }
+        entityManager.persist(entity);
 
         return entity.toModel();
     }
@@ -48,10 +47,7 @@ public class DefaultShoppingListRepository implements ShoppingListRepository {
         if (shoppingList == null) {
             throw new InvalidDataAccessApiUsageException("ShoppingList must not be null");
         }
-        Optional.ofNullable(shoppingList.id())
-                .orElseThrow(() -> new IllegalArgumentException("ShoppingList id must not be null for update"));
-        ShoppingListEntity saved = jpaShoppingListRepository.save(ShoppingListEntity.from(shoppingList));
-        return saved.toModel();
+        return jpaShoppingListRepository.save(ShoppingListEntity.from(shoppingList)).toModel();
     }
 
     @Transactional(readOnly = true)

@@ -1,6 +1,7 @@
 package com.fabiankevin.app.persistence.jpa_repositories;
 
 import com.fabiankevin.app.persistence.entities.ShoppingItemEntity;
+import org.jspecify.annotations.NonNull;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Set;
@@ -13,5 +14,5 @@ public interface JpaShoppingItemRepository extends JpaRepository<ShoppingItemEnt
 
     void deleteByShoppingListId(UUID shoppingListId);
 
-    void deleteById(UUID id);
+    void deleteById(@NonNull UUID id);
 }

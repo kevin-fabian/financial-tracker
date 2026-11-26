@@ -1,8 +1,11 @@
 package com.fabiankevin.app.persistence;
 
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
+import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.persistence.entities.ShoppingItemEntity;
+import com.fabiankevin.app.persistence.entities.ShoppingListEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaShoppingItemRepository;
+import com.fabiankevin.app.persistence.jpa_repositories.JpaShoppingListRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
@@ -18,15 +21,18 @@ import java.util.stream.Collectors;
 @Repository
 public class DefaultShoppingItemRepository implements ShoppingItemRepository {
     private final JpaShoppingItemRepository jpaShoppingItemRepository;
+    private final JpaShoppingListRepository jpaShoppingListRepository;
     private final EntityManager entityManager;
 
     @Override
     @Transactional
-    public ShoppingItem save(ShoppingItem shoppingItem, UUID shoppingListId) {
+    public ShoppingItem save(ShoppingItem shoppingItem, ShoppingList shoppingList) {
         if (shoppingItem == null) {
             throw new InvalidDataAccessApiUsageException("ShoppingItem must not be null");
         }
-        ShoppingItemEntity entity = ShoppingItemEntity.from(shoppingItem, shoppingListId);
+        ShoppingItemEntity entity = ShoppingItemEntity.from(shoppingItem);
+        ShoppingListEntity list = ShoppingListEntity.from(shoppingList);
+        entity.setShoppingList(list);
         entity.setId(Optional.ofNullable(entity.getId()).orElse(UUID.randomUUID()));
         entityManager.persist(entity);
         return entity.toModel();
@@ -34,11 +40,13 @@ public class DefaultShoppingItemRepository implements ShoppingItemRepository {
 
     @Override
     @Transactional
-    public ShoppingItem update(ShoppingItem shoppingItem, UUID shoppingListId) {
+    public ShoppingItem update(ShoppingItem shoppingItem, ShoppingList shoppingList) {
         if (shoppingItem == null) {
             throw new InvalidDataAccessApiUsageException("ShoppingItem must not be null");
         }
-        ShoppingItemEntity entity = ShoppingItemEntity.from(shoppingItem, shoppingListId);
+        ShoppingItemEntity entity = ShoppingItemEntity.from(shoppingItem);
+        ShoppingListEntity list = ShoppingListEntity.from(shoppingList);
+        entity.setShoppingList(list);
         return jpaShoppingItemRepository.save(entity).toModel();
     }
 

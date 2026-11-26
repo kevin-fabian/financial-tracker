@@ -3,6 +3,7 @@ package com.fabiankevin.app.persistence;
 import com.fabiankevin.app.models.enums.ItemPriority;
 import com.fabiankevin.app.models.enums.ShoppingListStatus;
 import com.fabiankevin.app.models.shopping_list.ShoppingItem;
+import com.fabiankevin.app.models.shopping_list.ShoppingList;
 import com.fabiankevin.app.persistence.entities.ShoppingListEntity;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaShoppingItemRepository;
 import com.fabiankevin.app.persistence.jpa_repositories.JpaShoppingListRepository;
@@ -50,21 +51,30 @@ class DefaultShoppingItemRepositoryTest {
     private JpaShoppingListRepository shoppingListJpaRepository;
 
     private ShoppingItem shoppingItem;
-    private UUID shoppingListId;
+    private ShoppingList shoppingList;
 
     @TestConfiguration
     public static class ContextConfiguration {
         @Bean
-        public ShoppingItemRepository shoppingItemRepository(JpaShoppingItemRepository jpaShoppingItemRepository, jakarta.persistence.EntityManager entityManager) {
-            return new DefaultShoppingItemRepository(jpaShoppingItemRepository, entityManager);
+        public ShoppingItemRepository shoppingItemRepository(JpaShoppingItemRepository jpaShoppingItemRepository, JpaShoppingListRepository jpaShoppingListRepository, jakarta.persistence.EntityManager entityManager) {
+            return new DefaultShoppingItemRepository(jpaShoppingItemRepository, jpaShoppingListRepository, entityManager);
         }
     }
 
     @BeforeEach
     void setUp() {
-        shoppingListId = UUID.randomUUID();
+        UUID listId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         Instant now = Instant.now();
+
+        shoppingList = ShoppingList.builder()
+                .id(listId)
+                .name("Test List")
+                .status(ShoppingListStatus.ACTIVE)
+                .userId(userId)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
 
         shoppingItem = ShoppingItem.builder()
                 .id(null)
@@ -87,7 +97,9 @@ class DefaultShoppingItemRepositoryTest {
 
         @Test
         void givenValidShoppingItem_shouldPersistAndRetrieveAllFields() {
-            ShoppingItem saved = shoppingItemRepository.save(shoppingItem, shoppingListId);
+            shoppingListJpaRepository.saveAndFlush(toShoppingListEntity(shoppingList));
+
+            ShoppingItem saved = shoppingItemRepository.save(shoppingItem, shoppingList);
 
             assertThat(saved.id()).isNotNull();
             assertThat(saved.name()).isEqualTo("Milk");
@@ -103,17 +115,19 @@ class DefaultShoppingItemRepositoryTest {
             assertThat(saved.updatedAt()).isNotNull();
 
             var found = jpaShoppingItemRepository.findById(saved.id()).orElseThrow();
-            assertThat(found.getShoppingListId()).isEqualTo(shoppingListId);
+            assertThat(found.getShoppingList().getId()).isEqualTo(shoppingList.id());
         }
 
         @Test
         void givenNullShoppingItem_shouldThrowInvalidDataAccessApiUsageException() {
-            assertThatThrownBy(() -> shoppingItemRepository.save(null, UUID.randomUUID()))
+            assertThatThrownBy(() -> shoppingItemRepository.save(null, shoppingList))
                     .isInstanceOf(InvalidDataAccessApiUsageException.class);
         }
 
         @Test
         void givenShoppingItemWithExplicitId_shouldUseThatId() {
+            shoppingListJpaRepository.saveAndFlush(toShoppingListEntity(shoppingList));
+
             UUID explicitId = UUID.randomUUID();
             ShoppingItem itemWithId = ShoppingItem.builder()
                     .id(explicitId)
@@ -130,12 +144,12 @@ class DefaultShoppingItemRepositoryTest {
                     .updatedAt(Instant.now())
                     .build();
 
-            ShoppingItem saved = shoppingItemRepository.save(itemWithId, shoppingListId);
+            ShoppingItem saved = shoppingItemRepository.save(itemWithId, shoppingList);
 
             assertThat(saved.id()).isEqualTo(explicitId);
 
             var found = jpaShoppingItemRepository.findById(explicitId).orElseThrow();
-            assertThat(found.getShoppingListId()).isEqualTo(shoppingListId);
+            assertThat(found.getShoppingList().getId()).isEqualTo(shoppingList.id());
         }
     }
 
@@ -144,18 +158,8 @@ class DefaultShoppingItemRepositoryTest {
 
         @Test
         void givenExistingItemWithChanges_shouldPersistUpdatedFields() {
-            UUID userId = UUID.randomUUID();
-            Instant now = Instant.now();
-
-            ShoppingListEntity shoppingList = ShoppingListEntity.builder()
-                    .id(shoppingListId)
-                    .name("Test List")
-                    .status(ShoppingListStatus.ACTIVE)
-                    .userId(userId)
-                    .createdAt(now)
-                    .updatedAt(now)
-                    .build();
-            shoppingListJpaRepository.saveAndFlush(shoppingList);
+            shoppingListJpaRepository.saveAndFlush(toShoppingListEntity(shoppingList));
+            reset(jpaShoppingItemRepository);
 
             ShoppingItem item = ShoppingItem.builder()
                     .id(null)
@@ -167,11 +171,11 @@ class DefaultShoppingItemRepositoryTest {
                     .purchased(false)
                     .priority(ItemPriority.HIGH)
                     .notes(null)
-                    .addedBy(userId)
-                    .createdAt(now)
-                    .updatedAt(now)
+                    .addedBy(shoppingList.userId())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
                     .build();
-            ShoppingItem saved = shoppingItemRepository.save(item, shoppingListId);
+            ShoppingItem saved = shoppingItemRepository.save(item, shoppingList);
 
             ShoppingItem updated = ShoppingItem.builder()
                     .id(saved.id())
@@ -183,12 +187,12 @@ class DefaultShoppingItemRepositoryTest {
                     .purchased(true)
                     .priority(ItemPriority.MEDIUM)
                     .notes("Organic")
-                    .addedBy(userId)
+                    .addedBy(shoppingList.userId())
                     .createdAt(saved.createdAt())
                     .updatedAt(Instant.now())
                     .build();
 
-            ShoppingItem result = shoppingItemRepository.update(updated, shoppingListId);
+            ShoppingItem result = shoppingItemRepository.update(updated, shoppingList);
 
             assertThat(result.id()).isEqualTo(saved.id());
             assertThat(result.name()).isEqualTo("Whole Milk");
@@ -201,12 +205,12 @@ class DefaultShoppingItemRepositoryTest {
             assertThat(result.notes()).isEqualTo("Organic");
 
             var found = jpaShoppingItemRepository.findById(saved.id()).orElseThrow();
-            assertThat(found.getShoppingListId()).isEqualTo(shoppingListId);
+            assertThat(found.getShoppingList().getId()).isEqualTo(shoppingList.id());
         }
 
         @Test
         void givenNullItem_shouldThrowInvalidDataAccessApiUsageException() {
-            assertThatThrownBy(() -> shoppingItemRepository.update(null, UUID.randomUUID()))
+            assertThatThrownBy(() -> shoppingItemRepository.update(null, shoppingList))
                     .isInstanceOf(InvalidDataAccessApiUsageException.class);
         }
     }
@@ -216,18 +220,7 @@ class DefaultShoppingItemRepositoryTest {
 
         @Test
         void givenExistingShoppingListId_shouldReturnAllItemsForThatList() {
-            UUID userId = UUID.randomUUID();
-            Instant now = Instant.now();
-
-            ShoppingListEntity shoppingList = ShoppingListEntity.builder()
-                    .id(shoppingListId)
-                    .name("Test List")
-                    .status(ShoppingListStatus.ACTIVE)
-                    .userId(userId)
-                    .createdAt(now)
-                    .updatedAt(now)
-                    .build();
-            shoppingListJpaRepository.saveAndFlush(shoppingList);
+            shoppingListJpaRepository.saveAndFlush(toShoppingListEntity(shoppingList));
             reset(jpaShoppingItemRepository);
 
             ShoppingItem apples = ShoppingItem.builder()
@@ -240,9 +233,9 @@ class DefaultShoppingItemRepositoryTest {
                     .purchased(false)
                     .priority(ItemPriority.LOW)
                     .notes(null)
-                    .addedBy(userId)
-                    .createdAt(now)
-                    .updatedAt(now)
+                    .addedBy(shoppingList.userId())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
                     .build();
             ShoppingItem cheese = ShoppingItem.builder()
                     .id(null)
@@ -254,14 +247,14 @@ class DefaultShoppingItemRepositoryTest {
                     .purchased(true)
                     .priority(ItemPriority.MEDIUM)
                     .notes("Cheddar")
-                    .addedBy(userId)
-                    .createdAt(now)
-                    .updatedAt(now)
+                    .addedBy(shoppingList.userId())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
                     .build();
-            shoppingItemRepository.save(apples, shoppingListId);
-            shoppingItemRepository.save(cheese, shoppingListId);
+            shoppingItemRepository.save(apples, shoppingList);
+            shoppingItemRepository.save(cheese, shoppingList);
 
-            Set<ShoppingItem> result = shoppingItemRepository.findByShoppingListId(shoppingListId);
+            Set<ShoppingItem> result = shoppingItemRepository.findByShoppingListId(shoppingList.id());
 
             assertThat(result).hasSize(2);
             assertThat(result).extracting(ShoppingItem::name)
@@ -295,15 +288,15 @@ class DefaultShoppingItemRepositoryTest {
             UUID userId = UUID.randomUUID();
             Instant now = Instant.now();
 
-            ShoppingListEntity list1 = ShoppingListEntity.builder()
-                    .id(shoppingListId)
+            ShoppingListEntity list1Entity = ShoppingListEntity.builder()
+                    .id(shoppingList.id())
                     .name("List 1")
                     .status(ShoppingListStatus.ACTIVE)
                     .userId(userId)
                     .createdAt(now)
                     .updatedAt(now)
                     .build();
-            ShoppingListEntity list2 = ShoppingListEntity.builder()
+            ShoppingListEntity list2Entity = ShoppingListEntity.builder()
                     .id(anotherListId)
                     .name("List 2")
                     .status(ShoppingListStatus.ACTIVE)
@@ -311,8 +304,8 @@ class DefaultShoppingItemRepositoryTest {
                     .createdAt(now)
                     .updatedAt(now)
                     .build();
-            shoppingListJpaRepository.saveAndFlush(list1);
-            shoppingListJpaRepository.saveAndFlush(list2);
+            shoppingListJpaRepository.saveAndFlush(list1Entity);
+            shoppingListJpaRepository.saveAndFlush(list2Entity);
             reset(jpaShoppingItemRepository);
 
             ShoppingItem list1Item = ShoppingItem.builder()
@@ -345,10 +338,18 @@ class DefaultShoppingItemRepositoryTest {
                     .updatedAt(now)
                     .build();
 
-            shoppingItemRepository.save(list1Item, shoppingListId);
-            shoppingItemRepository.save(list2Item, anotherListId);
+            shoppingItemRepository.save(list1Item, shoppingList);
+            ShoppingList secondList = ShoppingList.builder()
+                    .id(anotherListId)
+                    .name("List 2")
+                    .status(ShoppingListStatus.ACTIVE)
+                    .userId(userId)
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+            shoppingItemRepository.save(list2Item, secondList);
 
-            Set<ShoppingItem> result = shoppingItemRepository.findByShoppingListId(shoppingListId);
+            Set<ShoppingItem> result = shoppingItemRepository.findByShoppingListId(shoppingList.id());
 
             assertThat(result).hasSize(1);
             assertThat(result).extracting(ShoppingItem::name)
@@ -361,18 +362,7 @@ class DefaultShoppingItemRepositoryTest {
 
         @Test
         void givenShoppingListWithItems_shouldReturnCorrectCount() {
-            UUID userId = UUID.randomUUID();
-            Instant now = Instant.now();
-
-            ShoppingListEntity shoppingList = ShoppingListEntity.builder()
-                    .id(shoppingListId)
-                    .name("Test List")
-                    .status(ShoppingListStatus.ACTIVE)
-                    .userId(userId)
-                    .createdAt(now)
-                    .updatedAt(now)
-                    .build();
-            shoppingListJpaRepository.saveAndFlush(shoppingList);
+            shoppingListJpaRepository.saveAndFlush(toShoppingListEntity(shoppingList));
             reset(jpaShoppingItemRepository);
 
             ShoppingItem item1 = ShoppingItem.builder()
@@ -385,9 +375,9 @@ class DefaultShoppingItemRepositoryTest {
                     .purchased(false)
                     .priority(ItemPriority.HIGH)
                     .notes(null)
-                    .addedBy(userId)
-                    .createdAt(now)
-                    .updatedAt(now)
+                    .addedBy(shoppingList.userId())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
                     .build();
             ShoppingItem item2 = ShoppingItem.builder()
                     .id(null)
@@ -399,9 +389,9 @@ class DefaultShoppingItemRepositoryTest {
                     .purchased(false)
                     .priority(ItemPriority.LOW)
                     .notes(null)
-                    .addedBy(userId)
-                    .createdAt(now)
-                    .updatedAt(now)
+                    .addedBy(shoppingList.userId())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
                     .build();
             ShoppingItem item3 = ShoppingItem.builder()
                     .id(null)
@@ -413,23 +403,23 @@ class DefaultShoppingItemRepositoryTest {
                     .purchased(true)
                     .priority(ItemPriority.MEDIUM)
                     .notes(null)
-                    .addedBy(userId)
-                    .createdAt(now)
-                    .updatedAt(now)
+                    .addedBy(shoppingList.userId())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
                     .build();
 
-            shoppingItemRepository.save(item1, shoppingListId);
-            shoppingItemRepository.save(item2, shoppingListId);
-            shoppingItemRepository.save(item3, shoppingListId);
+            shoppingItemRepository.save(item1, shoppingList);
+            shoppingItemRepository.save(item2, shoppingList);
+            shoppingItemRepository.save(item3, shoppingList);
 
-            long count = shoppingItemRepository.countByShoppingListId(shoppingListId);
+            long count = shoppingItemRepository.countByShoppingListId(shoppingList.id());
 
             assertThat(count).isEqualTo(3);
         }
 
         @Test
         void givenShoppingListWithNoItems_shouldReturnZero() {
-            long count = shoppingItemRepository.countByShoppingListId(shoppingListId);
+            long count = shoppingItemRepository.countByShoppingListId(shoppingList.id());
 
             assertThat(count).isZero();
         }
@@ -440,18 +430,7 @@ class DefaultShoppingItemRepositoryTest {
 
         @Test
         void givenExistingItemId_shouldDeleteThatItem() {
-            UUID userId = UUID.randomUUID();
-            Instant now = Instant.now();
-
-            ShoppingListEntity shoppingList = ShoppingListEntity.builder()
-                    .id(shoppingListId)
-                    .name("Test List")
-                    .status(ShoppingListStatus.ACTIVE)
-                    .userId(userId)
-                    .createdAt(now)
-                    .updatedAt(now)
-                    .build();
-            shoppingListJpaRepository.saveAndFlush(shoppingList);
+            shoppingListJpaRepository.saveAndFlush(toShoppingListEntity(shoppingList));
             reset(jpaShoppingItemRepository);
 
             ShoppingItem item = ShoppingItem.builder()
@@ -464,18 +443,18 @@ class DefaultShoppingItemRepositoryTest {
                     .purchased(false)
                     .priority(ItemPriority.HIGH)
                     .notes(null)
-                    .addedBy(userId)
-                    .createdAt(now)
-                    .updatedAt(now)
+                    .addedBy(shoppingList.userId())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
                     .build();
-            ShoppingItem saved = shoppingItemRepository.save(item, shoppingListId);
+            ShoppingItem saved = shoppingItemRepository.save(item, shoppingList);
             UUID itemId = saved.id();
 
-            assertThat(shoppingItemRepository.findByShoppingListId(shoppingListId)).hasSize(1);
+            assertThat(shoppingItemRepository.findByShoppingListId(shoppingList.id())).hasSize(1);
 
             shoppingItemRepository.deleteById(itemId);
 
-            assertThat(shoppingItemRepository.findByShoppingListId(shoppingListId)).isEmpty();
+            assertThat(shoppingItemRepository.findByShoppingListId(shoppingList.id())).isEmpty();
             verify(jpaShoppingItemRepository, times(1)).deleteById(itemId);
         }
 
@@ -491,18 +470,7 @@ class DefaultShoppingItemRepositoryTest {
 
         @Test
         void givenShoppingListWithItems_shouldDeleteAllItems() {
-            UUID userId = UUID.randomUUID();
-            Instant now = Instant.now();
-
-            ShoppingListEntity shoppingList = ShoppingListEntity.builder()
-                    .id(shoppingListId)
-                    .name("Test List")
-                    .status(ShoppingListStatus.ACTIVE)
-                    .userId(userId)
-                    .createdAt(now)
-                    .updatedAt(now)
-                    .build();
-            shoppingListJpaRepository.saveAndFlush(shoppingList);
+            shoppingListJpaRepository.saveAndFlush(toShoppingListEntity(shoppingList));
             reset(jpaShoppingItemRepository);
 
             ShoppingItem item1 = ShoppingItem.builder()
@@ -515,9 +483,9 @@ class DefaultShoppingItemRepositoryTest {
                     .purchased(false)
                     .priority(ItemPriority.HIGH)
                     .notes(null)
-                    .addedBy(userId)
-                    .createdAt(now)
-                    .updatedAt(now)
+                    .addedBy(shoppingList.userId())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
                     .build();
             ShoppingItem item2 = ShoppingItem.builder()
                     .id(null)
@@ -529,23 +497,23 @@ class DefaultShoppingItemRepositoryTest {
                     .purchased(false)
                     .priority(ItemPriority.LOW)
                     .notes(null)
-                    .addedBy(userId)
-                    .createdAt(now)
-                    .updatedAt(now)
+                    .addedBy(shoppingList.userId())
+                    .createdAt(Instant.now())
+                    .updatedAt(Instant.now())
                     .build();
 
-            shoppingItemRepository.save(item1, shoppingListId);
-            shoppingItemRepository.save(item2, shoppingListId);
+            shoppingItemRepository.save(item1, shoppingList);
+            shoppingItemRepository.save(item2, shoppingList);
 
-            assertThat(shoppingItemRepository.findByShoppingListId(shoppingListId)).hasSize(2);
-            assertThat(shoppingItemRepository.countByShoppingListId(shoppingListId)).isEqualTo(2);
+            assertThat(shoppingItemRepository.findByShoppingListId(shoppingList.id())).hasSize(2);
+            assertThat(shoppingItemRepository.countByShoppingListId(shoppingList.id())).isEqualTo(2);
 
-            shoppingItemRepository.deleteByShoppingListId(shoppingListId);
+            shoppingItemRepository.deleteByShoppingListId(shoppingList.id());
 
-            assertThat(shoppingItemRepository.findByShoppingListId(shoppingListId)).isEmpty();
-            assertThat(shoppingItemRepository.countByShoppingListId(shoppingListId)).isZero();
+            assertThat(shoppingItemRepository.findByShoppingListId(shoppingList.id())).isEmpty();
+            assertThat(shoppingItemRepository.countByShoppingListId(shoppingList.id())).isZero();
 
-            verify(jpaShoppingItemRepository, times(1)).deleteByShoppingListId(shoppingListId);
+            verify(jpaShoppingItemRepository, times(1)).deleteByShoppingListId(shoppingList.id());
         }
 
         @Test
@@ -553,5 +521,16 @@ class DefaultShoppingItemRepositoryTest {
             assertThatCode(() -> shoppingItemRepository.deleteByShoppingListId(UUID.randomUUID()))
                     .doesNotThrowAnyException();
         }
+    }
+
+    private ShoppingListEntity toShoppingListEntity(ShoppingList shoppingList) {
+        return ShoppingListEntity.builder()
+                .id(shoppingList.id())
+                .name(shoppingList.name())
+                .status(shoppingList.status())
+                .userId(shoppingList.userId())
+                .createdAt(shoppingList.createdAt())
+                .updatedAt(shoppingList.updatedAt())
+                .build();
     }
 }

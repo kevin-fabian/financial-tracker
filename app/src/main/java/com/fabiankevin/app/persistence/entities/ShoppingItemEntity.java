@@ -7,15 +7,21 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import java.time.Instant;
 import java.util.UUID;
 
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(exclude = {"shoppingList"})
 @Builder(toBuilder = true)
 @Data
 @AllArgsConstructor
@@ -24,6 +30,7 @@ import java.util.UUID;
 @Entity
 public class ShoppingItemEntity {
     @Id
+    @EqualsAndHashCode.Include
     private UUID id;
 
     @Column(name = "name")
@@ -60,10 +67,11 @@ public class ShoppingItemEntity {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
-    @Column(name = "shopping_list_id", nullable = false)
-    private UUID shoppingListId;
+    @ManyToOne
+    @JoinColumn(name = "shopping_list_id", nullable = false, referencedColumnName = "id")
+    private ShoppingListEntity shoppingList;
 
-    public static ShoppingItemEntity from(ShoppingItem item, UUID shoppingListId) {
+    public static ShoppingItemEntity from(ShoppingItem item) {
         if (item == null) return null;
         return ShoppingItemEntity.builder()
                 .id(item.id())
@@ -78,7 +86,6 @@ public class ShoppingItemEntity {
                 .addedBy(item.addedBy())
                 .createdAt(item.createdAt())
                 .updatedAt(item.updatedAt())
-                .shoppingListId(shoppingListId)
                 .build();
     }
 

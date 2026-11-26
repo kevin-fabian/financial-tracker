@@ -235,9 +235,6 @@ class DefaultShoppingListRepositoryTest {
                     .build();
 
             ShoppingListEntity entity = ShoppingListEntity.from(shoppingList);
-            for (com.fabiankevin.app.persistence.entities.ShoppingItemEntity itemEntity : entity.getItems()) {
-                jpaShoppingItemRepository.save(itemEntity);
-            }
             ShoppingListEntity savedEntity = jpaShoppingListRepository.save(entity);
 
             ShoppingList updated = ShoppingList.builder()
