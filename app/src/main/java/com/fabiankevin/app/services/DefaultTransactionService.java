@@ -26,7 +26,7 @@ import com.fabiankevin.app.services.commands.PatchTransactionCommand;
 import com.fabiankevin.app.services.queries.PageQuery;
 import com.fabiankevin.app.services.queries.SummaryQuery;
 import com.fabiankevin.app.services.summaries.SummaryGenerator;
-import com.fabiankevin.app.web.controllers.dtos.transactions.TransactionResponse;
+import com.fabiankevin.app.transactions.web.dtos.TransactionResponse;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 

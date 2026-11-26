@@ -1,17 +1,17 @@
-package com.fabiankevin.app.web.controllers;
+package com.fabiankevin.app.transactions.web;
 
 import com.fabiankevin.app.models.Page;
 import com.fabiankevin.app.models.Transaction;
 import com.fabiankevin.app.models.enums.TransactionType;
 import com.fabiankevin.app.services.TransactionService;
 import com.fabiankevin.app.services.queries.PageQuery;
+import com.fabiankevin.app.transactions.web.dtos.CreateBatchTransactionsRequest;
+import com.fabiankevin.app.transactions.web.dtos.CreateTransactionRequest;
+import com.fabiankevin.app.transactions.web.dtos.PatchTransactionRequest;
+import com.fabiankevin.app.transactions.web.dtos.TransactionResponse;
 import com.fabiankevin.app.web.controllers.dtos.PageResponse;
 import com.fabiankevin.app.web.controllers.dtos.SummaryRequest;
 import com.fabiankevin.app.web.controllers.dtos.SummarySeriesResponse;
-import com.fabiankevin.app.web.controllers.dtos.transactions.CreateBatchTransactionsRequest;
-import com.fabiankevin.app.web.controllers.dtos.transactions.CreateTransactionRequest;
-import com.fabiankevin.app.web.controllers.dtos.transactions.PatchTransactionRequest;
-import com.fabiankevin.app.web.controllers.dtos.transactions.TransactionResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;

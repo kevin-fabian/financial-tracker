@@ -1,4 +1,4 @@
-package com.fabiankevin.app.web.controllers.dtos.transactions;
+package com.fabiankevin.app.transactions.web.dtos;
 
 import com.fabiankevin.app.accounts.web.dtos.AccountResponse;
 import com.fabiankevin.app.categories.web.dtos.CategoryResponse;

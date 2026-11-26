@@ -1,4 +1,4 @@
-package com.fabiankevin.app.web.controllers.dtos.transactions;
+package com.fabiankevin.app.transactions.web.dtos;
 
 import com.fabiankevin.app.services.commands.PatchTransactionCommand;
 import io.swagger.v3.oas.annotations.media.Schema;

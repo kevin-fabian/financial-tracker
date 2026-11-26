@@ -12,7 +12,7 @@ import com.fabiankevin.app.services.queries.SummaryQuery;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType;
 import com.fabiankevin.app.sync_devices.domain.services.SyncChangeService;
 import com.fabiankevin.app.sync_devices.domain.services.commands.CreateSyncChangeCommand;
-import com.fabiankevin.app.web.controllers.dtos.transactions.TransactionResponse;
+import com.fabiankevin.app.transactions.web.dtos.TransactionResponse;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.json.JsonMapper;
@@ -47,8 +47,9 @@ public class SyncChangeAwareTransactionService implements TransactionService {
     @Override
     public Transaction addTransaction(final AddTransactionCommand command) {
         final Transaction result = delegate.addTransaction(command);
+        final UUID userId = result.account().user().id();
         syncChangeService.create(CreateSyncChangeCommand.builder()
-                .userId(command.userId())
+                .userId(userId)
                 .entityType(EntityType.TRANSACTIONS)
                 .entityId(result.id())
                 .operation(SyncChangeOperationType.CREATE)
@@ -71,8 +72,9 @@ public class SyncChangeAwareTransactionService implements TransactionService {
     @Override
     public Transaction patchTransaction(final PatchTransactionCommand command) {
         final Transaction result = delegate.patchTransaction(command);
+        final UUID userId = result.account().user().id();
         syncChangeService.create(CreateSyncChangeCommand.builder()
-                .userId(command.userId())
+                .userId(userId)
                 .entityType(EntityType.TRANSACTIONS)
                 .entityId(result.id())
                 .operation(SyncChangeOperationType.UPDATE)

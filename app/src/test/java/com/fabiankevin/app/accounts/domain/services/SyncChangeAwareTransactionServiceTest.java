@@ -18,7 +18,7 @@ import com.fabiankevin.app.services.queries.SummaryQuery;
 import com.fabiankevin.app.sync_devices.domain.models.SyncChangeOperationType;
 import com.fabiankevin.app.sync_devices.domain.services.SyncChangeService;
 import com.fabiankevin.app.sync_devices.domain.services.commands.CreateSyncChangeCommand;
-import com.fabiankevin.app.web.controllers.dtos.transactions.TransactionResponse;
+import com.fabiankevin.app.transactions.web.dtos.TransactionResponse;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -111,7 +111,7 @@ class SyncChangeAwareTransactionServiceTest {
             ArgumentCaptor<CreateSyncChangeCommand> captor = ArgumentCaptor.forClass(CreateSyncChangeCommand.class);
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
-            assertThat(change.userId()).isEqualTo(userId);
+            assertThat(change.userId()).isEqualTo(transaction.account().user().id());
             assertThat(change.entityType()).isEqualTo(EntityType.TRANSACTIONS);
             assertThat(change.entityId()).isEqualTo(transactionId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.CREATE);
@@ -246,7 +246,7 @@ class SyncChangeAwareTransactionServiceTest {
             ArgumentCaptor<CreateSyncChangeCommand> captor = ArgumentCaptor.forClass(CreateSyncChangeCommand.class);
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
-            assertThat(change.userId()).isEqualTo(userId);
+            assertThat(change.userId()).isEqualTo(transaction.account().user().id());
             assertThat(change.entityType()).isEqualTo(EntityType.TRANSACTIONS);
             assertThat(change.entityId()).isEqualTo(transactionId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.UPDATE);

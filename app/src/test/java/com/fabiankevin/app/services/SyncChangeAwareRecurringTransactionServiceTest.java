@@ -112,7 +112,7 @@ class SyncChangeAwareRecurringTransactionServiceTest {
             ArgumentCaptor<CreateSyncChangeCommand> captor = ArgumentCaptor.forClass(CreateSyncChangeCommand.class);
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
-            assertThat(change.userId()).isEqualTo(userId);
+            assertThat(change.userId()).isEqualTo(expected.account().user().id());
             assertThat(change.entityType()).isEqualTo(EntityType.RECURRING_TRANSACTIONS);
             assertThat(change.entityId()).isEqualTo(recurringTransactionId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.CREATE);
@@ -261,7 +261,7 @@ class SyncChangeAwareRecurringTransactionServiceTest {
             ArgumentCaptor<CreateSyncChangeCommand> captor = ArgumentCaptor.forClass(CreateSyncChangeCommand.class);
             verify(syncChangeService, times(1)).create(captor.capture());
             CreateSyncChangeCommand change = captor.getValue();
-            assertThat(change.userId()).isEqualTo(userId);
+            assertThat(change.userId()).isEqualTo(expected.account().user().id());
             assertThat(change.entityType()).isEqualTo(EntityType.RECURRING_TRANSACTIONS);
             assertThat(change.entityId()).isEqualTo(recurringTransactionId);
             assertThat(change.operation()).isEqualTo(SyncChangeOperationType.UPDATE);

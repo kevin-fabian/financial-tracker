@@ -34,8 +34,9 @@ public class SyncChangeAwareRecurringTransactionService implements RecurringTran
     @Transactional
     public RecurringTransactionSummary create(final CreateRecurringTransactionCommand command) {
         final RecurringTransactionSummary result = delegate.create(command);
+        final UUID userId = result.account().user().id();
         syncChangeService.create(CreateSyncChangeCommand.builder()
-                .userId(command.userId())
+                .userId(userId)
                 .entityType(EntityType.RECURRING_TRANSACTIONS)
                 .entityId(result.id())
                 .operation(SyncChangeOperationType.CREATE)
@@ -48,8 +49,9 @@ public class SyncChangeAwareRecurringTransactionService implements RecurringTran
     @Transactional
     public RecurringTransactionSummary updateRecurringTransaction(final UpdateRecurringTransactionCommand command) {
         final RecurringTransactionSummary result = delegate.updateRecurringTransaction(command);
+        final UUID userId = result.account().user().id();
         syncChangeService.create(CreateSyncChangeCommand.builder()
-                .userId(command.userId())
+                .userId(userId)
                 .entityType(EntityType.RECURRING_TRANSACTIONS)
                 .entityId(result.id())
                 .operation(SyncChangeOperationType.UPDATE)
