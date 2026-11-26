@@ -34,7 +34,7 @@ public class DefaultShoppingListRepository implements ShoppingListRepository {
         ShoppingListEntity entity = ShoppingListEntity.from(shoppingList);
         entity.setId(Optional.ofNullable(shoppingList.id()).orElse(UUID.randomUUID()));
         for (ShoppingItemEntity item : entity.getItems()) {
-            item.setId(Optional.ofNullable(shoppingList.id()).orElse(UUID.randomUUID()));
+            item.setId(Optional.ofNullable(item.getId()).orElse(UUID.randomUUID()));
         }
         entityManager.persist(entity);
 
